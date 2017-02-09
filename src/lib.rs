@@ -40,7 +40,6 @@ mod widget;
 use std::error;
 use std::fmt::{self, Display, Formatter};
 use std::io;
-use std::rc::Rc;
 
 use futures::Stream;
 use relm_core::{Core, EventStream};
@@ -92,25 +91,27 @@ impl From<()> for Error {
     }
 }
 
-pub struct Relm<M, W> {
-    core: Core<M, W>,
+pub struct Relm<M> {
+    core: Core<M>,
 }
 
-impl<M: Clone + 'static, W: 'static> Relm<M, W> {
-    pub fn run<D: Widget<M, W> + 'static>(mut widget: D) -> Result<(), Error> {
+impl<M: Clone + 'static> Relm<M> {
+    pub fn run<D: Widget<M> + 'static>() -> Result<(), Error> {
         gtk::init()?;
-        let widgets = Rc::new(widget.view());
+
         let mut relm = Relm {
-            core: Core::new(widgets.clone())?,
+            core: Core::new()?,
         };
-        widget.connect_events(&relm, widgets);
+
+        let mut widget = D::new();
+        widget.connect_events(&relm);
 
         let handle = relm.core.handle();
         let event_future = {
             let stream = relm.stream().clone();
             let quit_future = relm.core.quit_future().clone();
-            stream.for_each(move |(event, widgets)| {
-                widget.update(event, widgets, &quit_future);
+            stream.for_each(move |event| {
+                widget.update(event, &quit_future);
                 Ok(())
             })
         };
@@ -120,7 +121,7 @@ impl<M: Clone + 'static, W: 'static> Relm<M, W> {
         Ok(())
     }
 
-    pub fn stream(&self) -> &EventStream<M, Rc<W>> {
+    pub fn stream(&self) -> &EventStream<M> {
         self.core.stream()
     }
 }

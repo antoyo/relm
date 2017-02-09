@@ -19,18 +19,16 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::rc::Rc;
-
 use super::{QuitFuture, Relm};
 
 /// Trait to implement to manage widget's events.
-pub trait Widget<M, W> {
+pub trait Widget<M> {
     /// Connect the events in this method.
-    fn connect_events(&self, relm: &Relm<M, W>, widgets: Rc<W>);
+    fn connect_events(&self, relm: &Relm<M>);
+
+    /// Create the widget.
+    fn new() -> Self;
 
     /// Method called when a message is received from an event.
-    fn update(&mut self, event: M, widgets: Rc<W>, quit_future: &QuitFuture);
-
-    /// Initial view.
-    fn view(&self) -> W;
+    fn update(&mut self, event: M, quit_future: &QuitFuture);
 }

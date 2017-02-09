@@ -34,18 +34,18 @@ use futures::{Async, Future, Poll, Stream};
 use futures::task::{self, Task};
 use tokio_core::reactor::{self, Handle};
 
-pub struct Core<M, W> {
+pub struct Core<M> {
     core: reactor::Core,
     quit_future: QuitFuture,
-    stream: EventStream<M, Rc<W>>,
+    stream: EventStream<M>,
 }
 
-impl<M, W> Core<M, W> {
-    pub fn new(widgets: Rc<W>) -> Result<Self, Error> {
+impl<M> Core<M> {
+    pub fn new() -> Result<Self, Error> {
         Ok(Core {
             core: reactor::Core::new()?,
             quit_future: QuitFuture::new(),
-            stream: EventStream::new(widgets),
+            stream: EventStream::new(),
         })
     }
 
@@ -67,7 +67,7 @@ impl<M, W> Core<M, W> {
         }
     }
 
-    pub fn stream(&self) -> &EventStream<M, Rc<W>> {
+    pub fn stream(&self) -> &EventStream<M> {
         &self.stream
     }
 }
@@ -104,18 +104,16 @@ impl Future for QuitFuture {
 }
 
 #[derive(Clone)]
-pub struct EventStream<T, W: Clone> {
+pub struct EventStream<T> {
     events: Rc<MsQueue<T>>,
     task: Rc<RefCell<Option<Task>>>,
-    widgets: W,
 }
 
-impl<T, W: Clone> EventStream<T, W> {
-    fn new(widgets: W) -> Self {
+impl<T> EventStream<T> {
+    fn new() -> Self {
         EventStream {
             events: Rc::new(MsQueue::new()),
             task: Rc::new(RefCell::new(None)),
-            widgets: widgets,
         }
     }
 
@@ -131,15 +129,15 @@ impl<T, W: Clone> EventStream<T, W> {
     }
 }
 
-impl<T, W: Clone> Stream for EventStream<T, W> {
-    type Item = (T, W);
+impl<T> Stream for EventStream<T> {
+    type Item = T;
     type Error = ();
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         match self.get_event() {
             Some(event) => {
                 *self.task.borrow_mut() = None;
-                Ok(Async::Ready(Some((event, self.widgets.clone()))))
+                Ok(Async::Ready(Some(event)))
             },
             None => {
                 *self.task.borrow_mut() = Some(task::park());

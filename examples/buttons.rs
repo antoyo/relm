@@ -23,8 +23,6 @@ extern crate gtk;
 #[macro_use]
 extern crate relm;
 
-use std::rc::Rc;
-
 use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
 use relm::{QuitFuture, Relm, Widget};
@@ -52,46 +50,13 @@ struct Widgets {
 
 struct Win {
     model: Model,
+    widgets: Widgets,
 }
 
 impl Win {
-    fn new() -> Self {
-        Win {
-            model: Model {
-                counter: 0,
-            },
-        }
-    }
-}
-
-impl Widget<Msg, Widgets> for Win {
-    fn connect_events(&self, relm: &Relm<Msg, Widgets>, widgets: Rc<Widgets>) {
-        connect!(relm, widgets.plus_button, connect_clicked(_), Increment);
-        connect!(relm, widgets.minus_button, connect_clicked(_), Decrement);
-        connect_no_inhibit!(relm, widgets.window, connect_delete_event(_, _), Quit);
-    }
-
-    // TODO: return a singleton QuitFuture instead of send it as a parameter.
-    // TODO: store the widgets in this struct.
-    fn update(&mut self, event: Msg, widgets: Rc<Widgets>, quit_future: &QuitFuture) {
-        let label = &widgets.counter_label;
-
-        match event {
-            Decrement => {
-                self.model.counter -= 1;
-                label.set_text(&self.model.counter.to_string());
-            },
-            Increment => {
-                self.model.counter += 1;
-                label.set_text(&self.model.counter.to_string());
-            },
-            Quit => quit_future.quit(),
-        }
-    }
-
     // TODO: create an attribute (or procedural macro) to have the ability to generate a view from
     // a declarative structure.
-    fn view(&self) -> Widgets {
+    fn view() -> Widgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -118,7 +83,40 @@ impl Widget<Msg, Widgets> for Win {
     }
 }
 
+impl Widget<Msg> for Win {
+    fn connect_events(&self, relm: &Relm<Msg>) {
+        connect!(relm, self.widgets.plus_button, connect_clicked(_), Increment);
+        connect!(relm, self.widgets.minus_button, connect_clicked(_), Decrement);
+        connect_no_inhibit!(relm, self.widgets.window, connect_delete_event(_, _), Quit);
+    }
+
+    fn new() -> Self {
+        Win {
+            model: Model {
+                counter: 0,
+            },
+            widgets: Self::view(),
+        }
+    }
+
+    // TODO: return a singleton QuitFuture instead of send it as a parameter.
+    fn update(&mut self, event: Msg, quit_future: &QuitFuture) {
+        let label = &self.widgets.counter_label;
+
+        match event {
+            Decrement => {
+                self.model.counter -= 1;
+                label.set_text(&self.model.counter.to_string());
+            },
+            Increment => {
+                self.model.counter += 1;
+                label.set_text(&self.model.counter.to_string());
+            },
+            Quit => quit_future.quit(),
+        }
+    }
+}
+
 fn main() {
-    let window = Win::new();
-    Relm::run(window).unwrap();
+    Relm::run::<Win>().unwrap();
 }
