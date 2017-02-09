@@ -1,0 +1,14 @@
+[package]
+authors = ["Antoni Boucher <bouanto@zoho.com>"]
+name = "relm-core"
+version = "0.1.0"
+
+[dependencies]
+crossbeam = "^0.2.10"
+futures = "^0.1.10"
+gtk = "^0.1.1"
+tokio-core = "^0.1.4"
+
+[dev-dependencies]
+chrono = "^0.3.0"
+tokio-timer = "^0.1.0"
