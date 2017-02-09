@@ -50,39 +50,43 @@ struct Widgets {
     window: Window,
 }
 
-struct Win;
+struct Win {
+    model: Model,
+}
 
-impl Widget<Msg, Model, Widgets> for Win {
-    fn connect_events(&self, relm: &Relm<Msg, Model, Widgets>, widgets: Rc<Widgets>) {
+impl Win {
+    fn new() -> Self {
+        Win {
+            model: Model {
+                counter: 0,
+            },
+        }
+    }
+}
+
+impl Widget<Msg, Widgets> for Win {
+    fn connect_events(&self, relm: &Relm<Msg, Widgets>, widgets: Rc<Widgets>) {
         connect!(relm, widgets.plus_button, connect_clicked(_), Increment);
         connect!(relm, widgets.minus_button, connect_clicked(_), Decrement);
         connect_no_inhibit!(relm, widgets.window, connect_delete_event(_, _), Quit);
     }
 
-    fn model(&self) -> Model {
-        Model {
-            counter: 0,
-        }
-    }
-
     // TODO: return a singleton QuitFuture instead of send it as a parameter.
-    // TODO: store the model and the widgets in this struct.
-    fn update(&self, event: Msg, mut model: Model, widgets: Rc<Widgets>, quit_future: &QuitFuture) -> Model {
+    // TODO: store the widgets in this struct.
+    fn update(&mut self, event: Msg, widgets: Rc<Widgets>, quit_future: &QuitFuture) {
         let label = &widgets.counter_label;
 
         match event {
             Decrement => {
-                model.counter -= 1;
-                label.set_text(&model.counter.to_string());
+                self.model.counter -= 1;
+                label.set_text(&self.model.counter.to_string());
             },
             Increment => {
-                model.counter += 1;
-                label.set_text(&model.counter.to_string());
+                self.model.counter += 1;
+                label.set_text(&self.model.counter.to_string());
             },
             Quit => quit_future.quit(),
         }
-
-        model
     }
 
     // TODO: create an attribute (or procedural macro) to have the ability to generate a view from
@@ -115,6 +119,6 @@ impl Widget<Msg, Model, Widgets> for Win {
 }
 
 fn main() {
-    let window = Win;
+    let window = Win::new();
     Relm::run(window).unwrap();
 }

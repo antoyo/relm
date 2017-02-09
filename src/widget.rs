@@ -24,15 +24,12 @@ use std::rc::Rc;
 use super::{QuitFuture, Relm};
 
 /// Trait to implement to manage widget's events.
-pub trait Widget<M, O, W> {
+pub trait Widget<M, W> {
     /// Connect the events in this method.
-    fn connect_events(&self, relm: &Relm<M, O, W>, widgets: Rc<W>);
-
-    /// Initial model.
-    fn model(&self) -> O;
+    fn connect_events(&self, relm: &Relm<M, W>, widgets: Rc<W>);
 
     /// Method called when a message is received from an event.
-    fn update(&self, event: M, model: O, widgets: Rc<W>, quit_future: &QuitFuture) -> O;
+    fn update(&mut self, event: M, widgets: Rc<W>, quit_future: &QuitFuture);
 
     /// Initial view.
     fn view(&self) -> W;

@@ -37,7 +37,6 @@ extern crate relm_core;
 mod macros;
 mod widget;
 
-use std::cell::RefCell;
 use std::error;
 use std::fmt::{self, Display, Formatter};
 use std::io;
@@ -93,18 +92,16 @@ impl From<()> for Error {
     }
 }
 
-pub struct Relm<M, O, W> {
+pub struct Relm<M, W> {
     core: Core<M, W>,
-    model: Rc<RefCell<O>>,
 }
 
-impl<M: Clone + 'static, O: Clone + 'static, W: 'static> Relm<M, O, W> {
-    pub fn run<D: Widget<M, O, W> + 'static>(widget: D) -> Result<(), Error> {
+impl<M: Clone + 'static, W: 'static> Relm<M, W> {
+    pub fn run<D: Widget<M, W> + 'static>(mut widget: D) -> Result<(), Error> {
         gtk::init()?;
         let widgets = Rc::new(widget.view());
         let mut relm = Relm {
             core: Core::new(widgets.clone())?,
-            model: Rc::new(RefCell::new(widget.model())),
         };
         widget.connect_events(&relm, widgets);
 
@@ -112,10 +109,8 @@ impl<M: Clone + 'static, O: Clone + 'static, W: 'static> Relm<M, O, W> {
         let event_future = {
             let stream = relm.stream().clone();
             let quit_future = relm.core.quit_future().clone();
-            let model = relm.model.clone();
             stream.for_each(move |(event, widgets)| {
-                let value = model.borrow().clone();
-                *model.borrow_mut() = widget.update(event, value, widgets, &quit_future);
+                widget.update(event, widgets, &quit_future);
                 Ok(())
             })
         };
