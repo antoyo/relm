@@ -41,11 +41,11 @@ pub struct Core<M, W> {
 }
 
 impl<M, W> Core<M, W> {
-    pub fn new(widgets: W) -> Result<Self, Error> {
+    pub fn new(widgets: Rc<W>) -> Result<Self, Error> {
         Ok(Core {
             core: reactor::Core::new()?,
             quit_future: QuitFuture::new(),
-            stream: EventStream::new(Rc::new(widgets)),
+            stream: EventStream::new(widgets),
         })
     }
 

@@ -25,13 +25,14 @@ extern crate gtk;
 extern crate relm_core;
 extern crate tokio_timer;
 
+use std::rc::Rc;
 use std::time::Duration;
 
 use chrono::Local;
 use futures::Stream;
 use gtk::{Button, ButtonExt, ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm_core::Core;
+use relm_core::{Core, EventStream};
 use tokio_timer::Timer;
 
 use self::Msg::*;
@@ -63,10 +64,10 @@ fn main() {
     let counter_label = Label::new(Some("0"));
     vbox.add(&counter_label);
 
-    let widgets = Widgets {
+    let widgets = Rc::new(Widgets {
         clock_label: clock_label,
         counter_label: counter_label,
-    };
+    });
 
     let mut core = Core::new(widgets).unwrap();
 
@@ -110,7 +111,7 @@ fn main() {
     };
 
     let event_future = {
-        let stream = core.stream().clone();
+        let stream: EventStream<Msg, Rc<Widgets>> = core.stream().clone();
         let quit_future = core.quit_future().clone();
         stream.for_each(move |(event, widgets)| {
             fn adjust(label: &Label, delta: i32) {
