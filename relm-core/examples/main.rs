@@ -25,7 +25,6 @@ extern crate gtk;
 extern crate relm_core;
 extern crate tokio_timer;
 
-use std::rc::Rc;
 use std::time::Duration;
 
 use chrono::Local;
@@ -64,12 +63,12 @@ fn main() {
     let counter_label = Label::new(Some("0"));
     vbox.add(&counter_label);
 
-    let widgets = Rc::new(Widgets {
+    let widgets = Widgets {
         clock_label: clock_label,
         counter_label: counter_label,
-    });
+    };
 
-    let mut core = Core::new(widgets).unwrap();
+    let mut core = Core::new().unwrap();
 
     let window = Window::new(WindowType::Toplevel);
     window.add(&vbox);
@@ -111,9 +110,9 @@ fn main() {
     };
 
     let event_future = {
-        let stream: EventStream<Msg, Rc<Widgets>> = core.stream().clone();
+        let stream: EventStream<Msg> = core.stream().clone();
         let quit_future = core.quit_future().clone();
-        stream.for_each(move |(event, widgets)| {
+        stream.for_each(move |event| {
             fn adjust(label: &Label, delta: i32) {
                 if let Some(text) = label.get_text() {
                     let num: i32 = text.parse().unwrap();
