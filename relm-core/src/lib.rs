@@ -21,10 +21,14 @@
 
 extern crate crossbeam;
 extern crate futures;
+#[macro_use]
+extern crate lazy_static;
 extern crate gtk;
 extern crate tokio_core;
 
-use std::cell::{Cell, RefCell};
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::Relaxed;
+use std::cell::RefCell;
 use std::io::Error;
 use std::rc::Rc;
 use std::time::Duration;
@@ -36,7 +40,6 @@ use tokio_core::reactor::{self, Handle};
 
 pub struct Core<M> {
     core: reactor::Core,
-    quit_future: QuitFuture,
     stream: EventStream<M>,
 }
 
@@ -44,7 +47,6 @@ impl<M> Core<M> {
     pub fn new() -> Result<Self, Error> {
         Ok(Core {
             core: reactor::Core::new()?,
-            quit_future: QuitFuture::new(),
             stream: EventStream::new(),
         })
     }
@@ -53,12 +55,8 @@ impl<M> Core<M> {
         self.core.handle()
     }
 
-    pub fn quit_future(&self) -> &QuitFuture {
-        &self.quit_future
-    }
-
     pub fn run(&mut self) {
-        while self.quit_future.poll() == Ok(Async::NotReady) {
+        while !QUITTED.load(Relaxed) {
             self.core.turn(Some(Duration::from_millis(10)));
 
             if gtk::events_pending() {
@@ -72,34 +70,19 @@ impl<M> Core<M> {
     }
 }
 
-#[derive(Clone)]
-pub struct QuitFuture {
-    quitted: Rc<Cell<bool>>,
+lazy_static! {
+    static ref QUITTED: AtomicBool = AtomicBool::new(false);
 }
 
-impl QuitFuture {
-    fn new() -> Self {
-        QuitFuture {
-            quitted: Rc::new(Cell::new(false)),
-        }
-    }
-
-    pub fn quit(&self) {
-        self.quitted.set(true);
-    }
-}
+pub struct QuitFuture;
 
 impl Future for QuitFuture {
     type Item = ();
     type Error = ();
 
     fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
-        if self.quitted.get() {
-            Ok(Async::Ready(()))
-        }
-        else {
-            Ok(Async::NotReady)
-        }
+        QUITTED.store(true, Relaxed);
+        Ok(Async::Ready(()))
     }
 }
 

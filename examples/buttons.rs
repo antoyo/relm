@@ -19,13 +19,16 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+extern crate futures;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 
+use futures::Future;
+use futures::future::ok;
 use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm::{QuitFuture, Relm, Widget};
+use relm::{QuitFuture, Relm, UnitFuture, Widget};
 
 use self::Msg::*;
 
@@ -99,8 +102,7 @@ impl Widget<Msg> for Win {
         }
     }
 
-    // TODO: return a singleton QuitFuture instead of send it as a parameter.
-    fn update(&mut self, event: Msg, quit_future: &QuitFuture) {
+    fn update(&mut self, event: Msg) -> UnitFuture {
         let label = &self.widgets.counter_label;
 
         match event {
@@ -112,8 +114,10 @@ impl Widget<Msg> for Win {
                 self.model.counter += 1;
                 label.set_text(&self.model.counter.to_string());
             },
-            Quit => quit_future.quit(),
+            Quit => return QuitFuture.boxed(),
         }
+
+        ok(()).boxed()
     }
 }
 

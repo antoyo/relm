@@ -31,7 +31,7 @@ use chrono::Local;
 use futures::Stream;
 use gtk::{Button, ButtonExt, ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm_core::{Core, EventStream};
+use relm_core::{Core, EventStream, QuitFuture};
 use tokio_timer::Timer;
 
 use self::Msg::*;
@@ -111,7 +111,7 @@ fn main() {
 
     let event_future = {
         let stream: EventStream<Msg> = core.stream().clone();
-        let quit_future = core.quit_future().clone();
+        let handle = core.handle();
         stream.for_each(move |event| {
             fn adjust(label: &Label, delta: i32) {
                 if let Some(text) = label.get_text() {
@@ -128,7 +128,7 @@ fn main() {
                 },
                 Decrement => adjust(&widgets.counter_label, -1),
                 Increment => adjust(&widgets.counter_label, 1),
-                Quit => quit_future.quit(),
+                Quit => handle.spawn(QuitFuture),
             }
             Ok(())
         })

@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use super::{QuitFuture, Relm};
+use super::{UnitFuture, Relm};
 
 /// Trait to implement to manage widget's events.
 pub trait Widget<M> {
@@ -30,5 +30,5 @@ pub trait Widget<M> {
     fn new() -> Self;
 
     /// Method called when a message is received from an event.
-    fn update(&mut self, event: M, quit_future: &QuitFuture);
+    fn update(&mut self, event: M) -> UnitFuture;
 }

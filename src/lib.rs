@@ -43,10 +43,12 @@ use std::io;
 
 use futures::Stream;
 use relm_core::{Core, EventStream};
-
 pub use relm_core::QuitFuture;
+
 pub use self::Error::*;
 pub use self::widget::*;
+
+pub type UnitFuture = futures::BoxFuture<(), ()>;
 
 #[derive(Debug)]
 pub enum Error {
@@ -109,9 +111,10 @@ impl<M: Clone + 'static> Relm<M> {
         let handle = relm.core.handle();
         let event_future = {
             let stream = relm.stream().clone();
-            let quit_future = relm.core.quit_future().clone();
+            let handle = relm.core.handle();
             stream.for_each(move |event| {
-                widget.update(event, &quit_future);
+                let future = widget.update(event);
+                handle.spawn(future);
                 Ok(())
             })
         };
