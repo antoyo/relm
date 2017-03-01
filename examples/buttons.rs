@@ -28,7 +28,7 @@ use futures::Future;
 use futures::future::ok;
 use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm::{QuitFuture, Relm, UnitFuture, Widget};
+use relm::{Handle, QuitFuture, Relm, UnitFuture, Widget};
 
 use self::Msg::*;
 
@@ -102,7 +102,7 @@ impl Widget<Msg> for Win {
         }
     }
 
-    fn update(&mut self, event: Msg) -> UnitFuture {
+    fn update(&mut self, event: Msg, _handle: Handle) -> UnitFuture {
         let label = &self.widgets.counter_label;
 
         match event {

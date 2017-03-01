@@ -1,7 +1,7 @@
 [package]
+authors = ["Antoni Boucher <bouanto@zoho.com>"]
 name = "relm"
 version = "0.1.0"
-authors = ["Antoni Boucher <bouanto@zoho.com>"]
 
 [dependencies]
 futures = "^0.1.10"
@@ -9,3 +9,7 @@ gtk = "^0.1.1"
 
 [dependencies.relm-core]
 path = "relm-core"
+
+[dev-dependencies]
+tokio-core = "^0.1.4"
+url = "^1.4.0"

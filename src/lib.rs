@@ -20,6 +20,7 @@
  */
 
 /*
+ * TODO: add Cargo categories.
  * TODO: use macros 2.0 instead for the:
  * * view: to create the dependencies between the view items and the model.
  * * model: to add boolean fields in an inner struct specifying which parts of the view to update
@@ -28,7 +29,10 @@
  * * create default values for gtk widgets (like Label::new(None)).
  * * create attributes for constructor gtk widgets (like orientation for Box::new(orientation)).
  * TODO: optionnaly multi-threaded.
+ * TODO: Use two update functions (one for errors, one for success/normal behavior).
  */
+
+#![feature(conservative_impl_trait)]
 
 extern crate futures;
 extern crate gtk;
@@ -41,9 +45,9 @@ use std::error;
 use std::fmt::{self, Display, Formatter};
 use std::io;
 
-use futures::Stream;
-use relm_core::{Core, EventStream};
-pub use relm_core::QuitFuture;
+use futures::{Future, Stream};
+use relm_core::Core;
+pub use relm_core::{EventStream, Handle, QuitFuture};
 
 pub use self::Error::*;
 pub use self::widget::*;
@@ -111,9 +115,10 @@ impl<M: Clone + 'static> Relm<M> {
         let handle = relm.core.handle();
         let event_future = {
             let stream = relm.stream().clone();
+            let stream2 = stream.clone();
             let handle = relm.core.handle();
             stream.for_each(move |event| {
-                let future = widget.update(event);
+                let future = widget.update(event, handle.clone(), stream2.clone());
                 handle.spawn(future);
                 Ok(())
             })
@@ -127,4 +132,17 @@ impl<M: Clone + 'static> Relm<M> {
     pub fn stream(&self) -> &EventStream<M> {
         self.core.stream()
     }
+}
+
+pub fn connect<F, C, M>(future: F, callback: C, stream: EventStream<M>) -> impl Future<Item=(), Error=()>
+    where C: Fn(F::Item) -> M,
+          F: Future,
+          M: Clone
+{
+    future.and_then(move |result| {
+        stream.emit(callback(result));
+        Ok(())
+    })
+        // TODO: handle errors.
+        .map_err(|_| ())
 }
