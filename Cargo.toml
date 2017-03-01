@@ -2,6 +2,7 @@
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 name = "relm"
 version = "0.1.0"
+categories = ["asynchronous", "gui"]
 
 [dependencies]
 futures = "^0.1.10"
