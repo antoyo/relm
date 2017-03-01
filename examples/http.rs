@@ -22,7 +22,9 @@
 #![feature(conservative_impl_trait)]
 
 extern crate futures;
+extern crate gdk_pixbuf;
 extern crate gtk;
+extern crate json;
 #[macro_use]
 extern crate relm;
 extern crate tokio_core;
@@ -33,6 +35,7 @@ use std::net::ToSocketAddrs;
 
 use futures::Future;
 use futures::future::ok;
+use gdk_pixbuf::PixbufLoader;
 use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
 use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, Widget, connect};
@@ -49,9 +52,9 @@ struct Model {
 
 #[derive(Clone)]
 enum Msg {
-    FetchImage,
     FetchUrl,
-    NewGif(String),
+    NewGif(Vec<u8>),
+    NewImage(Vec<u8>),
     Quit,
 }
 
@@ -102,26 +105,38 @@ impl Widget<Msg> for Win {
     }
 
     fn new() -> Self {
+        let model = Model {
+            gif_url: "waiting.gif".to_string(),
+            topic: "cats".to_string(),
+        };
+        let widgets = Self::view();
+        widgets.label.set_text(&model.topic);
         Win {
-            model: Model {
-                gif_url: "waiting.gif".to_string(),
-                topic: "cats".to_string(),
-            },
-            widgets: Self::view(),
+            model: model,
+            widgets: widgets,
         }
     }
 
     fn update(&mut self, event: Msg, handle: Handle, stream: EventStream<Msg>) -> UnitFuture {
         match event {
-            FetchImage => {
-            },
             FetchUrl => {
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", self.model.topic);
+                //let url = format!("https://api.giphy.com/v1/gifs"); // TODO: test with this URL because it freezes the UI.
                 let http_future = http_get(&url, handle);
                 return connect(http_future, NewGif, stream).boxed();
             },
             NewGif(result) => {
-                println!("{}", result);
+                let string = String::from_utf8(result).unwrap();
+                let json = json::parse(&string).unwrap();
+                let url = &json["data"]["image_url"].as_str().unwrap();
+                let http_future = http_get(url, handle);
+                return connect(http_future, NewImage, stream).boxed();
+            },
+            NewImage(result) => {
+                let loader = PixbufLoader::new();
+                loader.loader_write(&result).unwrap();
+                loader.close().unwrap();
+                self.widgets.image.set_from_pixbuf(loader.get_pixbuf().as_ref());
             },
             Quit => return QuitFuture.boxed(),
         }
@@ -130,7 +145,7 @@ impl Widget<Msg> for Win {
     }
 }
 
-fn http_get<'a>(url: &str, handle: Handle) -> impl Future<Item=String, Error=Error> + 'a {
+fn http_get<'a>(url: &str, handle: Handle) -> impl Future<Item=Vec<u8>, Error=Error> + 'a {
     let url = Url::parse(url).unwrap();
     let path = format!("{}?{}", url.path(), url.query().unwrap_or(""));
     let url = url.host_str();
@@ -151,10 +166,15 @@ fn http_get<'a>(url: &str, handle: Handle) -> impl Future<Item=String, Error=Err
         tokio_core::io::read_to_end(socket, Vec::new())
     });
     response.and_then(|(_socket, response)| {
-        let string = String::from_utf8(response).unwrap();
-        let strings: Vec<_> = string.split("\n\n").collect();
-        let body = strings[1..].join("\n\n");
-        ok(body)
+        let mut index = 0;
+        for i in 5..response.len() {
+            if &response[i - 4..i] == b"\r\n\r\n" {
+                index = i;
+                break;
+            }
+        }
+        let body = &response[index..];
+        ok(body.to_vec())
     })
 }
 
