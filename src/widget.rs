@@ -19,6 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use relm_core::{EventStream, Handle};
+
 use super::{UnitFuture, Relm};
 
 /// Trait to implement to manage widget's events.
@@ -30,5 +32,5 @@ pub trait Widget<M> {
     fn new() -> Self;
 
     /// Method called when a message is received from an event.
-    fn update(&mut self, event: M) -> UnitFuture;
+    fn update(&mut self, event: M, handle: Handle, stream: EventStream<M>) -> UnitFuture;
 }

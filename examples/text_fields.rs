@@ -28,7 +28,7 @@ use futures::Future;
 use futures::future::ok;
 use gtk::{ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm::{QuitFuture, Relm, UnitFuture, Widget};
+use relm::{Handle, QuitFuture, Relm, UnitFuture, Widget};
 
 use self::Msg::*;
 
@@ -93,7 +93,7 @@ impl Widget<Msg> for Win {
         }
     }
 
-    fn update(&mut self, event: Msg) -> UnitFuture {
+    fn update(&mut self, event: Msg, _handle: Handle) -> UnitFuture {
         match event {
             Change => {
                 self.model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();

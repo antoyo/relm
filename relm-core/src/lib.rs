@@ -28,15 +28,15 @@ extern crate tokio_core;
 
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
-use std::cell::RefCell;
 use std::io::Error;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crossbeam::sync::MsQueue;
 use futures::{Async, Future, Poll, Stream};
 use futures::task::{self, Task};
-use tokio_core::reactor::{self, Handle};
+use tokio_core::reactor;
+pub use tokio_core::reactor::Handle;
 
 pub struct Core<M> {
     core: reactor::Core,
@@ -88,21 +88,24 @@ impl Future for QuitFuture {
 
 #[derive(Clone)]
 pub struct EventStream<T> {
-    events: Rc<MsQueue<T>>,
-    task: Rc<RefCell<Option<Task>>>,
+    events: Arc<MsQueue<T>>,
+    task: Arc<Mutex<Option<Task>>>,
 }
 
 impl<T> EventStream<T> {
     fn new() -> Self {
         EventStream {
-            events: Rc::new(MsQueue::new()),
-            task: Rc::new(RefCell::new(None)),
+            events: Arc::new(MsQueue::new()),
+            task: Arc::new(Mutex::new(None)),
         }
     }
 
     pub fn emit(&self, event: T) {
-        if let Some(ref task) = *self.task.borrow() {
-            task.unpark();
+        // TODO: handle errors.
+        if let Ok(guard) = self.task.lock() {
+            if let Some(ref task) = *guard {
+                task.unpark();
+            }
         }
         self.events.push(event);
     }
@@ -119,11 +122,17 @@ impl<T> Stream for EventStream<T> {
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         match self.get_event() {
             Some(event) => {
-                *self.task.borrow_mut() = None;
+                // TODO: handle errors.
+                if let Ok(mut guard) = self.task.lock() {
+                    *guard = None;
+                }
                 Ok(Async::Ready(Some(event)))
             },
             None => {
-                *self.task.borrow_mut() = Some(task::park());
+                // TODO: handle errors.
+                if let Ok(mut guard) = self.task.lock() {
+                    *guard = Some(task::park());
+                }
                 Ok(Async::NotReady)
             },
         }
