@@ -28,6 +28,7 @@ extern crate relm;
 extern crate tokio_core;
 extern crate url;
 
+use std::io::Error;
 use std::net::ToSocketAddrs;
 
 use futures::Future;
@@ -129,7 +130,7 @@ impl Widget<Msg> for Win {
     }
 }
 
-fn http_get<'a>(url: &str, handle: Handle) -> impl Future<Item=String, Error=()> + 'a {
+fn http_get<'a>(url: &str, handle: Handle) -> impl Future<Item=String, Error=Error> + 'a {
     let url = Url::parse(url).unwrap();
     let path = format!("{}?{}", url.path(), url.query().unwrap_or(""));
     let url = url.host_str();
@@ -152,11 +153,9 @@ fn http_get<'a>(url: &str, handle: Handle) -> impl Future<Item=String, Error=()>
     response.and_then(|(_socket, response)| {
         let string = String::from_utf8(response).unwrap();
         let strings: Vec<_> = string.split("\n\n").collect();
-        let body = strings[1].to_string();
+        let body = strings[1..].join("\n\n");
         ok(body)
     })
-        // TODO: try to box (so that it becomes Send) the error to keep it instead of ignoring it.
-        .map_err(|_| ())
 }
 
 fn main() {
