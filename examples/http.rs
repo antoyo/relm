@@ -77,7 +77,7 @@ impl Win {
         let label = Label::new(None);
         vbox.add(&label);
 
-        let image = Image::new_from_resource("https://k1.okccdn.com/php/load_okc_image.php/images/120x120/120x120/0x65/531x597/2/6119803335702555186.jpeg?v=1");
+        let image = Image::new();
         vbox.add(&image);
 
         let button = Button::new_with_label("Load image");
