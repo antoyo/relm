@@ -31,17 +31,12 @@ extern crate relm;
 extern crate tokio_core;
 extern crate url;
 
-use std::io::Error;
-use std::net::ToSocketAddrs;
-
 use futures::{Future, Stream};
 use futures::future::ok;
 use gdk_pixbuf::PixbufLoader;
 use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
 use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, Widget, connect};
-use tokio_core::net::TcpStream;
-use url::Url;
 
 use self::Msg::*;
 
@@ -153,7 +148,9 @@ impl Widget<Msg> for Win {
 use hyper::Client;
 
 fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=()> + 'a {
-    let url = hyper::Url::parse(url).unwrap();
+    // TODO: support HTTPS.
+    let url = url.replace("https://", "http://");
+    let url = hyper::Url::parse(&url).unwrap();
     let client = Client::new(handle);
     client.get(url).map_err(|_| ()).and_then(|res| {
         res.body().map_err(|_| ()).fold(vec![], |mut acc, chunk| {
@@ -163,39 +160,6 @@ fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=(
     })
         .map_err(|_| ())
 }
-
-/*fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=Error> + 'a {
-    let url = Url::parse(url).unwrap();
-    let path = format!("{}?{}", url.path(), url.query().unwrap_or(""));
-    let url = url.host_str();
-    let url = url.unwrap();
-    let host = format!("{}:80", url);
-    let addr = host.to_socket_addrs().unwrap().next().unwrap();
-    let socket = TcpStream::connect(&addr, handle);
-    let http = format!("\
-        GET {} HTTP/1.0\r\n\
-        Host: {}\r\n\
-        \r\n\
-    ", path, url);
-    let request = socket.and_then(move |socket| {
-        tokio_core::io::write_all(socket, http.into_bytes())
-    });
-
-    let response = request.and_then(|(socket, _request)| {
-        tokio_core::io::read_to_end(socket, Vec::new())
-    });
-    response.and_then(|(_socket, response)| {
-        let mut index = 0;
-        for i in 5..response.len() {
-            if &response[i - 4..i] == b"\r\n\r\n" {
-                index = i;
-                break;
-            }
-        }
-        let body = &response[index..];
-        ok(body.to_vec())
-    })
-}*/
 
 fn main() {
     Relm::run::<Win>().unwrap();

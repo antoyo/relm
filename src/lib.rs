@@ -20,6 +20,7 @@
  */
 
 /*
+ * TODO: switch to Rc from Arc.
  * TODO: chat client/server example.
  * TODO: allow having multiple Widgets.
  * TODO: convert GTK+ callback to Stream.
