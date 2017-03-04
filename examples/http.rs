@@ -24,6 +24,7 @@
 extern crate futures;
 extern crate gdk_pixbuf;
 extern crate gtk;
+extern crate hyper;
 extern crate json;
 #[macro_use]
 extern crate relm;
@@ -33,7 +34,7 @@ extern crate url;
 use std::io::Error;
 use std::net::ToSocketAddrs;
 
-use futures::Future;
+use futures::{Future, Stream};
 use futures::future::ok;
 use gdk_pixbuf::PixbufLoader;
 use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, WindowType};
@@ -149,7 +150,21 @@ impl Widget<Msg> for Win {
     }
 }
 
-fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=Error> + 'a {
+use hyper::Client;
+
+fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=()> + 'a {
+    let url = hyper::Url::parse(url).unwrap();
+    let client = Client::new(handle);
+    client.get(url).map_err(|_| ()).and_then(|res| {
+        res.body().map_err(|_| ()).fold(vec![], |mut acc, chunk| {
+            acc.extend_from_slice(&chunk);
+            Ok(acc)
+        })
+    })
+        .map_err(|_| ())
+}
+
+/*fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=Error> + 'a {
     let url = Url::parse(url).unwrap();
     let path = format!("{}?{}", url.path(), url.query().unwrap_or(""));
     let url = url.host_str();
@@ -180,7 +195,7 @@ fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=E
         let body = &response[index..];
         ok(body.to_vec())
     })
-}
+}*/
 
 fn main() {
     Relm::run::<Win>().unwrap();
