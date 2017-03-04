@@ -159,17 +159,20 @@ pub fn connect<F, C, M>(future: F, callback: C, event_stream: &EventStream<M>) -
         .boxed()
 }
 
-pub fn connect_stream<C, M, S>(stream: S, callback: C, event_stream: EventStream<M>) -> impl Stream<Item=(), Error=()>
-    where C: Fn(S::Item) -> M,
-          S: Stream,
-          M: Clone
+pub fn connect_stream<C, M, S>(stream: S, callback: C, event_stream: &EventStream<M>) -> UnitStream
+    where C: Fn(S::Item) -> M + Send + 'static,
+          S: Stream + Send + 'static,
+          S::Error: Send,
+          M: Clone + Send + 'static,
 {
+    let event_stream = event_stream.clone();
     stream.and_then(move |result| {
         event_stream.emit(callback(result));
         Ok(())
     })
         // TODO: handle errors.
         .map_err(|_| ())
+        .boxed()
 }
 
 pub fn subscribe<S>(stream: S) -> impl Future<Item=(), Error=()>

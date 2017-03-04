@@ -32,7 +32,7 @@ extern crate tokio_timer;
 use std::time::Duration;
 
 use chrono::Local;
-use futures::{Future, Stream};
+use futures::Future;
 use futures::future::ok;
 use gtk::{ContainerExt, Label, WidgetExt, Window, WindowType};
 use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, UnitStream, Widget, connect_stream};
@@ -90,7 +90,7 @@ impl Widget<Msg> for Win {
     fn subscriptions(&self) -> Vec<UnitStream> {
         let timer = Timer::default();
         let stream = timer.interval(Duration::from_secs(1));
-        let clock_stream = connect_stream(stream, Tick, self.stream.clone()).boxed();
+        let clock_stream = connect_stream(stream, Tick, &self.stream);
         vec![clock_stream]
     }
 
