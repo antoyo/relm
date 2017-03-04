@@ -21,7 +21,7 @@
 
 use relm_core::{EventStream, Handle};
 
-use super::{Relm, UnitFuture, UnitStream};
+use super::{Relm, UnitFuture};
 
 /// Trait to implement to manage widget's events.
 pub trait Widget<M> {
@@ -32,7 +32,7 @@ pub trait Widget<M> {
     fn new(handle: Handle, stream: EventStream<M>) -> Self;
 
     /// Get the default subscriptions.
-    fn subscriptions(&self) -> Vec<UnitStream> {
+    fn subscriptions(&self) -> Vec<UnitFuture> {
         vec![]
     }
 
