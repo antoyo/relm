@@ -20,6 +20,7 @@
  */
 
 /*
+ * TODO: chat client/server example.
  * TODO: allow having multiple Widgets.
  * TODO: convert GTK+ callback to Stream.
  * TODO: add Cargo travis badge.
@@ -47,7 +48,7 @@ use std::error;
 use std::fmt::{self, Display, Formatter};
 use std::io;
 
-use futures::{Future, Stream};
+use futures::{Future, IntoStream, Poll, Stream};
 use relm_core::Core;
 pub use relm_core::{EventStream, Handle, QuitFuture};
 
@@ -56,6 +57,48 @@ pub use self::widget::*;
 
 pub type UnitFuture = futures::BoxFuture<(), ()>;
 pub type UnitStream = futures::stream::BoxStream<(), ()>;
+
+pub struct RelmStream<E, I, S: Stream<Item=I, Error=E>> {
+    stream: S,
+}
+
+impl<E, I, S: Stream<Item=I, Error=E>> Stream for RelmStream<E, I, S> {
+    type Item = I;
+    type Error = E;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+        self.stream.poll()
+    }
+}
+
+pub trait ToStream<S: Stream<Item=Self::Item, Error=Self::Error>> {
+    type Error;
+    type Item;
+
+    fn to_stream(self) -> RelmStream<Self::Error, Self::Item, S>;
+}
+
+impl<E, I, S: Stream<Item=I, Error=E>> ToStream<S> for S {
+    type Error = E;
+    type Item = I;
+
+    fn to_stream(self) -> RelmStream<E, I, S> {
+        RelmStream {
+            stream: self,
+        }
+    }
+}
+
+impl<E, F: Future<Item=I, Error=E>, I> ToStream<IntoStream<F>> for F {
+    type Error = E;
+    type Item = I;
+
+    fn to_stream(self) -> RelmStream<E, I, IntoStream<F>> {
+        RelmStream {
+            stream: self.into_stream(),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum Error {
@@ -119,8 +162,7 @@ impl<M: Clone + 'static> Relm<M> {
 
         let subscriptions = widget.subscriptions();
         for subscription in subscriptions {
-            let future = subscribe(subscription);
-            handle.spawn(future);
+            handle.spawn(subscription);
         }
 
         let event_future = {
@@ -143,40 +185,21 @@ impl<M: Clone + 'static> Relm<M> {
     }
 }
 
-pub fn connect<F, C, M>(future: F, callback: C, event_stream: &EventStream<M>) -> UnitFuture
-    where C: Fn(F::Item) -> M + Send + 'static,
-          F: Future + Send + 'static,
-          F::Error: Send,
-          M: Clone + Send + 'static,
-{
-    let event_stream = event_stream.clone();
-    future.and_then(move |result| {
-        event_stream.emit(callback(result));
-        Ok(())
-    })
-        // TODO: handle errors.
-        .map_err(|_| ())
-        .boxed()
-}
-
-pub fn connect_stream<C, M, S>(stream: S, callback: C, event_stream: &EventStream<M>) -> UnitStream
+pub fn connect<C, M, S, T>(to_stream: T, callback: C, event_stream: &EventStream<M>) -> UnitFuture
     where C: Fn(S::Item) -> M + Send + 'static,
           S: Stream + Send + 'static,
           S::Error: Send,
+          T: ToStream<S, Item=S::Item, Error=S::Error> + Send + 'static,
           M: Clone + Send + 'static,
 {
     let event_stream = event_stream.clone();
+    let stream = to_stream.to_stream();
     stream.and_then(move |result| {
         event_stream.emit(callback(result));
         Ok(())
     })
+        .for_each(Ok)
         // TODO: handle errors.
         .map_err(|_| ())
         .boxed()
-}
-
-pub fn subscribe<S>(stream: S) -> impl Future<Item=(), Error=()>
-    where S: Stream<Item=(), Error=()>,
-{
-    stream.for_each(Ok)
 }

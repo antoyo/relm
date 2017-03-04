@@ -35,7 +35,7 @@ use chrono::Local;
 use futures::Future;
 use futures::future::ok;
 use gtk::{ContainerExt, Label, WidgetExt, Window, WindowType};
-use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, UnitStream, Widget, connect_stream};
+use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, Widget, connect};
 use tokio_timer::Timer;
 
 use self::Msg::*;
@@ -87,10 +87,10 @@ impl Widget<Msg> for Win {
         }
     }
 
-    fn subscriptions(&self) -> Vec<UnitStream> {
+    fn subscriptions(&self) -> Vec<UnitFuture> {
         let timer = Timer::default();
         let stream = timer.interval(Duration::from_secs(1));
-        let clock_stream = connect_stream(stream, Tick, &self.stream);
+        let clock_stream = connect(stream, Tick, &self.stream);
         vec![clock_stream]
     }
 
