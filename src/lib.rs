@@ -54,6 +54,7 @@ pub use self::Error::*;
 pub use self::widget::*;
 
 pub type UnitFuture = futures::BoxFuture<(), ()>;
+pub type UnitStream = futures::stream::BoxStream<(), ()>;
 
 #[derive(Debug)]
 pub enum Error {
@@ -114,6 +115,13 @@ impl<M: Clone + 'static> Relm<M> {
         widget.connect_events(&relm);
 
         let handle = relm.core.handle();
+
+        let subscriptions = widget.subscriptions();
+        for subscription in subscriptions {
+            let future = subscribe(subscription);
+            handle.spawn(future);
+        }
+
         let event_future = {
             let stream = relm.stream().clone();
             let handle = relm.core.handle();
@@ -134,15 +142,34 @@ impl<M: Clone + 'static> Relm<M> {
     }
 }
 
-pub fn connect<F, C, M>(future: F, callback: C, stream: EventStream<M>) -> impl Future<Item=(), Error=()>
+pub fn connect<F, C, M>(future: F, callback: C, event_stream: EventStream<M>) -> impl Future<Item=(), Error=()>
     where C: Fn(F::Item) -> M,
           F: Future,
           M: Clone
 {
     future.and_then(move |result| {
-        stream.emit(callback(result));
+        event_stream.emit(callback(result));
         Ok(())
     })
         // TODO: handle errors.
         .map_err(|_| ())
+}
+
+pub fn connect_stream<C, M, S>(stream: S, callback: C, event_stream: EventStream<M>) -> impl Stream<Item=(), Error=()>
+    where C: Fn(S::Item) -> M,
+          S: Stream,
+          M: Clone
+{
+    stream.and_then(move |result| {
+        event_stream.emit(callback(result));
+        Ok(())
+    })
+        // TODO: handle errors.
+        .map_err(|_| ())
+}
+
+pub fn subscribe<S>(stream: S) -> impl Future<Item=(), Error=()>
+    where S: Stream<Item=(), Error=()>,
+{
+    stream.for_each(Ok)
 }

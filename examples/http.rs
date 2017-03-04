@@ -127,6 +127,7 @@ impl Widget<Msg> for Win {
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", self.model.topic);
                 //let url = format!("https://api.giphy.com/v1/gifs"); // TODO: test with this URL because it freezes the UI.
                 let http_future = http_get(&url, &self.handle);
+                // FIXME: remove these clone() calls.
                 return connect(http_future, NewGif, self.stream.clone()).boxed();
             },
             NewGif(result) => {
