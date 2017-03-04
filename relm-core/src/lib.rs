@@ -26,10 +26,11 @@ extern crate lazy_static;
 extern crate gtk;
 extern crate tokio_core;
 
+use std::cell::RefCell;
+use std::io::Error;
+use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
-use std::io::Error;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crossbeam::sync::MsQueue;
@@ -88,24 +89,21 @@ impl Future for QuitFuture {
 
 #[derive(Clone)]
 pub struct EventStream<T> {
-    events: Arc<MsQueue<T>>,
-    task: Arc<Mutex<Option<Task>>>,
+    events: Rc<MsQueue<T>>,
+    task: Rc<RefCell<Option<Task>>>,
 }
 
 impl<T> EventStream<T> {
     fn new() -> Self {
         EventStream {
-            events: Arc::new(MsQueue::new()),
-            task: Arc::new(Mutex::new(None)),
+            events: Rc::new(MsQueue::new()),
+            task: Rc::new(RefCell::new(None)),
         }
     }
 
     pub fn emit(&self, event: T) {
-        // TODO: handle errors.
-        if let Ok(guard) = self.task.lock() {
-            if let Some(ref task) = *guard {
-                task.unpark();
-            }
+        if let Some(ref task) = *self.task.borrow() {
+            task.unpark();
         }
         self.events.push(event);
     }
@@ -122,17 +120,11 @@ impl<T> Stream for EventStream<T> {
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         match self.get_event() {
             Some(event) => {
-                // TODO: handle errors.
-                if let Ok(mut guard) = self.task.lock() {
-                    *guard = None;
-                }
+                *self.task.borrow_mut() = None;
                 Ok(Async::Ready(Some(event)))
             },
             None => {
-                // TODO: handle errors.
-                if let Ok(mut guard) = self.task.lock() {
-                    *guard = Some(task::park());
-                }
+                *self.task.borrow_mut() = Some(task::park());
                 Ok(Async::NotReady)
             },
         }
