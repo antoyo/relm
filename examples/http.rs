@@ -66,7 +66,9 @@ struct Widgets {
 }
 
 struct Win {
+    handle: Handle,
     model: Model,
+    stream: EventStream<Msg>,
     widgets: Widgets,
 }
 
@@ -104,7 +106,7 @@ impl Widget<Msg> for Win {
         connect_no_inhibit!(relm, self.widgets.window, connect_delete_event(_, _), Quit);
     }
 
-    fn new() -> Self {
+    fn new(handle: Handle, stream: EventStream<Msg>) -> Self {
         let model = Model {
             gif_url: "waiting.gif".to_string(),
             topic: "cats".to_string(),
@@ -112,25 +114,27 @@ impl Widget<Msg> for Win {
         let widgets = Self::view();
         widgets.label.set_text(&model.topic);
         Win {
+            handle: handle,
             model: model,
+            stream: stream,
             widgets: widgets,
         }
     }
 
-    fn update(&mut self, event: Msg, handle: Handle, stream: EventStream<Msg>) -> UnitFuture {
+    fn update(&mut self, event: Msg) -> UnitFuture {
         match event {
             FetchUrl => {
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", self.model.topic);
                 //let url = format!("https://api.giphy.com/v1/gifs"); // TODO: test with this URL because it freezes the UI.
-                let http_future = http_get(&url, handle);
-                return connect(http_future, NewGif, stream).boxed();
+                let http_future = http_get(&url, &self.handle);
+                return connect(http_future, NewGif, self.stream.clone()).boxed();
             },
             NewGif(result) => {
                 let string = String::from_utf8(result).unwrap();
                 let json = json::parse(&string).unwrap();
                 let url = &json["data"]["image_url"].as_str().unwrap();
-                let http_future = http_get(url, handle);
-                return connect(http_future, NewImage, stream).boxed();
+                let http_future = http_get(url, &self.handle);
+                return connect(http_future, NewImage, self.stream.clone()).boxed();
             },
             NewImage(result) => {
                 let loader = PixbufLoader::new();
@@ -145,14 +149,14 @@ impl Widget<Msg> for Win {
     }
 }
 
-fn http_get<'a>(url: &str, handle: Handle) -> impl Future<Item=Vec<u8>, Error=Error> + 'a {
+fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=Error> + 'a {
     let url = Url::parse(url).unwrap();
     let path = format!("{}?{}", url.path(), url.query().unwrap_or(""));
     let url = url.host_str();
     let url = url.unwrap();
     let host = format!("{}:80", url);
     let addr = host.to_socket_addrs().unwrap().next().unwrap();
-    let socket = TcpStream::connect(&addr, &handle);
+    let socket = TcpStream::connect(&addr, handle);
     let http = format!("\
         GET {} HTTP/1.0\r\n\
         Host: {}\r\n\

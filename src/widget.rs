@@ -29,8 +29,8 @@ pub trait Widget<M> {
     fn connect_events(&self, relm: &Relm<M>);
 
     /// Create the widget.
-    fn new() -> Self;
+    fn new(handle: Handle, stream: EventStream<M>) -> Self;
 
     /// Method called when a message is received from an event.
-    fn update(&mut self, event: M, handle: Handle, stream: EventStream<M>) -> UnitFuture;
+    fn update(&mut self, event: M) -> UnitFuture;
 }

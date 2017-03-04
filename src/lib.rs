@@ -20,6 +20,7 @@
  */
 
 /*
+ * TODO: allow having multiple Widgets.
  * TODO: add Cargo categories.
  * TODO: use macros 2.0 instead for the:
  * * view: to create the dependencies between the view items and the model.
@@ -109,16 +110,15 @@ impl<M: Clone + 'static> Relm<M> {
             core: Core::new()?,
         };
 
-        let mut widget = D::new();
+        let mut widget = D::new(relm.core.handle(), relm.stream().clone());
         widget.connect_events(&relm);
 
         let handle = relm.core.handle();
         let event_future = {
             let stream = relm.stream().clone();
-            let stream2 = stream.clone();
             let handle = relm.core.handle();
             stream.for_each(move |event| {
-                let future = widget.update(event, handle.clone(), stream2.clone());
+                let future = widget.update(event);
                 handle.spawn(future);
                 Ok(())
             })

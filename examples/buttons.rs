@@ -28,7 +28,7 @@ use futures::Future;
 use futures::future::ok;
 use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm::{Handle, QuitFuture, Relm, UnitFuture, Widget};
+use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, Widget};
 
 use self::Msg::*;
 
@@ -93,7 +93,7 @@ impl Widget<Msg> for Win {
         connect_no_inhibit!(relm, self.widgets.window, connect_delete_event(_, _), Quit);
     }
 
-    fn new() -> Self {
+    fn new(_handle: Handle, _stream: EventStream<Msg>) -> Self {
         Win {
             model: Model {
                 counter: 0,
@@ -102,7 +102,7 @@ impl Widget<Msg> for Win {
         }
     }
 
-    fn update(&mut self, event: Msg, _handle: Handle) -> UnitFuture {
+    fn update(&mut self, event: Msg) -> UnitFuture {
         let label = &self.widgets.counter_label;
 
         match event {
