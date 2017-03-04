@@ -21,7 +21,8 @@
 
 /*
  * TODO: allow having multiple Widgets.
- * TODO: add Cargo categories.
+ * TODO: convert GTK+ callback to Stream.
+ * TODO: add Cargo travis badge.
  * TODO: use macros 2.0 instead for the:
  * * view: to create the dependencies between the view items and the model.
  * * model: to add boolean fields in an inner struct specifying which parts of the view to update
@@ -142,17 +143,20 @@ impl<M: Clone + 'static> Relm<M> {
     }
 }
 
-pub fn connect<F, C, M>(future: F, callback: C, event_stream: EventStream<M>) -> impl Future<Item=(), Error=()>
-    where C: Fn(F::Item) -> M,
-          F: Future,
-          M: Clone
+pub fn connect<F, C, M>(future: F, callback: C, event_stream: &EventStream<M>) -> UnitFuture
+    where C: Fn(F::Item) -> M + Send + 'static,
+          F: Future + Send + 'static,
+          F::Error: Send,
+          M: Clone + Send + 'static,
 {
+    let event_stream = event_stream.clone();
     future.and_then(move |result| {
         event_stream.emit(callback(result));
         Ok(())
     })
         // TODO: handle errors.
         .map_err(|_| ())
+        .boxed()
 }
 
 pub fn connect_stream<C, M, S>(stream: S, callback: C, event_stream: EventStream<M>) -> impl Stream<Item=(), Error=()>

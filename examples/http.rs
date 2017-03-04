@@ -127,15 +127,14 @@ impl Widget<Msg> for Win {
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", self.model.topic);
                 //let url = format!("https://api.giphy.com/v1/gifs"); // TODO: test with this URL because it freezes the UI.
                 let http_future = http_get(&url, &self.handle);
-                // FIXME: remove these clone() calls.
-                return connect(http_future, NewGif, self.stream.clone()).boxed();
+                return connect(http_future, NewGif, &self.stream);
             },
             NewGif(result) => {
                 let string = String::from_utf8(result).unwrap();
                 let json = json::parse(&string).unwrap();
                 let url = &json["data"]["image_url"].as_str().unwrap();
                 let http_future = http_get(url, &self.handle);
-                return connect(http_future, NewImage, self.stream.clone()).boxed();
+                return connect(http_future, NewImage, &self.stream);
             },
             NewImage(result) => {
                 let loader = PixbufLoader::new();
