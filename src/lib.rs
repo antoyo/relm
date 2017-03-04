@@ -35,8 +35,6 @@
  * TODO: Use two update functions (one for errors, one for success/normal behavior).
  */
 
-#![feature(conservative_impl_trait)]
-
 extern crate futures;
 extern crate gtk;
 extern crate relm_core;
@@ -55,8 +53,8 @@ pub use relm_core::{EventStream, Handle, QuitFuture};
 pub use self::Error::*;
 pub use self::widget::*;
 
-pub type UnitFuture = futures::BoxFuture<(), ()>;
-pub type UnitStream = futures::stream::BoxStream<(), ()>;
+pub type UnitFuture = Box<Future<Item=(), Error=()>>;
+pub type UnitStream = Box<Stream<Item=(), Error=()>>;
 
 pub struct RelmStream<E, I, S: Stream<Item=I, Error=E>> {
     stream: S,
@@ -186,20 +184,18 @@ impl<M: Clone + 'static> Relm<M> {
 }
 
 pub fn connect<C, M, S, T>(to_stream: T, callback: C, event_stream: &EventStream<M>) -> UnitFuture
-    where C: Fn(S::Item) -> M + Send + 'static,
-          S: Stream + Send + 'static,
-          S::Error: Send,
-          T: ToStream<S, Item=S::Item, Error=S::Error> + Send + 'static,
-          M: Clone + Send + 'static,
+    where C: Fn(S::Item) -> M + 'static,
+          S: Stream + 'static,
+          T: ToStream<S, Item=S::Item, Error=S::Error> + 'static,
+          M: Clone + 'static,
 {
     let event_stream = event_stream.clone();
     let stream = to_stream.to_stream();
-    stream.and_then(move |result| {
+    Box::new(stream.and_then(move |result| {
         event_stream.emit(callback(result));
         Ok(())
     })
         .for_each(Ok)
         // TODO: handle errors.
-        .map_err(|_| ())
-        .boxed()
+        .map_err(|_| ()))
 }

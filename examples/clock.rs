@@ -19,8 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(conservative_impl_trait)]
-
 extern crate chrono;
 extern crate futures;
 extern crate gtk;
