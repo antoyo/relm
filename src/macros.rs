@@ -22,8 +22,8 @@
 /// Send `$msg` when the `$event` is emitted on `$widget`.
 #[macro_export]
 macro_rules! connect {
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
-        let stream = $relm.stream().clone();
+    ($stream:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
+        let stream = $stream.clone();
         $widget.$event(move |$($args),*| {
             stream.emit($msg);
         });
@@ -33,8 +33,8 @@ macro_rules! connect {
 /// Send `$msg` when the `$event` is emitted on `$widget` (without inhibiting the event).
 #[macro_export]
 macro_rules! connect_no_inhibit {
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
-        let stream = $relm.stream().clone();
+    ($stream:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
+        let stream = $stream.clone();
         $widget.$event(move |$($args),*| {
             stream.emit($msg);
             ::gtk::Inhibit(false)

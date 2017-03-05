@@ -39,16 +39,14 @@ use futures::task::{self, Task};
 use tokio_core::reactor;
 pub use tokio_core::reactor::Handle;
 
-pub struct Core<M> {
+pub struct Core {
     core: reactor::Core,
-    stream: EventStream<M>,
 }
 
-impl<M> Core<M> {
+impl Core {
     pub fn new() -> Result<Self, Error> {
         Ok(Core {
             core: reactor::Core::new()?,
-            stream: EventStream::new(),
         })
     }
 
@@ -64,10 +62,6 @@ impl<M> Core<M> {
                 gtk::main_iteration();
             }
         }
-    }
-
-    pub fn stream(&self) -> &EventStream<M> {
-        &self.stream
     }
 }
 
@@ -94,7 +88,7 @@ pub struct EventStream<T> {
 }
 
 impl<T> EventStream<T> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         EventStream {
             events: Rc::new(MsQueue::new()),
             task: Rc::new(RefCell::new(None)),

@@ -20,9 +20,12 @@
  */
 
 /*
- * TODO: chat client/server example.
- * TODO: allow having multiple Widgets.
+ * TODO: send a Relm instead of both a Handle and Stream to the Widget::new() method.
+ * TODO: write a generic version of connect() so that futures returning () can be mapped to a
+ * variant without value.
  * TODO: convert GTK+ callback to Stream.
+ * TODO: chat client/server example.
+ *
  * TODO: add Cargo travis badge.
  * TODO: use macros 2.0 instead for the:
  * * view: to create the dependencies between the view items and the model.
@@ -47,6 +50,7 @@ use std::fmt::{self, Display, Formatter};
 use std::io;
 
 use futures::{Future, IntoStream, Poll, Stream};
+use gtk::ContainerExt;
 use relm_core::Core;
 pub use relm_core::{EventStream, Handle, QuitFuture};
 
@@ -141,45 +145,23 @@ impl From<()> for Error {
     }
 }
 
-pub struct Relm<M> {
-    core: Core<M>,
+pub struct Relm {
+    core: Core,
 }
 
-impl<M: Clone + 'static> Relm<M> {
-    pub fn run<D: Widget<M> + 'static>() -> Result<(), Error> {
+impl Relm {
+    pub fn run<D: Widget<M> + 'static, M: Clone + 'static>() -> Result<(), Error> {
         gtk::init()?;
 
         let mut relm = Relm {
             core: Core::new()?,
         };
 
-        let mut widget = D::new(relm.core.handle(), relm.stream().clone());
-        widget.connect_events(&relm);
-
         let handle = relm.core.handle();
-
-        let subscriptions = widget.subscriptions();
-        for subscription in subscriptions {
-            handle.spawn(subscription);
-        }
-
-        let event_future = {
-            let stream = relm.stream().clone();
-            let handle = relm.core.handle();
-            stream.for_each(move |event| {
-                let future = widget.update(event);
-                handle.spawn(future);
-                Ok(())
-            })
-        };
-        handle.spawn(event_future);
+        create_widget::<D, M>(&handle);
 
         relm.core.run();
         Ok(())
-    }
-
-    pub fn stream(&self) -> &EventStream<M> {
-        self.core.stream()
     }
 }
 
@@ -199,3 +181,40 @@ pub fn connect<C, M, S, T>(to_stream: T, callback: C, event_stream: &EventStream
         // TODO: handle errors.
         .map_err(|_| ()))
 }
+
+fn create_widget<D: Widget<M> + 'static, M: Clone + 'static>(handle: &Handle) -> D::Container {
+    let stream = EventStream::new();
+
+    let mut widget = D::new(handle.clone(), stream.clone());
+    widget.connect_events(&stream);
+
+    let subscriptions = widget.subscriptions();
+    for subscription in subscriptions {
+        handle.spawn(subscription);
+    }
+
+    let container = widget.container().clone();
+
+    let event_future = {
+        let handle = handle.clone();
+        stream.for_each(move |event| {
+            let future = widget.update(event);
+            handle.spawn(future);
+            Ok(())
+        })
+    };
+    handle.spawn(event_future);
+
+    container
+}
+
+pub trait AddWidget
+    where Self: ContainerExt
+{
+    fn add_widget<D: Widget<M> + 'static, M: Clone + 'static>(&self, handle: &Handle) {
+        let widget = create_widget::<D, M>(handle);
+        self.add(&widget);
+    }
+}
+
+impl<W: ContainerExt> AddWidget for W { }

@@ -19,14 +19,22 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use gtk::{self, IsA};
 use relm_core::{EventStream, Handle};
 
-use super::{Relm, UnitFuture};
+use super::UnitFuture;
 
 /// Trait to implement to manage widget's events.
-pub trait Widget<M> {
+pub trait Widget<M>
+    where Self::Container: Clone + IsA<gtk::Widget>
+{
+    type Container;
+
     /// Connect the events in this method.
-    fn connect_events(&self, relm: &Relm<M>);
+    fn connect_events(&self, stream: &EventStream<M>);
+
+    /// Get the containing widget.
+    fn container(&self) -> &Self::Container;
 
     /// Create the widget.
     fn new(handle: Handle, stream: EventStream<M>) -> Self;

@@ -19,6 +19,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/*
+ * TODO: test with a homemade websocket server.
+ * TODO: test with a message sent from the server.
+ */
+
 #![feature(conservative_impl_trait)]
 
 extern crate base64;
@@ -112,10 +117,16 @@ impl Win {
 }
 
 impl Widget<Msg> for Win {
-    fn connect_events(&self, relm: &Relm<Msg>) {
-        connect!(relm, self.widgets.entry, connect_activate(_), Send);
-        connect!(relm, self.widgets.button, connect_clicked(_), Send);
-        connect_no_inhibit!(relm, self.widgets.window, connect_delete_event(_, _), Quit);
+    type Container = Window;
+
+    fn connect_events(&self, stream: &EventStream<Msg>) {
+        connect!(stream, self.widgets.entry, connect_activate(_), Send);
+        connect!(stream, self.widgets.button, connect_clicked(_), Send);
+        connect_no_inhibit!(stream, self.widgets.window, connect_delete_event(_, _), Quit);
+    }
+
+    fn container(&self) -> &Self::Container {
+        &self.widgets.window
     }
 
     fn new(handle: Handle, stream: EventStream<Msg>) -> Self {
@@ -215,5 +226,5 @@ fn ws_send(service: &WSService, message: &str) -> impl Future<Item=String> {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    Relm::run::<Win, _>().unwrap();
 }

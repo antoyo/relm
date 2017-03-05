@@ -100,9 +100,15 @@ impl Win {
 }
 
 impl Widget<Msg> for Win {
-    fn connect_events(&self, relm: &Relm<Msg>) {
-        connect!(relm, self.widgets.button, connect_clicked(_), FetchUrl);
-        connect_no_inhibit!(relm, self.widgets.window, connect_delete_event(_, _), Quit);
+    type Container = Window;
+
+    fn connect_events(&self, stream: &EventStream<Msg>) {
+        connect!(stream, self.widgets.button, connect_clicked(_), FetchUrl);
+        connect_no_inhibit!(stream, self.widgets.window, connect_delete_event(_, _), Quit);
+    }
+
+    fn container(&self) -> &Self::Container {
+        &self.widgets.window
     }
 
     fn new(handle: Handle, stream: EventStream<Msg>) -> Self {
@@ -149,7 +155,7 @@ impl Widget<Msg> for Win {
 }
 
 fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=()> + 'a {
-    let url = hyper::Url::parse(&url).unwrap();
+    let url = hyper::Url::parse(url).unwrap();
     let connector = HttpsConnector::new(2, handle);
     let client = Client::configure()
         .connector(connector)
@@ -164,5 +170,5 @@ fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=(
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    Relm::run::<Win, _>().unwrap();
 }

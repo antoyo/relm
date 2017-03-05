@@ -73,8 +73,14 @@ impl Win {
 }
 
 impl Widget<Msg> for Win {
-    fn connect_events(&self, relm: &Relm<Msg>) {
-        connect_no_inhibit!(relm, self.widgets.window, connect_delete_event(_, _), Quit);
+    type Container = Window;
+
+    fn connect_events(&self, stream: &EventStream<Msg>) {
+        connect_no_inhibit!(stream, self.widgets.window, connect_delete_event(_, _), Quit);
+    }
+
+    fn container(&self) -> &Self::Container {
+        &self.widgets.window
     }
 
     fn new(_handle: Handle, stream: EventStream<Msg>) -> Self {
@@ -106,5 +112,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    Relm::run::<Win, _>().unwrap();
 }

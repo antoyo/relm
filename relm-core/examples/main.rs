@@ -73,8 +73,10 @@ fn main() {
     let window = Window::new(WindowType::Toplevel);
     window.add(&vbox);
 
+    let stream = EventStream::new();
+
     {
-        let stream = core.stream().clone();
+        let stream = stream.clone();
         plus_button.connect_clicked(move |_| {
             stream.emit(Increment);
         });
@@ -83,7 +85,7 @@ fn main() {
     let minus_button = Button::new_with_label("-");
     vbox.add(&minus_button);
     {
-        let stream = core.stream().clone();
+        let stream = stream.clone();
         minus_button.connect_clicked(move |_| {
             stream.emit(Decrement);
         });
@@ -92,7 +94,7 @@ fn main() {
     window.show_all();
 
     {
-        let stream = core.stream().clone();
+        let stream = stream.clone();
         window.connect_delete_event(move |_, _| {
             stream.emit(Quit);
             Inhibit(false)
@@ -102,7 +104,7 @@ fn main() {
     let timer = Timer::default();
     let interval = {
         let interval = timer.interval(Duration::from_millis(1000));
-        let stream = core.stream().clone();
+        let stream = stream.clone();
         interval.map_err(|_| ()).for_each(move |_| {
             stream.emit(Clock);
             Ok(())
@@ -110,7 +112,7 @@ fn main() {
     };
 
     let event_future = {
-        let stream: EventStream<Msg> = core.stream().clone();
+        let stream = stream.clone();
         let handle = core.handle();
         stream.for_each(move |event| {
             fn adjust(label: &Label, delta: i32) {
