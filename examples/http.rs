@@ -25,6 +25,7 @@ extern crate futures;
 extern crate gdk_pixbuf;
 extern crate gtk;
 extern crate hyper;
+extern crate hyper_tls;
 extern crate json;
 #[macro_use]
 extern crate relm;
@@ -35,6 +36,8 @@ use futures::{Future, Stream};
 use futures::future::ok;
 use gdk_pixbuf::PixbufLoader;
 use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, WindowType};
+use hyper::Client;
+use hyper_tls::HttpsConnector;
 use gtk::Orientation::Vertical;
 use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, Widget, connect};
 
@@ -145,13 +148,12 @@ impl Widget<Msg> for Win {
     }
 }
 
-use hyper::Client;
-
 fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=()> + 'a {
-    // TODO: support HTTPS.
-    let url = url.replace("https://", "http://");
     let url = hyper::Url::parse(&url).unwrap();
-    let client = Client::new(handle);
+    let connector = HttpsConnector::new(2, handle);
+    let client = Client::configure()
+        .connector(connector)
+        .build(handle);
     client.get(url).map_err(|_| ()).and_then(|res| {
         res.body().map_err(|_| ()).fold(vec![], |mut acc, chunk| {
             acc.extend_from_slice(&chunk);
