@@ -1,0 +1,11 @@
+[package]
+authors = ["Antoni Boucher <bouanto@zoho.com>"]
+name = "fns-derive"
+version = "0.1.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "^0.3.14"
+syn = "^0.11.8"

@@ -19,8 +19,12 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#![feature(fn_traits, unboxed_closures)]
+
 extern crate chrono;
 extern crate futures;
+#[macro_use]
+extern crate fns_derive;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
@@ -38,10 +42,10 @@ use tokio_timer::Timer;
 
 use self::Msg::*;
 
-#[derive(Clone)]
+#[derive(Clone, Fns)]
 enum Msg {
     Quit,
-    Tick(()),
+    Tick,
 }
 
 struct Widgets {
@@ -99,7 +103,7 @@ impl Widget<Msg> for Win {
 
     fn update(&mut self, event: Msg) -> UnitFuture {
         match event {
-            Tick(()) => {
+            Tick => {
                 let time = Local::now();
                 self.widgets.label.set_text(&format!("{}", time.format("%H:%M:%S")));
             },

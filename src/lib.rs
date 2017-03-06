@@ -21,9 +21,8 @@
 
 /*
  * TODO: send a Relm instead of both a Handle and Stream to the Widget::new() method.
- * TODO: write a generic version of connect() so that futures returning () can be mapped to a
- * variant without value.
  * TODO: convert GTK+ callback to Stream.
+ * TODO: communication across widgets.
  * TODO: chat client/server example.
  *
  * TODO: add Cargo travis badge.
