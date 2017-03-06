@@ -24,6 +24,8 @@
  * TODO: communication across widgets.
  * TODO: chat client/server example.
  *
+ * TODO: try tk-easyloop in another branch.
+ *
  * TODO: add Cargo travis badge.
  * TODO: use macros 2.0 instead for the:
  * * view: to create the dependencies between the view items and the model.

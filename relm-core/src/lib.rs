@@ -19,7 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate crossbeam;
 extern crate futures;
 #[macro_use]
 extern crate lazy_static;
@@ -27,13 +26,13 @@ extern crate gtk;
 extern crate tokio_core;
 
 use std::cell::RefCell;
+use std::collections::VecDeque;
 use std::io::Error;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 use std::time::Duration;
 
-use crossbeam::sync::MsQueue;
 use futures::{Async, Future, Poll, Stream};
 use futures::task::{self, Task};
 use tokio_core::reactor;
@@ -81,29 +80,35 @@ impl Future for QuitFuture {
     }
 }
 
+struct _EventStream<T> {
+    events: VecDeque<T>,
+    task: Option<Task>,
+}
+
 #[derive(Clone)]
 pub struct EventStream<T> {
-    events: Rc<MsQueue<T>>,
-    task: Rc<RefCell<Option<Task>>>,
+    stream: Rc<RefCell<_EventStream<T>>>,
 }
 
 impl<T> EventStream<T> {
     pub fn new() -> Self {
         EventStream {
-            events: Rc::new(MsQueue::new()),
-            task: Rc::new(RefCell::new(None)),
+            stream: Rc::new(RefCell::new(_EventStream {
+                events: VecDeque::new(),
+                task: None,
+            })),
         }
     }
 
     pub fn emit(&self, event: T) {
-        if let Some(ref task) = *self.task.borrow() {
+        if let Some(ref task) = self.stream.borrow().task {
             task.unpark();
         }
-        self.events.push(event);
+        self.stream.borrow_mut().events.push_back(event);
     }
 
     fn get_event(&self) -> Option<T> {
-        self.events.try_pop()
+        self.stream.borrow_mut().events.pop_front()
     }
 }
 
@@ -114,11 +119,11 @@ impl<T> Stream for EventStream<T> {
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         match self.get_event() {
             Some(event) => {
-                *self.task.borrow_mut() = None;
+                self.stream.borrow_mut().task = None;
                 Ok(Async::Ready(Some(event)))
             },
             None => {
-                *self.task.borrow_mut() = Some(task::park());
+                self.stream.borrow_mut().task = Some(task::park());
                 Ok(Async::NotReady)
             },
         }

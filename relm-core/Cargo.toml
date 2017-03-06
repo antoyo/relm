@@ -4,7 +4,6 @@ name = "relm-core"
 version = "0.1.0"
 
 [dependencies]
-crossbeam = "^0.2.10"
 futures = "^0.1.10"
 gtk = "^0.1.1"
 lazy_static = "^0.2.2"
