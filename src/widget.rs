@@ -20,9 +20,8 @@
  */
 
 use gtk::{self, IsA};
-use relm_core::{EventStream, Handle};
 
-use super::UnitFuture;
+use super::{Relm, UnitFuture};
 
 /// Trait to implement to manage widget's events.
 pub trait Widget<M>
@@ -31,13 +30,13 @@ pub trait Widget<M>
     type Container;
 
     /// Connect the events in this method.
-    fn connect_events(&self, stream: &EventStream<M>);
+    fn connect_events(&self);
 
     /// Get the containing widget.
     fn container(&self) -> &Self::Container;
 
     /// Create the widget.
-    fn new(handle: Handle, stream: EventStream<M>) -> Self;
+    fn new(relm: Relm<M>) -> Self;
 
     /// Get the default subscriptions.
     fn subscriptions(&self) -> Vec<UnitFuture> {

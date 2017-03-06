@@ -28,7 +28,7 @@ use futures::Future;
 use futures::future::ok;
 use gtk::{ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, Widget};
+use relm::{QuitFuture, Relm, UnitFuture, Widget};
 
 use self::Msg::*;
 
@@ -51,6 +51,7 @@ struct Widgets {
 
 struct Win {
     model: Model,
+    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
@@ -81,20 +82,21 @@ impl Win {
 impl Widget<Msg> for Win {
     type Container = Window;
 
-    fn connect_events(&self, stream: &EventStream<Msg>) {
-        connect!(stream, self.widgets.input, connect_changed(_), Change);
-        connect_no_inhibit!(stream, self.widgets.window, connect_delete_event(_, _), Quit);
+    fn connect_events(&self) {
+        connect!(self.relm, self.widgets.input, connect_changed(_), Change);
+        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
     }
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(_handle: Handle, _stream: EventStream<Msg>) -> Self {
+    fn new(relm: Relm<Msg>) -> Self {
         Win {
             model: Model {
                 content: String::new(),
             },
+            relm: relm,
             widgets: Self::view(),
         }
     }
@@ -113,5 +115,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win, _>().unwrap();
+    Relm::run::<Win>().unwrap();
 }

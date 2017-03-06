@@ -28,7 +28,7 @@ use futures::Future;
 use futures::future::ok;
 use gtk::{Button, ButtonExt, ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{AddWidget, EventStream, Handle, QuitFuture, Relm, UnitFuture, Widget};
+use relm::{AddWidget, QuitFuture, Relm, UnitFuture, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -52,6 +52,7 @@ struct TextWidgets {
 
 struct Text {
     model: TextModel,
+    relm: Relm<TextMsg>,
     widgets: TextWidgets,
 }
 
@@ -76,19 +77,20 @@ impl Text {
 impl Widget<TextMsg> for Text {
     type Container = gtk::Box;
 
-    fn connect_events(&self, stream: &EventStream<TextMsg>) {
-        connect!(stream, self.widgets.input, connect_changed(_), Change);
+    fn connect_events(&self) {
+        connect!(self.relm, self.widgets.input, connect_changed(_), Change);
     }
 
     fn container(&self) -> &Self::Container {
         &self.widgets.vbox
     }
 
-    fn new(_handle: Handle, _stream: EventStream<TextMsg>) -> Self {
+    fn new(relm: Relm<TextMsg>) -> Self {
         Text {
             model: TextModel {
                 content: String::new(),
             },
+            relm: relm,
             widgets: Self::view(),
         }
     }
@@ -118,6 +120,7 @@ enum CounterMsg {
 
 struct Counter {
     model: Model,
+    relm: Relm<CounterMsg>,
     widgets: CounterWidgets,
 }
 
@@ -146,20 +149,21 @@ impl Counter {
 impl Widget<CounterMsg> for Counter {
     type Container = gtk::Box;
 
-    fn connect_events(&self, stream: &EventStream<CounterMsg>) {
-        connect!(stream, self.widgets.plus_button, connect_clicked(_), Increment);
-        connect!(stream, self.widgets.minus_button, connect_clicked(_), Decrement);
+    fn connect_events(&self) {
+        connect!(self.relm, self.widgets.plus_button, connect_clicked(_), Increment);
+        connect!(self.relm, self.widgets.minus_button, connect_clicked(_), Decrement);
     }
 
     fn container(&self) -> &Self::Container {
         &self.widgets.vbox
     }
 
-    fn new(_handle: Handle, _stream: EventStream<CounterMsg>) -> Self {
+    fn new(relm: Relm<CounterMsg>) -> Self {
         Counter {
             model: Model {
                 counter: 0,
             },
+            relm: relm,
             widgets: Self::view(),
         }
     }
@@ -199,18 +203,21 @@ struct Widgets {
 }
 
 struct Win {
+    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
 impl Win {
-    fn view(handle: Handle) -> Widgets {
+    fn view(relm: &Relm<Msg>) -> Widgets {
+        let handle = relm.handle();
+
         let window = Window::new(WindowType::Toplevel);
 
         let hbox = gtk::Box::new(Horizontal, 0);
 
-        hbox.add_widget::<Counter, _>(&handle);
-        hbox.add_widget::<Counter, _>(&handle);
-        hbox.add_widget::<Text, _>(&handle);
+        hbox.add_widget::<Counter, _>(handle);
+        hbox.add_widget::<Counter, _>(handle);
+        hbox.add_widget::<Text, _>(handle);
 
         window.add(&hbox);
 
@@ -225,17 +232,19 @@ impl Win {
 impl Widget<Msg> for Win {
     type Container = Window;
 
-    fn connect_events(&self, stream: &EventStream<Msg>) {
-        connect_no_inhibit!(stream, self.widgets.window, connect_delete_event(_, _), Quit);
+    fn connect_events(&self) {
+        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
     }
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(handle: Handle, _stream: EventStream<Msg>) -> Self {
+    fn new(relm: Relm<Msg>) -> Self {
+        let widgets = Self::view(&relm);
         Win {
-            widgets: Self::view(handle),
+            relm: relm,
+            widgets: widgets,
         }
     }
 
@@ -247,5 +256,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win, _>().unwrap();
+    Relm::run::<Win>().unwrap();
 }

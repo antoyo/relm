@@ -50,7 +50,7 @@ use futures::future::ok;
 use gtk::{Button, ButtonExt, ContainerExt, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
 use rand::Rng;
-use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, Widget, connect};
+use relm::{Handle, QuitFuture, Relm, UnitFuture, Widget};
 use tokio_core::net::TcpStream;
 use tokio_proto::TcpClient;
 use tokio_proto::pipeline::ClientService;
@@ -84,7 +84,7 @@ struct Widgets {
 struct Win {
     model: Model,
     service: Option<WSService>,
-    stream: EventStream<Msg>,
+    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
@@ -119,30 +119,30 @@ impl Win {
 impl Widget<Msg> for Win {
     type Container = Window;
 
-    fn connect_events(&self, stream: &EventStream<Msg>) {
-        connect!(stream, self.widgets.entry, connect_activate(_), Send);
-        connect!(stream, self.widgets.button, connect_clicked(_), Send);
-        connect_no_inhibit!(stream, self.widgets.window, connect_delete_event(_, _), Quit);
+    fn connect_events(&self) {
+        connect!(self.relm, self.widgets.entry, connect_activate(_), Send);
+        connect!(self.relm, self.widgets.button, connect_clicked(_), Send);
+        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
     }
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(handle: Handle, stream: EventStream<Msg>) -> Self {
+    fn new(relm: Relm<Msg>) -> Self {
         let model = Model {
             text: String::new(),
         };
 
-        let handshake_future = ws_handshake(&handle);
-        let future = connect(handshake_future, Connected, &stream);
-        handle.spawn(future);
+        let handshake_future = ws_handshake(relm.handle());
+        let future = relm.connect(handshake_future, Connected);
+        relm.exec(future);
 
         let widgets = Self::view();
         Win {
             model: model,
+            relm: relm,
             service: None,
-            stream: stream,
             widgets: widgets,
         }
     }
@@ -162,7 +162,7 @@ impl Widget<Msg> for Win {
                     self.widgets.entry.set_text("");
                     self.widgets.entry.grab_focus();
                     let send_future = ws_send(service, &message);
-                    return connect(send_future, Message, &self.stream);
+                    return self.relm.connect(send_future, Message);
                 }
             },
             Quit => return QuitFuture.boxed(),
@@ -226,5 +226,5 @@ fn ws_send(service: &WSService, message: &str) -> impl Future<Item=String> {
 }
 
 fn main() {
-    Relm::run::<Win, _>().unwrap();
+    Relm::run::<Win>().unwrap();
 }

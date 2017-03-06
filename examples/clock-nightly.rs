@@ -37,7 +37,7 @@ use chrono::Local;
 use futures::Future;
 use futures::future::ok;
 use gtk::{ContainerExt, Label, WidgetExt, Window, WindowType};
-use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, Widget, connect};
+use relm::{QuitFuture, Relm, UnitFuture, Widget};
 use tokio_timer::Timer;
 
 use self::Msg::*;
@@ -54,7 +54,7 @@ struct Widgets {
 }
 
 struct Win {
-    stream: EventStream<Msg>,
+    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
@@ -78,18 +78,18 @@ impl Win {
 impl Widget<Msg> for Win {
     type Container = Window;
 
-    fn connect_events(&self, stream: &EventStream<Msg>) {
-        connect_no_inhibit!(stream, self.widgets.window, connect_delete_event(_, _), Quit);
+    fn connect_events(&self) {
+        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
     }
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(_handle: Handle, stream: EventStream<Msg>) -> Self {
+    fn new(relm: Relm<Msg>) -> Self {
         let widgets = Self::view();
         Win {
-            stream: stream,
+            relm: relm,
             widgets: widgets,
         }
     }
@@ -97,7 +97,7 @@ impl Widget<Msg> for Win {
     fn subscriptions(&self) -> Vec<UnitFuture> {
         let timer = Timer::default();
         let stream = timer.interval(Duration::from_secs(1));
-        let clock_stream = connect(stream, Tick, &self.stream);
+        let clock_stream = self.relm.connect(stream, Tick);
         vec![clock_stream]
     }
 
@@ -115,5 +115,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win, _>().unwrap();
+    Relm::run::<Win>().unwrap();
 }

@@ -20,7 +20,6 @@
  */
 
 /*
- * TODO: send a Relm instead of both a Handle and Stream to the Widget::new() method.
  * TODO: convert GTK+ callback to Stream.
  * TODO: communication across widgets.
  * TODO: chat client/server example.
@@ -144,48 +143,63 @@ impl From<()> for Error {
     }
 }
 
-pub struct Relm {
-    core: Core,
+pub struct Relm<M> {
+    handle: Handle,
+    stream: EventStream<M>,
 }
 
-impl Relm {
-    pub fn run<D: Widget<M> + 'static, M: Clone + 'static>() -> Result<(), Error> {
+impl<M: Clone + 'static> Relm<M> {
+    pub fn connect<C, S, T>(&self, to_stream: T, callback: C) -> UnitFuture
+        where C: Fn(S::Item) -> M + 'static,
+              S: Stream + 'static,
+              T: ToStream<S, Item=S::Item, Error=S::Error> + 'static,
+    {
+        let event_stream = self.stream.clone();
+        let stream = to_stream.to_stream();
+        Box::new(stream.and_then(move |result| {
+            event_stream.emit(callback(result));
+            Ok(())
+        })
+            .for_each(Ok)
+            // TODO: handle errors.
+            .map_err(|_| ()))
+    }
+
+    pub fn exec<F: Future<Item=(), Error=()> + 'static>(&self, future: F) {
+        self.handle.spawn(future);
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
+
+    pub fn run<D: Widget<M> + 'static>() -> Result<(), Error> {
         gtk::init()?;
 
-        let mut relm = Relm {
-            core: Core::new()?,
-        };
+        let mut core = Core::new()?;
 
-        let handle = relm.core.handle();
+        let handle = core.handle();
         create_widget::<D, M>(&handle);
 
-        relm.core.run();
+        core.run();
         Ok(())
     }
-}
 
-pub fn connect<C, M, S, T>(to_stream: T, callback: C, event_stream: &EventStream<M>) -> UnitFuture
-    where C: Fn(S::Item) -> M + 'static,
-          S: Stream + 'static,
-          T: ToStream<S, Item=S::Item, Error=S::Error> + 'static,
-          M: Clone + 'static,
-{
-    let event_stream = event_stream.clone();
-    let stream = to_stream.to_stream();
-    Box::new(stream.and_then(move |result| {
-        event_stream.emit(callback(result));
-        Ok(())
-    })
-        .for_each(Ok)
-        // TODO: handle errors.
-        .map_err(|_| ()))
+    // TODO: delete this method when the connect macros are no longer required.
+    pub fn stream(&self) -> &EventStream<M> {
+        &self.stream
+    }
 }
 
 fn create_widget<D: Widget<M> + 'static, M: Clone + 'static>(handle: &Handle) -> D::Container {
     let stream = EventStream::new();
 
-    let mut widget = D::new(handle.clone(), stream.clone());
-    widget.connect_events(&stream);
+    let relm = Relm {
+        handle: handle.clone(),
+        stream: stream.clone(),
+    };
+    let mut widget = D::new(relm);
+    widget.connect_events();
 
     let subscriptions = widget.subscriptions();
     for subscription in subscriptions {

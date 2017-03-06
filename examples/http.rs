@@ -39,7 +39,7 @@ use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, Wind
 use hyper::Client;
 use hyper_tls::HttpsConnector;
 use gtk::Orientation::Vertical;
-use relm::{EventStream, Handle, QuitFuture, Relm, UnitFuture, Widget, connect};
+use relm::{Handle, QuitFuture, Relm, UnitFuture, Widget};
 
 use self::Msg::*;
 
@@ -65,9 +65,8 @@ struct Widgets {
 }
 
 struct Win {
-    handle: Handle,
     model: Model,
-    stream: EventStream<Msg>,
+    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
@@ -102,16 +101,16 @@ impl Win {
 impl Widget<Msg> for Win {
     type Container = Window;
 
-    fn connect_events(&self, stream: &EventStream<Msg>) {
-        connect!(stream, self.widgets.button, connect_clicked(_), FetchUrl);
-        connect_no_inhibit!(stream, self.widgets.window, connect_delete_event(_, _), Quit);
+    fn connect_events(&self) {
+        connect!(self.relm, self.widgets.button, connect_clicked(_), FetchUrl);
+        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
     }
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(handle: Handle, stream: EventStream<Msg>) -> Self {
+    fn new(relm: Relm<Msg>) -> Self {
         let model = Model {
             gif_url: "waiting.gif".to_string(),
             topic: "cats".to_string(),
@@ -119,9 +118,8 @@ impl Widget<Msg> for Win {
         let widgets = Self::view();
         widgets.label.set_text(&model.topic);
         Win {
-            handle: handle,
             model: model,
-            stream: stream,
+            relm: relm,
             widgets: widgets,
         }
     }
@@ -131,15 +129,15 @@ impl Widget<Msg> for Win {
             FetchUrl => {
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", self.model.topic);
                 //let url = format!("https://api.giphy.com/v1/gifs"); // TODO: test with this URL because it freezes the UI.
-                let http_future = http_get(&url, &self.handle);
-                return connect(http_future, NewGif, &self.stream);
+                let http_future = http_get(&url, self.relm.handle());
+                return self.relm.connect(http_future, NewGif);
             },
             NewGif(result) => {
                 let string = String::from_utf8(result).unwrap();
                 let json = json::parse(&string).unwrap();
                 let url = &json["data"]["image_url"].as_str().unwrap();
-                let http_future = http_get(url, &self.handle);
-                return connect(http_future, NewImage, &self.stream);
+                let http_future = http_get(url, self.relm.handle());
+                return self.relm.connect(http_future, NewImage);
             },
             NewImage(result) => {
                 let loader = PixbufLoader::new();
@@ -170,5 +168,5 @@ fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=(
 }
 
 fn main() {
-    Relm::run::<Win, _>().unwrap();
+    Relm::run::<Win>().unwrap();
 }
