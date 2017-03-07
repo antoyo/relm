@@ -43,7 +43,7 @@ use relm::{Handle, QuitFuture, Relm, UnitFuture, Widget};
 
 use self::Msg::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct Model {
     gif_url: String,
     topic: String,

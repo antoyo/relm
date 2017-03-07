@@ -61,7 +61,7 @@ use self::Msg::*;
 
 type WSService = ClientService<TcpStream, WebSocketProtocol>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct Model {
     text: String,
 }

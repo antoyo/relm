@@ -19,18 +19,50 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/// Send `$msg` when the `$event` is emitted on `$widget`.
+/// Rule #1:
+/// Send `$msg` to `$other_widget` when the GTK+ `$event` is emitted on `$widget`.
+///
+/// Rule #2:
+/// Send `$msg` when the GTK+ `$event` is emitted on `$widget`.
+///
+/// Rule #3:
+/// Send `$msg` to `$widget` when the `$message` is received on `$stream`.
 #[macro_export]
 macro_rules! connect {
+    // Connect to a GTK+ widget event, sending a message to another widget.
+    ($widget:expr, $event:ident($($args:pat),*), $other_widget:expr, $msg:expr) => {
+        let widget = $other_widget.clone();
+        $widget.$event(move |$($args),*| {
+            widget.emit($msg);
+        });
+    };
+
+    // Connect to a GTK+ widget event.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
             stream.emit($msg);
         });
     }};
+
+    // Connect to a message reception.
+    // TODO: create another macro rule accepting multiple patterns.
+    ($stream:expr, $message:pat, $widget:expr, $msg:expr) => {
+        let widget = $widget.clone();
+        $stream.observe(move |msg| {
+            #[allow(unreachable_patterns)]
+            match msg {
+                $message =>  {
+                    widget.emit($msg);
+                },
+                _ => (),
+            }
+        });
+    };
 }
 
 /// Send `$msg` when the `$event` is emitted on `$widget` (without inhibiting the event).
+// TODO: add the missing rules from the connect!() macro.
 #[macro_export]
 macro_rules! connect_no_inhibit {
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{

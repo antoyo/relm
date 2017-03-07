@@ -105,7 +105,7 @@ impl Widget<TextMsg> for Text {
 }
 
 #[derive(Clone)]
-struct Model {
+struct CounterModel {
     counter: i32,
 }
 
@@ -116,7 +116,7 @@ enum CounterMsg {
 }
 
 struct Counter {
-    model: Model,
+    model: CounterModel,
     widgets: CounterWidgets,
 }
 
@@ -153,7 +153,7 @@ impl Widget<CounterMsg> for Counter {
     fn new(relm: Relm<CounterMsg>) -> Self {
         let widgets = Self::view(&relm);
         Counter {
-            model: Model {
+            model: CounterModel {
                 counter: 0,
             },
             widgets: widgets,
@@ -183,16 +183,23 @@ struct CounterWidgets {
     vbox: gtk::Box,
 }
 
+struct Model {
+    counter: i32,
+}
+
 #[derive(Clone)]
 enum Msg {
+    TextChange,
     Quit,
 }
 
 struct Widgets {
+    label: Label,
     window: Window,
 }
 
 struct Win {
+    model: Model,
     widgets: Widgets,
 }
 
@@ -204,9 +211,19 @@ impl Win {
 
         let hbox = gtk::Box::new(Horizontal, 0);
 
-        hbox.add_widget::<Counter, _>(handle);
-        hbox.add_widget::<Counter, _>(handle);
-        hbox.add_widget::<Text, _>(handle);
+        let button = Button::new_with_label("Decrement");
+        hbox.add(&button);
+
+        let counter1 = hbox.add_widget::<Counter, _>(handle);
+        let counter2 = hbox.add_widget::<Counter, _>(handle);
+        let text = hbox.add_widget::<Text, _>(handle);
+        connect!(text, Change, relm.stream(), TextChange); // TODO: get the text in the TextChange.
+        connect!(text, Change, counter1, Increment);
+        connect!(counter1, Increment, counter2, Decrement);
+        connect!(button, connect_clicked(_), counter1, Decrement);
+
+        let label = Label::new(None);
+        hbox.add(&label);
 
         window.add(&hbox);
 
@@ -215,6 +232,7 @@ impl Win {
         connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
         Widgets {
+            label: label,
             window: window,
         }
     }
@@ -230,14 +248,22 @@ impl Widget<Msg> for Win {
     fn new(relm: Relm<Msg>) -> Self {
         let widgets = Self::view(&relm);
         Win {
+            model: Model {
+                counter: 0,
+            },
             widgets: widgets,
         }
     }
 
     fn update(&mut self, event: Msg) -> UnitFuture {
         match event {
-            Quit => QuitFuture.boxed(),
+            TextChange => {
+                self.model.counter += 1;
+                self.widgets.label.set_text(&self.model.counter.to_string());
+            },
+            Quit => return QuitFuture.boxed(),
         }
+        ok(()).boxed()
     }
 }
 

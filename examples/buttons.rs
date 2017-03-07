@@ -32,7 +32,7 @@ use relm::{QuitFuture, Relm, UnitFuture, Widget};
 
 use self::Msg::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct Model {
     counter: i32,
 }

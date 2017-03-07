@@ -20,8 +20,6 @@
  */
 
 /*
- * TODO: convert GTK+ callback to Stream.
- * TODO: communication across widgets.
  * TODO: chat client/server example.
  *
  * TODO: try tk-easyloop in another branch.
@@ -36,6 +34,8 @@
  * * create attributes for constructor gtk widgets (like orientation for Box::new(orientation)).
  * TODO: optionnaly multi-threaded.
  * TODO: Use two update functions (one for errors, one for success/normal behavior).
+ * TODO: convert GTK+ callback to Stream (does not seem worth it, nor convenient since it will
+ * still need to use USFC for the callback method).
  */
 
 extern crate futures;
@@ -193,7 +193,7 @@ impl<M: Clone + 'static> Relm<M> {
     }
 }
 
-fn create_widget<D: Widget<M> + 'static, M: Clone + 'static>(handle: &Handle) -> D::Container {
+fn create_widget<D: Widget<M> + 'static, M: Clone + 'static>(handle: &Handle) -> (D::Container, EventStream<M>) {
     let stream = EventStream::new();
 
     let relm = Relm {
@@ -211,7 +211,7 @@ fn create_widget<D: Widget<M> + 'static, M: Clone + 'static>(handle: &Handle) ->
 
     let event_future = {
         let handle = handle.clone();
-        stream.for_each(move |event| {
+        stream.clone().for_each(move |event| {
             let future = widget.update(event);
             handle.spawn(future);
             Ok(())
@@ -219,15 +219,16 @@ fn create_widget<D: Widget<M> + 'static, M: Clone + 'static>(handle: &Handle) ->
     };
     handle.spawn(event_future);
 
-    container
+    (container, stream)
 }
 
 pub trait AddWidget
     where Self: ContainerExt
 {
-    fn add_widget<D: Widget<M> + 'static, M: Clone + 'static>(&self, handle: &Handle) {
-        let widget = create_widget::<D, M>(handle);
+    fn add_widget<D: Widget<M> + 'static, M: Clone + 'static>(&self, handle: &Handle) -> EventStream<M> {
+        let (widget, stream) = create_widget::<D, M>(handle);
         self.add(&widget);
+        stream
     }
 }
 

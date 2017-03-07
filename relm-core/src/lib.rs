@@ -82,6 +82,7 @@ impl Future for QuitFuture {
 
 struct _EventStream<T> {
     events: VecDeque<T>,
+    observers: Vec<Box<Fn(T)>>,
     task: Option<Task>,
 }
 
@@ -90,11 +91,12 @@ pub struct EventStream<T> {
     stream: Rc<RefCell<_EventStream<T>>>,
 }
 
-impl<T> EventStream<T> {
+impl<T: Clone> EventStream<T> {
     pub fn new() -> Self {
         EventStream {
             stream: Rc::new(RefCell::new(_EventStream {
                 events: VecDeque::new(),
+                observers: vec![],
                 task: None,
             })),
         }
@@ -104,15 +106,23 @@ impl<T> EventStream<T> {
         if let Some(ref task) = self.stream.borrow().task {
             task.unpark();
         }
-        self.stream.borrow_mut().events.push_back(event);
+        self.stream.borrow_mut().events.push_back(event.clone());
+
+        for observer in &self.stream.borrow().observers {
+            observer(event.clone());
+        }
     }
 
     fn get_event(&self) -> Option<T> {
         self.stream.borrow_mut().events.pop_front()
     }
+
+    pub fn observe<F: Fn(T) + 'static>(&self, callback: F) {
+        self.stream.borrow_mut().observers.push(Box::new(callback));
+    }
 }
 
-impl<T> Stream for EventStream<T> {
+impl<T: Clone> Stream for EventStream<T> {
     type Item = T;
     type Error = ();
 
