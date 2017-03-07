@@ -52,12 +52,11 @@ struct TextWidgets {
 
 struct Text {
     model: TextModel,
-    relm: Relm<TextMsg>,
     widgets: TextWidgets,
 }
 
 impl Text {
-    fn view() -> TextWidgets {
+    fn view(relm: &Relm<TextMsg>) -> TextWidgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -65,6 +64,8 @@ impl Text {
 
         let label = Label::new(None);
         vbox.add(&label);
+
+        connect!(relm, input, connect_changed(_), Change);
 
         TextWidgets {
             input: input,
@@ -77,21 +78,17 @@ impl Text {
 impl Widget<TextMsg> for Text {
     type Container = gtk::Box;
 
-    fn connect_events(&self) {
-        connect!(self.relm, self.widgets.input, connect_changed(_), Change);
-    }
-
     fn container(&self) -> &Self::Container {
         &self.widgets.vbox
     }
 
     fn new(relm: Relm<TextMsg>) -> Self {
+        let widgets = Self::view(&relm);
         Text {
             model: TextModel {
                 content: String::new(),
             },
-            relm: relm,
-            widgets: Self::view(),
+            widgets: widgets,
         }
     }
 
@@ -120,12 +117,11 @@ enum CounterMsg {
 
 struct Counter {
     model: Model,
-    relm: Relm<CounterMsg>,
     widgets: CounterWidgets,
 }
 
 impl Counter {
-    fn view() -> CounterWidgets {
+    fn view(relm: &Relm<CounterMsg>) -> CounterWidgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -137,10 +133,11 @@ impl Counter {
         let minus_button = Button::new_with_label("-");
         vbox.add(&minus_button);
 
+        connect!(relm, plus_button, connect_clicked(_), Increment);
+        connect!(relm, minus_button, connect_clicked(_), Decrement);
+
         CounterWidgets {
             counter_label: counter_label,
-            minus_button: minus_button,
-            plus_button: plus_button,
             vbox: vbox,
         }
     }
@@ -149,22 +146,17 @@ impl Counter {
 impl Widget<CounterMsg> for Counter {
     type Container = gtk::Box;
 
-    fn connect_events(&self) {
-        connect!(self.relm, self.widgets.plus_button, connect_clicked(_), Increment);
-        connect!(self.relm, self.widgets.minus_button, connect_clicked(_), Decrement);
-    }
-
     fn container(&self) -> &Self::Container {
         &self.widgets.vbox
     }
 
     fn new(relm: Relm<CounterMsg>) -> Self {
+        let widgets = Self::view(&relm);
         Counter {
             model: Model {
                 counter: 0,
             },
-            relm: relm,
-            widgets: Self::view(),
+            widgets: widgets,
         }
     }
 
@@ -188,8 +180,6 @@ impl Widget<CounterMsg> for Counter {
 
 struct CounterWidgets {
     counter_label: Label,
-    minus_button: Button,
-    plus_button: Button,
     vbox: gtk::Box,
 }
 
@@ -203,7 +193,6 @@ struct Widgets {
 }
 
 struct Win {
-    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
@@ -223,6 +212,8 @@ impl Win {
 
         window.show_all();
 
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+
         Widgets {
             window: window,
         }
@@ -232,10 +223,6 @@ impl Win {
 impl Widget<Msg> for Win {
     type Container = Window;
 
-    fn connect_events(&self) {
-        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
-    }
-
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
@@ -243,7 +230,6 @@ impl Widget<Msg> for Win {
     fn new(relm: Relm<Msg>) -> Self {
         let widgets = Self::view(&relm);
         Win {
-            relm: relm,
             widgets: widgets,
         }
     }

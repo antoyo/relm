@@ -51,12 +51,11 @@ struct Widgets {
 
 struct Win {
     model: Model,
-    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
 impl Win {
-    fn view() -> Widgets {
+    fn view(relm: &Relm<Msg>) -> Widgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -71,6 +70,9 @@ impl Win {
 
         window.show_all();
 
+        connect!(relm, input, connect_changed(_), Change);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+
         Widgets {
             input: input,
             label: label,
@@ -82,22 +84,17 @@ impl Win {
 impl Widget<Msg> for Win {
     type Container = Window;
 
-    fn connect_events(&self) {
-        connect!(self.relm, self.widgets.input, connect_changed(_), Change);
-        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
-    }
-
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
     fn new(relm: Relm<Msg>) -> Self {
+        let widgets = Self::view(&relm);
         Win {
             model: Model {
                 content: String::new(),
             },
-            relm: relm,
-            widgets: Self::view(),
+            widgets: widgets,
         }
     }
 

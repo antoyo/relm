@@ -55,7 +55,7 @@ struct Win {
 }
 
 impl Win {
-    fn view() -> Widgets {
+    fn view(relm: &Relm<Msg>) -> Widgets {
         let label = Label::new(None);
 
         let window = Window::new(WindowType::Toplevel);
@@ -63,6 +63,8 @@ impl Win {
         window.add(&label);
 
         window.show_all();
+
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
         Widgets {
             label: label,
@@ -74,16 +76,12 @@ impl Win {
 impl Widget<Msg> for Win {
     type Container = Window;
 
-    fn connect_events(&self) {
-        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
-    }
-
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
     fn new(relm: Relm<Msg>) -> Self {
-        let widgets = Self::view();
+        let widgets = Self::view(&relm);
         Win {
             relm: relm,
             widgets: widgets,

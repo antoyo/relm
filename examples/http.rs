@@ -58,7 +58,6 @@ enum Msg {
 }
 
 struct Widgets {
-    button: Button,
     image: Image,
     label: Label,
     window: Window,
@@ -71,7 +70,7 @@ struct Win {
 }
 
 impl Win {
-    fn view() -> Widgets {
+    fn view(relm: &Relm<Msg>) -> Widgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let label = Label::new(None);
@@ -89,8 +88,10 @@ impl Win {
 
         window.show_all();
 
+        connect!(relm, button, connect_clicked(_), FetchUrl);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+
         Widgets {
-            button: button,
             image: image,
             label: label,
             window: window,
@@ -101,11 +102,6 @@ impl Win {
 impl Widget<Msg> for Win {
     type Container = Window;
 
-    fn connect_events(&self) {
-        connect!(self.relm, self.widgets.button, connect_clicked(_), FetchUrl);
-        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
-    }
-
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
@@ -115,7 +111,7 @@ impl Widget<Msg> for Win {
             gif_url: "waiting.gif".to_string(),
             topic: "cats".to_string(),
         };
-        let widgets = Self::view();
+        let widgets = Self::view(&relm);
         widgets.label.set_text(&model.topic);
         Win {
             model: model,

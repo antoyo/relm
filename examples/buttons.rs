@@ -46,21 +46,18 @@ enum Msg {
 
 struct Widgets {
     counter_label: Label,
-    minus_button: Button,
-    plus_button: Button,
     window: Window,
 }
 
 struct Win {
     model: Model,
-    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
 impl Win {
     // TODO: create an attribute (or procedural macro) to have the ability to generate a view from
     // a declarative structure.
-    fn view() -> Widgets {
+    fn view(relm: &Relm<Msg>) -> Widgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -78,10 +75,12 @@ impl Win {
 
         window.show_all();
 
+        connect!(relm, plus_button, connect_clicked(_), Increment);
+        connect!(relm, minus_button, connect_clicked(_), Decrement);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+
         Widgets {
             counter_label: counter_label,
-            minus_button: minus_button,
-            plus_button: plus_button,
             window: window,
         }
     }
@@ -90,23 +89,17 @@ impl Win {
 impl Widget<Msg> for Win {
     type Container = Window;
 
-    fn connect_events(&self) {
-        connect!(self.relm, self.widgets.plus_button, connect_clicked(_), Increment);
-        connect!(self.relm, self.widgets.minus_button, connect_clicked(_), Decrement);
-        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
-    }
-
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
     fn new(relm: Relm<Msg>) -> Self {
+        let widgets = Self::view(&relm);
         Win {
             model: Model {
                 counter: 0,
             },
-            relm: relm,
-            widgets: Self::view(),
+            widgets: widgets,
         }
     }
 

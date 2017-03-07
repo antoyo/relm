@@ -29,9 +29,6 @@ pub trait Widget<M>
 {
     type Container;
 
-    /// Connect the events in this method.
-    fn connect_events(&self);
-
     /// Get the containing widget.
     fn container(&self) -> &Self::Container;
 

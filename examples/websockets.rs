@@ -75,7 +75,6 @@ enum Msg {
 }
 
 struct Widgets {
-    button: Button,
     entry: Entry,
     label: Label,
     window: Window,
@@ -89,7 +88,7 @@ struct Win {
 }
 
 impl Win {
-    fn view() -> Widgets {
+    fn view(relm: &Relm<Msg>) -> Widgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let label = Label::new(None);
@@ -107,8 +106,11 @@ impl Win {
 
         window.show_all();
 
+        connect!(relm, entry, connect_activate(_), Send);
+        connect!(relm, button, connect_clicked(_), Send);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+
         Widgets {
-            button: button,
             entry: entry,
             label: label,
             window: window,
@@ -118,12 +120,6 @@ impl Win {
 
 impl Widget<Msg> for Win {
     type Container = Window;
-
-    fn connect_events(&self) {
-        connect!(self.relm, self.widgets.entry, connect_activate(_), Send);
-        connect!(self.relm, self.widgets.button, connect_clicked(_), Send);
-        connect_no_inhibit!(self.relm, self.widgets.window, connect_delete_event(_, _), Quit);
-    }
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
@@ -138,7 +134,7 @@ impl Widget<Msg> for Win {
         let future = relm.connect(handshake_future, Connected);
         relm.exec(future);
 
-        let widgets = Self::view();
+        let widgets = Self::view(&relm);
         Win {
             model: model,
             relm: relm,

@@ -201,7 +201,6 @@ fn create_widget<D: Widget<M> + 'static, M: Clone + 'static>(handle: &Handle) ->
         stream: stream.clone(),
     };
     let mut widget = D::new(relm);
-    widget.connect_events();
 
     let subscriptions = widget.subscriptions();
     for subscription in subscriptions {
