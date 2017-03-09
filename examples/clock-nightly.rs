@@ -22,9 +22,9 @@
 #![feature(fn_traits, unboxed_closures)]
 
 extern crate chrono;
-extern crate futures;
 #[macro_use]
 extern crate fns_derive;
+extern crate futures;
 extern crate gtk;
 #[macro_use]
 extern crate relm;

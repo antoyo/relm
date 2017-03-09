@@ -19,8 +19,10 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(conservative_impl_trait)]
+#![feature(conservative_impl_trait, fn_traits, unboxed_closures)]
 
+#[macro_use]
+extern crate fns_derive;
 extern crate futures;
 extern crate gdk_pixbuf;
 extern crate gtk;
@@ -49,11 +51,12 @@ struct Model {
     topic: String,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Fns)]
 enum Msg {
+    DownloadCompleted,
     FetchUrl,
+    ImageChunk(Vec<u8>),
     NewGif(Vec<u8>),
-    NewImage(Vec<u8>),
     Quit,
 }
 
@@ -64,6 +67,7 @@ struct Widgets {
 }
 
 struct Win {
+    loader: PixbufLoader,
     model: Model,
     relm: Relm<Msg>,
     widgets: Widgets,
@@ -114,6 +118,7 @@ impl Widget<Msg> for Win {
         let widgets = Self::view(&relm);
         widgets.label.set_text(&model.topic);
         Win {
+            loader: PixbufLoader::new(),
             model: model,
             relm: relm,
             widgets: widgets,
@@ -122,9 +127,13 @@ impl Widget<Msg> for Win {
 
     fn update(&mut self, event: Msg) -> UnitFuture {
         match event {
+            DownloadCompleted => {
+                self.loader.close().unwrap();
+                self.widgets.image.set_from_pixbuf(self.loader.get_pixbuf().as_ref());
+                self.loader = PixbufLoader::new();
+            },
             FetchUrl => {
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", self.model.topic);
-                //let url = format!("https://api.giphy.com/v1/gifs"); // TODO: test with this URL because it freezes the UI.
                 let http_future = http_get(&url, self.relm.handle());
                 return self.relm.connect(http_future, NewGif);
             },
@@ -132,14 +141,12 @@ impl Widget<Msg> for Win {
                 let string = String::from_utf8(result).unwrap();
                 let json = json::parse(&string).unwrap();
                 let url = &json["data"]["image_url"].as_str().unwrap();
-                let http_future = http_get(url, self.relm.handle());
-                return self.relm.connect(http_future, NewImage);
+                let http_future = http_get_stream(url, self.relm.handle());
+                let future = self.relm.connect(http_future, ImageChunk);
+                return self.relm.connect(future, DownloadCompleted);
             },
-            NewImage(result) => {
-                let loader = PixbufLoader::new();
-                loader.loader_write(&result).unwrap();
-                loader.close().unwrap();
-                self.widgets.image.set_from_pixbuf(loader.get_pixbuf().as_ref());
+            ImageChunk(chunk) => {
+                self.loader.loader_write(&chunk).unwrap();
             },
             Quit => return QuitFuture.boxed(),
         }
@@ -148,19 +155,36 @@ impl Widget<Msg> for Win {
     }
 }
 
+impl Drop for Win {
+    fn drop(&mut self) {
+        // This is necessary to avoid a GDK warning.
+        self.loader.close().ok(); // Ignore the error since no data was loaded.
+    }
+}
+
 fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=()> + 'a {
+    let stream = http_get_stream(url, handle);
+    // TODO: use the new Stream::concat().
+    stream.fold(vec![], |mut acc, chunk| {
+        acc.extend_from_slice(&chunk);
+        Ok(acc)
+    })
+}
+
+fn http_get_stream<'a>(url: &str, handle: &Handle) -> impl Stream<Item=Vec<u8>, Error=()> + 'a {
     let url = hyper::Url::parse(url).unwrap();
     let connector = HttpsConnector::new(2, handle);
     let client = Client::configure()
         .connector(connector)
         .build(handle);
-    client.get(url).map_err(|_| ()).and_then(|res| {
-        res.body().map_err(|_| ()).fold(vec![], |mut acc, chunk| {
-            acc.extend_from_slice(&chunk);
-            Ok(acc)
-        })
+    client.get(url).and_then(|res| {
+        Ok(res.body()
+           .map(|chunk| chunk.to_vec())
+           .map_err(|_| ())
+       )
     })
         .map_err(|_| ())
+        .flatten_stream()
 }
 
 fn main() {

@@ -20,6 +20,7 @@
  */
 
 /*
+ * TODO: function to remove widget.
  * TODO: chat client/server example.
  *
  * TODO: try tk-easyloop in another branch.
