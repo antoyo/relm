@@ -23,6 +23,8 @@ extern crate futures;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
+#[macro_use]
+extern crate relm_derive;
 
 use futures::Future;
 use futures::future::ok;
@@ -37,7 +39,7 @@ struct Model {
     counter: i32,
 }
 
-#[derive(Clone)]
+#[derive(Msg)]
 enum Msg {
     Decrement,
     Increment,

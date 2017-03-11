@@ -24,6 +24,8 @@ extern crate futures;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
+#[macro_use]
+extern crate relm_derive;
 extern crate tokio_core;
 extern crate tokio_timer;
 
@@ -38,7 +40,7 @@ use tokio_timer::Timer;
 
 use self::Msg::*;
 
-#[derive(Clone)]
+#[derive(Msg)]
 enum Msg {
     Quit,
     Tick(()),

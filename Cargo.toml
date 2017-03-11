@@ -7,6 +7,7 @@ version = "0.1.0"
 [dependencies]
 futures = "^0.1.10"
 gtk = "^0.1.1"
+log = "^0.3.7"
 
 [dependencies.relm-core]
 path = "relm-core"
@@ -18,7 +19,7 @@ chrono = "^0.3.0"
 gdk-pixbuf = "^0.1.1"
 json = "^0.11.5"
 rand = "^0.3.15"
-slog-stdlog = "^1.1.0"
+simplelog = "^0.4.2"
 tokio-core = "^0.1.4"
 tokio-proto = "^0.1.0"
 tokio-service = "^0.1.0"
@@ -26,10 +27,11 @@ tokio-timer = "^0.1.0"
 twist = "^0.5.0"
 url = "^1.4.0"
 
-[dev-dependencies.fns-derive]
-path = "fns-derive"
+[dev-dependencies.relm-derive]
+path = "relm-derive"
 
 [dev-dependencies.hyper]
 git = "https://github.com/hyperium/hyper"
+
 [dev-dependencies.hyper-tls]
 git = "https://github.com/hyperium/hyper-tls"

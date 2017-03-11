@@ -20,11 +20,14 @@
  */
 
 /*
+ * TODO: create a function to add the Futures instead of returning it to avoid allocating them on
+ * the heap (do that in the connect() method).
  * TODO: function to remove widget.
  * TODO: chat client/server example.
  *
  * TODO: try tk-easyloop in another branch.
  *
+ * TODO: err if trying to use the SimpleMsg custom derive on stable.
  * TODO: add Cargo travis badge.
  * TODO: use macros 2.0 instead for the:
  * * view: to create the dependencies between the view items and the model.
@@ -41,6 +44,8 @@
 
 extern crate futures;
 extern crate gtk;
+#[macro_use]
+extern crate log;
 extern crate relm_core;
 
 mod macros;
@@ -49,6 +54,7 @@ mod widget;
 use std::error;
 use std::fmt::{self, Display, Formatter};
 use std::io;
+use std::time::SystemTime;
 
 use futures::{Future, IntoStream, Poll, Stream};
 use gtk::ContainerExt;
@@ -146,12 +152,12 @@ impl From<()> for Error {
     }
 }
 
-pub struct Relm<M> {
+pub struct Relm<M: Clone + DisplayVariant> {
     handle: Handle,
     stream: EventStream<M>,
 }
 
-impl<M: Clone + 'static> Relm<M> {
+impl<M: Clone + DisplayVariant + 'static> Relm<M> {
     pub fn connect<C, S, T>(&self, to_stream: T, callback: C) -> UnitFuture
         where C: Fn(S::Item) -> M + 'static,
               S: Stream + 'static,
@@ -194,7 +200,10 @@ impl<M: Clone + 'static> Relm<M> {
     }
 }
 
-fn create_widget<D: Widget<M> + 'static, M: Clone + 'static>(handle: &Handle) -> (D::Container, EventStream<M>) {
+fn create_widget<D, M>(handle: &Handle) -> (D::Container, EventStream<M>)
+    where D: Widget<M> + 'static,
+          M: Clone + DisplayVariant + 'static,
+{
     let stream = EventStream::new();
 
     let relm = Relm {
@@ -213,7 +222,30 @@ fn create_widget<D: Widget<M> + 'static, M: Clone + 'static>(handle: &Handle) ->
     let event_future = {
         let handle = handle.clone();
         stream.clone().for_each(move |event| {
-            let future = widget.update(event);
+            let future =
+                if cfg!(debug_assertions) {
+                    let time = SystemTime::now();
+                    let debug = event.display_variant();
+                    let debug =
+                        if debug.len() > 100 {
+                            format!("{}…", &debug[..100])
+                        }
+                        else {
+                            debug.to_string()
+                        };
+                    let future = widget.update(event);
+                    if let Ok(duration) = time.elapsed() {
+                        let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
+                        if ms >= 200 {
+                            // TODO: only show the message Variant because the value can be big.
+                            warn!("The update function was slow to execute for message {}: {}ms", debug, ms);
+                        }
+                    }
+                    future
+                }
+                else {
+                    widget.update(event)
+                };
             handle.spawn(future);
             Ok(())
         })
@@ -226,7 +258,10 @@ fn create_widget<D: Widget<M> + 'static, M: Clone + 'static>(handle: &Handle) ->
 pub trait AddWidget
     where Self: ContainerExt
 {
-    fn add_widget<D: Widget<M> + 'static, M: Clone + 'static>(&self, handle: &Handle) -> EventStream<M> {
+    fn add_widget<D, M>(&self, handle: &Handle) -> EventStream<M>
+        where D: Widget<M> + 'static,
+              M: Clone + DisplayVariant + 'static,
+    {
         let (widget, stream) = create_widget::<D, M>(handle);
         self.add(&widget);
         stream
@@ -234,3 +269,7 @@ pub trait AddWidget
 }
 
 impl<W: ContainerExt> AddWidget for W { }
+
+pub trait DisplayVariant {
+    fn display_variant(&self) -> &'static str;
+}

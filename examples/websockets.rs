@@ -34,7 +34,8 @@ extern crate json;
 extern crate rand;
 #[macro_use]
 extern crate relm;
-extern crate slog_stdlog;
+#[macro_use]
+extern crate relm_derive;
 extern crate tokio_core;
 extern crate tokio_proto;
 extern crate tokio_service;
@@ -66,7 +67,7 @@ struct Model {
     text: String,
 }
 
-#[derive(Clone)]
+#[derive(Msg)]
 enum Msg {
     Connected(WSService),
     Message(String),

@@ -21,8 +21,6 @@
 
 #![feature(conservative_impl_trait, fn_traits, unboxed_closures)]
 
-#[macro_use]
-extern crate fns_derive;
 extern crate futures;
 extern crate gdk_pixbuf;
 extern crate gtk;
@@ -31,6 +29,9 @@ extern crate hyper_tls;
 extern crate json;
 #[macro_use]
 extern crate relm;
+#[macro_use]
+extern crate relm_derive;
+extern crate simplelog;
 extern crate tokio_core;
 extern crate url;
 
@@ -42,6 +43,8 @@ use hyper::Client;
 use hyper_tls::HttpsConnector;
 use gtk::Orientation::Vertical;
 use relm::{Handle, QuitFuture, Relm, UnitFuture, Widget};
+use simplelog::{Config, TermLogger};
+use simplelog::LogLevelFilter::Warn;
 
 use self::Msg::*;
 
@@ -51,7 +54,7 @@ struct Model {
     topic: String,
 }
 
-#[derive(Clone, Fns)]
+#[derive(SimpleMsg)]
 enum Msg {
     DownloadCompleted,
     FetchUrl,
@@ -61,6 +64,7 @@ enum Msg {
 }
 
 struct Widgets {
+    button: Button,
     image: Image,
     label: Label,
     window: Window,
@@ -96,6 +100,7 @@ impl Win {
         connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
         Widgets {
+            button: button,
             image: image,
             label: label,
             window: window,
@@ -128,11 +133,15 @@ impl Widget<Msg> for Win {
     fn update(&mut self, event: Msg) -> UnitFuture {
         match event {
             DownloadCompleted => {
+                self.widgets.button.set_sensitive(true);
                 self.loader.close().unwrap();
                 self.widgets.image.set_from_pixbuf(self.loader.get_pixbuf().as_ref());
                 self.loader = PixbufLoader::new();
             },
             FetchUrl => {
+                // Disable the button because loading 2 images at the same time crashes the pixbuf
+                // loader.
+                self.widgets.button.set_sensitive(false);
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", self.model.topic);
                 let http_future = http_get(&url, self.relm.handle());
                 return self.relm.connect(http_future, NewGif);
@@ -188,5 +197,6 @@ fn http_get_stream<'a>(url: &str, handle: &Handle) -> impl Stream<Item=Vec<u8>, 
 }
 
 fn main() {
+    TermLogger::init(Warn, Config::default()).unwrap();
     Relm::run::<Win>().unwrap();
 }

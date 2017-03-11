@@ -21,10 +21,10 @@
 
 use gtk::{self, IsA};
 
-use super::{Relm, UnitFuture};
+use super::{DisplayVariant, Relm, UnitFuture};
 
 /// Trait to implement to manage widget's events.
-pub trait Widget<M>
+pub trait Widget<M: Clone + DisplayVariant>
     where Self::Container: Clone + IsA<gtk::Widget>
 {
     type Container;
