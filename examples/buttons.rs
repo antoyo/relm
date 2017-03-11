@@ -26,11 +26,9 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use futures::Future;
-use futures::future::ok;
 use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm::{QuitFuture, Relm, UnitFuture, Widget};
+use relm::{QuitFuture, Relm, Widget};
 
 use self::Msg::*;
 
@@ -53,6 +51,7 @@ struct Widgets {
 
 struct Win {
     model: Model,
+    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
@@ -101,11 +100,12 @@ impl Widget<Msg> for Win {
             model: Model {
                 counter: 0,
             },
+            relm: relm,
             widgets: widgets,
         }
     }
 
-    fn update(&mut self, event: Msg) -> UnitFuture {
+    fn update(&mut self, event: Msg) {
         let label = &self.widgets.counter_label;
 
         match event {
@@ -117,10 +117,8 @@ impl Widget<Msg> for Win {
                 self.model.counter += 1;
                 label.set_text(&self.model.counter.to_string());
             },
-            Quit => return QuitFuture.boxed(),
+            Quit => self.relm.exec(QuitFuture),
         }
-
-        ok(()).boxed()
     }
 }
 

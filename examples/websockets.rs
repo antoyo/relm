@@ -47,11 +47,10 @@ use std::net::ToSocketAddrs;
 use base64::encode;
 use byteorder::{BigEndian, WriteBytesExt};
 use futures::Future;
-use futures::future::ok;
 use gtk::{Button, ButtonExt, ContainerExt, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
 use rand::Rng;
-use relm::{Handle, QuitFuture, Relm, UnitFuture, Widget};
+use relm::{Handle, QuitFuture, Relm, Widget};
 use tokio_core::net::TcpStream;
 use tokio_proto::TcpClient;
 use tokio_proto::pipeline::ClientService;
@@ -144,7 +143,7 @@ impl Widget<Msg> for Win {
         }
     }
 
-    fn update(&mut self, event: Msg) -> UnitFuture {
+    fn update(&mut self, event: Msg) {
         match event {
             Connected(service) => {
                 self.service = Some(service);
@@ -159,13 +158,11 @@ impl Widget<Msg> for Win {
                     self.widgets.entry.set_text("");
                     self.widgets.entry.grab_focus();
                     let send_future = ws_send(service, &message);
-                    return self.relm.connect(send_future, Message);
+                    self.relm.connect_exec(send_future, Message);
                 }
             },
-            Quit => return QuitFuture.boxed(),
+            Quit => self.relm.exec(QuitFuture),
         }
-
-        ok(()).boxed()
     }
 }
 

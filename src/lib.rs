@@ -20,8 +20,6 @@
  */
 
 /*
- * TODO: create a function to add the Futures instead of returning it to avoid allocating them on
- * the heap (do that in the connect() method).
  * TODO: function to remove widget.
  * TODO: chat client/server example.
  *
@@ -41,6 +39,8 @@
  * TODO: convert GTK+ callback to Stream (does not seem worth it, nor convenient since it will
  * still need to use USFC for the callback method).
  */
+
+#![feature(conservative_impl_trait)]
 
 extern crate futures;
 extern crate gtk;
@@ -63,9 +63,6 @@ pub use relm_core::{EventStream, Handle, QuitFuture};
 
 pub use self::Error::*;
 pub use self::widget::*;
-
-pub type UnitFuture = Box<Future<Item=(), Error=()>>;
-pub type UnitStream = Box<Stream<Item=(), Error=()>>;
 
 pub struct RelmStream<E, I, S: Stream<Item=I, Error=E>> {
     stream: S,
@@ -158,20 +155,27 @@ pub struct Relm<M: Clone + DisplayVariant> {
 }
 
 impl<M: Clone + DisplayVariant + 'static> Relm<M> {
-    pub fn connect<C, S, T>(&self, to_stream: T, callback: C) -> UnitFuture
+    pub fn connect<C, S, T>(&self, to_stream: T, callback: C) -> impl Future<Item=(), Error=()>
         where C: Fn(S::Item) -> M + 'static,
               S: Stream + 'static,
               T: ToStream<S, Item=S::Item, Error=S::Error> + 'static,
     {
         let event_stream = self.stream.clone();
         let stream = to_stream.to_stream();
-        Box::new(stream.and_then(move |result| {
+        stream.map_err(|_| ()).for_each(move |result| {
             event_stream.emit(callback(result));
-            Ok(())
-        })
-            .for_each(Ok)
+            Ok::<(), ()>(())
+        }
             // TODO: handle errors.
             .map_err(|_| ()))
+    }
+
+    pub fn connect_exec<C, S, T>(&self, to_stream: T, callback: C)
+        where C: Fn(S::Item) -> M + 'static,
+              S: Stream + 'static,
+              T: ToStream<S, Item=S::Item, Error=S::Error> + 'static,
+    {
+        self.exec(self.connect(to_stream, callback));
     }
 
     pub fn exec<F: Future<Item=(), Error=()> + 'static>(&self, future: F) {
@@ -212,41 +216,32 @@ fn create_widget<D, M>(handle: &Handle) -> (D::Container, EventStream<M>)
     };
     let mut widget = D::new(relm);
 
-    let subscriptions = widget.subscriptions();
-    for subscription in subscriptions {
-        handle.spawn(subscription);
-    }
-
     let container = widget.container().clone();
 
     let event_future = {
-        let handle = handle.clone();
         stream.clone().for_each(move |event| {
-            let future =
-                if cfg!(debug_assertions) {
-                    let time = SystemTime::now();
-                    let debug = event.display_variant();
-                    let debug =
-                        if debug.len() > 100 {
-                            format!("{}…", &debug[..100])
-                        }
-                        else {
-                            debug.to_string()
-                        };
-                    let future = widget.update(event);
-                    if let Ok(duration) = time.elapsed() {
-                        let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
-                        if ms >= 200 {
-                            // TODO: only show the message Variant because the value can be big.
-                            warn!("The update function was slow to execute for message {}: {}ms", debug, ms);
-                        }
+            if cfg!(debug_assertions) {
+                let time = SystemTime::now();
+                let debug = event.display_variant();
+                let debug =
+                    if debug.len() > 100 {
+                        format!("{}…", &debug[..100])
                     }
-                    future
+                    else {
+                        debug.to_string()
+                    };
+                widget.update(event);
+                if let Ok(duration) = time.elapsed() {
+                    let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
+                    if ms >= 200 {
+                        // TODO: only show the message Variant because the value can be big.
+                        warn!("The update function was slow to execute for message {}: {}ms", debug, ms);
+                    }
                 }
-                else {
-                    widget.update(event)
-                };
-            handle.spawn(future);
+            }
+            else {
+                widget.update(event)
+            }
             Ok(())
         })
     };

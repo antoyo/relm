@@ -34,10 +34,8 @@ extern crate tokio_timer;
 use std::time::Duration;
 
 use chrono::Local;
-use futures::Future;
-use futures::future::ok;
 use gtk::{ContainerExt, Label, WidgetExt, Window, WindowType};
-use relm::{QuitFuture, Relm, UnitFuture, Widget};
+use relm::{QuitFuture, Relm, Widget};
 use tokio_timer::Timer;
 
 use self::Msg::*;
@@ -59,6 +57,12 @@ struct Win {
 }
 
 impl Win {
+    fn subscriptions(&self) {
+        let timer = Timer::default();
+        let stream = timer.interval(Duration::from_secs(1));
+        self.relm.connect_exec(stream, Tick);
+    }
+
     fn view(relm: &Relm<Msg>) -> Widgets {
         let label = Label::new(None);
 
@@ -86,29 +90,22 @@ impl Widget<Msg> for Win {
 
     fn new(relm: Relm<Msg>) -> Self {
         let widgets = Self::view(&relm);
-        Win {
+        let win = Win {
             relm: relm,
             widgets: widgets,
-        }
+        };
+        win.subscriptions();
+        win
     }
 
-    fn subscriptions(&self) -> Vec<UnitFuture> {
-        let timer = Timer::default();
-        let stream = timer.interval(Duration::from_secs(1));
-        let clock_stream = self.relm.connect(stream, Tick);
-        vec![clock_stream]
-    }
-
-    fn update(&mut self, event: Msg) -> UnitFuture {
+    fn update(&mut self, event: Msg) {
         match event {
             Tick => {
                 let time = Local::now();
                 self.widgets.label.set_text(&format!("{}", time.format("%H:%M:%S")));
             },
-            Quit => return QuitFuture.boxed(),
+            Quit => self.relm.exec(QuitFuture),
         }
-
-        ok(()).boxed()
     }
 }
 

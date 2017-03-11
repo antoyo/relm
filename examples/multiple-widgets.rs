@@ -26,11 +26,9 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use futures::Future;
-use futures::future::ok;
 use gtk::{Button, ButtonExt, ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{AddWidget, QuitFuture, Relm, UnitFuture, Widget};
+use relm::{AddWidget, QuitFuture, Relm, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -94,15 +92,13 @@ impl Widget<TextMsg> for Text {
         }
     }
 
-    fn update(&mut self, event: TextMsg) -> UnitFuture {
+    fn update(&mut self, event: TextMsg) {
         match event {
             Change => {
                 self.model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();
                 self.widgets.label.set_text(&self.model.content);
             },
         }
-
-        ok(()).boxed()
     }
 }
 
@@ -162,7 +158,7 @@ impl Widget<CounterMsg> for Counter {
         }
     }
 
-    fn update(&mut self, event: CounterMsg) -> UnitFuture {
+    fn update(&mut self, event: CounterMsg) {
         let label = &self.widgets.counter_label;
 
         match event {
@@ -175,8 +171,6 @@ impl Widget<CounterMsg> for Counter {
                 label.set_text(&self.model.counter.to_string());
             },
         }
-
-        ok(()).boxed()
     }
 }
 
@@ -195,6 +189,7 @@ struct Widgets {
 }
 
 struct Win {
+    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
@@ -232,13 +227,14 @@ impl Widget<Msg> for Win {
     fn new(relm: Relm<Msg>) -> Self {
         let widgets = Self::view(&relm);
         Win {
+            relm: relm,
             widgets: widgets,
         }
     }
 
-    fn update(&mut self, event: Msg) -> UnitFuture {
+    fn update(&mut self, event: Msg) {
         match event {
-            Quit => QuitFuture.boxed(),
+            Quit => self.relm.exec(QuitFuture),
         }
     }
 }

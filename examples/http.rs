@@ -36,13 +36,12 @@ extern crate tokio_core;
 extern crate url;
 
 use futures::{Future, Stream};
-use futures::future::ok;
 use gdk_pixbuf::PixbufLoader;
 use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, WindowType};
 use hyper::Client;
 use hyper_tls::HttpsConnector;
 use gtk::Orientation::Vertical;
-use relm::{Handle, QuitFuture, Relm, UnitFuture, Widget};
+use relm::{Handle, QuitFuture, Relm, Widget};
 use simplelog::{Config, TermLogger};
 use simplelog::LogLevelFilter::Warn;
 
@@ -130,7 +129,7 @@ impl Widget<Msg> for Win {
         }
     }
 
-    fn update(&mut self, event: Msg) -> UnitFuture {
+    fn update(&mut self, event: Msg) {
         match event {
             DownloadCompleted => {
                 self.widgets.button.set_sensitive(true);
@@ -144,7 +143,7 @@ impl Widget<Msg> for Win {
                 self.widgets.button.set_sensitive(false);
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", self.model.topic);
                 let http_future = http_get(&url, self.relm.handle());
-                return self.relm.connect(http_future, NewGif);
+                self.relm.connect_exec(http_future, NewGif);
             },
             NewGif(result) => {
                 let string = String::from_utf8(result).unwrap();
@@ -152,15 +151,13 @@ impl Widget<Msg> for Win {
                 let url = &json["data"]["image_url"].as_str().unwrap();
                 let http_future = http_get_stream(url, self.relm.handle());
                 let future = self.relm.connect(http_future, ImageChunk);
-                return self.relm.connect(future, DownloadCompleted);
+                self.relm.connect_exec(future, DownloadCompleted);
             },
             ImageChunk(chunk) => {
                 self.loader.loader_write(&chunk).unwrap();
             },
-            Quit => return QuitFuture.boxed(),
+            Quit => self.relm.exec(QuitFuture),
         }
-
-        ok(()).boxed()
     }
 }
 

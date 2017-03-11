@@ -26,11 +26,9 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use futures::Future;
-use futures::future::ok;
 use gtk::{ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm::{QuitFuture, Relm, UnitFuture, Widget};
+use relm::{QuitFuture, Relm, Widget};
 
 use self::Msg::*;
 
@@ -53,6 +51,7 @@ struct Widgets {
 
 struct Win {
     model: Model,
+    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
@@ -96,20 +95,19 @@ impl Widget<Msg> for Win {
             model: Model {
                 content: String::new(),
             },
+            relm: relm,
             widgets: widgets,
         }
     }
 
-    fn update(&mut self, event: Msg) -> UnitFuture {
+    fn update(&mut self, event: Msg) {
         match event {
             Change => {
                 self.model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();
                 self.widgets.label.set_text(&self.model.content);
             },
-            Quit => return QuitFuture.boxed(),
+            Quit => self.relm.exec(QuitFuture),
         }
-
-        ok(()).boxed()
     }
 }
 
