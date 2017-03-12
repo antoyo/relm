@@ -14,6 +14,7 @@ path = "relm-core"
 
 [dev-dependencies]
 base64 = "^0.4.0"
+blake2 = "^0.4.0"
 byteorder = "^1.0.0"
 chrono = "^0.3.0"
 gdk-pixbuf = "^0.1.1"
@@ -27,11 +28,11 @@ tokio-timer = "^0.1.0"
 twist = "^0.5.0"
 url = "^1.4.0"
 
-[dev-dependencies.relm-derive]
-path = "relm-derive"
-
 [dev-dependencies.hyper]
 git = "https://github.com/hyperium/hyper"
 
 [dev-dependencies.hyper-tls]
 git = "https://github.com/hyperium/hyper-tls"
+
+[dev-dependencies.relm-derive]
+path = "relm-derive"

@@ -27,6 +27,7 @@
 #![feature(conservative_impl_trait)]
 
 extern crate base64;
+extern crate blake2;
 extern crate byteorder;
 extern crate futures;
 extern crate gtk;
@@ -45,6 +46,7 @@ extern crate url;
 use std::net::ToSocketAddrs;
 
 use base64::encode;
+use blake2::{Blake2b, Digest};
 use byteorder::{BigEndian, WriteBytesExt};
 use futures::Future;
 use gtk::{Button, ButtonExt, ContainerExt, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
@@ -170,14 +172,17 @@ fn gen_nonce() -> String {
     let mut rng = rand::thread_rng();
     let mut nonce_vec = Vec::with_capacity(2);
     let nonce = rng.gen::<u16>();
+    let mut hasher = Blake2b::default();
 
     if nonce_vec.write_u16::<BigEndian>(nonce).is_ok() {
-        encode(&nonce_vec)
+        hasher.input(&nonce_vec);
+        encode(&hasher.result())
     } else {
         nonce_vec.clear();
         nonce_vec.push(rng.gen::<u8>());
         nonce_vec.push(rng.gen::<u8>());
-        encode(&nonce_vec)
+        hasher.input(&nonce_vec);
+        encode(&hasher.result())
     }
 }
 
@@ -192,6 +197,7 @@ fn ws_handshake(handle: &Handle) -> impl Future<Item=WSService> {
             let mut handshake_frame = WebSocketFrame::default();
             let mut handshake = HandshakeRequestFrame::default();
             handshake.set_user_agent("twisty 0.1.0".to_string());
+            handshake.set_path("/".to_string());
             handshake.set_origin("http://www.websocket.org".to_string());
             handshake.set_host("echo.websocket.org".to_string());
             handshake.set_sec_websocket_key(nonce.to_string());
