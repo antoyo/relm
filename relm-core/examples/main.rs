@@ -68,7 +68,7 @@ fn main() {
         counter_label: counter_label,
     };
 
-    let mut core = Core::new().unwrap();
+    let core = Core::new().unwrap();
 
     let window = Window::new(WindowType::Toplevel);
     window.add(&vbox);

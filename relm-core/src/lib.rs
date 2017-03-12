@@ -20,9 +20,9 @@
  */
 
 extern crate futures;
+extern crate gtk;
 #[macro_use]
 extern crate lazy_static;
-extern crate gtk;
 extern crate tokio_core;
 
 use std::cell::RefCell;

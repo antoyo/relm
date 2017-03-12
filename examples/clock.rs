@@ -20,21 +20,19 @@
  */
 
 extern crate chrono;
-extern crate futures;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 extern crate tokio_core;
-extern crate tokio_timer;
 
 use std::time::Duration;
 
 use chrono::Local;
 use gtk::{ContainerExt, Label, WidgetExt, Window, WindowType};
 use relm::{QuitFuture, Relm, Widget};
-use tokio_timer::Timer;
+use tokio_core::reactor::Interval;
 
 use self::Msg::*;
 
@@ -56,8 +54,7 @@ struct Win {
 
 impl Win {
     fn subscriptions(&self) {
-        let timer = Timer::default();
-        let stream = timer.interval(Duration::from_secs(1));
+        let stream = Interval::new(Duration::from_secs(1), self.relm.handle()).unwrap();
         self.relm.connect_exec(stream, Tick);
     }
 
@@ -88,10 +85,11 @@ impl Widget<Msg> for Win {
 
     fn new(relm: Relm<Msg>) -> Self {
         let widgets = Self::view(&relm);
-        let win = Win {
+        let mut win = Win {
             relm: relm,
             widgets: widgets,
         };
+        win.update(Tick(()));
         win.subscriptions();
         win
     }

@@ -32,8 +32,6 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 extern crate simplelog;
-extern crate tokio_core;
-extern crate url;
 
 use futures::{Future, Stream};
 use gdk_pixbuf::PixbufLoader;
