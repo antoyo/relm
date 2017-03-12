@@ -20,7 +20,7 @@
  */
 
 /// Rule #1:
-/// Send `$msg` to `$other_widget` when the GTK+ `$event` is emitted on `$widget`.
+/// Send `$msg` to `$other_component` when the GTK+ `$event` is emitted on `$widget`.
 ///
 /// Rule #2:
 /// Send `$msg` when the GTK+ `$event` is emitted on `$widget`.
@@ -30,10 +30,10 @@
 #[macro_export]
 macro_rules! connect {
     // Connect to a GTK+ widget event, sending a message to another widget.
-    ($widget:expr, $event:ident($($args:pat),*), $other_widget:expr, $msg:expr) => {
-        let widget = $other_widget.clone();
+    ($widget:expr, $event:ident($($args:pat),*), $other_component:expr, $msg:expr) => {
+        let stream = $other_component.stream().clone();
         $widget.$event(move |$($args),*| {
-            widget.emit($msg);
+            stream.emit($msg);
         });
     };
 
@@ -47,13 +47,13 @@ macro_rules! connect {
 
     // Connect to a message reception.
     // TODO: create another macro rule accepting multiple patterns.
-    ($stream:expr, $message:pat, $widget:expr, $msg:expr) => {
-        let widget = $widget.clone();
-        $stream.observe(move |msg| {
+    ($src_component:expr, $message:pat, $dst_component:expr, $msg:expr) => {
+        let stream = $dst_component.stream().clone();
+        $src_component.stream().observe(move |msg| {
             #[allow(unreachable_patterns)]
             match msg {
                 $message =>  {
-                    widget.emit($msg);
+                    stream.emit($msg);
                 },
                 _ => (),
             }

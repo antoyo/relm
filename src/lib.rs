@@ -20,12 +20,15 @@
  */
 
 /*
- * TODO: function to remove widget.
+ * TODO: integrate the tokio main loop into the GTK+ main loop so that the example nested-loop
+ * works.
  * TODO: chat client/server example.
  *
  * TODO: try tk-easyloop in another branch.
  *
  * TODO: err if trying to use the SimpleMsg custom derive on stable.
+ * TODO: Use two update functions (one for errors, one for success/normal behavior).
+ *
  * TODO: add Cargo travis badge.
  * TODO: use macros 2.0 instead for the:
  * * view: to create the dependencies between the view items and the model.
@@ -35,7 +38,6 @@
  * * create default values for gtk widgets (like Label::new(None)).
  * * create attributes for constructor gtk widgets (like orientation for Box::new(orientation)).
  * TODO: optionnaly multi-threaded.
- * TODO: Use two update functions (one for errors, one for success/normal behavior).
  * TODO: convert GTK+ callback to Stream (does not seem worth it, nor convenient since it will
  * still need to use USFC for the callback method).
  */
@@ -49,6 +51,7 @@ extern crate log;
 extern crate relm_core;
 
 mod macros;
+mod stream;
 mod widget;
 
 use std::error;
@@ -56,53 +59,23 @@ use std::fmt::{self, Display, Formatter};
 use std::io;
 use std::time::SystemTime;
 
-use futures::{Future, IntoStream, Poll, Stream};
-use gtk::ContainerExt;
+use futures::{Future, Stream};
+use gtk::{ContainerExt, IsA, Object, WidgetExt};
 use relm_core::Core;
 pub use relm_core::{EventStream, Handle, QuitFuture};
 
 pub use self::Error::*;
+use self::stream::ToStream;
 pub use self::widget::*;
 
-pub struct RelmStream<E, I, S: Stream<Item=I, Error=E>> {
-    stream: S,
+pub struct Component<M, W> {
+    stream: EventStream<M>,
+    widget: W,
 }
 
-impl<E, I, S: Stream<Item=I, Error=E>> Stream for RelmStream<E, I, S> {
-    type Item = I;
-    type Error = E;
-
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        self.stream.poll()
-    }
-}
-
-pub trait ToStream<S: Stream<Item=Self::Item, Error=Self::Error>> {
-    type Error;
-    type Item;
-
-    fn to_stream(self) -> RelmStream<Self::Error, Self::Item, S>;
-}
-
-impl<E, I, S: Stream<Item=I, Error=E>> ToStream<S> for S {
-    type Error = E;
-    type Item = I;
-
-    fn to_stream(self) -> RelmStream<E, I, S> {
-        RelmStream {
-            stream: self,
-        }
-    }
-}
-
-impl<E, F: Future<Item=I, Error=E>, I> ToStream<IntoStream<F>> for F {
-    type Error = E;
-    type Item = I;
-
-    fn to_stream(self) -> RelmStream<E, I, IntoStream<F>> {
-        RelmStream {
-            stream: self.into_stream(),
-        }
+impl<M: Clone, W> Component<M, W> {
+    pub fn stream(&self) -> &EventStream<M> {
+        &self.stream
     }
 }
 
@@ -186,7 +159,9 @@ impl<M: Clone + DisplayVariant + 'static> Relm<M> {
         &self.handle
     }
 
-    pub fn run<D: Widget<M> + 'static>() -> Result<(), Error> {
+    pub fn run<D>() -> Result<(), Error>
+        where D: Widget<M> + 'static,
+    {
         gtk::init()?;
 
         let mut core = Core::new()?;
@@ -204,7 +179,7 @@ impl<M: Clone + DisplayVariant + 'static> Relm<M> {
     }
 }
 
-fn create_widget<D, M>(handle: &Handle) -> (D::Container, EventStream<M>)
+fn create_widget<D, M>(handle: &Handle) -> Component<M, D::Container>
     where D: Widget<M> + 'static,
           M: Clone + DisplayVariant + 'static,
 {
@@ -247,23 +222,34 @@ fn create_widget<D, M>(handle: &Handle) -> (D::Container, EventStream<M>)
     };
     handle.spawn(event_future);
 
-    (container, stream)
-}
-
-pub trait AddWidget
-    where Self: ContainerExt
-{
-    fn add_widget<D, M>(&self, handle: &Handle) -> EventStream<M>
-        where D: Widget<M> + 'static,
-              M: Clone + DisplayVariant + 'static,
-    {
-        let (widget, stream) = create_widget::<D, M>(handle);
-        self.add(&widget);
-        stream
+    Component {
+        stream: stream,
+        widget: container,
     }
 }
 
-impl<W: ContainerExt> AddWidget for W { }
+pub trait ContainerWidget
+    where Self: ContainerExt
+{
+    fn add_widget<D, M>(&self, handle: &Handle) -> Component<M, D::Container>
+        where D: Widget<M> + 'static,
+              D::Container: IsA<Object> + WidgetExt,
+              M: Clone + DisplayVariant + 'static,
+    {
+        let component = create_widget::<D, M>(handle);
+        self.add(&component.widget);
+        component.widget.show_all();
+        component
+    }
+
+    fn remove_widget<M, W>(&self, widget: Component<M, W>)
+        where W: IsA<gtk::Widget>,
+    {
+        self.remove(&widget.widget);
+    }
+}
+
+impl<W: ContainerExt> ContainerWidget for W { }
 
 pub trait DisplayVariant {
     fn display_variant(&self) -> &'static str;

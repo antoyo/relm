@@ -28,7 +28,7 @@ extern crate relm_derive;
 
 use gtk::{Button, ButtonExt, ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{AddWidget, QuitFuture, Relm, Widget};
+use relm::{ContainerWidget, QuitFuture, Relm, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -214,7 +214,7 @@ impl Win {
         let counter1 = hbox.add_widget::<Counter, _>(handle);
         let counter2 = hbox.add_widget::<Counter, _>(handle);
         let text = hbox.add_widget::<Text, _>(handle);
-        connect!(text, Change, relm.stream(), TextChange); // TODO: get the text in the TextChange.
+        connect!(text, Change, relm, TextChange); // TODO: get the text in the TextChange.
         connect!(text, Change, counter1, Increment);
         connect!(counter1, Increment, counter2, Decrement);
         connect!(button, connect_clicked(_), counter1, Decrement);
