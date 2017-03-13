@@ -23,7 +23,7 @@ extern crate chrono;
 extern crate futures;
 extern crate gtk;
 extern crate relm_core;
-extern crate tokio_timer;
+extern crate tokio_core;
 
 use std::time::Duration;
 
@@ -32,7 +32,7 @@ use futures::Stream;
 use gtk::{Button, ButtonExt, ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
 use relm_core::{Core, EventStream, QuitFuture};
-use tokio_timer::Timer;
+use tokio_core::reactor::Interval;
 
 use self::Msg::*;
 
@@ -68,7 +68,7 @@ fn main() {
         counter_label: counter_label,
     };
 
-    let core = Core::new().unwrap();
+    let mut core = Core::new().unwrap();
 
     let window = Window::new(WindowType::Toplevel);
     window.add(&vbox);
@@ -101,9 +101,8 @@ fn main() {
         });
     }
 
-    let timer = Timer::default();
     let interval = {
-        let interval = timer.interval(Duration::from_millis(1000));
+        let interval = Interval::new(Duration::from_secs(1), &core.handle()).unwrap();
         let stream = stream.clone();
         interval.map_err(|_| ()).for_each(move |_| {
             stream.emit(Clock);

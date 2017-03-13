@@ -11,4 +11,3 @@ tokio-core = "^0.1.4"
 
 [dev-dependencies]
 chrono = "^0.3.0"
-tokio-timer = "^0.1.0"
