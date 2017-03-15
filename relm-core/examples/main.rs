@@ -27,6 +27,7 @@ extern crate gtk;
 extern crate relm_core;
 extern crate tokio_core;
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::Local;
@@ -35,7 +36,7 @@ use glib::Continue;
 use glib_itc::channel;
 use gtk::{Button, ButtonExt, ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm_core::{Core, EventStream, Observer};
+use relm_core::{Core, EventStream};
 use tokio_core::reactor::Interval;
 
 use self::Msg::*;
@@ -80,14 +81,17 @@ fn main() {
     window.add(&vbox);
 
     let (sender, mut receiver) = channel();
+    let sender = Arc::new(sender);
 
-    let stream = EventStream::new(sender);
+    let stream = EventStream::new(sender.clone());
 
-    fn observer(event: Msg, _stream: &EventStream<Msg>) {
-        println!("Event: {:?}", event);
+    let other_widget_stream = EventStream::new(sender);
+    {
+        stream.observe(move |event: Msg| {
+            other_widget_stream.emit(Quit);
+            println!("Event: {:?}", event);
+        });
     }
-
-    stream.observe(Observer::new(observer, stream.clone()));
 
     {
         let stream = stream.clone();

@@ -35,30 +35,6 @@ use glib_itc::Sender;
 use tokio_core::reactor::{self, Handle};
 pub use tokio_core::reactor::Remote;
 
-pub struct Observer<S, T> {
-    observer: fn(S, &EventStream<T>),
-    stream: EventStream<T>,
-}
-
-impl<S, T> Observer<S, T> {
-    pub fn new(observer: fn(S, &EventStream<T>), stream: EventStream<T>) -> Self {
-        Observer {
-            observer: observer,
-            stream: stream,
-        }
-    }
-}
-
-pub trait Observable<S> {
-    fn call(&self, value: S);
-}
-
-impl<S, T> Observable<S> for Observer<S, T> {
-    fn call(&self, value: S) {
-        (self.observer)(value, &self.stream);
-    }
-}
-
 pub struct Core { }
 
 impl Core {
@@ -85,8 +61,8 @@ impl Core {
 
 struct _EventStream<T> {
     events: VecDeque<T>,
-    observers: Vec<Box<Observable<T> + Send>>,
-    sender: Sender,
+    observers: Vec<Box<Fn(T) + Send>>,
+    sender: Arc<Sender>,
     task: Option<Task>,
     ui_events: VecDeque<T>,
 }
@@ -97,7 +73,7 @@ pub struct EventStream<T> {
 }
 
 impl<T: Clone + 'static> EventStream<T> {
-    pub fn new(sender: Sender) -> Self {
+    pub fn new(sender: Arc<Sender>) -> Self {
         EventStream {
             stream: Arc::new(Mutex::new(_EventStream {
                 events: VecDeque::new(),
@@ -118,7 +94,7 @@ impl<T: Clone + 'static> EventStream<T> {
         stream.events.push_back(event.clone());
 
         for observer in &stream.observers {
-            observer.call(event.clone());
+            observer(event.clone());
         }
     }
 
@@ -126,8 +102,8 @@ impl<T: Clone + 'static> EventStream<T> {
         self.stream.lock().unwrap().events.pop_front()
     }
 
-    pub fn observe<S: Send + 'static>(&self, observer: Observer<T, S>) {
-        self.stream.lock().unwrap().observers.push(Box::new(observer));
+    pub fn observe<F: Fn(T) + Send + 'static>(&self, callback: F) {
+        self.stream.lock().unwrap().observers.push(Box::new(callback));
     }
 
     pub fn pop_ui_events(&self) -> Option<T> {
