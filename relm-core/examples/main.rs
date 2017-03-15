@@ -35,7 +35,7 @@ use glib::Continue;
 use glib_itc::channel;
 use gtk::{Button, ButtonExt, ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm_core::{Core, EventStream};
+use relm_core::{Core, EventStream, Observer};
 use tokio_core::reactor::Interval;
 
 use self::Msg::*;
@@ -82,6 +82,12 @@ fn main() {
     let (sender, mut receiver) = channel();
 
     let stream = EventStream::new(sender);
+
+    fn observer(event: Msg, _stream: &EventStream<Msg>) {
+        println!("Event: {:?}", event);
+    }
+
+    stream.observe(Observer::new(observer, stream.clone()));
 
     {
         let stream = stream.clone();

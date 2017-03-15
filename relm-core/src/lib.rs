@@ -35,6 +35,30 @@ use glib_itc::Sender;
 use tokio_core::reactor::{self, Handle};
 pub use tokio_core::reactor::Remote;
 
+pub struct Observer<S, T> {
+    observer: fn(S, &EventStream<T>),
+    stream: EventStream<T>,
+}
+
+impl<S, T> Observer<S, T> {
+    pub fn new(observer: fn(S, &EventStream<T>), stream: EventStream<T>) -> Self {
+        Observer {
+            observer: observer,
+            stream: stream,
+        }
+    }
+}
+
+pub trait Observable<S> {
+    fn call(&self, value: S);
+}
+
+impl<S, T> Observable<S> for Observer<S, T> {
+    fn call(&self, value: S) {
+        (self.observer)(value, &self.stream);
+    }
+}
+
 pub struct Core { }
 
 impl Core {
@@ -61,7 +85,7 @@ impl Core {
 
 struct _EventStream<T> {
     events: VecDeque<T>,
-    //observers: Vec<Box<Fn(T)>>,
+    observers: Vec<Box<Observable<T> + Send>>,
     sender: Sender,
     task: Option<Task>,
     ui_events: VecDeque<T>,
@@ -72,12 +96,12 @@ pub struct EventStream<T> {
     stream: Arc<Mutex<_EventStream<T>>>,
 }
 
-impl<T: Clone> EventStream<T> {
+impl<T: Clone + 'static> EventStream<T> {
     pub fn new(sender: Sender) -> Self {
         EventStream {
             stream: Arc::new(Mutex::new(_EventStream {
                 events: VecDeque::new(),
-                //observers: vec![],
+                observers: vec![],
                 sender: sender,
                 task: None,
                 ui_events: VecDeque::new(),
@@ -93,17 +117,17 @@ impl<T: Clone> EventStream<T> {
         // TODO: try to avoid clone by sending a reference.
         stream.events.push_back(event.clone());
 
-        /*for observer in &stream.observers {
-            observer(event.clone());
-        }*/
+        for observer in &stream.observers {
+            observer.call(event.clone());
+        }
     }
 
     fn get_event(&self) -> Option<T> {
         self.stream.lock().unwrap().events.pop_front()
     }
 
-    pub fn observe<F: Fn(T) + 'static>(&self, callback: F) {
-        //self.stream.lock().unwrap().observers.push(Box::new(callback));
+    pub fn observe<S: Send + 'static>(&self, observer: Observer<T, S>) {
+        self.stream.lock().unwrap().observers.push(Box::new(observer));
     }
 
     pub fn pop_ui_events(&self) -> Option<T> {
@@ -111,7 +135,7 @@ impl<T: Clone> EventStream<T> {
     }
 }
 
-impl<T: Clone> Stream for EventStream<T> {
+impl<T: Clone + 'static> Stream for EventStream<T> {
     type Item = T;
     type Error = ();
 
