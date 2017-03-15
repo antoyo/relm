@@ -21,6 +21,8 @@
 
 extern crate chrono;
 extern crate futures;
+extern crate glib;
+extern crate glib_itc;
 extern crate gtk;
 extern crate relm_core;
 extern crate tokio_core;
@@ -29,9 +31,11 @@ use std::time::Duration;
 
 use chrono::Local;
 use futures::Stream;
+use glib::Continue;
+use glib_itc::channel;
 use gtk::{Button, ButtonExt, ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm_core::{Core, EventStream, QuitFuture};
+use relm_core::{Core, EventStream};
 use tokio_core::reactor::Interval;
 
 use self::Msg::*;
@@ -41,12 +45,16 @@ struct Widgets {
     counter_label: Label,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Msg {
     Clock,
     Decrement,
     Increment,
     Quit,
+}
+
+struct Model {
+    counter: i32,
 }
 
 fn main() {
@@ -68,12 +76,12 @@ fn main() {
         counter_label: counter_label,
     };
 
-    let mut core = Core::new().unwrap();
-
     let window = Window::new(WindowType::Toplevel);
     window.add(&vbox);
 
-    let stream = EventStream::new();
+    let (sender, mut receiver) = channel();
+
+    let stream = EventStream::new(sender);
 
     {
         let stream = stream.clone();
@@ -101,43 +109,54 @@ fn main() {
         });
     }
 
-    let interval = {
-        let interval = Interval::new(Duration::from_secs(1), &core.handle()).unwrap();
-        let stream = stream.clone();
-        interval.map_err(|_| ()).for_each(move |_| {
-            stream.emit(Clock);
-            Ok(())
-        })
+    let mut model = Model {
+        counter: 0,
     };
 
-    let event_future = {
+    fn update(event: Msg, model: &mut Model, widgets: &Widgets) {
+        match event {
+            Clock => {
+                let now = Local::now();
+                widgets.clock_label.set_text(&now.format("%H:%M:%S").to_string());
+            },
+            Decrement => {
+                model.counter -= 1;
+                widgets.counter_label.set_text(&model.counter.to_string());
+            },
+            Increment => {
+                model.counter += 1;
+                widgets.counter_label.set_text(&model.counter.to_string());
+            },
+            Quit => gtk::main_quit(),
+        }
+    }
+
+    {
         let stream = stream.clone();
-        let handle = core.handle();
-        stream.for_each(move |event| {
-            fn adjust(label: &Label, delta: i32) {
-                if let Some(text) = label.get_text() {
-                    let num: i32 = text.parse().unwrap();
-                    let result = num + delta;
-                    label.set_text(&result.to_string());
-                }
+        receiver.connect_recv(move || {
+            if let Some(event) = stream.pop_ui_events() {
+                update(event, &mut model, &widgets);
             }
+            Continue(true)
+        });
+    }
 
-            match event {
-                Clock => {
-                    let now = Local::now();
-                    widgets.clock_label.set_text(&now.format("%H:%M:%S").to_string());
-                },
-                Decrement => adjust(&widgets.counter_label, -1),
-                Increment => adjust(&widgets.counter_label, 1),
-                Quit => handle.spawn(QuitFuture),
-            }
-            Ok(())
-        })
-    };
+    let stream = stream.clone();
+    Core::run(move |handle| {
+        let interval = {
+            let interval = Interval::new(Duration::from_secs(1), handle).unwrap();
+            let stream = stream.clone();
+            interval.map_err(|_| ()).for_each(move |_| {
+                stream.emit(Clock);
+                Ok(())
+            })
+        };
+        handle.spawn(interval);
 
-    let handle = core.handle();
-    handle.spawn(event_future);
-    handle.spawn(interval);
+        let event_future = stream.for_each(|_| Ok(()));
 
-    core.run();
+        handle.spawn(event_future);
+
+        Ok(())
+    });
 }

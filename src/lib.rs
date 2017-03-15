@@ -20,8 +20,13 @@
  */
 
 /*
+ * TODO: remove_widget() should remove the stream.
  * TODO: integrate the tokio main loop into the GTK+ main loop so that the example nested-loop
- * works.
+ * works:
+ *  * use another method to block a callback than gtk::main().
+ *  * * A kind of lock which is unlocked when update() finish.
+ *  * Running gtk::main() in update() block Core::turn() because it creates an infinite loop.
+ *  * Find a solution for synchronous callbacks.
  * TODO: chat client/server example.
  *
  * TODO: try tk-easyloop in another branch.
@@ -242,6 +247,7 @@ pub trait ContainerWidget
         component
     }
 
+    // TODO: remove the EventStream also.
     fn remove_widget<M, W>(&self, widget: Component<M, W>)
         where W: IsA<gtk::Widget>,
     {

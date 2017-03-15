@@ -20,105 +20,94 @@
  */
 
 extern crate futures;
+extern crate glib_itc;
 extern crate gtk;
-#[macro_use]
-extern crate lazy_static;
 extern crate tokio_core;
 
-use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::io::Error;
-use std::rc::Rc;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering::Relaxed;
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::sync::mpsc::channel;
+use std::thread;
 
-use futures::{Async, Future, Poll, Stream};
+use futures::{Async, IntoFuture, Poll, Stream};
 use futures::task::{self, Task};
-use tokio_core::reactor;
-pub use tokio_core::reactor::Handle;
+use glib_itc::Sender;
+use tokio_core::reactor::{self, Handle};
+pub use tokio_core::reactor::Remote;
 
-pub struct Core {
-    core: reactor::Core,
-}
+pub struct Core { }
 
 impl Core {
-    pub fn new() -> Result<Self, Error> {
-        Ok(Core {
-            core: reactor::Core::new()?,
-        })
-    }
-
-    pub fn handle(&self) -> Handle {
-        self.core.handle()
-    }
-
-    pub fn run(&mut self) {
-        while !QUITTED.load(Relaxed) {
-            self.core.turn(Some(Duration::from_millis(10)));
-
-            if gtk::events_pending() {
-                gtk::main_iteration();
+    pub fn run<F, R>(function: F)
+        where F: FnOnce(&Handle) -> R + Send + 'static,
+              R: IntoFuture<Item=(), Error=()>,
+              R::Future: 'static,
+    {
+        let (sender, receiver) = channel();
+        thread::spawn(move || {
+            let mut core = reactor::Core::new().unwrap();
+            sender.send(core.remote()).unwrap();
+            loop {
+                core.turn(None);
             }
-        }
-    }
-}
+        });
 
-lazy_static! {
-    static ref QUITTED: AtomicBool = AtomicBool::new(false);
-}
+        let remote = receiver.recv().unwrap();
+        remote.spawn(function);
 
-pub struct QuitFuture;
-
-impl Future for QuitFuture {
-    type Item = ();
-    type Error = ();
-
-    fn poll(&mut self) -> Result<Async<Self::Item>, Self::Error> {
-        QUITTED.store(true, Relaxed);
-        Ok(Async::Ready(()))
+        gtk::main();
     }
 }
 
 struct _EventStream<T> {
     events: VecDeque<T>,
-    observers: Vec<Box<Fn(T)>>,
+    //observers: Vec<Box<Fn(T)>>,
+    sender: Sender,
     task: Option<Task>,
+    ui_events: VecDeque<T>,
 }
 
 #[derive(Clone)]
 pub struct EventStream<T> {
-    stream: Rc<RefCell<_EventStream<T>>>,
+    stream: Arc<Mutex<_EventStream<T>>>,
 }
 
 impl<T: Clone> EventStream<T> {
-    pub fn new() -> Self {
+    pub fn new(sender: Sender) -> Self {
         EventStream {
-            stream: Rc::new(RefCell::new(_EventStream {
+            stream: Arc::new(Mutex::new(_EventStream {
                 events: VecDeque::new(),
-                observers: vec![],
+                //observers: vec![],
+                sender: sender,
                 task: None,
+                ui_events: VecDeque::new(),
             })),
         }
     }
 
     pub fn emit(&self, event: T) {
-        if let Some(ref task) = self.stream.borrow().task {
+        let mut stream = self.stream.lock().unwrap();
+        if let Some(ref task) = stream.task {
             task.unpark();
         }
-        self.stream.borrow_mut().events.push_back(event.clone());
+        // TODO: try to avoid clone by sending a reference.
+        stream.events.push_back(event.clone());
 
-        for observer in &self.stream.borrow().observers {
+        /*for observer in &stream.observers {
             observer(event.clone());
-        }
+        }*/
     }
 
     fn get_event(&self) -> Option<T> {
-        self.stream.borrow_mut().events.pop_front()
+        self.stream.lock().unwrap().events.pop_front()
     }
 
     pub fn observe<F: Fn(T) + 'static>(&self, callback: F) {
-        self.stream.borrow_mut().observers.push(Box::new(callback));
+        //self.stream.lock().unwrap().observers.push(Box::new(callback));
+    }
+
+    pub fn pop_ui_events(&self) -> Option<T> {
+        self.stream.lock().unwrap().ui_events.pop_front()
     }
 }
 
@@ -129,11 +118,16 @@ impl<T: Clone> Stream for EventStream<T> {
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         match self.get_event() {
             Some(event) => {
-                self.stream.borrow_mut().task = None;
+                let mut stream = self.stream.lock().unwrap();
+                stream.task = None;
+                stream.ui_events.push_back(event.clone());
+                stream.sender.send();
+                // TODO: try to avoid clone by sending a reference.
                 Ok(Async::Ready(Some(event)))
             },
             None => {
-                self.stream.borrow_mut().task = Some(task::park());
+                let mut stream = self.stream.lock().unwrap();
+                stream.task = Some(task::park());
                 Ok(Async::NotReady)
             },
         }
