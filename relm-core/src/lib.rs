@@ -32,8 +32,8 @@ use std::thread;
 use futures::{Async, IntoFuture, Poll, Stream};
 use futures::task::{self, Task};
 use glib_itc::Sender;
-use tokio_core::reactor::{self, Handle};
-pub use tokio_core::reactor::Remote;
+use tokio_core::reactor;
+pub use tokio_core::reactor::Handle;
 
 pub struct Core { }
 

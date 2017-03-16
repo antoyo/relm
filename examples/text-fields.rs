@@ -27,7 +27,7 @@ extern crate relm_derive;
 
 use gtk::{ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm::{QuitFuture, Relm, Widget};
+use relm::{Relm, Widget};
 
 use self::Msg::*;
 
@@ -105,7 +105,7 @@ impl Widget<Msg> for Win {
                 self.model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();
                 self.widgets.label.set_text(&self.model.content);
             },
-            Quit => self.relm.exec(QuitFuture),
+            Quit => gtk::main_quit(),
         }
     }
 }

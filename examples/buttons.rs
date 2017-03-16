@@ -27,7 +27,7 @@ extern crate relm_derive;
 
 use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm::{QuitFuture, Relm, Widget};
+use relm::{Relm, Widget};
 
 use self::Msg::*;
 
@@ -116,7 +116,7 @@ impl Widget<Msg> for Win {
                 self.model.counter += 1;
                 label.set_text(&self.model.counter.to_string());
             },
-            Quit => self.relm.exec(QuitFuture),
+            Quit => gtk::main_quit(),
         }
     }
 }

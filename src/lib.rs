@@ -50,6 +50,8 @@
 #![feature(conservative_impl_trait)]
 
 extern crate futures;
+extern crate glib;
+extern crate glib_itc;
 extern crate gtk;
 #[macro_use]
 extern crate log;
@@ -62,18 +64,22 @@ mod widget;
 use std::error;
 use std::fmt::{self, Display, Formatter};
 use std::io;
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use futures::{Future, Stream};
+use glib::Continue;
+use glib_itc::{Receiver, channel};
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 use relm_core::Core;
-pub use relm_core::{EventStream, Handle, QuitFuture};
+pub use relm_core::{EventStream, Handle};
 
 pub use self::Error::*;
 use self::stream::ToStream;
 pub use self::widget::*;
 
 pub struct Component<M, W> {
+    receiver: Receiver,
     stream: EventStream<M>,
     widget: W,
 }
@@ -128,11 +134,10 @@ impl From<()> for Error {
 }
 
 pub struct Relm<M: Clone + DisplayVariant> {
-    handle: Handle,
     stream: EventStream<M>,
 }
 
-impl<M: Clone + DisplayVariant + 'static> Relm<M> {
+impl<M: Clone + DisplayVariant + Send + 'static> Relm<M> {
     pub fn connect<C, S, T>(&self, to_stream: T, callback: C) -> impl Future<Item=(), Error=()>
         where C: Fn(S::Item) -> M + 'static,
               S: Stream + 'static,
@@ -157,24 +162,25 @@ impl<M: Clone + DisplayVariant + 'static> Relm<M> {
     }
 
     pub fn exec<F: Future<Item=(), Error=()> + 'static>(&self, future: F) {
-        self.handle.spawn(future);
+        //self.handle.spawn(future);
     }
 
-    pub fn handle(&self) -> &Handle {
+    /*pub fn handle(&self) -> &Handle {
         &self.handle
-    }
+    }*/
 
     pub fn run<D>() -> Result<(), Error>
         where D: Widget<M> + 'static,
     {
         gtk::init()?;
 
-        let mut core = Core::new()?;
-
-        let handle = core.handle();
-        create_widget::<D, M>(&handle);
-
-        core.run();
+        let component = create_widget::<D, M>();
+        let stream = component.stream;
+        Core::run(|handle| {
+            let event_future = stream.for_each(|_| Ok(()));
+            handle.spawn(event_future);
+            Ok(())
+        });
         Ok(())
     }
 
@@ -184,64 +190,73 @@ impl<M: Clone + DisplayVariant + 'static> Relm<M> {
     }
 }
 
-fn create_widget<D, M>(handle: &Handle) -> Component<M, D::Container>
+fn create_widget<D, M>() -> Component<M, D::Container>
     where D: Widget<M> + 'static,
           M: Clone + DisplayVariant + 'static,
 {
-    let stream = EventStream::new();
+    let (sender, mut receiver) = channel();
+    let stream = EventStream::new(Arc::new(sender));
 
     let relm = Relm {
-        handle: handle.clone(),
         stream: stream.clone(),
     };
     let mut widget = D::new(relm);
 
     let container = widget.container().clone();
 
-    let event_future = {
-        stream.clone().for_each(move |event| {
-            if cfg!(debug_assertions) {
-                let time = SystemTime::now();
-                let debug = event.display_variant();
-                let debug =
-                    if debug.len() > 100 {
-                        format!("{}…", &debug[..100])
-                    }
-                    else {
-                        debug.to_string()
-                    };
-                widget.update(event);
-                if let Ok(duration) = time.elapsed() {
-                    let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
-                    if ms >= 200 {
-                        // TODO: only show the message Variant because the value can be big.
-                        warn!("The update function was slow to execute for message {}: {}ms", debug, ms);
-                    }
-                }
+    {
+        let stream = stream.clone();
+        receiver.connect_recv(move || {
+            if let Some(event) = stream.pop_ui_events() {
+                update_widget(&mut widget, event);
             }
-            else {
-                widget.update(event)
-            }
-            Ok(())
-        })
-    };
-    handle.spawn(event_future);
+            Continue(true)
+        });
+    }
 
     Component {
+        receiver: receiver,
         stream: stream,
         widget: container,
+    }
+}
+
+fn update_widget<M, W>(widget: &mut W, event: M)
+    where M: Clone + DisplayVariant,
+          W: Widget<M>,
+{
+    if cfg!(debug_assertions) {
+        let time = SystemTime::now();
+        let debug = event.display_variant();
+        let debug =
+            if debug.len() > 100 {
+                format!("{}…", &debug[..100])
+            }
+            else {
+                debug.to_string()
+            };
+        widget.update(event);
+        if let Ok(duration) = time.elapsed() {
+            let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
+            if ms >= 200 {
+                warn!("The update function was slow to execute for message {}: {}ms", debug, ms);
+            }
+        }
+    }
+    else {
+        widget.update(event)
     }
 }
 
 pub trait ContainerWidget
     where Self: ContainerExt
 {
-    fn add_widget<D, M>(&self, handle: &Handle) -> Component<M, D::Container>
+    fn add_widget<D, M>(&self) -> Component<M, D::Container>
         where D: Widget<M> + 'static,
               D::Container: IsA<Object> + WidgetExt,
               M: Clone + DisplayVariant + 'static,
     {
-        let component = create_widget::<D, M>(handle);
+        let component = create_widget::<D, M>();
         self.add(&component.widget);
         component.widget.show_all();
         component

@@ -6,6 +6,8 @@ version = "0.1.0"
 
 [dependencies]
 futures = "^0.1.10"
+glib = "^0.1.2"
+glib-itc = "^0.1.1"
 gtk = "^0.1.1"
 log = "^0.3.7"
 

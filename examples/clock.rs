@@ -31,7 +31,7 @@ use std::time::Duration;
 
 use chrono::Local;
 use gtk::{ContainerExt, Label, WidgetExt, Window, WindowType};
-use relm::{QuitFuture, Relm, Widget};
+use relm::{Relm, Widget};
 use tokio_core::reactor::Interval;
 
 use self::Msg::*;
@@ -100,7 +100,7 @@ impl Widget<Msg> for Win {
                 let time = Local::now();
                 self.widgets.label.set_text(&format!("{}", time.format("%H:%M:%S")));
             },
-            Quit => self.relm.exec(QuitFuture),
+            Quit => gtk::main_quit(),
         }
     }
 }
