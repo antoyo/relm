@@ -125,7 +125,7 @@ impl Widget<Msg> for Win {
         (window, model)
     }
 
-    fn update(&mut self, event: Msg) {
+    fn update(&mut self, event: Msg, _model: &mut Model) {
         match event {
             DownloadCompleted => {
                 self.widgets.button.set_sensitive(true);
