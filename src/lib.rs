@@ -78,13 +78,13 @@ pub use self::Error::*;
 use self::stream::ToStream;
 pub use self::widget::*;
 
-pub struct Component<M, W> {
+pub struct Component<M: Clone + DisplayVariant, W> {
     receiver: Receiver,
     stream: EventStream<M>,
     widget: W,
 }
 
-impl<M: Clone, W> Component<M, W> {
+impl<M: Clone + DisplayVariant, W> Component<M, W> {
     pub fn stream(&self) -> &EventStream<M> {
         &self.stream
     }
@@ -134,6 +134,7 @@ impl From<()> for Error {
 }
 
 pub struct Relm<M: Clone + DisplayVariant> {
+    handle: Handle,
     stream: EventStream<M>,
 }
 
@@ -162,12 +163,12 @@ impl<M: Clone + DisplayVariant + Send + 'static> Relm<M> {
     }
 
     pub fn exec<F: Future<Item=(), Error=()> + 'static>(&self, future: F) {
-        //self.handle.spawn(future);
+        self.handle.spawn(future);
     }
 
-    /*pub fn handle(&self) -> &Handle {
+    pub fn handle(&self) -> &Handle {
         &self.handle
-    }*/
+    }
 
     pub fn run<D>() -> Result<(), Error>
         where D: Widget<M> + 'static,
@@ -176,9 +177,14 @@ impl<M: Clone + DisplayVariant + Send + 'static> Relm<M> {
 
         let component = create_widget::<D, M>();
         let stream = component.stream;
-        Core::run(|handle| {
-            let event_future = stream.for_each(|_| Ok(()));
-            handle.spawn(event_future);
+        Core::run(move |handle| {
+            let relm = Relm {
+                handle: handle.clone(),
+                stream: stream,
+            };
+            D::subscriptions(&relm);
+            let event_future = relm.stream.for_each(|_| Ok(()));
+            relm.handle.spawn(event_future);
             Ok(())
         });
         Ok(())
@@ -197,10 +203,7 @@ fn create_widget<D, M>() -> Component<M, D::Container>
     let (sender, mut receiver) = channel();
     let stream = EventStream::new(Arc::new(sender));
 
-    let relm = Relm {
-        stream: stream.clone(),
-    };
-    let mut widget = D::new(relm);
+    let mut widget = D::new(&stream);
 
     let container = widget.container().clone();
 
@@ -263,7 +266,7 @@ pub trait ContainerWidget
     }
 
     // TODO: remove the EventStream also.
-    fn remove_widget<M, W>(&self, widget: Component<M, W>)
+    fn remove_widget<M: Clone + DisplayVariant, W>(&self, widget: Component<M, W>)
         where W: IsA<gtk::Widget>,
     {
         self.remove(&widget.widget);
