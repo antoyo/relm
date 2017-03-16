@@ -74,18 +74,19 @@ impl Win {
 
 impl Widget<Msg> for Win {
     type Container = Window;
+    type Model = ();
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(stream: &EventStream<Msg>) -> Self {
+    fn new(stream: &EventStream<Msg>) -> (Self, ()) {
         let widgets = Self::view(stream);
         let mut win = Win {
             widgets: widgets,
         };
-        win.update(Tick);
-        win
+        win.update(Tick, &mut ());
+        (win, ())
     }
 
     fn subscriptions(relm: &Relm<Msg>) {
@@ -93,7 +94,7 @@ impl Widget<Msg> for Win {
         relm.connect_exec(stream, Tick);
     }
 
-    fn update(&mut self, event: Msg) {
+    fn update(&mut self, event: Msg, _model: &mut ()) {
         match event {
             Tick => {
                 let time = Local::now();

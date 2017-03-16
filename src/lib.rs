@@ -64,7 +64,7 @@ mod widget;
 use std::error;
 use std::fmt::{self, Display, Formatter};
 use std::io;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
 use futures::{Future, Stream};
@@ -78,13 +78,14 @@ pub use self::Error::*;
 use self::stream::ToStream;
 pub use self::widget::*;
 
-pub struct Component<M: Clone + DisplayVariant, W> {
+pub struct Component<D, M: Clone + DisplayVariant, W> {
+    model: Arc<Mutex<D>>,
     receiver: Receiver,
     stream: EventStream<M>,
     widget: W,
 }
 
-impl<M: Clone + DisplayVariant, W> Component<M, W> {
+impl<D, M: Clone + DisplayVariant, W> Component<D, M, W> {
     pub fn stream(&self) -> &EventStream<M> {
         &self.stream
     }
@@ -172,19 +173,25 @@ impl<M: Clone + DisplayVariant + Send + 'static> Relm<M> {
 
     pub fn run<D>() -> Result<(), Error>
         where D: Widget<M> + 'static,
+              D::Model: Send,
     {
         gtk::init()?;
 
         let component = create_widget::<D, M>();
         let stream = component.stream;
+        let model = component.model;
         Core::run(move |handle| {
             let relm = Relm {
                 handle: handle.clone(),
-                stream: stream,
+                stream: stream.clone(),
             };
             D::subscriptions(&relm);
-            let event_future = relm.stream.for_each(|_| Ok(()));
-            relm.handle.spawn(event_future);
+            let event_future = stream.for_each(move |event| {
+                let mut model = model.lock().unwrap();
+                D::update_command(&relm, event, &mut *model);
+                Ok(())
+            });
+            handle.spawn(event_future);
             Ok(())
         });
         Ok(())
@@ -196,35 +203,39 @@ impl<M: Clone + DisplayVariant + Send + 'static> Relm<M> {
     }
 }
 
-fn create_widget<D, M>() -> Component<M, D::Container>
+fn create_widget<D, M>() -> Component<D::Model, M, D::Container>
     where D: Widget<M> + 'static,
           M: Clone + DisplayVariant + 'static,
 {
     let (sender, mut receiver) = channel();
     let stream = EventStream::new(Arc::new(sender));
 
-    let mut widget = D::new(&stream);
+    let (mut widget, model) = D::new(&stream);
 
     let container = widget.container().clone();
+    let model = Arc::new(Mutex::new(model));
 
     {
         let stream = stream.clone();
+        let model = model.clone();
         receiver.connect_recv(move || {
             if let Some(event) = stream.pop_ui_events() {
-                update_widget(&mut widget, event);
+                let mut model = model.lock().unwrap();
+                update_widget(&mut widget, event, &mut *model);
             }
             Continue(true)
         });
     }
 
     Component {
+        model: model,
         receiver: receiver,
         stream: stream,
         widget: container,
     }
 }
 
-fn update_widget<M, W>(widget: &mut W, event: M)
+fn update_widget<M, W>(widget: &mut W, event: M, model: &mut W::Model)
     where M: Clone + DisplayVariant,
           W: Widget<M>,
 {
@@ -238,7 +249,7 @@ fn update_widget<M, W>(widget: &mut W, event: M)
             else {
                 debug.to_string()
             };
-        widget.update(event);
+        widget.update(event, model);
         if let Ok(duration) = time.elapsed() {
             let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
             if ms >= 200 {
@@ -247,14 +258,14 @@ fn update_widget<M, W>(widget: &mut W, event: M)
         }
     }
     else {
-        widget.update(event)
+        widget.update(event, model)
     }
 }
 
 pub trait ContainerWidget
     where Self: ContainerExt
 {
-    fn add_widget<D, M>(&self) -> Component<M, D::Container>
+    fn add_widget<D, M>(&self) -> Component<D::Model, M, D::Container>
         where D: Widget<M> + 'static,
               D::Container: IsA<Object> + WidgetExt,
               M: Clone + DisplayVariant + 'static,
@@ -266,7 +277,7 @@ pub trait ContainerWidget
     }
 
     // TODO: remove the EventStream also.
-    fn remove_widget<M: Clone + DisplayVariant, W>(&self, widget: Component<M, W>)
+    fn remove_widget<D, M: Clone + DisplayVariant, W>(&self, widget: Component<D, M, W>)
         where W: IsA<gtk::Widget>,
     {
         self.remove(&widget.widget);

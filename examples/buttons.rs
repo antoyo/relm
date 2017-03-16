@@ -49,7 +49,6 @@ struct Widgets {
 }
 
 struct Win {
-    model: Model,
     widgets: Widgets,
 }
 
@@ -87,32 +86,34 @@ impl Win {
 
 impl Widget<Msg> for Win {
     type Container = Window;
+    type Model = Model;
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(stream: &EventStream<Msg>) -> Self {
+    fn new(stream: &EventStream<Msg>) -> (Self, Model) {
         let widgets = Self::view(stream);
-        Win {
-            model: Model {
-                counter: 0,
-            },
+        let model = Model {
+            counter: 0,
+        };
+        let window = Win {
             widgets: widgets,
-        }
+        };
+        (window, model)
     }
 
-    fn update(&mut self, event: Msg) {
+    fn update(&mut self, event: Msg, model: &mut Model) {
         let label = &self.widgets.counter_label;
 
         match event {
             Decrement => {
-                self.model.counter -= 1;
-                label.set_text(&self.model.counter.to_string());
+                model.counter -= 1;
+                label.set_text(&model.counter.to_string());
             },
             Increment => {
-                self.model.counter += 1;
-                label.set_text(&self.model.counter.to_string());
+                model.counter += 1;
+                label.set_text(&model.counter.to_string());
             },
             Quit => gtk::main_quit(),
         }

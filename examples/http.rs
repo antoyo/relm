@@ -39,7 +39,7 @@ use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, Wind
 use hyper::Client;
 use hyper_tls::HttpsConnector;
 use gtk::Orientation::Vertical;
-use relm::{Handle, QuitFuture, Relm, Widget};
+use relm::{EventStream, Handle, Relm, Widget};
 use simplelog::{Config, TermLogger};
 use simplelog::LogLevelFilter::Warn;
 
@@ -69,13 +69,11 @@ struct Widgets {
 
 struct Win {
     loader: PixbufLoader,
-    model: Model,
-    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
 impl Win {
-    fn view(relm: &Relm<Msg>) -> Widgets {
+    fn view(stream: &EventStream<Msg>) -> Widgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let label = Label::new(None);
@@ -93,8 +91,8 @@ impl Win {
 
         window.show_all();
 
-        connect!(relm, button, connect_clicked(_), FetchUrl);
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        connect!(stream, button, connect_clicked(_), FetchUrl);
+        connect_no_inhibit!(stream, window, connect_delete_event(_, _), Quit);
 
         Widgets {
             button: button,
@@ -107,24 +105,24 @@ impl Win {
 
 impl Widget<Msg> for Win {
     type Container = Window;
+    type Model = Model;
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(relm: Relm<Msg>) -> Self {
+    fn new(stream: &EventStream<Msg>) -> (Self, Model) {
         let model = Model {
             gif_url: "waiting.gif".to_string(),
             topic: "cats".to_string(),
         };
-        let widgets = Self::view(&relm);
+        let widgets = Self::view(stream);
         widgets.label.set_text(&model.topic);
-        Win {
+        let window = Win {
             loader: PixbufLoader::new(),
-            model: model,
-            relm: relm,
             widgets: widgets,
-        }
+        };
+        (window, model)
     }
 
     fn update(&mut self, event: Msg) {
@@ -139,22 +137,31 @@ impl Widget<Msg> for Win {
                 // Disable the button because loading 2 images at the same time crashes the pixbuf
                 // loader.
                 self.widgets.button.set_sensitive(false);
-                let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", self.model.topic);
-                let http_future = http_get(&url, self.relm.handle());
-                self.relm.connect_exec(http_future, NewGif);
+            },
+            ImageChunk(chunk) => {
+                self.loader.loader_write(&chunk).unwrap();
+            },
+            Quit => gtk::main_quit(),
+            _ => (),
+        }
+    }
+
+    fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
+        match event {
+            FetchUrl => {
+                let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", model.topic);
+                let http_future = http_get(&url, relm.handle());
+                relm.connect_exec(http_future, NewGif);
             },
             NewGif(result) => {
                 let string = String::from_utf8(result).unwrap();
                 let json = json::parse(&string).unwrap();
                 let url = &json["data"]["image_url"].as_str().unwrap();
-                let http_future = http_get_stream(url, self.relm.handle());
-                let future = self.relm.connect(http_future, ImageChunk);
-                self.relm.connect_exec(future, DownloadCompleted);
+                let http_future = http_get_stream(url, relm.handle());
+                let future = relm.connect(http_future, ImageChunk);
+                relm.connect_exec(future, DownloadCompleted);
             },
-            ImageChunk(chunk) => {
-                self.loader.loader_write(&chunk).unwrap();
-            },
-            Quit => self.relm.exec(QuitFuture),
+            _ => (),
         }
     }
 }
