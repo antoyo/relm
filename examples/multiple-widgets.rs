@@ -27,7 +27,7 @@ extern crate relm_derive;
 
 use gtk::{Button, ButtonExt, ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{ContainerWidget, QuitFuture, Relm, Widget};
+use relm::{ContainerWidget, EventStream, Relm, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -50,12 +50,11 @@ struct TextWidgets {
 }
 
 struct Text {
-    model: TextModel,
     widgets: TextWidgets,
 }
 
 impl Text {
-    fn view(relm: &Relm<TextMsg>) -> TextWidgets {
+    fn view(stream: &EventStream<TextMsg>) -> TextWidgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -64,7 +63,7 @@ impl Text {
         let label = Label::new(None);
         vbox.add(&label);
 
-        connect!(relm, input, connect_changed(_), Change);
+        connect!(stream, input, connect_changed(_), Change);
 
         TextWidgets {
             input: input,
@@ -76,26 +75,28 @@ impl Text {
 
 impl Widget<TextMsg> for Text {
     type Container = gtk::Box;
+    type Model = TextModel;
 
     fn container(&self) -> &Self::Container {
         &self.widgets.vbox
     }
 
-    fn new(relm: Relm<TextMsg>) -> Self {
-        let widgets = Self::view(&relm);
-        Text {
-            model: TextModel {
-                content: String::new(),
-            },
+    fn new(stream: &EventStream<TextMsg>) -> (Self, TextModel) {
+        let widgets = Self::view(stream);
+        let widget = Text {
             widgets: widgets,
-        }
+        };
+        let model = TextModel {
+            content: String::new(),
+        };
+        (widget, model)
     }
 
-    fn update(&mut self, event: TextMsg) {
+    fn update(&mut self, event: TextMsg, model: &mut TextModel) {
         match event {
             Change => {
-                self.model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();
-                self.widgets.label.set_text(&self.model.content);
+                model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();
+                self.widgets.label.set_text(&model.content);
             },
         }
     }
@@ -113,12 +114,11 @@ enum CounterMsg {
 }
 
 struct Counter {
-    model: Model,
     widgets: CounterWidgets,
 }
 
 impl Counter {
-    fn view(relm: &Relm<CounterMsg>) -> CounterWidgets {
+    fn view(stream: &EventStream<CounterMsg>) -> CounterWidgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -130,8 +130,8 @@ impl Counter {
         let minus_button = Button::new_with_label("-");
         vbox.add(&minus_button);
 
-        connect!(relm, plus_button, connect_clicked(_), Increment);
-        connect!(relm, minus_button, connect_clicked(_), Decrement);
+        connect!(stream, plus_button, connect_clicked(_), Increment);
+        connect!(stream, minus_button, connect_clicked(_), Decrement);
 
         CounterWidgets {
             counter_label: counter_label,
@@ -142,32 +142,34 @@ impl Counter {
 
 impl Widget<CounterMsg> for Counter {
     type Container = gtk::Box;
+    type Model = Model;
 
     fn container(&self) -> &Self::Container {
         &self.widgets.vbox
     }
 
-    fn new(relm: Relm<CounterMsg>) -> Self {
-        let widgets = Self::view(&relm);
-        Counter {
-            model: Model {
-                counter: 0,
-            },
+    fn new(stream: &EventStream<CounterMsg>) -> (Self, Model) {
+        let widgets = Self::view(stream);
+        let widget = Counter {
             widgets: widgets,
-        }
+        };
+        let model = Model {
+            counter: 0,
+        };
+        (widget, model)
     }
 
-    fn update(&mut self, event: CounterMsg) {
+    fn update(&mut self, event: CounterMsg, model: &mut Model) {
         let label = &self.widgets.counter_label;
 
         match event {
             Decrement => {
-                self.model.counter -= 1;
-                label.set_text(&self.model.counter.to_string());
+                model.counter -= 1;
+                label.set_text(&model.counter.to_string());
             },
             Increment => {
-                self.model.counter += 1;
-                label.set_text(&self.model.counter.to_string());
+                model.counter += 1;
+                label.set_text(&model.counter.to_string());
             },
         }
     }
@@ -188,27 +190,24 @@ struct Widgets {
 }
 
 struct Win {
-    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
 impl Win {
-    fn view(relm: &Relm<Msg>) -> Widgets {
-        let handle = relm.handle();
-
+    fn view(stream: &EventStream<Msg>) -> Widgets {
         let window = Window::new(WindowType::Toplevel);
 
         let hbox = gtk::Box::new(Horizontal, 0);
 
-        hbox.add_widget::<Counter, _>(handle);
-        hbox.add_widget::<Counter, _>(handle);
-        hbox.add_widget::<Text, _>(handle);
+        hbox.add_widget::<Counter, _>();
+        hbox.add_widget::<Counter, _>();
+        hbox.add_widget::<Text, _>();
 
         window.add(&hbox);
 
         window.show_all();
 
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        connect_no_inhibit!(stream, window, connect_delete_event(_, _), Quit);
 
         Widgets {
             window: window,
@@ -218,22 +217,23 @@ impl Win {
 
 impl Widget<Msg> for Win {
     type Container = Window;
+    type Model = ();
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(relm: Relm<Msg>) -> Self {
-        let widgets = Self::view(&relm);
-        Win {
-            relm: relm,
+    fn new(stream: &EventStream<Msg>) -> (Self, ()) {
+        let widgets = Self::view(stream);
+        let window = Win {
             widgets: widgets,
-        }
+        };
+        (window, ())
     }
 
-    fn update(&mut self, event: Msg) {
+    fn update(&mut self, event: Msg, _model: &mut ()) {
         match event {
-            Quit => self.relm.exec(QuitFuture),
+            Quit => gtk::main_quit(),
         }
     }
 }
