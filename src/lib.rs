@@ -43,6 +43,9 @@
  * * create default values for gtk widgets (like Label::new(None)).
  * * create attributes for constructor gtk widgets (like orientation for Box::new(orientation)).
  * TODO: optionnaly multi-threaded.
+ * TODO: try to avoid having two update() functions by adding the futures to a struct that's
+ * returned from the update() function and these futures will then be added to the tokio loop (that
+ * probably requires boxing the futures, which we want to avoid).
  * TODO: convert GTK+ callback to Stream (does not seem worth it, nor convenient since it will
  * still need to use USFC for the callback method).
  */

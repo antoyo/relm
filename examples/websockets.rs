@@ -50,7 +50,7 @@ use futures::Future;
 use gtk::{Button, ButtonExt, ContainerExt, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
 use rand::Rng;
-use relm::{Handle, QuitFuture, Relm, Widget};
+use relm::{EventStream, Handle, Relm, Widget};
 use tokio_core::net::TcpStream;
 use tokio_proto::TcpClient;
 use tokio_proto::pipeline::ClientService;
@@ -63,6 +63,7 @@ type WSService = ClientService<TcpStream, WebSocketProtocol>;
 
 #[derive(Clone)]
 struct Model {
+    service: Option<WSService>,
     text: String,
 }
 
@@ -70,7 +71,7 @@ struct Model {
 enum Msg {
     Connected(WSService),
     Message(String),
-    Send,
+    Send(String),
     Quit,
 }
 
@@ -81,14 +82,11 @@ struct Widgets {
 }
 
 struct Win {
-    model: Model,
-    service: Option<WSService>,
-    relm: Relm<Msg>,
     widgets: Widgets,
 }
 
 impl Win {
-    fn view(relm: &Relm<Msg>) -> Widgets {
+    fn view(stream: &EventStream<Msg>) -> Widgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let label = Label::new(None);
@@ -106,9 +104,21 @@ impl Win {
 
         window.show_all();
 
-        connect!(relm, entry, connect_activate(_), Send);
-        connect!(relm, button, connect_clicked(_), Send);
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        {
+            let entry2 = entry.clone();
+            connect!(stream, entry, connect_activate(_), {
+                let message = entry2.get_text().unwrap_or_else(String::new);
+                Send(message)
+            });
+        }
+        {
+            let entry = entry.clone();
+            connect!(stream, button, connect_clicked(_), {
+                let message = entry.get_text().unwrap_or_else(String::new);
+                Send(message)
+            });
+        }
+        connect_no_inhibit!(stream, window, connect_delete_event(_, _), Quit);
 
         Widgets {
             entry: entry,
@@ -120,48 +130,54 @@ impl Win {
 
 impl Widget<Msg> for Win {
     type Container = Window;
+    type Model = Model;
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(relm: Relm<Msg>) -> Self {
+    fn new(stream: &EventStream<Msg>) -> (Self, Model) {
         let model = Model {
+            service: None,
             text: String::new(),
         };
 
+        let widgets = Self::view(stream);
+        let window = Win {
+            widgets: widgets,
+        };
+        (window, model)
+    }
+
+    fn subscriptions(relm: &Relm<Msg>) {
         let handshake_future = ws_handshake(relm.handle());
         let future = relm.connect(handshake_future, Connected);
         relm.exec(future);
+    }
 
-        let widgets = Self::view(&relm);
-        Win {
-            model: model,
-            relm: relm,
-            service: None,
-            widgets: widgets,
+    fn update(&mut self, event: Msg, model: &mut Model) {
+        match event {
+            Connected(service) => {
+                model.service = Some(service);
+            },
+            Message(message) => {
+                model.text.push_str(&format!("{}\n", message));
+                self.widgets.label.set_text(&model.text);
+            },
+            Send(_) => {
+                self.widgets.entry.set_text("");
+                self.widgets.entry.grab_focus();
+            },
+            Quit => gtk::main_quit(),
         }
     }
 
-    fn update(&mut self, event: Msg) {
-        match event {
-            Connected(service) => {
-                self.service = Some(service);
-            },
-            Message(message) => {
-                self.model.text.push_str(&format!("{}\n", message));
-                self.widgets.label.set_text(&self.model.text);
-            },
-            Send => {
-                if let Some(ref service) = self.service {
-                    let message = self.widgets.entry.get_text().unwrap_or_else(String::new);
-                    self.widgets.entry.set_text("");
-                    self.widgets.entry.grab_focus();
-                    let send_future = ws_send(service, &message);
-                    self.relm.connect_exec(send_future, Message);
-                }
-            },
-            Quit => self.relm.exec(QuitFuture),
+    fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
+        if let Send(message) = event {
+            if let Some(ref service) = model.service {
+                let send_future = ws_send(service, &message);
+                relm.connect_exec(send_future, Message);
+            }
         }
     }
 }
