@@ -21,42 +21,42 @@
 
 use futures::{Future, IntoStream, Poll, Stream};
 
-pub struct RelmStream<E, I, S: Stream<Item=I, Error=E>> {
-    stream: S,
+pub struct RelmStream<ERROR, ITEM, STREAM: Stream<Item=ITEM, Error=ERROR>> {
+    stream: STREAM,
 }
 
-impl<E, I, S: Stream<Item=I, Error=E>> Stream for RelmStream<E, I, S> {
-    type Item = I;
-    type Error = E;
+impl<ERROR, ITEM, STREAM: Stream<Item=ITEM, Error=ERROR>> Stream for RelmStream<ERROR, ITEM, STREAM> {
+    type Item = ITEM;
+    type Error = ERROR;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         self.stream.poll()
     }
 }
 
-pub trait ToStream<S: Stream<Item=Self::Item, Error=Self::Error>> {
+pub trait ToStream<STREAM: Stream<Item=Self::Item, Error=Self::Error>> {
     type Error;
     type Item;
 
-    fn to_stream(self) -> RelmStream<Self::Error, Self::Item, S>;
+    fn to_stream(self) -> RelmStream<Self::Error, Self::Item, STREAM>;
 }
 
-impl<E, I, S: Stream<Item=I, Error=E>> ToStream<S> for S {
-    type Error = E;
-    type Item = I;
+impl<ERROR, ITEM, STREAM: Stream<Item=ITEM, Error=ERROR>> ToStream<STREAM> for STREAM {
+    type Error = ERROR;
+    type Item = ITEM;
 
-    fn to_stream(self) -> RelmStream<E, I, S> {
+    fn to_stream(self) -> RelmStream<ERROR, ITEM, STREAM> {
         RelmStream {
             stream: self,
         }
     }
 }
 
-impl<E, F: Future<Item=I, Error=E>, I> ToStream<IntoStream<F>> for F {
-    type Error = E;
-    type Item = I;
+impl<ERROR, FUTURE: Future<Item=ITEM, Error=ERROR>, ITEM> ToStream<IntoStream<FUTURE>> for FUTURE {
+    type Error = ERROR;
+    type Item = ITEM;
 
-    fn to_stream(self) -> RelmStream<E, I, IntoStream<F>> {
+    fn to_stream(self) -> RelmStream<ERROR, ITEM, IntoStream<FUTURE>> {
         RelmStream {
             stream: self.into_stream(),
         }

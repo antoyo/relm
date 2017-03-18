@@ -52,20 +52,20 @@ impl Core {
     }
 }
 
-struct _EventStream<T> {
-    events: VecDeque<T>,
-    observers: Vec<Box<Fn(T) + Send>>,
+struct _EventStream<MSG> {
+    events: VecDeque<MSG>,
+    observers: Vec<Box<Fn(MSG) + Send>>,
     sender: Arc<Sender>,
     task: Option<Task>,
-    ui_events: VecDeque<T>,
+    ui_events: VecDeque<MSG>,
 }
 
 #[derive(Clone)]
-pub struct EventStream<T> {
-    stream: Arc<Mutex<_EventStream<T>>>,
+pub struct EventStream<MSG> {
+    stream: Arc<Mutex<_EventStream<MSG>>>,
 }
 
-impl<T: Clone + 'static> EventStream<T> {
+impl<MSG: Clone + 'static> EventStream<MSG> {
     pub fn new(sender: Arc<Sender>) -> Self {
         EventStream {
             stream: Arc::new(Mutex::new(_EventStream {
@@ -78,7 +78,7 @@ impl<T: Clone + 'static> EventStream<T> {
         }
     }
 
-    pub fn emit(&self, event: T) {
+    pub fn emit(&self, event: MSG) {
         let mut stream = self.stream.lock().unwrap();
         if let Some(ref task) = stream.task {
             task.unpark();
@@ -91,21 +91,21 @@ impl<T: Clone + 'static> EventStream<T> {
         }
     }
 
-    fn get_event(&self) -> Option<T> {
+    fn get_event(&self) -> Option<MSG> {
         self.stream.lock().unwrap().events.pop_front()
     }
 
-    pub fn observe<F: Fn(T) + Send + 'static>(&self, callback: F) {
+    pub fn observe<CALLBACK: Fn(MSG) + Send + 'static>(&self, callback: CALLBACK) {
         self.stream.lock().unwrap().observers.push(Box::new(callback));
     }
 
-    pub fn pop_ui_events(&self) -> Option<T> {
+    pub fn pop_ui_events(&self) -> Option<MSG> {
         self.stream.lock().unwrap().ui_events.pop_front()
     }
 }
 
-impl<T: Clone + 'static> Stream for EventStream<T> {
-    type Item = T;
+impl<MSG: Clone + 'static> Stream for EventStream<MSG> {
+    type Item = MSG;
     type Error = ();
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {

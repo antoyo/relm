@@ -165,7 +165,7 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
         self.exec(self.connect(to_stream, callback));
     }
 
-    pub fn exec<F: Future<Item=(), Error=()> + 'static>(&self, future: F) {
+    pub fn exec<FUTURE: Future<Item=(), Error=()> + 'static>(&self, future: FUTURE) {
         self.handle.spawn(future);
     }
 
