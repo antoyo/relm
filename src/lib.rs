@@ -21,12 +21,7 @@
 
 /*
  * TODO: remove_widget() should remove the stream.
- * TODO: integrate the tokio main loop into the GTK+ main loop so that the example nested-loop
- * works:
- *  * use another method to block a callback than gtk::main().
- *  * * A kind of lock which is unlocked when update() finish.
- *  * Running gtk::main() in update() block Core::turn() because it creates an infinite loop.
- *  * Find a solution for synchronous callbacks.
+ * TODO: create an example with synchronous callbacks.
  * TODO: chat client/server example.
  *
  * TODO: try tk-easyloop in another branch.
@@ -35,6 +30,8 @@
  * TODO: Use two update functions (one for errors, one for success/normal behavior).
  *
  * TODO: add Cargo travis badge.
+ * TODO: find a way to avoid panic when not storing the Component returned by add_widget().
+ *
  * TODO: add default type of () for Model in Widget when it is stable.
  * TODO: use macros 2.0 instead for the:
  * * view: to create the dependencies between the view items and the model.
@@ -85,7 +82,7 @@ pub use self::widget::*;
 #[must_use]
 pub struct Component<MODEL, MSG: Clone + DisplayVariant, WIDGET> {
     model: Arc<Mutex<MODEL>>,
-    receiver: Receiver,
+    _receiver: Receiver,
     stream: EventStream<MSG>,
     widget: WIDGET,
 }
@@ -145,10 +142,10 @@ pub struct Relm<MSG: Clone + DisplayVariant> {
 }
 
 impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
-    pub fn connect<CALLBACK, STREAM, TO_STREAM>(&self, to_stream: TO_STREAM, callback: CALLBACK) -> impl Future<Item=(), Error=()>
+    pub fn connect<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK) -> impl Future<Item=(), Error=()>
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               STREAM: Stream + 'static,
-              TO_STREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
+              TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
     {
         let event_stream = self.stream.clone();
         let stream = to_stream.to_stream();
@@ -160,10 +157,10 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
             .map_err(|_| ()))
     }
 
-    pub fn connect_exec<CALLBACK, STREAM, TO_STREAM>(&self, to_stream: TO_STREAM, callback: CALLBACK)
+    pub fn connect_exec<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK)
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               STREAM: Stream + 'static,
-              TO_STREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
+              TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
     {
         self.exec(self.connect(to_stream, callback));
     }
@@ -237,7 +234,7 @@ fn create_widget<WIDGET, MSG>(remote: &Remote) -> Component<WIDGET::Model, MSG, 
 
     Component {
         model: model,
-        receiver: receiver,
+        _receiver: receiver,
         stream: stream,
         widget: container,
     }
@@ -296,17 +293,25 @@ fn update_widget<MSG, WIDGET>(widget: &mut WIDGET, event: MSG, model: &mut WIDGE
 pub trait ContainerWidget
     where Self: ContainerExt
 {
-    fn add_widget<WIDGET, MSG, WIDGET_MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET::Model, WIDGET_MSG, WIDGET::Container>
+    /**
+     * Add a widget `WIDGET` to the current widget.
+     *
+     * # Panics
+     *
+     * The returned `Component` must be stored in a `Widget`. If it is not stored, a communication
+     * receiver will be droped which will cause a panic and GTK+ errors.
+     */
+    fn add_widget<WIDGET, MSG, WIDGETMSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET::Model, WIDGETMSG, WIDGET::Container>
         where MSG: Clone + DisplayVariant + Send + 'static,
-              WIDGET: Widget<WIDGET_MSG> + 'static,
+              WIDGET: Widget<WIDGETMSG> + 'static,
               WIDGET::Container: IsA<Object> + WidgetExt,
               WIDGET::Model: Send,
-              WIDGET_MSG: Clone + DisplayVariant + Send + 'static,
+              WIDGETMSG: Clone + DisplayVariant + Send + 'static,
     {
-        let component = create_widget::<WIDGET, WIDGET_MSG>(&relm.remote);
+        let component = create_widget::<WIDGET, WIDGETMSG>(&relm.remote);
         self.add(&component.widget);
         component.widget.show_all();
-        init_component::<WIDGET, WIDGET_MSG>(&component, &relm.remote);
+        init_component::<WIDGET, WIDGETMSG>(&component, &relm.remote);
         component
     }
 
