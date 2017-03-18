@@ -75,12 +75,13 @@ use glib::Continue;
 use glib_itc::{Receiver, channel};
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 use relm_core::Core;
-pub use relm_core::{EventStream, Handle};
+pub use relm_core::{EventStream, Handle, Remote};
 
 pub use self::Error::*;
 use self::stream::ToStream;
 pub use self::widget::*;
 
+#[must_use]
 pub struct Component<D, M: Clone + DisplayVariant, W> {
     model: Arc<Mutex<D>>,
     receiver: Receiver,
@@ -180,40 +181,26 @@ impl<M: Clone + DisplayVariant + Send + 'static> Relm<M> {
     {
         gtk::init()?;
 
-        let component = create_widget::<D, M>();
-        let stream = component.stream;
-        let model = component.model;
-        Core::run(move |handle| {
-            let relm = Relm {
-                handle: handle.clone(),
-                stream: stream.clone(),
-            };
-            D::subscriptions(&relm);
-            let event_future = stream.for_each(move |event| {
-                let mut model = model.lock().unwrap();
-                D::update_command(&relm, event, &mut *model);
-                Ok(())
-            });
-            handle.spawn(event_future);
-            Ok(())
-        });
+        let remote = Core::run();
+        let component = create_widget::<D, M>(&remote);
+        init_component::<D, M>(&component, &remote);
+        gtk::main();
         Ok(())
     }
 
-    // TODO: delete this method when the connect macros are no longer required.
     pub fn stream(&self) -> &EventStream<M> {
         &self.stream
     }
 }
 
-fn create_widget<D, M>() -> Component<D::Model, M, D::Container>
+fn create_widget<D, M>(remote: &Remote) -> Component<D::Model, M, D::Container>
     where D: Widget<M> + 'static,
           M: Clone + DisplayVariant + 'static,
 {
     let (sender, mut receiver) = channel();
     let stream = EventStream::new(Arc::new(sender));
 
-    let (mut widget, model) = D::new(&stream);
+    let (mut widget, model) = D::new(&stream, remote);
 
     let container = widget.container().clone();
     let model = Arc::new(Mutex::new(model));
@@ -236,6 +223,29 @@ fn create_widget<D, M>() -> Component<D::Model, M, D::Container>
         stream: stream,
         widget: container,
     }
+}
+
+fn init_component<D, M>(component: &Component<D::Model, M, D::Container>, remote: &Remote)
+    where D: Widget<M> + 'static,
+          D::Model: Send,
+          M: Clone + DisplayVariant + Send + 'static,
+{
+    let stream = component.stream.clone();
+    let model = component.model.clone();
+    remote.spawn(move |handle| {
+        let relm = Relm {
+            handle: handle.clone(),
+            stream: stream.clone(),
+        };
+        D::subscriptions(&relm);
+        let event_future = stream.for_each(move |event| {
+            let mut model = model.lock().unwrap();
+            D::update_command(&relm, event, &mut *model);
+            Ok(())
+        });
+        handle.spawn(event_future);
+        Ok(())
+    });
 }
 
 fn update_widget<M, W>(widget: &mut W, event: M, model: &mut W::Model)
@@ -268,14 +278,16 @@ fn update_widget<M, W>(widget: &mut W, event: M, model: &mut W::Model)
 pub trait ContainerWidget
     where Self: ContainerExt
 {
-    fn add_widget<D, M>(&self) -> Component<D::Model, M, D::Container>
+    fn add_widget<D, M>(&self, remote: &Remote) -> Component<D::Model, M, D::Container>
         where D: Widget<M> + 'static,
               D::Container: IsA<Object> + WidgetExt,
-              M: Clone + DisplayVariant + 'static,
+              D::Model: Send,
+              M: Clone + DisplayVariant + Send + 'static,
     {
-        let component = create_widget::<D, M>();
+        let component = create_widget::<D, M>(remote);
         self.add(&component.widget);
         component.widget.show_all();
+        init_component::<D, M>(&component, &remote);
         component
     }
 

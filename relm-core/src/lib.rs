@@ -29,20 +29,16 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
 use std::thread;
 
-use futures::{Async, IntoFuture, Poll, Stream};
+use futures::{Async, Poll, Stream};
 use futures::task::{self, Task};
 use glib_itc::Sender;
 use tokio_core::reactor;
-pub use tokio_core::reactor::Handle;
+pub use tokio_core::reactor::{Handle, Remote};
 
 pub struct Core { }
 
 impl Core {
-    pub fn run<F, R>(function: F)
-        where F: FnOnce(&Handle) -> R + Send + 'static,
-              R: IntoFuture<Item=(), Error=()>,
-              R::Future: 'static,
-    {
+    pub fn run() -> Remote {
         let (sender, receiver) = channel();
         thread::spawn(move || {
             let mut core = reactor::Core::new().unwrap();
@@ -52,10 +48,7 @@ impl Core {
             }
         });
 
-        let remote = receiver.recv().unwrap();
-        remote.spawn(function);
-
-        gtk::main();
+        receiver.recv().unwrap()
     }
 }
 

@@ -169,4 +169,5 @@ fn main() {
 
         Ok(())
     });
+    gtk::main();
 }
