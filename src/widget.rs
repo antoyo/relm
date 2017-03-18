@@ -21,7 +21,7 @@
 
 use gtk::{self, IsA};
 
-use super::{DisplayVariant, EventStream, Relm, Remote, RemoteRelm};
+use super::{DisplayVariant, Relm, RemoteRelm};
 
 /// Trait to implement to manage widget's events.
 pub trait Widget<MSG: Clone + DisplayVariant>
@@ -35,7 +35,7 @@ pub trait Widget<MSG: Clone + DisplayVariant>
     fn container(&self) -> &Self::Container;
 
     /// Create the widget.
-    fn new(relm: &RemoteRelm<MSG>) -> (Self, Self::Model);
+    fn new(relm: RemoteRelm<MSG>) -> (Self, Self::Model);
 
     /// Connect the subscriptions.
     fn subscriptions(_relm: &Relm<MSG>) {

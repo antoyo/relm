@@ -193,14 +193,14 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
     }
 }
 
-pub struct RemoteRelm<'a, MSG: Clone + DisplayVariant + 'a> {
-    remote: &'a Remote,
-    stream: &'a EventStream<MSG>,
+pub struct RemoteRelm<MSG: Clone + DisplayVariant> {
+    remote: Remote,
+    stream: EventStream<MSG>,
 }
 
-impl<'a, MSG: Clone + DisplayVariant> RemoteRelm<'a, MSG> {
+impl<'a, MSG: Clone + DisplayVariant> RemoteRelm<MSG> {
     pub fn stream(&self) -> &EventStream<MSG> {
-        self.stream
+        &self.stream
     }
 }
 
@@ -213,10 +213,10 @@ fn create_widget<WIDGET, MSG>(remote: &Remote) -> Component<WIDGET::Model, MSG, 
 
     let (mut widget, model) = {
         let relm = RemoteRelm {
-            remote: remote,
-            stream: &stream,
+            remote: remote.clone(),
+            stream: stream.clone(),
         };
-        WIDGET::new(&relm)
+        WIDGET::new(relm)
     };
 
     let container = widget.container().clone();
@@ -302,10 +302,10 @@ pub trait ContainerWidget
               WIDGET::Model: Send,
               WIDGET_MSG: Clone + DisplayVariant + Send + 'static,
     {
-        let component = create_widget::<WIDGET, WIDGET_MSG>(relm.remote);
+        let component = create_widget::<WIDGET, WIDGET_MSG>(&relm.remote);
         self.add(&component.widget);
         component.widget.show_all();
-        init_component::<WIDGET, WIDGET_MSG>(&component, relm.remote);
+        init_component::<WIDGET, WIDGET_MSG>(&component, &relm.remote);
         component
     }
 

@@ -92,8 +92,8 @@ impl Widget<Msg> for Win {
         &self.widgets.window
     }
 
-    fn new(relm: &RemoteRelm<Msg>) -> (Self, Model) {
-        let widgets = Self::view(relm);
+    fn new(relm: RemoteRelm<Msg>) -> (Self, Model) {
+        let widgets = Self::view(&relm);
         let model = Model {
             counter: 0,
         };

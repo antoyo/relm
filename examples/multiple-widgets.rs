@@ -81,8 +81,8 @@ impl Widget<TextMsg> for Text {
         &self.widgets.vbox
     }
 
-    fn new(relm: &RemoteRelm<TextMsg>) -> (Self, TextModel) {
-        let widgets = Self::view(relm);
+    fn new(relm: RemoteRelm<TextMsg>) -> (Self, TextModel) {
+        let widgets = Self::view(&relm);
         let widget = Text {
             widgets: widgets,
         };
@@ -148,8 +148,8 @@ impl Widget<CounterMsg> for Counter {
         &self.widgets.vbox
     }
 
-    fn new(relm: &RemoteRelm<CounterMsg>) -> (Self, Model) {
-        let widgets = Self::view(relm);
+    fn new(relm: RemoteRelm<CounterMsg>) -> (Self, Model) {
+        let widgets = Self::view(&relm);
         let widget = Counter {
             widgets: widgets,
         };
@@ -229,8 +229,8 @@ impl Widget<Msg> for Win {
         &self.widgets.window
     }
 
-    fn new(relm: &RemoteRelm<Msg>) -> (Self, ()) {
-        let widgets = Self::view(relm);
+    fn new(relm: RemoteRelm<Msg>) -> (Self, ()) {
+        let widgets = Self::view(&relm);
         let window = Win {
             widgets: widgets,
         };

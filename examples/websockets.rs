@@ -136,13 +136,13 @@ impl Widget<Msg> for Win {
         &self.widgets.window
     }
 
-    fn new(relm: &RemoteRelm<Msg>) -> (Self, Model) {
+    fn new(relm: RemoteRelm<Msg>) -> (Self, Model) {
         let model = Model {
             service: None,
             text: String::new(),
         };
 
-        let widgets = Self::view(relm);
+        let widgets = Self::view(&relm);
         let window = Win {
             widgets: widgets,
         };

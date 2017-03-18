@@ -111,12 +111,12 @@ impl Widget<Msg> for Win {
         &self.widgets.window
     }
 
-    fn new(relm: &RemoteRelm<Msg>) -> (Self, Model) {
+    fn new(relm: RemoteRelm<Msg>) -> (Self, Model) {
         let model = Model {
             gif_url: "waiting.gif".to_string(),
             topic: "cats".to_string(),
         };
-        let widgets = Self::view(relm);
+        let widgets = Self::view(&relm);
         widgets.label.set_text(&model.topic);
         let window = Win {
             loader: PixbufLoader::new(),

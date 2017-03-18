@@ -27,7 +27,7 @@ extern crate relm_derive;
 
 use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, QuitFuture, Relm, Widget};
+use relm::{Component, ContainerWidget, Relm, RemoteRelm, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -44,12 +44,11 @@ enum CounterMsg {
 }
 
 struct Counter {
-    model: Model,
     widgets: CounterWidgets,
 }
 
 impl Counter {
-    fn view(relm: &Relm<CounterMsg>) -> CounterWidgets {
+    fn view(relm: &RemoteRelm<CounterMsg>) -> CounterWidgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -73,32 +72,34 @@ impl Counter {
 
 impl Widget<CounterMsg> for Counter {
     type Container = gtk::Box;
+    type Model = Model;
 
     fn container(&self) -> &Self::Container {
         &self.widgets.vbox
     }
 
-    fn new(relm: Relm<CounterMsg>) -> Self {
+    fn new(relm: RemoteRelm<CounterMsg>) -> (Self, Model) {
         let widgets = Self::view(&relm);
-        Counter {
-            model: Model {
-                counter: 0,
-            },
+        let model = Model {
+            counter: 0,
+        };
+        let widget = Counter {
             widgets: widgets,
-        }
+        };
+        (widget, model)
     }
 
-    fn update(&mut self, event: CounterMsg) {
+    fn update(&mut self, event: CounterMsg, model: &mut Model) {
         let label = &self.widgets.counter_label;
 
         match event {
             Decrement => {
-                self.model.counter -= 1;
-                label.set_text(&self.model.counter.to_string());
+                model.counter -= 1;
+                label.set_text(&model.counter.to_string());
             },
             Increment => {
-                self.model.counter += 1;
-                label.set_text(&self.model.counter.to_string());
+                model.counter += 1;
+                label.set_text(&model.counter.to_string());
             },
         }
     }
@@ -117,18 +118,18 @@ enum Msg {
 }
 
 struct Widgets {
-    counters: Vec<Component<CounterMsg, gtk::Box>>,
+    counters: Vec<Component<Model, CounterMsg, gtk::Box>>,
     hbox: gtk::Box,
     window: Window,
 }
 
 struct Win {
-    relm: Relm<Msg>,
+    relm: RemoteRelm<Msg>,
     widgets: Widgets,
 }
 
 impl Win {
-    fn view(relm: &Relm<Msg>) -> Widgets {
+    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
         let window = Window::new(WindowType::Toplevel);
 
         let vbox = gtk::Box::new(Vertical, 0);
@@ -159,26 +160,28 @@ impl Win {
 
 impl Widget<Msg> for Win {
     type Container = Window;
+    type Model = ();
 
     fn container(&self) -> &Self::Container {
         &self.widgets.window
     }
 
-    fn new(relm: Relm<Msg>) -> Self {
+    fn new(relm: RemoteRelm<Msg>) -> (Self, ()) {
         let widgets = Self::view(&relm);
-        Win {
+        let window = Win {
             relm: relm,
             widgets: widgets,
-        }
+        };
+        (window, ())
     }
 
-    fn update(&mut self, event: Msg) {
+    fn update(&mut self, event: Msg, _model: &mut ()) {
         match event {
             Add => {
-                let widget = self.widgets.hbox.add_widget::<Counter, _>(self.relm.handle());
+                let widget = self.widgets.hbox.add_widget::<Counter, _, _>(&self.relm);
                 self.widgets.counters.push(widget);
             },
-            Quit => self.relm.exec(QuitFuture),
+            Quit => gtk::main_quit(),
             Remove => {
                 if let Some(counter) = self.widgets.counters.pop() {
                     self.widgets.hbox.remove_widget(counter);
