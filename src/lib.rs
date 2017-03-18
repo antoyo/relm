@@ -35,6 +35,7 @@
  * TODO: Use two update functions (one for errors, one for success/normal behavior).
  *
  * TODO: add Cargo travis badge.
+ * TODO: add default type of () for Model in Widget when it is stable.
  * TODO: use macros 2.0 instead for the:
  * * view: to create the dependencies between the view items and the model.
  * * model: to add boolean fields in an inner struct specifying which parts of the view to update
