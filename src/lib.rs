@@ -21,7 +21,6 @@
 
 /*
  * TODO: remove_widget() should remove the stream.
- * TODO: create an example with synchronous callbacks.
  * TODO: chat client/server example.
  *
  * TODO: try tk-easyloop in another branch.

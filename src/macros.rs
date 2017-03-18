@@ -23,9 +23,16 @@
 /// Send `$msg` to `$other_component` when the GTK+ `$event` is emitted on `$widget`.
 ///
 /// Rule #2:
-/// Send `$msg` when the GTK+ `$event` is emitted on `$widget`.
+/// Optionally send `$msg.0` when the GTK+ `$event` is emitted on `$widget`.
+/// Return `$msg.1` in the GTK+ callback.
+/// This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
+/// ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
+/// Option<MSG> can be None if no message needs to be emitted.
 ///
 /// Rule #3:
+/// Send `$msg` when the GTK+ `$event` is emitted on `$widget`.
+///
+/// Rule #4:
 /// Send `$msg` to `$widget` when the `$message` is received on `$stream`.
 #[macro_export]
 macro_rules! connect {
@@ -42,6 +49,21 @@ macro_rules! connect {
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
             stream.emit($msg);
+        });
+    }};
+
+    // Connect to a GTK+ widget event.
+    // This variant gives more control to the caller since it expecets a `$msg` returning (Option<MSG>,
+    // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
+    // Option<MSG> can be None if no message needs to be emitted.
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*) $msg:expr) => {{
+        let stream = $relm.stream().clone();
+        $widget.$event(move |$($args),*| {
+            let (msg, return_value) = $msg;
+            if let Some(msg) = msg {
+                stream.emit(msg);
+            }
+            return_value
         });
     }};
 
