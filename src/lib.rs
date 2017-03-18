@@ -82,15 +82,15 @@ use self::stream::ToStream;
 pub use self::widget::*;
 
 #[must_use]
-pub struct Component<D, M: Clone + DisplayVariant, W> {
-    model: Arc<Mutex<D>>,
+pub struct Component<MODEL, MSG: Clone + DisplayVariant, WIDGET> {
+    model: Arc<Mutex<MODEL>>,
     receiver: Receiver,
-    stream: EventStream<M>,
-    widget: W,
+    stream: EventStream<MSG>,
+    widget: WIDGET,
 }
 
-impl<D, M: Clone + DisplayVariant, W> Component<D, M, W> {
-    pub fn stream(&self) -> &EventStream<M> {
+impl<MODEL, MSG: Clone + DisplayVariant, WIDGET> Component<MODEL, MSG, WIDGET> {
+    pub fn stream(&self) -> &EventStream<MSG> {
         &self.stream
     }
 }
@@ -138,16 +138,16 @@ impl From<()> for Error {
     }
 }
 
-pub struct Relm<M: Clone + DisplayVariant> {
+pub struct Relm<MSG: Clone + DisplayVariant> {
     handle: Handle,
-    stream: EventStream<M>,
+    stream: EventStream<MSG>,
 }
 
-impl<M: Clone + DisplayVariant + Send + 'static> Relm<M> {
-    pub fn connect<C, S, T>(&self, to_stream: T, callback: C) -> impl Future<Item=(), Error=()>
-        where C: Fn(S::Item) -> M + 'static,
-              S: Stream + 'static,
-              T: ToStream<S, Item=S::Item, Error=S::Error> + 'static,
+impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
+    pub fn connect<CALLBACK, STREAM, TO_STREAM>(&self, to_stream: TO_STREAM, callback: CALLBACK) -> impl Future<Item=(), Error=()>
+        where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
+              STREAM: Stream + 'static,
+              TO_STREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
     {
         let event_stream = self.stream.clone();
         let stream = to_stream.to_stream();
@@ -159,10 +159,10 @@ impl<M: Clone + DisplayVariant + Send + 'static> Relm<M> {
             .map_err(|_| ()))
     }
 
-    pub fn connect_exec<C, S, T>(&self, to_stream: T, callback: C)
-        where C: Fn(S::Item) -> M + 'static,
-              S: Stream + 'static,
-              T: ToStream<S, Item=S::Item, Error=S::Error> + 'static,
+    pub fn connect_exec<CALLBACK, STREAM, TO_STREAM>(&self, to_stream: TO_STREAM, callback: CALLBACK)
+        where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
+              STREAM: Stream + 'static,
+              TO_STREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
     {
         self.exec(self.connect(to_stream, callback));
     }
@@ -175,32 +175,49 @@ impl<M: Clone + DisplayVariant + Send + 'static> Relm<M> {
         &self.handle
     }
 
-    pub fn run<D>() -> Result<(), Error>
-        where D: Widget<M> + 'static,
-              D::Model: Send,
+    pub fn run<WIDGET>() -> Result<(), Error>
+        where WIDGET: Widget<MSG> + 'static,
+              WIDGET::Model: Send,
     {
         gtk::init()?;
 
         let remote = Core::run();
-        let component = create_widget::<D, M>(&remote);
-        init_component::<D, M>(&component, &remote);
+        let component = create_widget::<WIDGET, MSG>(&remote);
+        init_component::<WIDGET, MSG>(&component, &remote);
         gtk::main();
         Ok(())
     }
 
-    pub fn stream(&self) -> &EventStream<M> {
+    pub fn stream(&self) -> &EventStream<MSG> {
         &self.stream
     }
 }
 
-fn create_widget<D, M>(remote: &Remote) -> Component<D::Model, M, D::Container>
-    where D: Widget<M> + 'static,
-          M: Clone + DisplayVariant + 'static,
+pub struct RemoteRelm<'a, MSG: Clone + DisplayVariant + 'a> {
+    remote: &'a Remote,
+    stream: &'a EventStream<MSG>,
+}
+
+impl<'a, MSG: Clone + DisplayVariant> RemoteRelm<'a, MSG> {
+    pub fn stream(&self) -> &EventStream<MSG> {
+        self.stream
+    }
+}
+
+fn create_widget<WIDGET, MSG>(remote: &Remote) -> Component<WIDGET::Model, MSG, WIDGET::Container>
+    where WIDGET: Widget<MSG> + 'static,
+          MSG: Clone + DisplayVariant + 'static,
 {
     let (sender, mut receiver) = channel();
     let stream = EventStream::new(Arc::new(sender));
 
-    let (mut widget, model) = D::new(&stream, remote);
+    let (mut widget, model) = {
+        let relm = RemoteRelm {
+            remote: remote,
+            stream: &stream,
+        };
+        WIDGET::new(&relm)
+    };
 
     let container = widget.container().clone();
     let model = Arc::new(Mutex::new(model));
@@ -225,10 +242,10 @@ fn create_widget<D, M>(remote: &Remote) -> Component<D::Model, M, D::Container>
     }
 }
 
-fn init_component<D, M>(component: &Component<D::Model, M, D::Container>, remote: &Remote)
-    where D: Widget<M> + 'static,
-          D::Model: Send,
-          M: Clone + DisplayVariant + Send + 'static,
+fn init_component<WIDGET, MSG>(component: &Component<WIDGET::Model, MSG, WIDGET::Container>, remote: &Remote)
+    where WIDGET: Widget<MSG> + 'static,
+          WIDGET::Model: Send,
+          MSG: Clone + DisplayVariant + Send + 'static,
 {
     let stream = component.stream.clone();
     let model = component.model.clone();
@@ -237,10 +254,10 @@ fn init_component<D, M>(component: &Component<D::Model, M, D::Container>, remote
             handle: handle.clone(),
             stream: stream.clone(),
         };
-        D::subscriptions(&relm);
+        WIDGET::subscriptions(&relm);
         let event_future = stream.for_each(move |event| {
             let mut model = model.lock().unwrap();
-            D::update_command(&relm, event, &mut *model);
+            WIDGET::update_command(&relm, event, &mut *model);
             Ok(())
         });
         handle.spawn(event_future);
@@ -248,9 +265,9 @@ fn init_component<D, M>(component: &Component<D::Model, M, D::Container>, remote
     });
 }
 
-fn update_widget<M, W>(widget: &mut W, event: M, model: &mut W::Model)
-    where M: Clone + DisplayVariant,
-          W: Widget<M>,
+fn update_widget<MSG, WIDGET>(widget: &mut WIDGET, event: MSG, model: &mut WIDGET::Model)
+    where MSG: Clone + DisplayVariant,
+          WIDGET: Widget<MSG>,
 {
     if cfg!(debug_assertions) {
         let time = SystemTime::now();
@@ -278,22 +295,23 @@ fn update_widget<M, W>(widget: &mut W, event: M, model: &mut W::Model)
 pub trait ContainerWidget
     where Self: ContainerExt
 {
-    fn add_widget<D, M>(&self, remote: &Remote) -> Component<D::Model, M, D::Container>
-        where D: Widget<M> + 'static,
-              D::Container: IsA<Object> + WidgetExt,
-              D::Model: Send,
-              M: Clone + DisplayVariant + Send + 'static,
+    fn add_widget<WIDGET, MSG, WIDGET_MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET::Model, WIDGET_MSG, WIDGET::Container>
+        where MSG: Clone + DisplayVariant + Send + 'static,
+              WIDGET: Widget<WIDGET_MSG> + 'static,
+              WIDGET::Container: IsA<Object> + WidgetExt,
+              WIDGET::Model: Send,
+              WIDGET_MSG: Clone + DisplayVariant + Send + 'static,
     {
-        let component = create_widget::<D, M>(remote);
+        let component = create_widget::<WIDGET, WIDGET_MSG>(relm.remote);
         self.add(&component.widget);
         component.widget.show_all();
-        init_component::<D, M>(&component, &remote);
+        init_component::<WIDGET, WIDGET_MSG>(&component, relm.remote);
         component
     }
 
     // TODO: remove the EventStream also.
-    fn remove_widget<D, M: Clone + DisplayVariant, W>(&self, widget: Component<D, M, W>)
-        where W: IsA<gtk::Widget>,
+    fn remove_widget<MODEL, MSG: Clone + DisplayVariant, WIDGET>(&self, widget: Component<MODEL, MSG, WIDGET>)
+        where WIDGET: IsA<gtk::Widget>,
     {
         self.remove(&widget.widget);
     }

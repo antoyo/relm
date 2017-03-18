@@ -21,10 +21,10 @@
 
 use gtk::{self, IsA};
 
-use super::{DisplayVariant, EventStream, Relm, Remote};
+use super::{DisplayVariant, EventStream, Relm, Remote, RemoteRelm};
 
 /// Trait to implement to manage widget's events.
-pub trait Widget<M: Clone + DisplayVariant>
+pub trait Widget<MSG: Clone + DisplayVariant>
     where Self: Sized,
           Self::Container: Clone + IsA<gtk::Widget>,
 {
@@ -35,16 +35,16 @@ pub trait Widget<M: Clone + DisplayVariant>
     fn container(&self) -> &Self::Container;
 
     /// Create the widget.
-    fn new(stream: &EventStream<M>, remote: &Remote) -> (Self, Self::Model);
+    fn new(relm: &RemoteRelm<MSG>) -> (Self, Self::Model);
 
     /// Connect the subscriptions.
-    fn subscriptions(_relm: &Relm<M>) {
+    fn subscriptions(_relm: &Relm<MSG>) {
     }
 
     /// Method called when a message is received from an event.
-    fn update(&mut self, event: M, model: &mut Self::Model);
+    fn update(&mut self, event: MSG, model: &mut Self::Model);
 
     /// Connect the commands when receiving an event.
-    fn update_command(_relm: &Relm<M>, _event: M, _model: &mut Self::Model) {
+    fn update_command(_relm: &Relm<MSG>, _event: MSG, _model: &mut Self::Model) {
     }
 }

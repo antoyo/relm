@@ -50,7 +50,7 @@ use futures::Future;
 use gtk::{Button, ButtonExt, ContainerExt, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
 use rand::Rng;
-use relm::{EventStream, Handle, Relm, Widget};
+use relm::{Handle, Relm, RemoteRelm, Widget};
 use tokio_core::net::TcpStream;
 use tokio_proto::TcpClient;
 use tokio_proto::pipeline::ClientService;
@@ -86,7 +86,7 @@ struct Win {
 }
 
 impl Win {
-    fn view(stream: &EventStream<Msg>) -> Widgets {
+    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let label = Label::new(None);
@@ -106,19 +106,19 @@ impl Win {
 
         {
             let entry2 = entry.clone();
-            connect!(stream, entry, connect_activate(_), {
+            connect!(relm, entry, connect_activate(_), {
                 let message = entry2.get_text().unwrap_or_else(String::new);
                 Send(message)
             });
         }
         {
             let entry = entry.clone();
-            connect!(stream, button, connect_clicked(_), {
+            connect!(relm, button, connect_clicked(_), {
                 let message = entry.get_text().unwrap_or_else(String::new);
                 Send(message)
             });
         }
-        connect_no_inhibit!(stream, window, connect_delete_event(_, _), Quit);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
         Widgets {
             entry: entry,
@@ -136,13 +136,13 @@ impl Widget<Msg> for Win {
         &self.widgets.window
     }
 
-    fn new(stream: &EventStream<Msg>) -> (Self, Model) {
+    fn new(relm: &RemoteRelm<Msg>) -> (Self, Model) {
         let model = Model {
             service: None,
             text: String::new(),
         };
 
-        let widgets = Self::view(stream);
+        let widgets = Self::view(relm);
         let window = Win {
             widgets: widgets,
         };

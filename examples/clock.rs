@@ -31,7 +31,7 @@ use std::time::Duration;
 
 use chrono::Local;
 use gtk::{ContainerExt, Label, WidgetExt, Window, WindowType};
-use relm::{EventStream, Relm, Widget};
+use relm::{Relm, RemoteRelm, Widget};
 use tokio_core::reactor::Interval;
 
 use self::Msg::*;
@@ -52,7 +52,7 @@ struct Win {
 }
 
 impl Win {
-    fn view(stream: &EventStream<Msg>) -> Widgets {
+    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
         let label = Label::new(None);
 
         let window = Window::new(WindowType::Toplevel);
@@ -61,7 +61,7 @@ impl Win {
 
         window.show_all();
 
-        connect_no_inhibit!(stream, window, connect_delete_event(_, _), Quit);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
         Widgets {
             label: label,
@@ -78,8 +78,8 @@ impl Widget<Msg> for Win {
         &self.widgets.window
     }
 
-    fn new(stream: &EventStream<Msg>) -> (Self, ()) {
-        let widgets = Self::view(stream);
+    fn new(relm: &RemoteRelm<Msg>) -> (Self, ()) {
+        let widgets = Self::view(relm);
         let mut win = Win {
             widgets: widgets,
         };

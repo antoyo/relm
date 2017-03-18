@@ -27,7 +27,7 @@ extern crate relm_derive;
 
 use gtk::{ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
-use relm::{EventStream, Relm, Widget};
+use relm::{Relm, RemoteRelm, Widget};
 
 use self::Msg::*;
 
@@ -53,7 +53,7 @@ struct Win {
 }
 
 impl Win {
-    fn view(stream: &EventStream<Msg>) -> Widgets {
+    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -68,8 +68,8 @@ impl Win {
 
         window.show_all();
 
-        connect!(stream, input, connect_changed(_), Change);
-        connect_no_inhibit!(stream, window, connect_delete_event(_, _), Quit);
+        connect!(relm, input, connect_changed(_), Change);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
         Widgets {
             input: input,
@@ -87,8 +87,8 @@ impl Widget<Msg> for Win {
         &self.widgets.window
     }
 
-    fn new(stream: &EventStream<Msg>) -> (Self, Model) {
-        let widgets = Self::view(stream);
+    fn new(relm: &RemoteRelm<Msg>) -> (Self, Model) {
+        let widgets = Self::view(relm);
         let model = Model {
             content: String::new(),
         };

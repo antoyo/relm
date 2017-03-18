@@ -38,8 +38,8 @@ macro_rules! connect {
     };
 
     // Connect to a GTK+ widget event.
-    ($stream:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
-        let stream = $stream.clone();
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
+        let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
             stream.emit($msg);
         });
@@ -65,8 +65,8 @@ macro_rules! connect {
 // TODO: add the missing rules from the connect!() macro.
 #[macro_export]
 macro_rules! connect_no_inhibit {
-    ($stream:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
-        let stream = $stream.clone();
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
+        let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
             stream.emit($msg);
             ::gtk::Inhibit(false)

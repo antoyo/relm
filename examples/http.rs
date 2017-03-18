@@ -39,7 +39,7 @@ use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, Wind
 use hyper::Client;
 use hyper_tls::HttpsConnector;
 use gtk::Orientation::Vertical;
-use relm::{EventStream, Handle, Relm, Widget};
+use relm::{Handle, Relm, RemoteRelm, Widget};
 use simplelog::{Config, TermLogger};
 use simplelog::LogLevelFilter::Warn;
 
@@ -73,7 +73,7 @@ struct Win {
 }
 
 impl Win {
-    fn view(stream: &EventStream<Msg>) -> Widgets {
+    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let label = Label::new(None);
@@ -91,8 +91,8 @@ impl Win {
 
         window.show_all();
 
-        connect!(stream, button, connect_clicked(_), FetchUrl);
-        connect_no_inhibit!(stream, window, connect_delete_event(_, _), Quit);
+        connect!(relm, button, connect_clicked(_), FetchUrl);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
         Widgets {
             button: button,
@@ -111,12 +111,12 @@ impl Widget<Msg> for Win {
         &self.widgets.window
     }
 
-    fn new(stream: &EventStream<Msg>) -> (Self, Model) {
+    fn new(relm: &RemoteRelm<Msg>) -> (Self, Model) {
         let model = Model {
             gif_url: "waiting.gif".to_string(),
             topic: "cats".to_string(),
         };
-        let widgets = Self::view(stream);
+        let widgets = Self::view(relm);
         widgets.label.set_text(&model.topic);
         let window = Win {
             loader: PixbufLoader::new(),

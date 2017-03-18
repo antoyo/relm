@@ -27,7 +27,7 @@ extern crate relm_derive;
 
 use gtk::{Button, ButtonExt, ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, EventStream, Relm, Remote, Widget};
+use relm::{Component, ContainerWidget, Relm, RemoteRelm, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -54,7 +54,7 @@ struct Text {
 }
 
 impl Text {
-    fn view(stream: &EventStream<TextMsg>) -> TextWidgets {
+    fn view(relm: &RemoteRelm<TextMsg>) -> TextWidgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -63,7 +63,7 @@ impl Text {
         let label = Label::new(None);
         vbox.add(&label);
 
-        connect!(stream, input, connect_changed(_), Change);
+        connect!(relm, input, connect_changed(_), Change);
 
         TextWidgets {
             input: input,
@@ -81,8 +81,8 @@ impl Widget<TextMsg> for Text {
         &self.widgets.vbox
     }
 
-    fn new(stream: &EventStream<TextMsg>, _remote: &Remote) -> (Self, TextModel) {
-        let widgets = Self::view(stream);
+    fn new(relm: &RemoteRelm<TextMsg>) -> (Self, TextModel) {
+        let widgets = Self::view(relm);
         let widget = Text {
             widgets: widgets,
         };
@@ -118,7 +118,7 @@ struct Counter {
 }
 
 impl Counter {
-    fn view(stream: &EventStream<CounterMsg>) -> CounterWidgets {
+    fn view(relm: &RemoteRelm<CounterMsg>) -> CounterWidgets {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -130,8 +130,8 @@ impl Counter {
         let minus_button = Button::new_with_label("-");
         vbox.add(&minus_button);
 
-        connect!(stream, plus_button, connect_clicked(_), Increment);
-        connect!(stream, minus_button, connect_clicked(_), Decrement);
+        connect!(relm, plus_button, connect_clicked(_), Increment);
+        connect!(relm, minus_button, connect_clicked(_), Decrement);
 
         CounterWidgets {
             counter_label: counter_label,
@@ -148,8 +148,8 @@ impl Widget<CounterMsg> for Counter {
         &self.widgets.vbox
     }
 
-    fn new(stream: &EventStream<CounterMsg>, _remote: &Remote) -> (Self, Model) {
-        let widgets = Self::view(stream);
+    fn new(relm: &RemoteRelm<CounterMsg>) -> (Self, Model) {
+        let widgets = Self::view(relm);
         let widget = Counter {
             widgets: widgets,
         };
@@ -197,20 +197,20 @@ struct Win {
 }
 
 impl Win {
-    fn view(stream: &EventStream<Msg>, remote: &Remote) -> Widgets {
+    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
         let window = Window::new(WindowType::Toplevel);
 
         let hbox = gtk::Box::new(Horizontal, 0);
 
-        let counter1 = hbox.add_widget::<Counter, _>(remote);
-        let counter2 = hbox.add_widget::<Counter, _>(remote);
-        let text = hbox.add_widget::<Text, _>(remote);
+        let counter1 = hbox.add_widget::<Counter, _, _>(relm);
+        let counter2 = hbox.add_widget::<Counter, _, _>(relm);
+        let text = hbox.add_widget::<Text, _, _>(relm);
 
         window.add(&hbox);
 
         window.show_all();
 
-        connect_no_inhibit!(stream, window, connect_delete_event(_, _), Quit);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
         Widgets {
             _counter1: counter1,
@@ -229,8 +229,8 @@ impl Widget<Msg> for Win {
         &self.widgets.window
     }
 
-    fn new(stream: &EventStream<Msg>, remote: &Remote) -> (Self, ()) {
-        let widgets = Self::view(stream, remote);
+    fn new(relm: &RemoteRelm<Msg>) -> (Self, ()) {
+        let widgets = Self::view(relm);
         let window = Win {
             widgets: widgets,
         };
