@@ -25,6 +25,7 @@ extern crate gtk;
 extern crate tokio_core;
 
 use std::collections::VecDeque;
+use std::io::Error;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
 use std::thread;
@@ -57,6 +58,7 @@ struct _EventStream<MSG> {
     observers: Vec<Box<Fn(MSG) + Send>>,
     sender: Arc<Sender>,
     task: Option<Task>,
+    terminated: bool,
     ui_events: VecDeque<MSG>,
 }
 
@@ -65,7 +67,7 @@ pub struct EventStream<MSG> {
     stream: Arc<Mutex<_EventStream<MSG>>>,
 }
 
-impl<MSG: Clone + 'static> EventStream<MSG> {
+impl<MSG> EventStream<MSG> {
     pub fn new(sender: Arc<Sender>) -> Self {
         EventStream {
             stream: Arc::new(Mutex::new(_EventStream {
@@ -73,12 +75,25 @@ impl<MSG: Clone + 'static> EventStream<MSG> {
                 observers: vec![],
                 sender: sender,
                 task: None,
+                terminated: false,
                 ui_events: VecDeque::new(),
             })),
         }
     }
 
-    pub fn emit(&self, event: MSG) {
+    pub fn close(&self) -> Result<(), Error> {
+        let mut stream = self.stream.lock().unwrap();
+        stream.sender.close()?;
+        stream.terminated = true;
+        if let Some(ref task) = stream.task {
+            task.unpark();
+        }
+        Ok(())
+    }
+
+    pub fn emit(&self, event: MSG)
+        where MSG: Clone + 'static
+    {
         let mut stream = self.stream.lock().unwrap();
         if let Some(ref task) = stream.task {
             task.unpark();
@@ -95,6 +110,11 @@ impl<MSG: Clone + 'static> EventStream<MSG> {
         self.stream.lock().unwrap().events.pop_front()
     }
 
+    fn is_terminated(&self) -> bool {
+        let stream = self.stream.lock().unwrap();
+        stream.terminated
+    }
+
     pub fn observe<CALLBACK: Fn(MSG) + Send + 'static>(&self, callback: CALLBACK) {
         self.stream.lock().unwrap().observers.push(Box::new(callback));
     }
@@ -109,20 +129,25 @@ impl<MSG: Clone + 'static> Stream for EventStream<MSG> {
     type Error = ();
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        match self.get_event() {
-            Some(event) => {
-                let mut stream = self.stream.lock().unwrap();
-                stream.task = None;
-                stream.ui_events.push_back(event.clone());
-                stream.sender.send();
-                // TODO: try to avoid clone by sending a reference.
-                Ok(Async::Ready(Some(event)))
-            },
-            None => {
-                let mut stream = self.stream.lock().unwrap();
-                stream.task = Some(task::park());
-                Ok(Async::NotReady)
-            },
+        if self.is_terminated() {
+            Ok(Async::Ready(None))
+        }
+        else {
+            match self.get_event() {
+                Some(event) => {
+                    let mut stream = self.stream.lock().unwrap();
+                    stream.task = None;
+                    stream.ui_events.push_back(event.clone());
+                    stream.sender.send();
+                    // TODO: try to avoid clone by sending a reference.
+                    Ok(Async::Ready(Some(event)))
+                },
+                None => {
+                    let mut stream = self.stream.lock().unwrap();
+                    stream.task = Some(task::park());
+                    Ok(Async::NotReady)
+                },
+            }
         }
     }
 }

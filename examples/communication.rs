@@ -214,7 +214,7 @@ impl Win {
         let counter1 = hbox.add_widget::<Counter, _, _>(relm);
         let counter2 = hbox.add_widget::<Counter, _, _>(relm);
         let text = hbox.add_widget::<Text, _, _>(relm);
-        connect!(text, Change, relm, TextChange); // TODO: get the text in the TextChange.
+        connect!(text, Change, relm, TextChange);
         connect!(text, Change, counter1, Increment);
         connect!(counter1, Increment, counter2, Decrement);
         connect!(button, connect_clicked(_), counter1, Decrement);

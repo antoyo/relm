@@ -20,16 +20,15 @@
  */
 
 /*
- * TODO: remove_widget() should remove the stream.
+ * TODO: Use two update functions (one for errors, one for success/normal behavior).
+ *
  * TODO: chat client/server example.
  *
  * TODO: try tk-easyloop in another branch.
  *
  * TODO: err if trying to use the SimpleMsg custom derive on stable.
- * TODO: Use two update functions (one for errors, one for success/normal behavior).
  *
  * TODO: add Cargo travis badge.
- * TODO: find a way to avoid panic when not storing the Component returned by add_widget().
  *
  * TODO: add default type of () for Model in Widget when it is stable.
  * TODO: use macros 2.0 instead for the:
@@ -89,6 +88,12 @@ pub struct Component<MODEL, MSG: Clone + DisplayVariant, WIDGET> {
 impl<MODEL, MSG: Clone + DisplayVariant, WIDGET> Component<MODEL, MSG, WIDGET> {
     pub fn stream(&self) -> &EventStream<MSG> {
         &self.stream
+    }
+}
+
+impl<MODEL, MSG: Clone + DisplayVariant, WIDGET> Drop for Component<MODEL, MSG, WIDGET> {
+    fn drop(&mut self) {
+        self.stream.close().ok();
     }
 }
 
@@ -227,6 +232,7 @@ fn create_widget<WIDGET, MSG>(remote: &Remote) -> Component<WIDGET::Model, MSG, 
                 let mut model = model.lock().unwrap();
                 update_widget(&mut widget, event, &mut *model);
             }
+            // TODO: should have a free function to delete the stream.
             Continue(true)
         });
     }
@@ -295,10 +301,10 @@ pub trait ContainerWidget
     /**
      * Add a widget `WIDGET` to the current widget.
      *
-     * # Panics
+     * # Note
      *
      * The returned `Component` must be stored in a `Widget`. If it is not stored, a communication
-     * receiver will be droped which will cause a panic and GTK+ errors.
+     * receiver will be droped which will cause events to be ignored for this widget.
      */
     fn add_widget<WIDGET, MSG, WIDGETMSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET::Model, WIDGETMSG, WIDGET::Container>
         where MSG: Clone + DisplayVariant + Send + 'static,
@@ -314,11 +320,10 @@ pub trait ContainerWidget
         component
     }
 
-    // TODO: remove the EventStream also.
-    fn remove_widget<MODEL, MSG: Clone + DisplayVariant, WIDGET>(&self, widget: Component<MODEL, MSG, WIDGET>)
+    fn remove_widget<MODEL, MSG: Clone + DisplayVariant + 'static, WIDGET>(&self, component: Component<MODEL, MSG, WIDGET>)
         where WIDGET: IsA<gtk::Widget>,
     {
-        self.remove(&widget.widget);
+        self.remove(&component.widget);
     }
 }
 

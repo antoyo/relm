@@ -205,7 +205,6 @@ impl Win {
         let counter1 = hbox.add_widget::<Counter, _, _>(relm);
         let counter2 = hbox.add_widget::<Counter, _, _>(relm);
         let text = hbox.add_widget::<Text, _, _>(relm);
-
         window.add(&hbox);
 
         window.show_all();
