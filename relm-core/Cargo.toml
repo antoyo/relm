@@ -6,7 +6,7 @@ documentation = "https://docs.rs/relm-core/0.1.0/relm-core/"
 license = "MIT"
 name = "relm-core"
 repository = "https://github.com/antoyo/relm"
-version = "0.1.0"
+version = "0.1.1-pre"
 
 [dependencies]
 futures = "^0.1.10"
