@@ -1,7 +1,11 @@
 [package]
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 categories = ["asynchronous", "gui"]
+description = "Asynchronous, GTK+-based, GUI library, inspired by Elm, written in Rust"
+documentation = "https://docs.rs/relm/0.1.0/relm/"
+license = "MIT"
 name = "relm"
+repository = "https://github.com/antoyo/relm"
 version = "0.1.0"
 
 [features]
@@ -16,6 +20,7 @@ log = "^0.3.7"
 
 [dependencies.relm-core]
 path = "relm-core"
+version = "0.1.0"
 
 [dev-dependencies]
 base64 = "^0.4.0"
