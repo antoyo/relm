@@ -1,0 +1,33 @@
+= Relm
+
+Asynchronous, GTK+-based, GUI library, inspired by Elm, written in Rust.
+
+image:https://img.shields.io/travis/antoyo/relm.svg[link="https://travis-ci.org/antoyo/relm"]
+//image:https://img.shields.io/coveralls/antoyo/relm.svg[link="https://coveralls.io/github/antoyo/relm"]
+image:https://img.shields.io/crates/v/relm.svg[link="https://crates.io/crates/relm"]
+//image:https://img.shields.io/badge/rust-documentation-blue.svg[link="https://antoyo.github.io/relm/relm/"]
+image:https://img.shields.io/crates/d/relm.svg[link="https://crates.io/crates/relm"]
+image:https://img.shields.io/crates/l/relm.svg[link="LICENSE"]
+
+== Usage
+
+First, add this to you `Cargo.toml`:
+
+[source,bash]
+----
+relm = "0.1.0"
+----
+
+Next, add this to your crate:
+
+[source,rust]
+----
+#[macro_use]
+extern crate relm;
+#[macro_use]
+extern crate relm_derive;
+
+use relm::{Relm, RemoteRelm, Widget};
+----
+
+For more information about how you can use relm, you can take a look at the https://github.com/antoyo/relm/tree/master/examples[examples].
