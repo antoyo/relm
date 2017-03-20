@@ -107,11 +107,33 @@ impl Widget<Msg> for Win {
         (window, model)
     }
 
+    // The model may be updated when a message is received.
+    // Widgets may also be updated in this function.
     fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
             Quit => gtk::main_quit(),
         }
     }
+
+    // The next methods are optional.
+
+    // Futures and streams can be connected to send a message when a value is ready.
+    // However, since the tokio event loop runs in another thread, they cannot be connected in the `update` function which is ran in the main thread.
+    // Thus, they must be added in the `update_command()` method which is ran in the tokio thread.
+    // fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
+    //     match event {
+    //         SomeEvent => {
+    //             let future = create_future();
+    //             relm.connect_exec_ignore_err(future, SomeEvent);
+    //         },
+    //     }
+    // }
+
+    // Futures and streams can be connected when the `Widget` is created in the `subscriptions()` method.
+    // fn subscriptions(relm: &Relm<Msg>) {
+    //     let stream = Interval::new(Duration::from_secs(1), relm.handle()).unwrap();
+    //     relm.connect_exec_ignore_err(stream, Tick);
+    // }
 }
 ----
 
