@@ -151,7 +151,7 @@ impl Widget<Msg> for Win {
 
     fn subscriptions(relm: &Relm<Msg>) {
         let handshake_future = ws_handshake(relm.handle());
-        let future = relm.connect(handshake_future, Connected);
+        let future = relm.connect_ignore_err(handshake_future, Connected);
         relm.exec(future);
     }
 
@@ -176,7 +176,7 @@ impl Widget<Msg> for Win {
         if let Send(message) = event {
             if let Some(ref service) = model.service {
                 let send_future = ws_send(service, &message);
-                relm.connect_exec(send_future, Message);
+                relm.connect_exec_ignore_err(send_future, Message);
             }
         }
     }

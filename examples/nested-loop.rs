@@ -110,7 +110,7 @@ impl Widget<Msg> for Win {
 
     fn subscriptions(relm: &Relm<Msg>) {
         let stream = Interval::new(Duration::from_secs(1), relm.handle()).unwrap();
-        relm.connect_exec(stream, Tick);
+        relm.connect_exec_ignore_err(stream, Tick);
     }
 
     fn update(&mut self, event: Msg, _model: &mut ()) {

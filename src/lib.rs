@@ -20,8 +20,6 @@
  */
 
 /*
- * TODO: Use two update functions (one for errors, one for success/normal behavior).
- *
  * TODO: chat client/server example.
  *
  * TODO: try tk-easyloop in another branch.
@@ -146,27 +144,56 @@ pub struct Relm<MSG: Clone + DisplayVariant> {
 }
 
 impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
-    pub fn connect<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK) -> impl Future<Item=(), Error=()>
+    pub fn connect<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK, failure_callback: FAILCALLBACK) -> impl Future<Item=(), Error=()>
+        where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
+              FAILCALLBACK: Fn(STREAM::Error) -> MSG + 'static,
+              STREAM: Stream + 'static,
+              TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
+    {
+        let event_stream = self.stream.clone();
+        let fail_event_stream = self.stream.clone();
+        let stream = to_stream.to_stream();
+        stream.map_err(move |error| {
+            fail_event_stream.emit(failure_callback(error));
+            ()
+        })
+            .for_each(move |result| {
+                event_stream.emit(success_callback(result));
+                Ok::<(), STREAM::Error>(())
+            }
+            .map_err(|_| ()))
+    }
+
+    pub fn connect_ignore_err<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK) -> impl Future<Item=(), Error=()>
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               STREAM: Stream + 'static,
               TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
     {
         let event_stream = self.stream.clone();
         let stream = to_stream.to_stream();
-        stream.map_err(|_| ()).for_each(move |result| {
-            event_stream.emit(callback(result));
-            Ok::<(), ()>(())
-        }
-            // TODO: handle errors.
+        stream.map_err(|_| ())
+            .for_each(move |result| {
+                event_stream.emit(success_callback(result));
+                Ok::<(), STREAM::Error>(())
+            }
             .map_err(|_| ()))
     }
 
-    pub fn connect_exec<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK)
+    pub fn connect_exec<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK, failure_callback: FAILCALLBACK)
+        where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
+              FAILCALLBACK: Fn(STREAM::Error) -> MSG + 'static,
+              STREAM: Stream + 'static,
+              TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
+    {
+        self.exec(self.connect(to_stream, callback, failure_callback));
+    }
+
+    pub fn connect_exec_ignore_err<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK)
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               STREAM: Stream + 'static,
               TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
     {
-        self.exec(self.connect(to_stream, callback));
+        self.exec(self.connect_ignore_err(to_stream, callback));
     }
 
     pub fn exec<FUTURE: Future<Item=(), Error=()> + 'static>(&self, future: FUTURE) {

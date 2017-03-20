@@ -23,6 +23,7 @@
 
 extern crate futures;
 extern crate gdk_pixbuf;
+extern crate gdk_sys;
 extern crate gtk;
 extern crate hyper;
 extern crate hyper_tls;
@@ -35,8 +36,10 @@ extern crate simplelog;
 
 use futures::{Future, Stream};
 use gdk_pixbuf::PixbufLoader;
-use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, WindowType};
-use hyper::Client;
+use gdk_sys::GdkRGBA;
+use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, WindowType, STATE_FLAG_NORMAL};
+use gtk::prelude::WidgetExtManual;
+use hyper::{Client, Error};
 use hyper_tls::HttpsConnector;
 use gtk::Orientation::Vertical;
 use relm::{Handle, Relm, RemoteRelm, Widget};
@@ -44,6 +47,8 @@ use simplelog::{Config, TermLogger};
 use simplelog::LogLevelFilter::Warn;
 
 use self::Msg::*;
+
+const RED: &GdkRGBA = &GdkRGBA { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 };
 
 #[derive(Clone)]
 struct Model {
@@ -55,6 +60,7 @@ struct Model {
 enum Msg {
     DownloadCompleted,
     FetchUrl,
+    HttpError(String),
     ImageChunk(Vec<u8>),
     NewGif(Vec<u8>),
     Quit,
@@ -134,15 +140,21 @@ impl Widget<Msg> for Win {
                 self.loader = PixbufLoader::new();
             },
             FetchUrl => {
+                self.widgets.label.set_text("");
                 // Disable the button because loading 2 images at the same time crashes the pixbuf
                 // loader.
                 self.widgets.button.set_sensitive(false);
             },
+            HttpError(error) => {
+                self.widgets.button.set_sensitive(true);
+                self.widgets.label.set_text(&format!("HTTP error: {}", error));
+                self.widgets.label.override_color(STATE_FLAG_NORMAL, RED);
+            },
             ImageChunk(chunk) => {
                 self.loader.loader_write(&chunk).unwrap();
             },
+            NewGif(_) => (),
             Quit => gtk::main_quit(),
-            _ => (),
         }
     }
 
@@ -151,15 +163,15 @@ impl Widget<Msg> for Win {
             FetchUrl => {
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", model.topic);
                 let http_future = http_get(&url, relm.handle());
-                relm.connect_exec(http_future, NewGif);
+                relm.connect_exec(http_future, NewGif, hyper_error_to_msg);
             },
             NewGif(result) => {
                 let string = String::from_utf8(result).unwrap();
                 let json = json::parse(&string).unwrap();
                 let url = &json["data"]["image_url"].as_str().unwrap();
                 let http_future = http_get_stream(url, relm.handle());
-                let future = relm.connect(http_future, ImageChunk);
-                relm.connect_exec(future, DownloadCompleted);
+                let future = relm.connect(http_future, ImageChunk, hyper_error_to_msg);
+                relm.connect_exec_ignore_err(future, DownloadCompleted);
             },
             _ => (),
         }
@@ -173,16 +185,16 @@ impl Drop for Win {
     }
 }
 
-fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=()> + 'a {
+fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=Error> + 'a {
     let stream = http_get_stream(url, handle);
     // TODO: use the new Stream::concat().
     stream.fold(vec![], |mut acc, chunk| {
         acc.extend_from_slice(&chunk);
-        Ok(acc)
+        Ok::<Vec<u8>, Error>(acc)
     })
 }
 
-fn http_get_stream<'a>(url: &str, handle: &Handle) -> impl Stream<Item=Vec<u8>, Error=()> + 'a {
+fn http_get_stream<'a>(url: &str, handle: &Handle) -> impl Stream<Item=Vec<u8>, Error=Error> + 'a {
     let url = hyper::Url::parse(url).unwrap();
     let connector = HttpsConnector::new(2, handle);
     let client = Client::configure()
@@ -191,11 +203,14 @@ fn http_get_stream<'a>(url: &str, handle: &Handle) -> impl Stream<Item=Vec<u8>, 
     client.get(url).and_then(|res| {
         Ok(res.body()
            .map(|chunk| chunk.to_vec())
-           .map_err(|_| ())
        )
     })
-        .map_err(|_| ())
         .flatten_stream()
+}
+
+#[allow(needless_pass_by_value)]
+fn hyper_error_to_msg(error: Error) -> Msg {
+    HttpError(error.to_string())
 }
 
 fn main() {
