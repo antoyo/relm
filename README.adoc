@@ -2,10 +2,14 @@
 
 Asynchronous, GTK+-based, GUI library, inspired by Elm, written in Rust.
 
+*Relm only works on nightly since it depends on the feature `conservative_impl_trait`.*
+
+*This library is in alpha stage: it has not been thoroughly tested and its API may change at any time.*
+
 image:https://img.shields.io/travis/antoyo/relm.svg[link="https://travis-ci.org/antoyo/relm"]
 //image:https://img.shields.io/coveralls/antoyo/relm.svg[link="https://coveralls.io/github/antoyo/relm"]
 image:https://img.shields.io/crates/v/relm.svg[link="https://crates.io/crates/relm"]
-//image:https://img.shields.io/badge/rust-documentation-blue.svg[link="https://antoyo.github.io/relm/relm/"]
+image:https://img.shields.io/badge/rust-documentation-blue.svg[link="https://antoyo.github.io/relm/relm/"]
 image:https://img.shields.io/crates/d/relm.svg[link="https://crates.io/crates/relm"]
 image:https://img.shields.io/crates/l/relm.svg[link="LICENSE"]
 
@@ -22,12 +26,102 @@ Next, add this to your crate:
 
 [source,rust]
 ----
+extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
 use relm::{Relm, RemoteRelm, Widget};
+----
+
+Then, create your model:
+
+[source,rust]
+----
+#[derive(Clone)]
+struct Model {
+    // …
+}
+----
+
+The model contains the data related to a `Widget`. It may be updated by the `Widget::update` or the `Widget::update_command` function.
+
+Create your message `enum`:
+
+[source,rust]
+----
+#[derive(Msg)]
+enum Msg {
+    // …
+    Quit,
+}
+----
+
+Messages are sent to both `Widget::update` and `Widget::update_command` to indicate that an event happened. The model can be updated when an event is received.
+
+Create a `struct` to contain the GTK+ widgets:
+
+[source,rust]
+----
+struct Widgets {
+    // …
+    window: Window,
+}
+----
+
+Create a `struct` which represents a `Widget` (in this case, the main window of the application):
+
+[source,rust]
+----
+struct Win {
+    widgets: Widgets,
+}
+----
+
+To make this `struct` a relm `Widget` that can be shown by the library, implement the `Widget` trait:
+
+[source,rust]
+----
+impl Widget<Msg> for Win {
+    type Container = Window;
+    type Model = Model;
+
+    // Return the container of this widget.
+    fn container(&self) -> &Self::Container {
+        &self.widgets.window
+    }
+
+    // Create the widgets and return the struct with its initial model.
+    fn new(relm: RemoteRelm<Msg>) -> (Self, Model) {
+        let model = Model {
+        };
+        // GTK+ widgets are used normally within a `Widget`.
+        let window = Window::new(WindowType::Toplevel);
+        window.show_all();
+        let window = Win {
+            widgets: Widgets {
+                window: window,
+            },
+        };
+        (window, model)
+    }
+
+    fn update(&mut self, event: Msg, model: &mut Model) {
+        match event {
+            Quit => gtk::main_quit(),
+        }
+    }
+}
+----
+
+Finally, show this `Widget` by calling `Relm::run()`:
+
+[source,rust]
+----
+fn main() {
+    Relm::run::<Win>().unwrap();
+}
 ----
 
 For more information about how you can use relm, you can take a look at the https://github.com/antoyo/relm/tree/master/examples[examples].
