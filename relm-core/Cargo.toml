@@ -1,6 +1,11 @@
 [package]
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
+categories = ["asynchronous", "gui"]
+description = "Core streams and event loop primitives for asynchronous GUI in Rust. Foundation for the relm crate."
+documentation = "https://docs.rs/relm-core/0.1.0/relm-core/"
+license = "MIT"
 name = "relm-core"
+repository = "https://github.com/antoyo/relm"
 version = "0.1.0"
 
 [dependencies]
