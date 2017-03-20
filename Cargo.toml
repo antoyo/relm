@@ -4,6 +4,9 @@ categories = ["asynchronous", "gui"]
 name = "relm"
 version = "0.1.0"
 
+[features]
+nightly = []
+
 [dependencies]
 futures = "^0.1.10"
 glib = "^0.1.2"
