@@ -75,18 +75,60 @@ enum Msg {
     Quit,
 }
 
-struct Widgets {
+struct Win {
     entry: Entry,
     label: Label,
     window: Window,
 }
 
-struct Win {
-    widgets: Widgets,
-}
+impl Widget<Msg> for Win {
+    type Container = Window;
+    type Model = Model;
 
-impl Win {
-    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
+    fn container(&self) -> &Self::Container {
+        &self.window
+    }
+
+    fn model() -> Model {
+        Model {
+            service: None,
+            text: String::new(),
+        }
+    }
+
+    fn subscriptions(relm: &Relm<Msg>) {
+        let handshake_future = ws_handshake(relm.handle());
+        let future = relm.connect_ignore_err(handshake_future, Connected);
+        relm.exec(future);
+    }
+
+    fn update(&mut self, event: Msg, model: &mut Model) {
+        match event {
+            Connected(service) => {
+                model.service = Some(service);
+            },
+            Message(message) => {
+                model.text.push_str(&format!("{}\n", message));
+                self.label.set_text(&model.text);
+            },
+            Send(_) => {
+                self.entry.set_text("");
+                self.entry.grab_focus();
+            },
+            Quit => gtk::main_quit(),
+        }
+    }
+
+    fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
+        if let Send(message) = event {
+            if let Some(ref service) = model.service {
+                let send_future = ws_send(service, &message);
+                relm.connect_exec_ignore_err(send_future, Message);
+            }
+        }
+    }
+
+    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let label = Label::new(None);
@@ -120,64 +162,10 @@ impl Win {
         }
         connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
-        Widgets {
+        Win {
             entry: entry,
             label: label,
             window: window,
-        }
-    }
-}
-
-impl Widget<Msg> for Win {
-    type Container = Window;
-    type Model = Model;
-
-    fn container(&self) -> &Self::Container {
-        &self.widgets.window
-    }
-
-    fn new(relm: RemoteRelm<Msg>) -> (Self, Model) {
-        let model = Model {
-            service: None,
-            text: String::new(),
-        };
-
-        let widgets = Self::view(&relm);
-        let window = Win {
-            widgets: widgets,
-        };
-        (window, model)
-    }
-
-    fn subscriptions(relm: &Relm<Msg>) {
-        let handshake_future = ws_handshake(relm.handle());
-        let future = relm.connect_ignore_err(handshake_future, Connected);
-        relm.exec(future);
-    }
-
-    fn update(&mut self, event: Msg, model: &mut Model) {
-        match event {
-            Connected(service) => {
-                model.service = Some(service);
-            },
-            Message(message) => {
-                model.text.push_str(&format!("{}\n", message));
-                self.widgets.label.set_text(&model.text);
-            },
-            Send(_) => {
-                self.widgets.entry.set_text("");
-                self.widgets.entry.grab_focus();
-            },
-            Quit => gtk::main_quit(),
-        }
-    }
-
-    fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
-        if let Send(message) = event {
-            if let Some(ref service) = model.service {
-                let send_future = ws_send(service, &message);
-                relm.connect_exec_ignore_err(send_future, Message);
-            }
         }
     }
 }

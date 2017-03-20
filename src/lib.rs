@@ -245,7 +245,8 @@ fn create_widget<WIDGET, MSG>(remote: &Remote) -> Component<WIDGET::Model, MSG, 
             remote: remote.clone(),
             stream: stream.clone(),
         };
-        WIDGET::new(relm)
+        let model = WIDGET::model();
+        (WIDGET::view(relm, &model), model)
     };
 
     let container = widget.container().clone();

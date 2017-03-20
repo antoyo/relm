@@ -43,19 +43,44 @@ enum Msg {
     Quit,
 }
 
-struct Widgets {
+struct Win {
     counter_label: Label,
     window: Window,
 }
 
-struct Win {
-    widgets: Widgets,
-}
+impl Widget<Msg> for Win {
+    type Container = Window;
+    type Model = Model;
 
-impl Win {
+    fn container(&self) -> &Self::Container {
+        &self.window
+    }
+
+    fn model() -> Model {
+        Model {
+            counter: 0,
+        }
+    }
+
+    fn update(&mut self, event: Msg, model: &mut Model) {
+        let label = &self.counter_label;
+
+        match event {
+            Decrement => {
+                model.counter -= 1;
+                label.set_text(&model.counter.to_string());
+            },
+            Increment => {
+                model.counter += 1;
+                label.set_text(&model.counter.to_string());
+            },
+            Quit => gtk::main_quit(),
+        }
+    }
+
     // TODO: create an attribute (or procedural macro) to have the ability to generate a view from
     // a declarative structure.
-    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
+    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -77,45 +102,9 @@ impl Win {
         connect!(relm, minus_button, connect_clicked(_), Decrement);
         connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
-        Widgets {
+        Win {
             counter_label: counter_label,
             window: window,
-        }
-    }
-}
-
-impl Widget<Msg> for Win {
-    type Container = Window;
-    type Model = Model;
-
-    fn container(&self) -> &Self::Container {
-        &self.widgets.window
-    }
-
-    fn new(relm: RemoteRelm<Msg>) -> (Self, Model) {
-        let widgets = Self::view(&relm);
-        let model = Model {
-            counter: 0,
-        };
-        let window = Win {
-            widgets: widgets,
-        };
-        (window, model)
-    }
-
-    fn update(&mut self, event: Msg, model: &mut Model) {
-        let label = &self.widgets.counter_label;
-
-        match event {
-            Decrement => {
-                model.counter -= 1;
-                label.set_text(&model.counter.to_string());
-            },
-            Increment => {
-                model.counter += 1;
-                label.set_text(&model.counter.to_string());
-            },
-            Quit => gtk::main_quit(),
         }
     }
 }

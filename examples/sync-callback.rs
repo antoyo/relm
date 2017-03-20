@@ -36,16 +36,29 @@ enum Msg {
     Quit,
 }
 
-struct Widgets {
+struct Win {
     window: Window,
 }
 
-struct Win {
-    widgets: Widgets,
-}
+impl Widget<Msg> for Win {
+    type Container = Window;
+    type Model = ();
 
-impl Win {
-    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
+    fn container(&self) -> &Self::Container {
+        &self.window
+    }
+
+    fn model() -> () {
+        ()
+    }
+
+    fn update(&mut self, event: Msg, _model: &mut ()) {
+        match event {
+            Quit => gtk::main_quit(),
+        }
+    }
+
+    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
         let window = Window::new(WindowType::Toplevel);
 
         window.show_all();
@@ -59,31 +72,8 @@ impl Win {
             }
         });
 
-        Widgets {
+        Win {
             window: window,
-        }
-    }
-}
-
-impl Widget<Msg> for Win {
-    type Container = Window;
-    type Model = ();
-
-    fn container(&self) -> &Self::Container {
-        &self.widgets.window
-    }
-
-    fn new(relm: RemoteRelm<Msg>) -> (Self, ()) {
-        let widgets = Self::view(&relm);
-        let win = Win {
-            widgets: widgets,
-        };
-        (win, ())
-    }
-
-    fn update(&mut self, event: Msg, _model: &mut ()) {
-        match event {
-            Quit => gtk::main_quit(),
         }
     }
 }

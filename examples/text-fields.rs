@@ -42,18 +42,37 @@ enum Msg {
     Quit,
 }
 
-struct Widgets {
+struct Win {
     input: Entry,
     label: Label,
     window: Window,
 }
 
-struct Win {
-    widgets: Widgets,
-}
+impl Widget<Msg> for Win {
+    type Container = Window;
+    type Model = Model;
 
-impl Win {
-    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
+    fn container(&self) -> &Self::Container {
+        &self.window
+    }
+
+    fn model() -> Model {
+        Model {
+            content: String::new(),
+        }
+    }
+
+    fn update(&mut self, event: Msg, model: &mut Model) {
+        match event {
+            Change => {
+                model.content = self.input.get_text().unwrap().chars().rev().collect();
+                self.label.set_text(&model.content);
+            },
+            Quit => gtk::main_quit(),
+        }
+    }
+
+    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -71,40 +90,10 @@ impl Win {
         connect!(relm, input, connect_changed(_), Change);
         connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
-        Widgets {
+        Win {
             input: input,
             label: label,
             window: window,
-        }
-    }
-}
-
-impl Widget<Msg> for Win {
-    type Container = Window;
-    type Model = Model;
-
-    fn container(&self) -> &Self::Container {
-        &self.widgets.window
-    }
-
-    fn new(relm: RemoteRelm<Msg>) -> (Self, Model) {
-        let widgets = Self::view(&relm);
-        let model = Model {
-            content: String::new(),
-        };
-        let window = Win {
-            widgets: widgets,
-        };
-        (window, model)
-    }
-
-    fn update(&mut self, event: Msg, model: &mut Model) {
-        match event {
-            Change => {
-                model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();
-                self.widgets.label.set_text(&model.content);
-            },
-            Quit => gtk::main_quit(),
         }
     }
 }

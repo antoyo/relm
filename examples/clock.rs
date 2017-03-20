@@ -42,32 +42,12 @@ enum Msg {
     Tick(()),
 }
 
-struct Widgets {
+struct Win {
     label: Label,
     window: Window,
 }
 
-struct Win {
-    widgets: Widgets,
-}
-
 impl Win {
-    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
-        let label = Label::new(None);
-
-        let window = Window::new(WindowType::Toplevel);
-
-        window.add(&label);
-
-        window.show_all();
-
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
-
-        Widgets {
-            label: label,
-            window: window,
-        }
-    }
 }
 
 impl Widget<Msg> for Win {
@@ -75,16 +55,11 @@ impl Widget<Msg> for Win {
     type Model = ();
 
     fn container(&self) -> &Self::Container {
-        &self.widgets.window
+        &self.window
     }
 
-    fn new(relm: RemoteRelm<Msg>) -> (Self, ()) {
-        let widgets = Self::view(&relm);
-        let mut win = Win {
-            widgets: widgets,
-        };
-        win.update(Tick(()), &mut ());
-        (win, ())
+    fn model() -> () {
+        ()
     }
 
     fn subscriptions(relm: &Relm<Msg>) {
@@ -96,10 +71,30 @@ impl Widget<Msg> for Win {
         match event {
             Tick(()) => {
                 let time = Local::now();
-                self.widgets.label.set_text(&format!("{}", time.format("%H:%M:%S")));
+                self.label.set_text(&format!("{}", time.format("%H:%M:%S")));
             },
             Quit => gtk::main_quit(),
         }
+    }
+
+    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+        let label = Label::new(None);
+
+        let window = Window::new(WindowType::Toplevel);
+
+        window.add(&label);
+
+        window.show_all();
+
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+
+        let mut win = Win {
+            label: label,
+            window: window,
+        };
+
+        win.update(Tick(()), &mut ());
+        win
     }
 }
 

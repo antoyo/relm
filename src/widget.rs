@@ -34,8 +34,8 @@ pub trait Widget<MSG: Clone + DisplayVariant>
     /// Get the containing widget.
     fn container(&self) -> &Self::Container;
 
-    /// Create the widget.
-    fn new(relm: RemoteRelm<MSG>) -> (Self, Self::Model);
+    /// Create the model.
+    fn model() -> Self::Model;
 
     /// Connect the subscriptions.
     fn subscriptions(_relm: &Relm<MSG>) {
@@ -47,4 +47,7 @@ pub trait Widget<MSG: Clone + DisplayVariant>
     /// Connect the commands when receiving an event.
     fn update_command(_relm: &Relm<MSG>, _event: MSG, _model: &mut Self::Model) {
     }
+
+    /// Create the view.
+    fn view(relm: RemoteRelm<MSG>, model: &Self::Model) -> Self;
 }

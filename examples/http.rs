@@ -66,47 +66,15 @@ enum Msg {
     Quit,
 }
 
-struct Widgets {
+struct Win {
     button: Button,
     image: Image,
     label: Label,
+    loader: PixbufLoader,
     window: Window,
 }
 
-struct Win {
-    loader: PixbufLoader,
-    widgets: Widgets,
-}
-
 impl Win {
-    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
-        let vbox = gtk::Box::new(Vertical, 0);
-
-        let label = Label::new(None);
-        vbox.add(&label);
-
-        let image = Image::new();
-        vbox.add(&image);
-
-        let button = Button::new_with_label("Load image");
-        vbox.add(&button);
-
-        let window = Window::new(WindowType::Toplevel);
-
-        window.add(&vbox);
-
-        window.show_all();
-
-        connect!(relm, button, connect_clicked(_), FetchUrl);
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
-
-        Widgets {
-            button: button,
-            image: image,
-            label: label,
-            window: window,
-        }
-    }
 }
 
 impl Widget<Msg> for Win {
@@ -114,41 +82,34 @@ impl Widget<Msg> for Win {
     type Model = Model;
 
     fn container(&self) -> &Self::Container {
-        &self.widgets.window
+        &self.window
     }
 
-    fn new(relm: RemoteRelm<Msg>) -> (Self, Model) {
-        let model = Model {
+    fn model() -> Model {
+        Model {
             gif_url: "waiting.gif".to_string(),
             topic: "cats".to_string(),
-        };
-        let widgets = Self::view(&relm);
-        widgets.label.set_text(&model.topic);
-        let window = Win {
-            loader: PixbufLoader::new(),
-            widgets: widgets,
-        };
-        (window, model)
+        }
     }
 
     fn update(&mut self, event: Msg, _model: &mut Model) {
         match event {
             DownloadCompleted => {
-                self.widgets.button.set_sensitive(true);
+                self.button.set_sensitive(true);
                 self.loader.close().unwrap();
-                self.widgets.image.set_from_pixbuf(self.loader.get_pixbuf().as_ref());
+                self.image.set_from_pixbuf(self.loader.get_pixbuf().as_ref());
                 self.loader = PixbufLoader::new();
             },
             FetchUrl => {
-                self.widgets.label.set_text("");
+                self.label.set_text("");
                 // Disable the button because loading 2 images at the same time crashes the pixbuf
                 // loader.
-                self.widgets.button.set_sensitive(false);
+                self.button.set_sensitive(false);
             },
             HttpError(error) => {
-                self.widgets.button.set_sensitive(true);
-                self.widgets.label.set_text(&format!("HTTP error: {}", error));
-                self.widgets.label.override_color(STATE_FLAG_NORMAL, RED);
+                self.button.set_sensitive(true);
+                self.label.set_text(&format!("HTTP error: {}", error));
+                self.label.override_color(STATE_FLAG_NORMAL, RED);
             },
             ImageChunk(chunk) => {
                 self.loader.loader_write(&chunk).unwrap();
@@ -174,6 +135,37 @@ impl Widget<Msg> for Win {
                 relm.connect_exec_ignore_err(future, DownloadCompleted);
             },
             _ => (),
+        }
+    }
+
+    fn view(relm: RemoteRelm<Msg>, model: &Model) -> Self {
+        let vbox = gtk::Box::new(Vertical, 0);
+
+        let label = Label::new(None);
+        label.set_text(&model.topic);
+        vbox.add(&label);
+
+        let image = Image::new();
+        vbox.add(&image);
+
+        let button = Button::new_with_label("Load image");
+        vbox.add(&button);
+
+        let window = Window::new(WindowType::Toplevel);
+
+        window.add(&vbox);
+
+        window.show_all();
+
+        connect!(relm, button, connect_clicked(_), FetchUrl);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+
+        Win {
+            button: button,
+            image: image,
+            label: label,
+            loader: PixbufLoader::new(),
+            window: window,
         }
     }
 }

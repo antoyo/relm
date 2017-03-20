@@ -47,18 +47,43 @@ enum Msg {
     Tick(()),
 }
 
-struct Widgets {
+struct Win {
     label: Label,
     num_label: Label,
     window: Window,
 }
 
-struct Win {
-    widgets: Widgets,
-}
+impl Widget<Msg> for Win {
+    type Container = Window;
+    type Model = ();
 
-impl Win {
-    fn view(relm: &RemoteRelm<Msg>) -> Widgets {
+    fn container(&self) -> &Self::Container {
+        &self.window
+    }
+
+    fn model() -> () {
+        ()
+    }
+
+    fn subscriptions(relm: &Relm<Msg>) {
+        let stream = Interval::new(Duration::from_secs(1), relm.handle()).unwrap();
+        relm.connect_exec_ignore_err(stream, Tick);
+    }
+
+    fn update(&mut self, event: Msg, _model: &mut ()) {
+        match event {
+            Open(num) => {
+                self.num_label.set_text(&num.to_string());
+            },
+            Tick(()) => {
+                let time = Local::now();
+                self.label.set_text(&format!("{}", time.format("%H:%M:%S")));
+            },
+            Quit => gtk::main_quit(),
+        }
+    }
+
+    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
         let button = Button::new_with_label("Open");
         let label = Label::new(None);
         let num_label = Label::new(None);
@@ -83,47 +108,13 @@ impl Win {
         }
         connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
 
-        Widgets {
+        let mut win = Win {
             label: label,
             num_label: num_label,
             window: window,
-        }
-    }
-}
-
-impl Widget<Msg> for Win {
-    type Container = Window;
-    type Model = ();
-
-    fn container(&self) -> &Self::Container {
-        &self.widgets.window
-    }
-
-    fn new(relm: RemoteRelm<Msg>) -> (Self, ()) {
-        let widgets = Self::view(&relm);
-        let mut win = Win {
-            widgets: widgets,
         };
         win.update(Tick(()), &mut ());
-        (win, ())
-    }
-
-    fn subscriptions(relm: &Relm<Msg>) {
-        let stream = Interval::new(Duration::from_secs(1), relm.handle()).unwrap();
-        relm.connect_exec_ignore_err(stream, Tick);
-    }
-
-    fn update(&mut self, event: Msg, _model: &mut ()) {
-        match event {
-            Open(num) => {
-                self.widgets.num_label.set_text(&num.to_string());
-            },
-            Tick(()) => {
-                let time = Local::now();
-                self.widgets.label.set_text(&format!("{}", time.format("%H:%M:%S")));
-            },
-            Quit => gtk::main_quit(),
-        }
+        win
     }
 }
 
