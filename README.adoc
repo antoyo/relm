@@ -105,10 +105,9 @@ impl Widget<Msg> for Win {
         connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
         // There is also a `connect!()` macro for GTK+ events that does not need a value to be returned in the callback.
         window.show_all();
-        let window = Win {
+        Win {
             window: window,
-        };
-        window
+        }
     }
 
     // The next methods are optional.
