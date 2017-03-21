@@ -2,7 +2,7 @@
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 categories = ["asynchronous", "gui"]
 description = "Asynchronous, GTK+-based, GUI library, inspired by Elm, written in Rust"
-documentation = "https://docs.rs/relm/0.1.0/relm/"
+documentation = "https://docs.rs/relm/"
 license = "MIT"
 name = "relm"
 repository = "https://github.com/antoyo/relm"
