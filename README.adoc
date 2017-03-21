@@ -60,22 +60,13 @@ enum Msg {
 
 Messages are sent to both `Widget::update` and `Widget::update_command` to indicate that an event happened. The model can be updated when an event is received.
 
-Create a `struct` to contain the GTK+ widgets:
-
-[source,rust]
-----
-struct Widgets {
-    // …
-    window: Window,
-}
-----
-
-Create a `struct` which represents a `Widget` (in this case, the main window of the application):
+Create a `struct` which represents a `Widget` which contains the GTK+ widgets (in this case, the main window of the application):
 
 [source,rust]
 ----
 struct Win {
-    widgets: Widgets,
+    // …
+    window: Window,
 }
 ----
 
@@ -89,25 +80,13 @@ impl Widget<Msg> for Win {
 
     // Return the container of this widget.
     fn container(&self) -> &Self::Container {
-        &self.widgets.window
+        &self.window
     }
 
-    // Create the widgets and return the struct with its initial model.
-    fn new(relm: RemoteRelm<Msg>) -> (Self, Model) {
-        let model = Model {
-        };
-        // GTK+ widgets are used normally within a `Widget`.
-        let window = Window::new(WindowType::Toplevel);
-        // Connect the signal `delete_event` to send the `Quit` message.
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
-        // There is also a `connect!()` macro for GTK+ events that does not need a value to be returned in the callback.
-        window.show_all();
-        let window = Win {
-            widgets: Widgets {
-                window: window,
-            },
-        };
-        (window, model)
+    // Return the initial model.
+    fn model() -> Model {
+        Model {
+        }
     }
 
     // The model may be updated when a message is received.
@@ -116,6 +95,20 @@ impl Widget<Msg> for Win {
         match event {
             Quit => gtk::main_quit(),
         }
+    }
+
+    // Create the widgets.
+    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+        // GTK+ widgets are used normally within a `Widget`.
+        let window = Window::new(WindowType::Toplevel);
+        // Connect the signal `delete_event` to send the `Quit` message.
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        // There is also a `connect!()` macro for GTK+ events that does not need a value to be returned in the callback.
+        window.show_all();
+        let window = Win {
+            window: window,
+        };
+        window
     }
 
     // The next methods are optional.
