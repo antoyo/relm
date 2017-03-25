@@ -49,6 +49,7 @@
 extern crate futures;
 extern crate glib;
 extern crate glib_itc;
+extern crate gobject_sys;
 extern crate gtk;
 #[macro_use]
 extern crate log;
@@ -66,7 +67,10 @@ use std::time::SystemTime;
 
 use futures::{Future, Stream};
 use glib::Continue;
+pub use glib::object::Downcast;
+pub use glib::translate::{FromGlibPtrNone, ToGlib};
 use glib_itc::{Receiver, channel};
+pub use gobject_sys::{GObject, g_object_new};
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 use relm_core::Core;
 pub use relm_core::{EventStream, Handle, Remote};

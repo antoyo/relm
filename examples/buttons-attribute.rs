@@ -28,7 +28,16 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
-use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType};
+use gtk::{
+    Button,
+    ButtonExt,
+    ContainerExt,
+    Label,
+    OrientableExt,
+    WidgetExt,
+    Window,
+    WindowType,
+};
 use gtk::Orientation::Vertical;
 use relm::{Relm, RemoteRelm, Widget};
 use relm_attributes::widget;
@@ -87,25 +96,23 @@ impl Widget<Msg> for Win {
         }
     }
 
-    // TODO: provide default parameter for constructor (like Toplevel).
+    // TODO: provide default parameter for constructor (like Toplevel). Is it still necessary?
+    // Perhaps for construct-only properties (if they don't have a default value, does this happen?).
     // TODO: think about conditions and loops (widget-list).
     view! {
         // TODO: guess if it is a GTK+ widget or Relm widget by looking at the connected events?
         // This is to avoid having to write gtk::.
         // It can be disambiguate if needed by writing gtk::.
-        // TODO: Toplevel is the default, so it should not be necessary with g_object_new().
-        // TODO: to avoid having a list of initial attributes, use the g_object_new() function by
-        // specifying the properties as strings.
-        // To be able to do so, g_object_new() needs to accept not construct parameters.
-        // Check if it is the case.
-        gtk::Window(WindowType::Toplevel) {
-            gtk::Box(Vertical, 0) {
+        gtk::Window {
+            gtk::Box {
+                orientation: Vertical,
                 gtk::Button {
                     clicked => Increment,
                     label: "+",
                 },
-                // TODO: use model.counter instead of 0.
-                gtk::Label("0") {},
+                gtk::Label {
+                    text: &model.counter.to_string(),
+                },
                 gtk::Button {
                     clicked => Decrement,
                     label: "-",

@@ -98,15 +98,19 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
     let mut properties = vec![];
     for (key, value) in &widget.properties {
         let property_func = Ident::new(format!("set_{}", key));
-        let mut val = Tokens::new();
-        val.append(value);
         properties.push(quote! {
-            #widget_name.#property_func(#val);
+            #widget_name.#property_func(#value);
         });
     }
 
     quote! {
-        let #widget_name = #struct_name::new(#params);
+        let #widget_name: #struct_name = unsafe {
+            use gtk::StaticType;
+            use relm::{Downcast, FromGlibPtrNone, ToGlib};
+            ::gtk::Widget::from_glib_none(::relm::g_object_new(#struct_name::static_type().to_glib(),
+                ::std::ptr::null()) as *mut _)
+                .downcast_unchecked()
+        };
         #(#properties)*
         #(#events)*
         #(#children)*

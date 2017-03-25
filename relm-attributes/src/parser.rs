@@ -48,7 +48,7 @@ pub struct Widget {
     pub events: HashMap<String, Event>,
     pub init_parameters: Vec<String>,
     pub name: String,
-    pub properties: HashMap<String, String>,
+    pub properties: HashMap<String, Tokens>,
 }
 
 impl Widget {
@@ -71,6 +71,7 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
 fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     let (name, mut tokens) = parse_qualified_name(tokens);
     let mut widget = Widget::new(name);
+    // TODO: this initial parameters might not be necessary anymore.
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
         let parameters = parse_comma_list(tts);
         widget.init_parameters = parameters;
@@ -187,18 +188,15 @@ fn parse_event(mut tokens: &[TokenTree]) -> (Event, &[TokenTree]) {
     (event, new_tokens)
 }
 
-fn parse_value(tokens: &[TokenTree]) -> (String, &[TokenTree]) {
+fn parse_value(tokens: &[TokenTree]) -> (Tokens, &[TokenTree]) {
     let mut current_param = Tokens::new();
     let mut i = 0;
     while i < tokens.len() {
         match tokens[i] {
             Token(Comma) => break,
-            Token(ref token) => {
-                token.to_tokens(&mut current_param);
-            },
-            _ => panic!("Expected simple token but found `{:?}` in view! macro", tokens[i]),
+            ref token => token.to_tokens(&mut current_param),
         }
         i += 1;
     }
-    (current_param.to_string(), &tokens[i..])
+    (current_param, &tokens[i..])
 }

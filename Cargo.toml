@@ -12,6 +12,7 @@ version = "0.3.2-pre"
 futures = "^0.1.10"
 glib = "^0.1.2"
 glib-itc = "^0.1.1"
+gobject-sys = "^0.3.3"
 gtk = "^0.1.1"
 log = "^0.3.7"
 relm-core = "^0.1.0"
@@ -33,14 +34,14 @@ tokio-service = "^0.1.0"
 twist = "^0.5.0"
 url = "^1.4.0"
 
-[dev-dependencies.relm-attributes]
-path = "relm-attributes"
-
 [dev-dependencies.hyper]
 git = "https://github.com/hyperium/hyper"
 
 [dev-dependencies.hyper-tls]
 git = "https://github.com/hyperium/hyper-tls"
+
+[dev-dependencies.relm-attributes]
+path = "relm-attributes"
 
 [features]
 nightly = []
