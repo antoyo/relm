@@ -83,7 +83,7 @@ impl Widget<CounterMsg> for Counter {
         let plus_button = Button::new_with_label("+");
         vbox.add(&plus_button);
 
-        let counter_label = Label::new(Some("0"));
+        let counter_label = Label::new("0");
         vbox.add(&counter_label);
 
         let minus_button = Button::new_with_label("-");

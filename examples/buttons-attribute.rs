@@ -19,15 +19,19 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#![feature(proc_macro)]
+
 extern crate gtk;
 #[macro_use]
 extern crate relm;
+extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
 use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType};
 use gtk::Orientation::Vertical;
 use relm::{Relm, RemoteRelm, Widget};
+use relm_attributes::widget;
 
 use self::Msg::*;
 
@@ -36,6 +40,7 @@ struct Model {
     counter: i32,
 }
 
+// TODO: does an attribute #[msg] would simplify the implementation?
 #[derive(Msg)]
 enum Msg {
     Decrement,
@@ -43,17 +48,22 @@ enum Msg {
     Quit,
 }
 
+// TODO: automatically generate this struct?
 struct Win {
-    counter_label: Label,
-    window: Window,
+    box1: gtk::Box,
+    button1: Button,
+    button2: Button,
+    label1: Label,
+    window1: Window,
 }
 
+#[widget]
 impl Widget<Msg> for Win {
     type Container = Window;
     type Model = Model;
 
     fn container(&self) -> &Self::Container {
-        &self.window
+        &self.window1
     }
 
     fn model() -> Model {
@@ -63,11 +73,12 @@ impl Widget<Msg> for Win {
     }
 
     fn update(&mut self, event: Msg, model: &mut Model) {
-        let label = &self.counter_label;
+        let label = &self.label1;
 
         match event {
             Decrement => {
                 model.counter -= 1;
+                // TODO: add this from the attribute.
                 label.set_text(&model.counter.to_string());
             },
             Increment => {
@@ -78,31 +89,31 @@ impl Widget<Msg> for Win {
         }
     }
 
-    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
-        let vbox = gtk::Box::new(Vertical, 0);
-
-        let plus_button = Button::new_with_label("+");
-        vbox.add(&plus_button);
-
-        let counter_label = Label::new("0");
-        vbox.add(&counter_label);
-
-        let minus_button = Button::new_with_label("-");
-        vbox.add(&minus_button);
-
-        let window = Window::new(WindowType::Toplevel);
-
-        window.add(&vbox);
-
-        window.show_all();
-
-        connect!(relm, plus_button, connect_clicked(_), Increment);
-        connect!(relm, minus_button, connect_clicked(_), Decrement);
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
-
-        Win {
-            counter_label: counter_label,
-            window: window,
+    // TODO: provide default parameter for constructor (like Toplevel).
+    // TODO: think about conditions and loops (widget-list).
+    view! {
+        // TODO: guess if it is a GTK+ widget or Relm widget by looking at the connected events?
+        // This is to avoid having to write gtk::.
+        // It can be disambiguate if needed by writing gtk::.
+        // TODO: Toplevel is the default, so it should not be necessary with g_object_new().
+        // TODO: to avoid having a list of initial attributes, use the g_object_new() function by
+        // specifying the properties as strings.
+        // To be able to do so, g_object_new() needs to accept not construct parameters.
+        // Check if it is the case.
+        gtk::Window(WindowType::Toplevel) {
+            gtk::Box(Vertical, 0) {
+                gtk::Button {
+                    clicked => Increment,
+                    label: "+",
+                },
+                // TODO: use model.counter instead of 0.
+                gtk::Label("0") {},
+                gtk::Button {
+                    clicked => Decrement,
+                    label: "-",
+                },
+            },
+            delete_event(_, _) => Quit,
         }
     }
 }
