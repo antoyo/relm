@@ -33,10 +33,10 @@ mod parser;
 
 use proc_macro::TokenStream;
 use quote::{Tokens, ToTokens};
-use syn::{Delimited, Ident, ImplItem, TokenTree, parse_item};
+use syn::{Delimited, Ident, ImplItem, Mac, TokenTree, parse_item};
 use syn::ItemKind::Impl;
 use syn::ImplItemKind::{Const, Macro, Method, Type};
-use syn::Ty::Path;
+use syn::Ty::{self, Path};
 
 use gen::gen;
 use parser::parse;
@@ -46,14 +46,7 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
     let source = input.to_string();
     let mut ast = parse_item(&source).unwrap();
     if let Impl(unsafety, polarity, generics, path, typ, items) = ast.node {
-        let name =
-            if let Path(_, ref path) = *typ {
-                // TODO: [0] might not be enough.
-                path.segments[0].ident.clone()
-            }
-            else {
-                panic!("Expected Path")
-            };
+        let name = get_name(&typ);
         let mut new_items = vec![];
         let mut container_method = None;
         let mut root_widget = None;
@@ -62,15 +55,7 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
             let new_item =
                 match item.node {
                     Const(_, _) => panic!("Unexpected const item"),
-                    Macro(mac) => {
-                        let segments = mac.path.segments;
-                        if segments.len() == 1 && segments[0].ident.to_string() == "view" {
-                            impl_view(&name, mac.tts, &mut root_widget)
-                        }
-                        else {
-                            panic!("Unexpected macro item")
-                        }
-                    },
+                    Macro(mac) => get_view(mac, &name, &mut root_widget),
                     Method(_, _) => {
                         match item.ident.to_string().as_ref() {
                             "container" => {
@@ -139,4 +124,25 @@ fn get_container(container_method: Option<ImplItem>, root_widget: Option<Ident>)
             }
         })
     })
+}
+
+fn get_name(typ: &Ty) -> Ident {
+    if let Path(_, ref path) = *typ {
+        let mut tokens = Tokens::new();
+        path.to_tokens(&mut tokens);
+        Ident::new(tokens.to_string())
+    }
+    else {
+        panic!("Expected Path")
+    }
+}
+
+fn get_view(mac: Mac, name: &Ident, root_widget: &mut Option<Ident>) -> ImplItem {
+    let segments = mac.path.segments;
+    if segments.len() == 1 && segments[0].ident.to_string() == "view" {
+        impl_view(name, mac.tts, root_widget)
+    }
+    else {
+        panic!("Unexpected macro item")
+    }
 }
