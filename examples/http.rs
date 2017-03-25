@@ -34,6 +34,8 @@ extern crate relm;
 extern crate relm_derive;
 extern crate simplelog;
 
+use std::str::FromStr;
+
 use futures::{Future, Stream};
 use gdk_pixbuf::PixbufLoader;
 use gdk_sys::GdkRGBA;
@@ -187,7 +189,7 @@ fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=E
 }
 
 fn http_get_stream<'a>(url: &str, handle: &Handle) -> impl Stream<Item=Vec<u8>, Error=Error> + 'a {
-    let url = hyper::Url::parse(url).unwrap();
+    let url = hyper::Uri::from_str(url).unwrap();
     let connector = HttpsConnector::new(2, handle);
     let client = Client::configure()
         .connector(connector)
