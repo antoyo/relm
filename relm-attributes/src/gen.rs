@@ -31,9 +31,9 @@ lazy_static! {
     static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
 }
 
-pub fn gen(name: &Ident, widget: Widget) -> Tokens {
+pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>) -> Tokens {
     let mut widget_names = vec![];
-    let widget = gen_widget(&widget, None, &mut widget_names);
+    let widget = gen_widget(&widget, None, &mut widget_names, root_widget);
     let widget_names1 = &widget_names;
     let widget_names2 = &widget_names;
     quote! {
@@ -45,7 +45,7 @@ pub fn gen(name: &Ident, widget: Widget) -> Tokens {
     }
 }
 
-fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>) -> Tokens {
+fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, root_widget: &mut Option<Ident>) -> Tokens {
     let widget_name = &Ident::new(gen_widget_name(&widget.name));
     let struct_name = Ident::new(widget.name.as_ref());
     widget_names.push(widget_name.clone());
@@ -79,7 +79,8 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
         });
     }
 
-    let children: Vec<_> = widget.children.iter().map(|child| gen_widget(child, Some(widget_name), widget_names)).collect();
+    let children: Vec<_> = widget.children.iter()
+        .map(|child| gen_widget(child, Some(widget_name), widget_names, root_widget)).collect();
 
     let add_child_or_show_all =
         if let Some(name) = parent {
@@ -88,6 +89,7 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
             }
         }
         else {
+            *root_widget = Some(widget_name.clone());
             quote! {
                 #widget_name.show_all();
             }

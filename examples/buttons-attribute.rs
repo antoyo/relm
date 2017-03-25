@@ -64,10 +64,6 @@ impl Widget<Msg> for Win {
     // TODO: and this one too?
     type Model = Model;
 
-    fn container(&self) -> &Self::Container {
-        &self.window1
-    }
-
     fn model() -> Model {
         Model {
             counter: 0,

@@ -32,7 +32,7 @@ mod gen;
 mod parser;
 
 use proc_macro::TokenStream;
-use quote::Tokens;
+use quote::{Tokens, ToTokens};
 use syn::{Delimited, Ident, ImplItem, TokenTree, parse_item};
 use syn::ItemKind::Impl;
 use syn::ImplItemKind::{Const, Macro, Method, Type};
@@ -54,7 +54,9 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
             else {
                 panic!("Expected Path")
             };
-        let mut new_items: Vec<ImplItem> = vec![];
+        let mut new_items = vec![];
+        let mut container_method = None;
+        let mut root_widget = None;
         for item in items {
             let i = item.clone();
             let new_item =
@@ -63,7 +65,7 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
                     Macro(mac) => {
                         let segments = mac.path.segments;
                         if segments.len() == 1 && segments[0].ident.to_string() == "view" {
-                            impl_view(&name, mac.tts)
+                            impl_view(&name, mac.tts, &mut root_widget)
                         }
                         else {
                             panic!("Unexpected macro item")
@@ -71,11 +73,14 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
                     },
                     Method(_, _) => {
                         match item.ident.to_string().as_ref() {
-                            "container" => i, // TODO: create this method.
+                            "container" => {
+                                container_method = Some(i);
+                                continue;
+                            },
                             "model" => i,
                             "subscriptions" => i,
                             "update" => i, // TODO: automatically add the widget set_property() calls.
-                            "update_command" => i, // TODO: automatically create this function from the events present in the view.
+                            "update_command" => i, // TODO: automatically create this function from the events present in the view (or by splitting the update() fucntion).
                             method_name => panic!("Unexpected method {}", method_name),
                         }
                     },
@@ -83,6 +88,7 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
                 };
             new_items.push(new_item);
         }
+        new_items.push(get_container(container_method, root_widget));
         let item = Impl(unsafety, polarity, generics, path, typ, new_items);
         ast.node = item;
         let expanded = quote! {
@@ -97,11 +103,8 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
 
 fn block_to_impl_item(tokens: Tokens) -> ImplItem {
     let implementation = quote! {
-        impl Toto {
-            #[allow(unused_variables)]
-            fn view(relm: RemoteRelm<Msg>, model: &Self::Model) -> Self {
-                #tokens
-            }
+        impl Test {
+            #tokens
         }
     };
     let implementation = parse_item(implementation.as_str()).unwrap();
@@ -111,13 +114,29 @@ fn block_to_impl_item(tokens: Tokens) -> ImplItem {
     }
 }
 
-fn impl_view(name: &Ident, tokens: Vec<TokenTree>) -> ImplItem {
+fn impl_view(name: &Ident, tokens: Vec<TokenTree>, root_widget: &mut Option<Ident>) -> ImplItem {
     if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
         let widget = parse(tts);
-        let view = gen(name, widget);
-        block_to_impl_item(view)
+        let view = gen(name, widget, root_widget);
+        block_to_impl_item(quote! {
+            #[allow(unused_variables)]
+            fn view(relm: RemoteRelm<Msg>, model: &Self::Model) -> Self {
+                #view
+            }
+        })
     }
     else {
         panic!("Expected `{{` but found `{:?}` in view! macro", tokens[0]);
     }
+}
+
+fn get_container(container_method: Option<ImplItem>, root_widget: Option<Ident>) -> ImplItem {
+    container_method.unwrap_or_else(|| {
+        let root_widget = root_widget.unwrap();
+        block_to_impl_item(quote! {
+            fn container(&self) -> &Self::Container {
+                &self.#root_widget
+            }
+        })
+    })
 }
