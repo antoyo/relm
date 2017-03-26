@@ -52,7 +52,8 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
     let mut events = vec![];
     for (name, event) in &widget.events {
         let return_value =
-            if widget.gtk_type == "gtk::Window" && name == "delete_event" {
+            // TODO: improve this.
+            if widget.gtk_type.ends_with("Window") && name == "delete_event" {
                 quote! {
                     ::gtk::Inhibit(false)
                 }

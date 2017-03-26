@@ -87,20 +87,17 @@ impl Widget<Msg> for Win {
     }
 
     view! {
-        // TODO: guess if it is a GTK+ widget or Relm widget by looking at the connected events?
-        // This is to avoid having to write gtk::.
-        // It can be disambiguate if needed by writing gtk::.
-        gtk::Window {
+        Window {
             gtk::Box {
                 orientation: Vertical,
-                gtk::Button {
+                Button {
                     clicked => Increment,
                     label: "+",
                 },
-                gtk::Label {
+                Label {
                     text: &model.counter.to_string(),
                 },
-                gtk::Button {
+                Button {
                     clicked => Decrement,
                     label: "-",
                 },
