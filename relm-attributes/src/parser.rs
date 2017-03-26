@@ -35,14 +35,14 @@ lazy_static! {
 
 #[derive(Debug)]
 pub struct Event {
-    pub name: String,
     pub params: Vec<String>,
+    pub value: Tokens,
 }
 
 impl Event {
     fn new() -> Self {
         Event {
-            name: String::new(),
+            value: Tokens::new(),
             params: vec!["_".to_string()],
         }
     }
@@ -191,11 +191,30 @@ fn parse_event(mut tokens: &[TokenTree]) -> (Event, &[TokenTree]) {
         panic!("Expected `=>` but found `{:?}` in view! macro", tokens[0]);
     }
     tokens = &tokens[1..];
-    // TODO: parse event like changed(entry) => TextChange(entry.get_text().unwrap()).
-    let (name, new_tokens) = parse_qualified_name(tokens);
-    event.name = name;
-    (event, new_tokens)
+    if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
+        let (value1, new_toks) = parse_value(tts);
+        let (value2, new_toks) = parse_value(&new_toks[1..]);
+        tokens = new_toks;
+        let new_val = quote! {
+            (#value1, #value2)
+        };
+        let mut value_tokens = Tokens::new();
+        value_tokens.append(new_val.parse::<String>().unwrap());
+        event.value = value_tokens;
+    }
+    else {
+        // TODO: parse event like changed(entry) => TextChange(entry.get_text().unwrap()).
+        // Probably done.
+        let (value, new_toks) = parse_value(tokens);
+        let mut value_tokens = Tokens::new();
+        value_tokens.append(",");
+        value_tokens.append(value);
+        event.value = value_tokens;
+        tokens = new_toks;
+    }
+    (event, tokens)
 }
+
 
 fn parse_value(tokens: &[TokenTree]) -> (Tokens, &[TokenTree]) {
     let mut current_param = Tokens::new();

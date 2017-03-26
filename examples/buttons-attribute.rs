@@ -32,6 +32,7 @@ use gtk::{
     Button,
     ButtonExt,
     ContainerExt,
+    Inhibit,
     Label,
     OrientableExt,
     WidgetExt,
@@ -102,7 +103,7 @@ impl Widget<Msg> for Win {
                     label: "-",
                 },
             },
-            delete_event(_, _) => Quit,
+            delete_event(_, _) => (Quit, Inhibit(false)),
         }
     }
 }

@@ -51,25 +51,11 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
 
     let mut events = vec![];
     for (name, event) in &widget.events {
-        let return_value =
-            // TODO: improve this.
-            if widget.gtk_type.ends_with("Window") && name == "delete_event" {
-                quote! {
-                    ::gtk::Inhibit(false)
-                }
-            }
-            else {
-                quote! {
-                    ()
-                }
-            };
         let event_ident = Ident::new(format!("connect_{}", name));
         let event_params: Vec<_> = event.params.iter().map(|ident| Ident::new(ident.as_ref())).collect();
-        let event_name = Ident::new(event.name.as_ref());
+        let event_value = &event.value;
         events.push(quote! {
-            connect!(relm, #widget_name, #event_ident(#(#event_params),*) {
-                (Some(#event_name), #return_value)
-            });
+            connect!(relm, #widget_name, #event_ident(#(#event_params),*) #event_value);
         });
     }
 

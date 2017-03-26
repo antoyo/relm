@@ -53,13 +53,14 @@ macro_rules! connect {
     }};
 
     // Connect to a GTK+ widget event.
-    // This variant gives more control to the caller since it expecets a `$msg` returning (Option<MSG>,
+    // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
     // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
     // Option<MSG> can be None if no message needs to be emitted.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*) $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
             let (msg, return_value) = $msg;
+            let msg: Option<_> = msg.into();
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
