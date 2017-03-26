@@ -20,6 +20,7 @@
  */
 
 /*
+ * TODO: automatically add the model() method with a () return type when it is not found?
  * TODO: allow pattern matching by creating a function update(&mut self, Quit: Msg, model: &mut Model) so that we can separate
  * the update function in multiple functions.
  * TODO: provide default parameter for constructor (like Toplevel). Is it still necessary?
