@@ -57,15 +57,6 @@ enum Msg {
     Quit,
 }
 
-// TODO: automatically generate this struct?
-struct Win {
-    box1: gtk::Box,
-    button1: Button,
-    button2: Button,
-    label1: Label,
-    window1: Window,
-}
-
 #[widget]
 impl Widget<Msg> for Win {
     fn model() -> Model {

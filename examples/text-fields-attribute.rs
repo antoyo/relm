@@ -56,13 +56,6 @@ enum Msg {
     Quit,
 }
 
-struct Win {
-    box1: gtk::Box,
-    entry1: Entry,
-    label1: Label,
-    window1: Window,
-}
-
 #[widget]
 impl Widget<Msg> for Win {
     fn model() -> Model {

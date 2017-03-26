@@ -24,15 +24,18 @@ use syn::Ident;
 
 use parser::Widget;
 
-pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>) -> Tokens {
+pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: Vec<&Ident>) -> Tokens {
     let mut widget_names = vec![];
     let widget = gen_widget(&widget, None, &mut widget_names, root_widget, root_widget_type);
-    let widget_names1 = &widget_names;
-    let widget_names2 = &widget_names;
+    let widget_names1: Vec<_> = widget_names.iter().filter(|ident| idents.contains(ident)).collect();
+    let widget_names1 = &widget_names1;
+    let widget_names2 = widget_names1;
+    let root_widget_name = &root_widget.as_ref().unwrap();
     quote! {
         #widget
 
         #name {
+            #root_widget_name: #root_widget_name,
             #(#widget_names1: #widget_names2),*
         }
     }
