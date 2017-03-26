@@ -109,7 +109,8 @@ impl Widget<Msg> for Win {
         let window = Window::new(WindowType::Toplevel);
         // Connect the signal `delete_event` to send the `Quit` message.
         connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
-        // There is also a `connect!()` macro for GTK+ events that does not need a value to be returned in the callback.
+        // There is also a `connect!()` macro for GTK+ events that does not need a
+        // value to be returned in the callback.
         window.show_all();
         Win {
             window: window,
@@ -119,8 +120,10 @@ impl Widget<Msg> for Win {
     // The next methods are optional.
 
     // Futures and streams can be connected to send a message when a value is ready.
-    // However, since the tokio event loop runs in another thread, they cannot be connected in the `update` function which is ran in the main thread.
-    // Thus, they must be added in the `update_command()` method which is ran in the tokio thread.
+    // However, since the tokio event loop runs in another thread, they cannot be
+    // connected in the `update` function which is ran in the main thread.
+    // Thus, they must be added in the `update_command()` method which is ran in
+    // the tokio thread.
     // fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
     //     match event {
     //         SomeEvent => {
@@ -130,7 +133,8 @@ impl Widget<Msg> for Win {
     //     }
     // }
 
-    // Futures and streams can be connected when the `Widget` is created in the `subscriptions()` method.
+    // Futures and streams can be connected when the `Widget` is created in the
+    // `subscriptions()` method.
     // fn subscriptions(relm: &Relm<Msg>) {
     //     let stream = Interval::new(Duration::from_secs(1), relm.handle()).unwrap();
     //     relm.connect_exec_ignore_err(stream, Tick);
@@ -164,7 +168,6 @@ Here is an example using this attribute:
 ----
 #[widget]
 impl Widget<Msg> for Win {
-    // Return the initial model.
     fn model() -> Model {
         Model {
             counter: 0,
@@ -173,7 +176,8 @@ impl Widget<Msg> for Win {
 
     fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
-            // A call to self.label1.set_text() is automatically inserted by the attribute every time the model.counter attribute is updated.
+            // A call to self.label1.set_text() is automatically inserted by the
+            // attribute every time the model.counter attribute is updated.
             Decrement => model.counter -= 1,
             Increment => model.counter += 1,
             Quit => gtk::main_quit(),
@@ -192,8 +196,10 @@ impl Widget<Msg> for Win {
                     label: "+",
                 },
                 Label {
-                    // By the text property of this Label to the counter attribute of the model.
-                    // Every time the counter attribute is updated, the text property will be updated too.
+                    // Bind the text property of this Label to the counter attribute
+                    // of the model.
+                    // Every time the counter attribute is updated, the text property
+                    // will be updated too.
                     text: &model.counter.to_string(),
                 },
                 Button {
@@ -201,7 +207,8 @@ impl Widget<Msg> for Win {
                     label: "-",
                 },
             },
-            // Use a tuple when you want to both send a message and return a value to the GTK+ callback.
+            // Use a tuple when you want to both send a message and return a value to
+            // the GTK+ callback.
             delete_event(_, _) => (Quit, Inhibit(false)),
         }
     }
