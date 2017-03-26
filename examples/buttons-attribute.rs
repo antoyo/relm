@@ -36,7 +36,6 @@ use gtk::{
     OrientableExt,
     WidgetExt,
     Window,
-    WindowType,
 };
 use gtk::Orientation::Vertical;
 use relm::{Relm, RemoteRelm, Widget};
@@ -80,18 +79,9 @@ impl Widget<Msg> for Win {
     }
 
     fn update(&mut self, event: Msg, model: &mut Model) {
-        let label = &self.label1;
-
         match event {
-            Decrement => {
-                model.counter -= 1;
-                // TODO: add this from the attribute.
-                label.set_text(&model.counter.to_string());
-            },
-            Increment => {
-                model.counter += 1;
-                label.set_text(&model.counter.to_string());
-            },
+            Decrement => model.counter -= 1,
+            Increment => model.counter += 1,
             Quit => gtk::main_quit(),
         }
     }

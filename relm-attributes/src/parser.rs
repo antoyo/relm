@@ -20,12 +20,18 @@
  */
 
 use std::collections::HashMap;
+use std::sync::Mutex;
 
 use quote::{Tokens, ToTokens};
+use syn;
 use syn::Delimited;
 use syn::DelimToken::{Brace, Paren};
 use syn::TokenTree::{self, Token};
 use syn::Token::{Colon, Comma, FatArrow, Ident, ModSep};
+
+lazy_static! {
+    static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
+}
 
 #[derive(Debug)]
 pub struct Event {
@@ -46,18 +52,20 @@ impl Event {
 pub struct Widget {
     pub children: Vec<Widget>,
     pub events: HashMap<String, Event>,
+    pub gtk_type: String,
     pub init_parameters: Vec<String>,
-    pub name: String,
+    pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
 }
 
 impl Widget {
-    fn new(name: String) -> Self {
+    fn new(gtk_type: String) -> Self {
         Widget {
             children: vec![],
             events: HashMap::new(),
+            gtk_type: gtk_type,
             init_parameters: vec![],
-            name: name,
+            name: syn::Ident::new(""),
             properties: HashMap::new(),
         }
     }
@@ -69,8 +77,8 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
 }
 
 fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
-    let (name, mut tokens) = parse_qualified_name(tokens);
-    let mut widget = Widget::new(name);
+    let (gtk_type, mut tokens) = parse_qualified_name(tokens);
+    let mut widget = Widget::new(gtk_type);
     // TODO: this initial parameters might not be necessary anymore.
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
         let parameters = parse_comma_list(tts);
@@ -119,6 +127,7 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     else {
         panic!("Expected {{ but found `{:?}` in view! macro", tokens[0]);
     }
+    widget.name = syn::Ident::new(gen_widget_name(&widget.gtk_type));
     (widget, &tokens[1..])
 }
 
@@ -199,4 +208,18 @@ fn parse_value(tokens: &[TokenTree]) -> (Tokens, &[TokenTree]) {
         i += 1;
     }
     (current_param, &tokens[i..])
+}
+
+fn gen_widget_name(name: &str) -> String {
+    let name =
+        if let Some(index) = name.rfind(':') {
+            name[index + 1 ..].to_lowercase()
+        }
+        else {
+            name.to_lowercase()
+        };
+    let mut hashmap = NAMES_INDEX.lock().unwrap();
+    let index = hashmap.entry(name.clone()).or_insert(0);
+    *index += 1;
+    format!("{}{}", name, index)
 }

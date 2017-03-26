@@ -19,6 +19,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/*
+ * TODO: allow pattern matching by creating a function update(&mut self, Quit: Msg, model: &mut Model) so that we can separate
+ * the update function in multiple functions.
+ */
+
 #![feature(proc_macro)]
 
 #[macro_use]
@@ -28,18 +33,24 @@ extern crate proc_macro;
 extern crate quote;
 extern crate syn;
 
+mod adder;
 mod gen;
 mod parser;
 
+use std::collections::{HashMap, HashSet};
+
 use proc_macro::TokenStream;
 use quote::{Tokens, ToTokens};
-use syn::{Delimited, Ident, ImplItem, Mac, TokenTree, parse_item};
+use syn::{Delimited, Expr, ExprKind, Ident, ImplItem, Mac, TokenTree, parse_expr, parse_item};
 use syn::ItemKind::Impl;
 use syn::ImplItemKind::{Const, Macro, Method, Type};
 use syn::Ty::{self, Path};
 
+use adder::{Property, add_set_property_to_block};
 use gen::gen;
-use parser::parse;
+use parser::{Widget, parse};
+
+type PropertyModelMap = HashMap<Ident, HashSet<Property>>;
 
 #[proc_macro_attribute]
 pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
@@ -50,12 +61,18 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
         let mut new_items = vec![];
         let mut container_method = None;
         let mut root_widget = None;
+        let mut update_method = None;
+        let mut properties_model_map = None;
         for item in items {
             let i = item.clone();
             let new_item =
                 match item.node {
                     Const(_, _) => panic!("Unexpected const item"),
-                    Macro(mac) => get_view(mac, &name, &mut root_widget),
+                    Macro(mac) => {
+                        let (view, map) = get_view(mac, &name, &mut root_widget);
+                        properties_model_map = Some(map);
+                        view
+                    },
                     Method(_, _) => {
                         match item.ident.to_string().as_ref() {
                             "container" => {
@@ -64,7 +81,10 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
                             },
                             "model" => i,
                             "subscriptions" => i,
-                            "update" => i, // TODO: automatically add the widget set_property() calls.
+                            "update" => {
+                                update_method = Some(i);
+                                continue
+                            },
                             "update_command" => i, // TODO: automatically create this function from the events present in the view (or by splitting the update() fucntion).
                             method_name => panic!("Unexpected method {}", method_name),
                         }
@@ -73,6 +93,7 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
                 };
             new_items.push(new_item);
         }
+        new_items.push(get_update(update_method.unwrap(), properties_model_map.unwrap()));
         new_items.push(get_container(container_method, root_widget));
         let item = Impl(unsafety, polarity, generics, path, typ, new_items);
         ast.node = item;
@@ -99,16 +120,19 @@ fn block_to_impl_item(tokens: Tokens) -> ImplItem {
     }
 }
 
-fn impl_view(name: &Ident, tokens: Vec<TokenTree>, root_widget: &mut Option<Ident>) -> ImplItem {
+fn impl_view(name: &Ident, tokens: Vec<TokenTree>, root_widget: &mut Option<Ident>) -> (ImplItem, PropertyModelMap) {
     if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
         let widget = parse(tts);
+        let mut properties_model_map = HashMap::new();
+        get_properties_model_map(&widget, &mut properties_model_map);
         let view = gen(name, widget, root_widget);
-        block_to_impl_item(quote! {
+        let item = block_to_impl_item(quote! {
             #[allow(unused_variables)]
             fn view(relm: RemoteRelm<Msg>, model: &Self::Model) -> Self {
                 #view
             }
-        })
+        });
+        (item, properties_model_map)
     }
     else {
         panic!("Expected `{{` but found `{:?}` in view! macro", tokens[0]);
@@ -137,7 +161,20 @@ fn get_name(typ: &Ty) -> Ident {
     }
 }
 
-fn get_view(mac: Mac, name: &Ident, root_widget: &mut Option<Ident>) -> ImplItem {
+/*
+ * TODO: Create a control flow graph for each variable of the model.
+ * Add the set_property() calls in every leaf of every graphs.
+ */
+fn get_update(mut func: ImplItem, map: PropertyModelMap) -> ImplItem {
+    if let Method(_, ref mut block) = func.node {
+        add_set_property_to_block(block, &map);
+    }
+    // TODO: consider gtk::main_quit() as return.
+    // TODO: automatically add the widget set_property() calls.
+    func
+}
+
+fn get_view(mac: Mac, name: &Ident, root_widget: &mut Option<Ident>) -> (ImplItem, PropertyModelMap) {
     let segments = mac.path.segments;
     if segments.len() == 1 && segments[0].ident.to_string() == "view" {
         impl_view(name, mac.tts, root_widget)
@@ -145,4 +182,53 @@ fn get_view(mac: Mac, name: &Ident, root_widget: &mut Option<Ident>) -> ImplItem
     else {
         panic!("Unexpected macro item")
     }
+}
+
+/*
+ * The map maps model variable name to a vector of tuples (widget name, property name).
+ */
+fn get_properties_model_map(widget: &Widget, map: &mut PropertyModelMap) {
+    for (name, value) in &widget.properties {
+        let string = value.parse::<String>().unwrap();
+        let expr = parse_expr(&string).unwrap();
+        let model_variables = get_all_model_variables(&expr);
+        for var in model_variables {
+            let set = map.entry(var).or_insert_with(HashSet::new);
+            set.insert(Property {
+                expr: string.clone(),
+                name: name.clone(),
+                widget_name: widget.name.clone(),
+            });
+        }
+    }
+    for child in &widget.children {
+        get_properties_model_map(child, map);
+    }
+}
+
+fn get_all_model_variables(expr: &Expr) -> Vec<Ident> {
+    let mut variables = vec![];
+    match expr.node {
+        ExprKind::AddrOf(_, ref expr) => {
+            variables.append(&mut get_all_model_variables(&expr));
+        },
+        ExprKind::Field(ref expr, ref field) => {
+            if let ExprKind::Path(_, ref path) = expr.node {
+                if path.segments[0].ident == Ident::new("model") {
+                    variables.push(field.clone());
+                }
+            }
+            else {
+                variables.append(&mut get_all_model_variables(&expr));
+            }
+        },
+        ExprKind::Lit(_) | ExprKind::Path(_, _) => (), // No variable in these expressions.
+        ExprKind::MethodCall(_, _, ref exprs) => {
+            for expr in exprs {
+                variables.append(&mut get_all_model_variables(expr));
+            }
+        },
+        _ => panic!("unimplemented expr {:?}", expr.node),
+    }
+    variables
 }

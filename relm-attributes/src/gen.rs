@@ -19,17 +19,10 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::collections::HashMap;
-use std::sync::Mutex;
-
 use quote::Tokens;
 use syn::Ident;
 
 use parser::Widget;
-
-lazy_static! {
-    static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
-}
 
 pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>) -> Tokens {
     let mut widget_names = vec![];
@@ -46,8 +39,8 @@ pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>) -> Tok
 }
 
 fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, root_widget: &mut Option<Ident>) -> Tokens {
-    let widget_name = &Ident::new(gen_widget_name(&widget.name));
-    let struct_name = Ident::new(widget.name.as_ref());
+    let struct_name = Ident::new(widget.gtk_type.as_ref());
+    let widget_name = &widget.name;
     widget_names.push(widget_name.clone());
 
     let mut params = Tokens::new();
@@ -59,7 +52,7 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
     let mut events = vec![];
     for (name, event) in &widget.events {
         let return_value =
-            if widget.name == "gtk::Window" && name == "delete_event" {
+            if widget.gtk_type == "gtk::Window" && name == "delete_event" {
                 quote! {
                     ::gtk::Inhibit(false)
                 }
@@ -116,18 +109,4 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
         #(#children)*
         #add_child_or_show_all
     }
-}
-
-fn gen_widget_name(name: &str) -> String {
-    let name =
-        if let Some(index) = name.rfind(':') {
-            name[index + 1 ..].to_lowercase()
-        }
-        else {
-            name.to_lowercase()
-        };
-    let mut hashmap = NAMES_INDEX.lock().unwrap();
-    let index = hashmap.entry(name.clone()).or_insert(0);
-    *index += 1;
-    format!("{}{}", name, index)
 }
