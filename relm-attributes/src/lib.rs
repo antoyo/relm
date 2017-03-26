@@ -45,7 +45,7 @@ use std::collections::{HashMap, HashSet};
 
 use proc_macro::TokenStream;
 use quote::{Tokens, ToTokens};
-use syn::{Delimited, FunctionRetTy, Ident, ImplItem, Mac, Path, TokenTree, parse_expr, parse_item};
+use syn::{Delimited, FunctionRetTy, Ident, ImplItem, Mac, TokenTree, parse_expr, parse_item};
 use syn::fold::Folder;
 use syn::ItemKind::Impl;
 use syn::ImplItemKind::{Const, Macro, Method, Type};
@@ -67,7 +67,7 @@ struct State {
     root_widget: Option<Ident>,
     root_widget_type: Option<Ident>,
     update_method: Option<ImplItem>,
-    widget_model_type: Option<Path>,
+    widget_model_type: Option<Ty>,
     widgets: HashMap<Ident, Ident>, // Map widget ident to widget type.
 }
 
@@ -112,8 +112,11 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
                                 continue;
                             },
                             "model" => {
-                                if let FunctionRetTy::Ty(Ty::Path(_, path)) = sig.decl.output {
-                                    state.widget_model_type = Some(path);
+                                if let FunctionRetTy::Ty(ty) = sig.decl.output {
+                                    state.widget_model_type = Some(ty);
+                                }
+                                else {
+                                    panic!("Unexpected default, expecting Ty");
                                 }
                                 i
                             },
@@ -141,10 +144,12 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
                 };
             new_items.push(new_item);
         }
-        state.widgets.insert(state.root_widget.clone().unwrap(), state.root_widget_type.clone().unwrap());
+        state.widgets.insert(state.root_widget.clone().expect("root widget"),
+            state.root_widget_type.clone().expect("root widget type"));
         new_items.push(get_model_type(state.model_type, state.widget_model_type));
         new_items.push(get_container_type(state.container_type, state.root_widget_type));
-        new_items.push(get_update(state.update_method.unwrap(), state.properties_model_map.unwrap()));
+        new_items.push(get_update(state.update_method.expect("update method"),
+            state.properties_model_map.expect("properties model map")));
         new_items.push(get_container(state.container_method, state.root_widget));
         let item = Impl(unsafety, polarity, generics, path, typ, new_items);
         ast.node = item;
@@ -223,7 +228,7 @@ fn impl_view(name: &Ident, tokens: Vec<TokenTree>, root_widget: &mut Option<Iden
 
 fn get_container(container_method: Option<ImplItem>, root_widget: Option<Ident>) -> ImplItem {
     container_method.unwrap_or_else(|| {
-        let root_widget = root_widget.unwrap();
+        let root_widget = root_widget.expect("root widget");
         block_to_impl_item(quote! {
             fn container(&self) -> &Self::Container {
                 &self.#root_widget
@@ -234,16 +239,16 @@ fn get_container(container_method: Option<ImplItem>, root_widget: Option<Ident>)
 
 fn get_container_type(container_type: Option<ImplItem>, root_widget_type: Option<Ident>) -> ImplItem {
     container_type.unwrap_or_else(|| {
-        let root_widget_type = root_widget_type.unwrap();
+        let root_widget_type = root_widget_type.expect("root widget type");
         block_to_impl_item(quote! {
             type Container = #root_widget_type;
         })
     })
 }
 
-fn get_model_type(model_type: Option<ImplItem>, widget_model_type: Option<Path>) -> ImplItem {
+fn get_model_type(model_type: Option<ImplItem>, widget_model_type: Option<Ty>) -> ImplItem {
     model_type.unwrap_or_else(|| {
-        let widget_model_type = widget_model_type.unwrap();
+        let widget_model_type = widget_model_type.expect("widget model type");
         block_to_impl_item(quote! {
             type Model = #widget_model_type;
         })
