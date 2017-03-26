@@ -8,7 +8,7 @@ lazy_static = "^0.2.4"
 quote = "^0.3.15"
 
 [dependencies.syn]
-features = ["full"]
+features = ["fold", "full", "visit"]
 version = "^0.11.9"
 
 [lib]

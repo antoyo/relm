@@ -19,75 +19,202 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use std::boxed;
+
 use quote::Tokens;
 use syn;
-use syn::{Arm, Ident, Stmt, parse_expr};
-use syn::ExprKind::{Assign, AssignOp, Block, Call, Field, Match, Path};
-use syn::Stmt::{Expr, Semi};
+use syn::{Arm, Expr, ExprKind, FieldValue, Ident, QSelf, Stmt, parse_expr};
+use syn::fold::Folder;
+use syn::Stmt::Semi;
 use syn::Unsafety::Normal;
 
 use super::PropertyModelMap;
+
+macro_rules! fold_assign {
+    ($self:expr, $lhs:expr, $new_assign:expr) => {{
+        let mut statements = vec![];
+        let new_statements =
+            if let Field(ref field_expr, ref ident) = $lhs.node {
+                if is_model_path(field_expr) {
+                    Some(create_stmts(ident, $self.map))
+                }
+                else {
+                    None
+                }
+            }
+            else {
+                None
+            };
+        let mut new_assign = $new_assign;
+        if let Some(mut stmts) = new_statements {
+            let new_expr = Expr { node: new_assign, attrs: vec![] };
+            statements.push(Semi(boxed::Box::new(new_expr)));
+            statements.append(&mut stmts);
+            new_assign = Block(Normal, syn::Block { stmts: statements })
+        }
+        new_assign
+    }};
+}
+
+pub struct Adder<'a> {
+    map: &'a PropertyModelMap,
+}
+
+impl<'a> Adder<'a> {
+    pub fn new(map: &'a PropertyModelMap) -> Self {
+        Adder {
+            map: map,
+        }
+    }
+}
+
+impl<'a> Folder for Adder<'a> {
+    fn fold_expr(&mut self, Expr { node, attrs }: Expr) -> Expr {
+        use syn::ExprKind::*;
+        Expr {
+            node: match node {
+                Assign(lhs, rhs) => {
+                    fold_assign!(self, lhs, Assign(lhs.lift(|e| self.fold_expr(e)),
+                        rhs.lift(|e| self.fold_expr(e))))
+                }
+                AssignOp(bop, lhs, rhs) => {
+                    fold_assign!(self, lhs, AssignOp(bop, lhs.lift(|e| self.fold_expr(e)),
+                        rhs.lift(|e| self.fold_expr(e))))
+                }
+
+                // The rest is identical to the original implementation.
+                Box(e) => Box(e.lift(|e| self.fold_expr(e))),
+                InPlace(place, value) => {
+                    InPlace(place.lift(|e| self.fold_expr(e)),
+                    value.lift(|e| self.fold_expr(e)))
+                }
+                Array(array) => Array(array.lift(|e| self.fold_expr(e))),
+                Call(function, args) => {
+                    Call(function.lift(|e| self.fold_expr(e)),
+                    args.lift(|e| self.fold_expr(e)))
+                }
+                MethodCall(method, tys, args) => {
+                    MethodCall(self.fold_ident(method),
+                    tys.lift(|t| self.fold_ty(t)),
+                    args.lift(|e| self.fold_expr(e)))
+                }
+                Tup(args) => Tup(args.lift(|e| self.fold_expr(e))),
+                Binary(bop, lhs, rhs) => {
+                    Binary(bop,
+                           lhs.lift(|e| self.fold_expr(e)),
+                           rhs.lift(|e| self.fold_expr(e)))
+                }
+                Unary(uop, e) => Unary(uop, e.lift(|e| self.fold_expr(e))),
+                Lit(lit) => Lit(self.fold_lit(lit)),
+                Cast(e, ty) => {
+                    Cast(e.lift(|e| self.fold_expr(e)),
+                    ty.lift(|t| self.fold_ty(t)))
+                }
+                Type(e, ty) => {
+                    Type(e.lift(|e| self.fold_expr(e)),
+                    ty.lift(|t| self.fold_ty(t)))
+                }
+                If(e, if_block, else_block) => {
+                    If(e.lift(|e| self.fold_expr(e)),
+                    self.fold_block(if_block),
+                    else_block.map(|v| v.lift(|e| self.fold_expr(e))))
+                }
+                IfLet(pat, expr, block, else_block) => {
+                    IfLet(pat.lift(|p| self.fold_pat(p)),
+                    expr.lift(|e| self.fold_expr(e)),
+                    self.fold_block(block),
+                    else_block.map(|v| v.lift(|e| self.fold_expr(e))))
+                }
+                While(e, block, label) => {
+                    While(e.lift(|e| self.fold_expr(e)),
+                    self.fold_block(block),
+                    label.map(|i| self.fold_ident(i)))
+                }
+                WhileLet(pat, expr, block, label) => {
+                    WhileLet(pat.lift(|p| self.fold_pat(p)),
+                    expr.lift(|e| self.fold_expr(e)),
+                    self.fold_block(block),
+                    label.map(|i| self.fold_ident(i)))
+                }
+                ForLoop(pat, expr, block, label) => {
+                    ForLoop(pat.lift(|p| self.fold_pat(p)),
+                    expr.lift(|e| self.fold_expr(e)),
+                    self.fold_block(block),
+                    label.map(|i| self.fold_ident(i)))
+                }
+                Loop(block, label) => {
+                    Loop(self.fold_block(block),
+                    label.map(|i| self.fold_ident(i)))
+                }
+                Match(e, arms) => {
+                    Match(e.lift(|e| self.fold_expr(e)),
+                    arms.lift(|Arm { attrs, pats, guard, body }: Arm| {
+                        Arm {
+                            attrs: attrs.lift(|a| self.fold_attribute(a)),
+                            pats: pats.lift(|p| self.fold_pat(p)),
+                            guard: guard.map(|v| v.lift(|e| self.fold_expr(e))),
+                            body: body.lift(|e| self.fold_expr(e)),
+                        }
+                    }))
+                }
+                Closure(capture_by, fn_decl, expr) => {
+                    Closure(capture_by,
+                            fn_decl.lift(|v| self.fold_fn_decl(v)),
+                            expr.lift(|e| self.fold_expr(e)))
+                }
+                Block(unsafety, block) => Block(unsafety, self.fold_block(block)),
+                Field(expr, name) => Field(expr.lift(|e| self.fold_expr(e)), self.fold_ident(name)),
+                TupField(expr, index) => TupField(expr.lift(|e| self.fold_expr(e)), index),
+                Index(expr, index) => {
+                    Index(expr.lift(|e| self.fold_expr(e)),
+                    index.lift(|e| self.fold_expr(e)))
+                }
+                Range(lhs, rhs, limits) => {
+                    Range(lhs.map(|v| v.lift(|e| self.fold_expr(e))),
+                    rhs.map(|v| v.lift(|e| self.fold_expr(e))),
+                    limits)
+                }
+                Path(qself, path) => {
+                    Path(qself.map(|v| noop_fold_qself(self, v)),
+                    self.fold_path(path))
+                }
+                AddrOf(mutability, expr) => AddrOf(mutability, expr.lift(|e| self.fold_expr(e))),
+                Break(label, expr) => {
+                    Break(label.map(|i| self.fold_ident(i)),
+                    expr.map(|v| v.lift(|e| self.fold_expr(e))))
+                }
+                Continue(label) => Continue(label.map(|i| self.fold_ident(i))),
+                Ret(expr) => Ret(expr.map(|v| v.lift(|e| self.fold_expr(e)))),
+                ExprKind::Mac(mac) => ExprKind::Mac(self.fold_mac(mac)),
+                Struct(path, fields, expr) => {
+                    Struct(self.fold_path(path),
+                    fields.lift(|FieldValue { ident, expr, is_shorthand, attrs }: FieldValue| {
+                        FieldValue {
+                            ident: self.fold_ident(ident),
+                            expr: self.fold_expr(expr),
+                            is_shorthand: is_shorthand,
+                            attrs: attrs.lift(|v| self.fold_attribute(v)),
+                        }
+                    }),
+                    expr.map(|v| v.lift(|e| self.fold_expr(e))))
+                }
+                Repeat(element, number) => {
+                    Repeat(element.lift(|e| self.fold_expr(e)),
+                    number.lift(|e| self.fold_expr(e)))
+                }
+                Paren(expr) => Paren(expr.lift(|e| self.fold_expr(e))),
+                Try(expr) => Try(expr.lift(|e| self.fold_expr(e))),
+            },
+            attrs: attrs.into_iter().map(|a| self.fold_attribute(a)).collect(),
+        }
+    }
+}
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Property {
     pub expr: String,
     pub name: String,
     pub widget_name: Ident,
-}
-
-pub fn add_set_property_to_block(block: &mut syn::Block, map: &PropertyModelMap) {
-    for stmt in &mut block.stmts {
-        add_to_stmt(stmt, map);
-    }
-}
-
-fn add_to_arm(arm: &mut Arm, map: &PropertyModelMap) {
-    if let Some(ref mut guard) = arm.guard {
-        add_to_expr(guard, map);
-    }
-    add_to_expr(&mut arm.body, map);
-}
-
-fn add_to_expr(expr: &mut syn::Expr, map: &PropertyModelMap) {
-    let expr_clone: syn::Expr = expr.clone();
-    let mut new_expr = None;
-    match expr.node {
-        Assign(ref mut lhs, _) | AssignOp(_, ref mut lhs, _) => {
-            let mut statements = vec![];
-            if let Field(ref field_expr, ref ident) = lhs.node {
-                if is_model_path(field_expr) {
-                    statements.push(Semi(Box::new(expr_clone)));
-                    statements.append(&mut create_stmts(ident, map));
-                    new_expr = Some(syn::Expr { node: Block(Normal, syn::Block { stmts: statements }), attrs: vec![] });
-                }
-            }
-        },
-        Block(_, ref mut block) => add_set_property_to_block(block, map),
-        Call(ref mut expr, ref mut exprs) => {
-            add_to_expr(expr, map);
-            for expr in exprs {
-                add_to_expr(expr, map);
-            }
-        },
-        Match(ref mut expr, ref mut arms) => {
-            add_to_expr(expr, map);
-            for arm in arms {
-                add_to_arm(arm, map);
-            }
-        },
-        Path(_, _) => (), // No expression.
-        _ => panic!("unimplemented expr {:?}", expr.node),
-    }
-    if let Some(new_expr) = new_expr {
-        *expr = new_expr;
-    }
-}
-
-fn add_to_stmt(stmt: &mut Stmt, map: &PropertyModelMap) {
-    match *stmt {
-        Expr(ref mut expr) | Semi(ref mut expr) => add_to_expr(expr, map),
-        _ => panic!("unimplemented stmt {:?}", stmt),
-    }
 }
 
 fn create_stmts(ident: &Ident, map: &PropertyModelMap) -> Vec<Stmt> {
@@ -101,7 +228,7 @@ fn create_stmts(ident: &Ident, map: &PropertyModelMap) -> Vec<Stmt> {
             { self.#widget_name.#prop_name(#tokens); }
         };
         let expr = parse_expr(&stmt.parse::<String>().unwrap()).unwrap();
-        if let Block(_, ref block) = expr.node {
+        if let ExprKind::Block(_, ref block) = expr.node {
             stmts.push(block.stmts[0].clone());
         }
     }
@@ -109,8 +236,47 @@ fn create_stmts(ident: &Ident, map: &PropertyModelMap) -> Vec<Stmt> {
 }
 
 fn is_model_path(expr: &syn::Expr) -> bool {
-    if let Path(_, ref path) = expr.node {
+    if let ExprKind::Path(_, ref path) = expr.node {
         return path.segments.len() == 1 && path.segments[0].ident == Ident::new("model");
     }
     false
+}
+
+// The following comes from the syn crate.
+trait LiftOnce<T, U> {
+    type Output;
+    fn lift<F>(self, f: F) -> Self::Output where F: FnOnce(T) -> U;
+}
+
+impl<T, U> LiftOnce<T, U> for Box<T> {
+    type Output = Box<U>;
+    // Clippy false positive
+    // https://github.com/Manishearth/rust-clippy/issues/1478
+    #[cfg_attr(feature = "cargo-clippy", allow(boxed_local))]
+    fn lift<F>(self, f: F) -> Box<U>
+        where F: FnOnce(T) -> U
+    {
+        Box::new(f(*self))
+    }
+}
+
+trait LiftMut<T, U> {
+    type Output;
+    fn lift<F>(self, f: F) -> Self::Output where F: FnMut(T) -> U;
+}
+
+impl<T, U> LiftMut<T, U> for Vec<T> {
+    type Output = Vec<U>;
+    fn lift<F>(self, f: F) -> Vec<U>
+        where F: FnMut(T) -> U
+    {
+        self.into_iter().map(f).collect()
+    }
+}
+
+fn noop_fold_qself<F: ?Sized + Folder>(folder: &mut F, QSelf { ty, position }: QSelf) -> QSelf {
+    QSelf {
+        ty: Box::new(folder.fold_ty(*(ty))),
+        position: position,
+    }
 }

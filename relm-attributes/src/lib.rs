@@ -22,6 +22,9 @@
 /*
  * TODO: allow pattern matching by creating a function update(&mut self, Quit: Msg, model: &mut Model) so that we can separate
  * the update function in multiple functions.
+ * TODO: provide default parameter for constructor (like Toplevel). Is it still necessary?
+ * Perhaps for construct-only properties (if they don't have a default value, does this happen?).
+ * TODO: think about conditions and loops (widget-list).
  */
 
 #![feature(proc_macro)]
@@ -36,19 +39,23 @@ extern crate syn;
 mod adder;
 mod gen;
 mod parser;
+mod walker;
 
 use std::collections::{HashMap, HashSet};
 
 use proc_macro::TokenStream;
 use quote::{Tokens, ToTokens};
-use syn::{Delimited, Expr, ExprKind, Ident, ImplItem, Mac, TokenTree, parse_expr, parse_item};
+use syn::{Delimited, Ident, ImplItem, Mac, TokenTree, parse_expr, parse_item};
+use syn::fold::Folder;
 use syn::ItemKind::Impl;
 use syn::ImplItemKind::{Const, Macro, Method, Type};
 use syn::Ty::{self, Path};
+use syn::visit::Visitor;
 
-use adder::{Property, add_set_property_to_block};
+use adder::{Adder, Property};
 use gen::gen;
 use parser::{Widget, parse};
+use walker::ModelVariableVisitor;
 
 type PropertyModelMap = HashMap<Ident, HashSet<Property>>;
 
@@ -167,10 +174,10 @@ fn get_name(typ: &Ty) -> Ident {
  */
 fn get_update(mut func: ImplItem, map: PropertyModelMap) -> ImplItem {
     if let Method(_, ref mut block) = func.node {
-        add_set_property_to_block(block, &map);
+        let mut adder = Adder::new(&map);
+        *block = adder.fold_block(block.clone());
     }
     // TODO: consider gtk::main_quit() as return.
-    // TODO: automatically add the widget set_property() calls.
     func
 }
 
@@ -191,7 +198,9 @@ fn get_properties_model_map(widget: &Widget, map: &mut PropertyModelMap) {
     for (name, value) in &widget.properties {
         let string = value.parse::<String>().unwrap();
         let expr = parse_expr(&string).unwrap();
-        let model_variables = get_all_model_variables(&expr);
+        let mut visitor = ModelVariableVisitor::new();
+        visitor.visit_expr(&expr);
+        let model_variables = visitor.idents;
         for var in model_variables {
             let set = map.entry(var).or_insert_with(HashSet::new);
             set.insert(Property {
@@ -204,31 +213,4 @@ fn get_properties_model_map(widget: &Widget, map: &mut PropertyModelMap) {
     for child in &widget.children {
         get_properties_model_map(child, map);
     }
-}
-
-fn get_all_model_variables(expr: &Expr) -> Vec<Ident> {
-    let mut variables = vec![];
-    match expr.node {
-        ExprKind::AddrOf(_, ref expr) => {
-            variables.append(&mut get_all_model_variables(&expr));
-        },
-        ExprKind::Field(ref expr, ref field) => {
-            if let ExprKind::Path(_, ref path) = expr.node {
-                if path.segments[0].ident == Ident::new("model") {
-                    variables.push(field.clone());
-                }
-            }
-            else {
-                variables.append(&mut get_all_model_variables(&expr));
-            }
-        },
-        ExprKind::Lit(_) | ExprKind::Path(_, _) => (), // No variable in these expressions.
-        ExprKind::MethodCall(_, _, ref exprs) => {
-            for expr in exprs {
-                variables.append(&mut get_all_model_variables(expr));
-            }
-        },
-        _ => panic!("unimplemented expr {:?}", expr.node),
-    }
-    variables
 }

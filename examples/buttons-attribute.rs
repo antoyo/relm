@@ -86,9 +86,6 @@ impl Widget<Msg> for Win {
         }
     }
 
-    // TODO: provide default parameter for constructor (like Toplevel). Is it still necessary?
-    // Perhaps for construct-only properties (if they don't have a default value, does this happen?).
-    // TODO: think about conditions and loops (widget-list).
     view! {
         // TODO: guess if it is a GTK+ widget or Relm widget by looking at the connected events?
         // This is to avoid having to write gtk::.
