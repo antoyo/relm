@@ -29,6 +29,8 @@ use syn::DelimToken::{Brace, Paren};
 use syn::TokenTree::{self, Token};
 use syn::Token::{Colon, Comma, FatArrow, Ident, ModSep};
 
+use Widget::*;
+
 lazy_static! {
     static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
 }
@@ -49,24 +51,70 @@ impl Event {
 }
 
 #[derive(Debug)]
-pub struct Widget {
-    pub children: Vec<Widget>,
-    pub events: HashMap<String, Event>,
-    pub gtk_type: String,
-    pub init_parameters: Vec<String>,
-    pub name: syn::Ident,
-    pub properties: HashMap<String, Tokens>,
+pub enum Widget {
+    Gtk(GtkWidget),
+    Relm(RelmWidget),
 }
 
 impl Widget {
-    fn new(gtk_type: String) -> Self {
-        Widget {
+    pub fn name(&self) -> &syn::Ident {
+        match *self {
+            Gtk(ref widget) => &widget.name,
+            Relm(ref widget) => &widget.name,
+        }
+    }
+
+    pub fn typ(&self) -> &syn::Ident {
+        match *self {
+            Gtk(ref widget) => &widget.gtk_type,
+            Relm(ref widget) => &widget.relm_type,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct GtkWidget {
+    pub children: Vec<Widget>,
+    pub events: HashMap<String, Event>,
+    pub gtk_type: syn::Ident,
+    pub init_parameters: Vec<String>,
+    pub name: syn::Ident,
+    pub properties: HashMap<String, Tokens>,
+    pub relm_name: Option<syn::Ident>,
+}
+
+impl GtkWidget {
+    fn new(gtk_type: &str) -> Self {
+        let name = syn::Ident::new(gen_widget_name(&gtk_type));
+        GtkWidget {
             children: vec![],
             events: HashMap::new(),
-            gtk_type: gtk_type,
+            gtk_type: syn::Ident::new(gtk_type),
             init_parameters: vec![],
-            name: syn::Ident::new(""),
+            name: name,
             properties: HashMap::new(),
+            relm_name: None,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct RelmWidget {
+    //pub events: HashMap<String, Event>,
+    pub name: syn::Ident,
+    pub relm_type: syn::Ident,
+}
+
+impl RelmWidget {
+    fn new(relm_type: String) -> Self {
+        let mut name = gen_widget_name(&relm_type);
+        // Relm widgets are not used in the update() method; they are only saved to avoid dropping
+        // their channel too soon.std
+        // So prepend an underscore to hide a warning.
+        name.insert(0, '_');
+        RelmWidget {
+            name: syn::Ident::new(name),
+            relm_type: syn::Ident::new(relm_type),
         }
     }
 }
@@ -78,7 +126,7 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
 
 fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     let (gtk_type, mut tokens) = parse_qualified_name(tokens);
-    let mut widget = Widget::new(gtk_type);
+    let mut widget = GtkWidget::new(&gtk_type);
     // TODO: this initial parameters might not be necessary anymore. Or perhaps they are since some
     // widgets have construct-only properties.
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
@@ -92,11 +140,18 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
             if try_parse_name(tts).is_some() {
                 // Widget.
                 match tts[1] {
+                    // GTK+ widget.
                     Token(ModSep) | TokenTree::Delimited(Delimited { delim: Brace, .. }) => {
                         let (child, new_tts) = parse_widget(tts);
                         tts = new_tts;
                         widget.children.push(child);
                     },
+                    // Relm widget.
+                    Token(Comma) => {
+                        let (relm_type, _) = parse_qualified_name(tts);
+                        widget.children.push(Relm(RelmWidget::new(relm_type)));
+                        tts = &tts[2..];
+                    }
                     _ => panic!("Expected property, event or child but found `{:?}{:?}` in view! macro", tts[0], tts[1]),
                 }
             }
@@ -128,8 +183,7 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     else {
         panic!("Expected {{ but found `{:?}` in view! macro", tokens[0]);
     }
-    widget.name = syn::Ident::new(gen_widget_name(&widget.gtk_type));
-    (widget, &tokens[1..])
+    (Gtk(widget), &tokens[1..])
 }
 
 fn parse_ident(tokens: &[TokenTree]) -> (String, &[TokenTree]) {

@@ -19,30 +19,45 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use std::collections::HashMap;
+
 use quote::Tokens;
 use syn::Ident;
 
-use parser::Widget;
+use parser::{GtkWidget, RelmWidget, Widget};
+use parser::Widget::{Gtk, Relm};
+use super::COMPONENTS;
 
-pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: Vec<&Ident>) -> Tokens {
+pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: Vec<&Ident>) -> (Tokens, HashMap<Ident, Ident>) {
     let mut widget_names = vec![];
-    let widget = gen_widget(&widget, None, &mut widget_names, root_widget, root_widget_type);
-    let widget_names1: Vec<_> = widget_names.iter().filter(|ident| idents.contains(ident)).collect();
+    let mut relm_widgets = HashMap::new();
+    let widget = gen_widget(&widget, None, &mut widget_names, root_widget, root_widget_type, &mut relm_widgets);
+    let widget_names1: Vec<_> = widget_names.iter()
+        .filter(|ident| idents.contains(ident) || relm_widgets.contains_key(ident))
+        .collect();
     let widget_names1 = &widget_names1;
     let widget_names2 = widget_names1;
     let root_widget_name = &root_widget.as_ref().unwrap();
-    quote! {
+    let code = quote! {
         #widget
 
         #name {
             #root_widget_name: #root_widget_name,
             #(#widget_names1: #widget_names2),*
         }
+    };
+    (code, relm_widgets)
+}
+
+fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, relm_widgets: &mut HashMap<Ident, Ident>) -> Tokens {
+    match *widget {
+        Gtk(ref gtk_widget) => gen_gtk_widget(gtk_widget, parent, widget_names, root_widget, root_widget_type, relm_widgets),
+        Relm(ref relm_widget) => gen_relm_widget(relm_widget, parent, widget_names, relm_widgets),
     }
 }
 
-fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>) -> Tokens {
-    let struct_name = Ident::new(widget.gtk_type.as_ref());
+fn gen_gtk_widget(widget: &GtkWidget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, relm_widgets: &mut HashMap<Ident, Ident>) -> Tokens {
+    let struct_name = &widget.gtk_type;
     let widget_name = &widget.name;
     widget_names.push(widget_name.clone());
 
@@ -63,7 +78,7 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
     }
 
     let children: Vec<_> = widget.children.iter()
-        .map(|child| gen_widget(child, Some(widget_name), widget_names, root_widget, root_widget_type)).collect();
+        .map(|child| gen_widget(child, Some(widget_name), widget_names, root_widget, root_widget_type, relm_widgets)).collect();
 
     let add_child_or_show_all =
         if let Some(name) = parent {
@@ -100,4 +115,37 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
         #(#children)*
         #add_child_or_show_all
     }
+}
+
+fn gen_relm_widget(widget: &RelmWidget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, relm_widgets: &mut HashMap<Ident, Ident>) -> Tokens {
+    widget_names.push(widget.name.clone());
+    let widget_name = &widget.name;
+    let widget_type = Ident::new(widget.relm_type.as_ref());
+    let relm_component_type = gen_relm_component_type(&widget.relm_type);
+    relm_widgets.insert(widget.name.clone(), relm_component_type);
+    let parent = parent.unwrap();
+    quote! {
+        let #widget_name = {
+            use ::relm::ContainerWidget;
+            #parent.add_widget::<#widget_type, _, _>(&relm)
+        };
+    }
+}
+
+fn gen_relm_component_type(name: &Ident) -> Ident {
+    let components = COMPONENTS.lock().unwrap();
+    let model_type = &components[name].model_type;
+    let msg_type = &components[name].msg_type;
+    let view_type = &components[name].view_type;
+
+    let mut model = Tokens::new();
+    model.append_all(&[model_type]);
+
+    let mut msg = Tokens::new();
+    msg.append_all(&[msg_type]);
+
+    let mut view = Tokens::new();
+    view.append(view_type);
+
+    Ident::new(format!("::relm::Component<{}, {}, {}>", model, msg, view).as_ref())
 }

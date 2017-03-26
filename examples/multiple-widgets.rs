@@ -49,9 +49,6 @@ struct Text {
     vbox: gtk::Box,
 }
 
-impl Text {
-}
-
 impl Widget<TextMsg> for Text {
     type Container = gtk::Box;
     type Model = TextModel;
@@ -171,9 +168,6 @@ struct Win {
     _counter2: Component<Model, CounterMsg, gtk::Box>,
     _text: Component<TextModel, TextMsg, gtk::Box>,
     window: Window,
-}
-
-impl Win {
 }
 
 impl Widget<Msg> for Win {
