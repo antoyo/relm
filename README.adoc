@@ -147,4 +147,113 @@ fn main() {
 }
 ----
 
+=== `#[widget]` attribute
+
+For the nightly users, a `#[widget]` attribute is provided to simplify the creation of a widget.
+
+This attribute does the following:
+
+ * Provide a `view!` macro to create the widget with a declarative syntax.
+ * Automatically create the `fn container()`, `type Model` and `type Container` items.
+ * Automatically insert the call to `Widget::set_property()` in the `update()` function when assigning to an attribute of the model.
+ * Automatically create the `Widget` `struct`.
+
+Here is an example using this attribute:
+
+[source,rust]
+----
+#[widget]
+impl Widget<Msg> for Win {
+    // Return the initial model.
+    fn model() -> Model {
+        Model {
+            counter: 0,
+        }
+    }
+
+    fn update(&mut self, event: Msg, model: &mut Model) {
+        match event {
+            // A call to self.label1.set_text() is automatically inserted by the attribute every time the model.counter attribute is updated.
+            Decrement => model.counter -= 1,
+            Increment => model.counter += 1,
+            Quit => gtk::main_quit(),
+        }
+    }
+
+    view! {
+        Window {
+            gtk::Box {
+                orientation: Vertical,
+                Button {
+                    // By default, an event with one paramater is assumed.
+                    clicked => Increment,
+                    // Hence, the previous line is equivalent to:
+                    // clicked(_) => Increment,
+                    label: "+",
+                },
+                Label {
+                    // By the text property of this Label to the counter attribute of the model.
+                    // Every time the counter attribute is updated, the text property will be updated too.
+                    text: &model.counter.to_string(),
+                },
+                Button {
+                    clicked => Decrement,
+                    label: "-",
+                },
+            },
+            // Use a tuple when you want to both send a message and return a value to the GTK+ callback.
+            delete_event(_, _) => (Quit, Inhibit(false)),
+        }
+    }
+}
+----
+
+NOTE: The `struct Win` is now automatically created by the attribute, as are the function `container()` and the types `Model` and `Container`.
+You can still provide the method and the types if needed, but you cannot create the `struct`.
+
+[WARNING]
+====
+Your program might be slower when using this attribute because the code generation is simple.
+For instance, the following code
+[source,rust]
+----
+fn update(&mut self, event: Msg, model: &mut Model) {
+    for _ in 0..100 {
+        model.counter += 1;
+    }
+}
+----
+will generate this function:
+[source,rust]
+----
+fn update(&mut self, event: Msg, model: &mut Model) {
+    for _ in 0..100 {
+        model.counter += 1;
+        self.label1.set_text(&model.counter.to_string());
+    }
+}
+----
+====
+
+[WARNING]
+====
+Also, the `set_property()` calls are currently only inserted when assigning to an attribute of the model.
+For instance, the following code
+[source,rust]
+----
+fn update(&mut self, event: Msg, model: &mut Model) {
+    model.text.push_str("Text");
+}
+----
+will not work as expected.
+
+Please use the following variation if needed.
+[source,rust]
+----
+fn update(&mut self, event: Msg, model: &mut Model) {
+    model.text += "Text";
+}
+----
+====
+
 For more information about how you can use relm, you can take a look at the https://github.com/antoyo/relm/tree/master/examples[examples].
