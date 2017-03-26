@@ -24,9 +24,9 @@ use syn::Ident;
 
 use parser::Widget;
 
-pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>) -> Tokens {
+pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>) -> Tokens {
     let mut widget_names = vec![];
-    let widget = gen_widget(&widget, None, &mut widget_names, root_widget);
+    let widget = gen_widget(&widget, None, &mut widget_names, root_widget, root_widget_type);
     let widget_names1 = &widget_names;
     let widget_names2 = &widget_names;
     quote! {
@@ -38,7 +38,7 @@ pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>) -> Tok
     }
 }
 
-fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, root_widget: &mut Option<Ident>) -> Tokens {
+fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>) -> Tokens {
     let struct_name = Ident::new(widget.gtk_type.as_ref());
     let widget_name = &widget.name;
     widget_names.push(widget_name.clone());
@@ -60,7 +60,7 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
     }
 
     let children: Vec<_> = widget.children.iter()
-        .map(|child| gen_widget(child, Some(widget_name), widget_names, root_widget)).collect();
+        .map(|child| gen_widget(child, Some(widget_name), widget_names, root_widget, root_widget_type)).collect();
 
     let add_child_or_show_all =
         if let Some(name) = parent {
@@ -69,6 +69,7 @@ fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Id
             }
         }
         else {
+            *root_widget_type = Some(struct_name.clone());
             *root_widget = Some(widget_name.clone());
             quote! {
                 #widget_name.show_all();

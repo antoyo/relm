@@ -45,11 +45,11 @@ use std::collections::{HashMap, HashSet};
 
 use proc_macro::TokenStream;
 use quote::{Tokens, ToTokens};
-use syn::{Delimited, Ident, ImplItem, Mac, TokenTree, parse_expr, parse_item};
+use syn::{Delimited, FunctionRetTy, Ident, ImplItem, Mac, Path, TokenTree, parse_expr, parse_item};
 use syn::fold::Folder;
 use syn::ItemKind::Impl;
 use syn::ImplItemKind::{Const, Macro, Method, Type};
-use syn::Ty::{self, Path};
+use syn::Ty;
 use syn::visit::Visitor;
 
 use adder::{Adder, Property};
@@ -68,25 +68,34 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
         let mut new_items = vec![];
         let mut container_method = None;
         let mut root_widget = None;
+        let mut root_widget_type = None;
+        let mut widget_model_type = None;
         let mut update_method = None;
         let mut properties_model_map = None;
+        let mut container_type = None;
+        let mut model_type = None;
         for item in items {
             let i = item.clone();
             let new_item =
                 match item.node {
                     Const(_, _) => panic!("Unexpected const item"),
                     Macro(mac) => {
-                        let (view, map) = get_view(mac, &name, &mut root_widget);
+                        let (view, map) = get_view(mac, &name, &mut root_widget, &mut root_widget_type);
                         properties_model_map = Some(map);
                         view
                     },
-                    Method(_, _) => {
+                    Method(sig, _) => {
                         match item.ident.to_string().as_ref() {
                             "container" => {
                                 container_method = Some(i);
                                 continue;
                             },
-                            "model" => i,
+                            "model" => {
+                                if let FunctionRetTy::Ty(Ty::Path(_, path)) = sig.decl.output {
+                                    widget_model_type = Some(path);
+                                }
+                                i
+                            },
                             "subscriptions" => i,
                             "update" => {
                                 update_method = Some(i);
@@ -96,10 +105,23 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
                             method_name => panic!("Unexpected method {}", method_name),
                         }
                     },
-                    Type(_) => i,
+                    Type(_) => {
+                        if item.ident == Ident::new("Container") {
+                            container_type = Some(i);
+                        }
+                        else if item.ident == Ident::new("Model") {
+                            model_type = Some(i);
+                        }
+                        else {
+                            panic!("Unexpected type item {:?}", item.ident);
+                        }
+                        continue;
+                    },
                 };
             new_items.push(new_item);
         }
+        new_items.push(get_model_type(model_type, widget_model_type));
+        new_items.push(get_container_type(container_type, root_widget_type));
         new_items.push(get_update(update_method.unwrap(), properties_model_map.unwrap()));
         new_items.push(get_container(container_method, root_widget));
         let item = Impl(unsafety, polarity, generics, path, typ, new_items);
@@ -127,12 +149,12 @@ fn block_to_impl_item(tokens: Tokens) -> ImplItem {
     }
 }
 
-fn impl_view(name: &Ident, tokens: Vec<TokenTree>, root_widget: &mut Option<Ident>) -> (ImplItem, PropertyModelMap) {
+fn impl_view(name: &Ident, tokens: Vec<TokenTree>, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>) -> (ImplItem, PropertyModelMap) {
     if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
         let widget = parse(tts);
         let mut properties_model_map = HashMap::new();
         get_properties_model_map(&widget, &mut properties_model_map);
-        let view = gen(name, widget, root_widget);
+        let view = gen(name, widget, root_widget, root_widget_type);
         let item = block_to_impl_item(quote! {
             #[allow(unused_variables)]
             fn view(relm: RemoteRelm<Msg>, model: &Self::Model) -> Self {
@@ -157,8 +179,26 @@ fn get_container(container_method: Option<ImplItem>, root_widget: Option<Ident>)
     })
 }
 
+fn get_container_type(container_type: Option<ImplItem>, root_widget_type: Option<Ident>) -> ImplItem {
+    container_type.unwrap_or_else(|| {
+        let root_widget_type = root_widget_type.unwrap();
+        block_to_impl_item(quote! {
+            type Container = #root_widget_type;
+        })
+    })
+}
+
+fn get_model_type(model_type: Option<ImplItem>, widget_model_type: Option<Path>) -> ImplItem {
+    model_type.unwrap_or_else(|| {
+        let widget_model_type = widget_model_type.unwrap();
+        block_to_impl_item(quote! {
+            type Model = #widget_model_type;
+        })
+    })
+}
+
 fn get_name(typ: &Ty) -> Ident {
-    if let Path(_, ref path) = *typ {
+    if let Ty::Path(_, ref path) = *typ {
         let mut tokens = Tokens::new();
         path.to_tokens(&mut tokens);
         Ident::new(tokens.to_string())
@@ -181,10 +221,10 @@ fn get_update(mut func: ImplItem, map: PropertyModelMap) -> ImplItem {
     func
 }
 
-fn get_view(mac: Mac, name: &Ident, root_widget: &mut Option<Ident>) -> (ImplItem, PropertyModelMap) {
+fn get_view(mac: Mac, name: &Ident, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>) -> (ImplItem, PropertyModelMap) {
     let segments = mac.path.segments;
     if segments.len() == 1 && segments[0].ident.to_string() == "view" {
-        impl_view(name, mac.tts, root_widget)
+        impl_view(name, mac.tts, root_widget, root_widget_type)
     }
     else {
         panic!("Unexpected macro item")

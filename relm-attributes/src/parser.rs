@@ -116,7 +116,7 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
                         widget.events.insert(ident, event);
                         tts = new_tts;
                     },
-                    _ => panic!("Expected `:`, `(` or `[` but found `{:?}` in view! macro", tts[0]),
+                    _ => panic!("Expected `:` or `(` but found `{:?}` in view! macro", tts[0]),
                 }
             }
 

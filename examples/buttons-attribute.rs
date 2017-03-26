@@ -68,11 +68,6 @@ struct Win {
 
 #[widget]
 impl Widget<Msg> for Win {
-    // TODO: automatically add this type?
-    type Container = Window;
-    // TODO: and this one too?
-    type Model = Model;
-
     fn model() -> Model {
         Model {
             counter: 0,

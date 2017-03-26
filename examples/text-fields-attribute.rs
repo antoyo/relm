@@ -65,9 +65,6 @@ struct Win {
 
 #[widget]
 impl Widget<Msg> for Win {
-    type Container = Window;
-    type Model = Model;
-
     fn model() -> Model {
         Model {
             content: String::new(),
@@ -76,7 +73,7 @@ impl Widget<Msg> for Win {
 
     fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
-            Change(text) => model.content = text.chars().rev().collect(),
+            Change(text) => model.content = text,
             Quit => gtk::main_quit(),
         }
     }
@@ -86,7 +83,11 @@ impl Widget<Msg> for Win {
             gtk::Box {
                 orientation: Vertical,
                 Entry {
-                    changed(entry) => Change(entry.get_text().unwrap()),
+                    changed(entry) => Change(
+                        entry.get_text().unwrap()
+                            .chars().rev().collect()
+                    ),
+                    placeholder_text: "Text to reverse",
                 },
                 Label {
                     text: &model.content,
