@@ -203,8 +203,6 @@ fn parse_event(mut tokens: &[TokenTree]) -> (Event, &[TokenTree]) {
         event.value = value_tokens;
     }
     else {
-        // TODO: parse event like changed(entry) => TextChange(entry.get_text().unwrap()).
-        // Probably done.
         let (value, new_toks) = parse_value(tokens);
         let mut value_tokens = Tokens::new();
         value_tokens.append(",");
