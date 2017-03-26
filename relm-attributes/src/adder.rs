@@ -95,17 +95,19 @@ pub struct Property {
 
 fn create_stmts(ident: &Ident, map: &PropertyModelMap) -> Vec<Stmt> {
     let mut stmts = vec![];
-    for property in &map[ident] {
-        let widget_name = &property.widget_name;
-        let prop_name = Ident::new(format!("set_{}", property.name));
-        let mut tokens = Tokens::new();
-        tokens.append(&property.expr);
-        let stmt = quote! {
-            { self.#widget_name.#prop_name(#tokens); }
-        };
-        let expr = parse_expr(&stmt.parse::<String>().unwrap()).unwrap();
-        if let ExprKind::Block(_, ref block) = expr.node {
-            stmts.push(block.stmts[0].clone());
+    if let Some(properties) = map.get(ident) {
+        for property in properties {
+            let widget_name = &property.widget_name;
+            let prop_name = Ident::new(format!("set_{}", property.name));
+            let mut tokens = Tokens::new();
+            tokens.append(&property.expr);
+            let stmt = quote! {
+                { self.#widget_name.#prop_name(#tokens); }
+            };
+            let expr = parse_expr(&stmt.parse::<String>().unwrap()).unwrap();
+            if let ExprKind::Block(_, ref block) = expr.node {
+                stmts.push(block.stmts[0].clone());
+            }
         }
     }
     stmts

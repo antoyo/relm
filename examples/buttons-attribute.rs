@@ -49,7 +49,6 @@ struct Model {
     counter: i32,
 }
 
-// TODO: does an attribute #[msg] would simplify the implementation?
 #[derive(Msg)]
 enum Msg {
     Decrement,
