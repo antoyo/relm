@@ -79,7 +79,8 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
 fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     let (gtk_type, mut tokens) = parse_qualified_name(tokens);
     let mut widget = Widget::new(gtk_type);
-    // TODO: this initial parameters might not be necessary anymore.
+    // TODO: this initial parameters might not be necessary anymore. Or perhaps they are since some
+    // widgets have construct-only properties.
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
         let parameters = parse_comma_list(tts);
         widget.init_parameters = parameters;
