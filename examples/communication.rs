@@ -49,9 +49,6 @@ struct Text {
     vbox: gtk::Box,
 }
 
-impl Text {
-}
-
 impl Widget<TextMsg> for Text {
     type Container = gtk::Box;
     type Model = TextModel;
@@ -108,9 +105,6 @@ enum CounterMsg {
 struct Counter {
     counter_label: Label,
     vbox: gtk::Box,
-}
-
-impl Counter {
 }
 
 impl Widget<CounterMsg> for Counter {
