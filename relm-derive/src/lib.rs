@@ -82,24 +82,24 @@ fn derive_clone(ast: &MacroInput) -> quote::Tokens {
         let variant_patterns = variant_idents_values.iter().map(|&(ref ident, has_value)| {
             if has_value {
                 quote! {
-                    #ident(ref value)
+                    #name::#ident(ref value)
                 }
             }
             else {
                 quote! {
-                    #ident
+                    #name::#ident
                 }
             }
         });
         let variant_values = variant_idents_values.iter().map(|&(ref ident, has_value)| {
             if has_value {
                 quote! {
-                    #ident(value.clone())
+                    #name::#ident(value.clone())
                 }
             }
             else {
                 quote! {
-                    #ident
+                    #name::#ident
                 }
             }
         });
@@ -136,12 +136,12 @@ fn derive_display_variant(ast: &MacroInput) -> quote::Tokens {
         let variant_patterns = variant_idents_values.iter().map(|&(ref ident, has_value)| {
             if has_value {
                 quote! {
-                    #ident(_)
+                    #name::#ident(_)
                 }
             }
             else {
                 quote! {
-                    #ident
+                    #name::#ident
                 }
             }
         });

@@ -29,8 +29,6 @@ use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType}
 use gtk::Orientation::Vertical;
 use relm::{Relm, RemoteRelm, Widget};
 
-use self::Msg::*;
-
 #[derive(Clone)]
 struct Model {
     counter: i32,
@@ -66,15 +64,15 @@ impl Widget<Msg> for Win {
         let label = &self.counter_label;
 
         match event {
-            Decrement => {
+            Msg::Decrement => {
                 model.counter -= 1;
                 label.set_text(&model.counter.to_string());
             },
-            Increment => {
+            Msg::Increment => {
                 model.counter += 1;
                 label.set_text(&model.counter.to_string());
             },
-            Quit => gtk::main_quit(),
+            Msg::Quit => gtk::main_quit(),
         }
     }
 
@@ -96,9 +94,9 @@ impl Widget<Msg> for Win {
 
         window.show_all();
 
-        connect!(relm, plus_button, connect_clicked(_), Increment);
-        connect!(relm, minus_button, connect_clicked(_), Decrement);
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
+        connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
+        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Msg::Quit);
 
         Win {
             counter_label: counter_label,
