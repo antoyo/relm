@@ -46,7 +46,6 @@ use futures::Future;
 use gtk::{
     Button,
     ButtonExt,
-    ContainerExt,
     EditableSignals,
     Entry,
     EntryExt,

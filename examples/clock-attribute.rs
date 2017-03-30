@@ -34,7 +34,6 @@ use std::time::Duration;
 
 use chrono::{DateTime, Local};
 use gtk::{
-    ContainerExt,
     Inhibit,
     Label,
     WidgetExt,

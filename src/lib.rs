@@ -20,6 +20,8 @@
  */
 
 /*
+ * TODO: use weak pointers to avoid leaking.
+ *
  * TODO: chat client/server example.
  *
  * TODO: try tk-easyloop in another branch.

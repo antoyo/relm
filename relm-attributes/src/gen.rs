@@ -83,7 +83,7 @@ fn gen_gtk_widget(widget: &GtkWidget, parent: Option<&Ident>, widget_names: &mut
     let add_child_or_show_all =
         if let Some(name) = parent {
             quote! {
-                #name.add(&#widget_name);
+                ::gtk::ContainerExt::add(&#name, &#widget_name);
             }
         }
         else {
@@ -126,8 +126,7 @@ fn gen_relm_widget(widget: &RelmWidget, parent: Option<&Ident>, widget_names: &m
     let parent = parent.unwrap();
     quote! {
         let #widget_name = {
-            use ::relm::ContainerWidget;
-            #parent.add_widget::<#widget_type, _, _>(&relm)
+            ::relm::ContainerWidget::add_widget::<#widget_type, _, _>(&#parent, &relm)
         };
     }
 }
