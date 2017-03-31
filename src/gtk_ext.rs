@@ -19,14 +19,12 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::ffi::CString;
-
-use glib::translate::ToGlibPtr;
+use glib::translate::{ToGlib, ToGlibPtr};
 use gtk;
 use gtk::{IsA, PackType, Value, Widget};
 use gtk_sys;
 
-pub trait BoxChildProperty {
+pub trait BoxExtManual {
     fn set_child_expand<T: IsA<Widget>>(&self, child: &T, expand: bool);
 
     fn set_child_fill<T: IsA<Widget>>(&self, child: &T, fill: bool);
@@ -38,39 +36,34 @@ pub trait BoxChildProperty {
     fn set_child_position<T: IsA<Widget>>(&self, child: &T, position: i32);
 }
 
-impl BoxChildProperty for gtk::Box {
+impl BoxExtManual for gtk::Box {
     fn set_child_expand<T: IsA<Widget>>(&self, child: &T, expand: bool) {
-        let property = CString::new("expand").unwrap();
         let expand = Value::from(&expand);
         unsafe { gtk_sys::gtk_container_child_set_property(self.to_glib_none().0, child.to_glib_none().0,
-            property.as_ptr(), expand.to_glib_none().0) }
+            "expand".to_glib_none().0, expand.to_glib_none().0) }
     }
 
     fn set_child_fill<T: IsA<Widget>>(&self, child: &T, fill: bool) {
-        let property = CString::new("fill").unwrap();
         let fill = Value::from(&fill);
         unsafe { gtk_sys::gtk_container_child_set_property(self.to_glib_none().0, child.to_glib_none().0,
-            property.as_ptr(), fill.to_glib_none().0) }
+            "fill".to_glib_none().0, fill.to_glib_none().0) }
     }
 
     fn set_child_pack_type<T: IsA<Widget>>(&self, child: &T, pack_type: PackType) {
-        /*let property = CString::new("pack-type").unwrap();
-        let pack_type = Value::from(&pack_type);
+        let pack_type = Value::from(&(pack_type.to_glib() as i32));
         unsafe { gtk_sys::gtk_container_child_set_property(self.to_glib_none().0, child.to_glib_none().0,
-            property.as_ptr(), pack_type.to_glib_none().0) }*/
+            "pack-type".to_glib_none().0, pack_type.to_glib_none().0) }
     }
 
     fn set_child_padding<T: IsA<Widget>>(&self, child: &T, padding: u32) {
-        let property = CString::new("padding").unwrap();
         let padding = Value::from(&padding);
         unsafe { gtk_sys::gtk_container_child_set_property(self.to_glib_none().0, child.to_glib_none().0,
-            property.as_ptr(), padding.to_glib_none().0) }
+            "padding".to_glib_none().0, padding.to_glib_none().0) }
     }
 
     fn set_child_position<T: IsA<Widget>>(&self, child: &T, position: i32) {
-        let property = CString::new("position").unwrap();
         let position = Value::from(&position);
         unsafe { gtk_sys::gtk_container_child_set_property(self.to_glib_none().0, child.to_glib_none().0,
-            property.as_ptr(), position.to_glib_none().0) }
+            "position".to_glib_none().0, position.to_glib_none().0) }
     }
 }

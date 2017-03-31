@@ -25,8 +25,8 @@
 /// Rule #2:
 /// Optionally send `$msg.0` when the GTK+ `$event` is emitted on `$widget`.
 /// Return `$msg.1` in the GTK+ callback.
-/// This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
-/// ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
+/// This variant gives more control to the caller since it expects a `$msg` returning `(Option<MSG>,
+/// ReturnValue)` where the `ReturnValue` is the value to return in the GTK+ callback.
 /// Option<MSG> can be None if no message needs to be emitted.
 ///
 /// Rule #3:

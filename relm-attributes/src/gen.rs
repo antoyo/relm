@@ -21,8 +21,8 @@
 
 use std::collections::HashMap;
 
-use quote::Tokens;
-use syn::Ident;
+use quote::{Tokens, ToTokens};
+use syn::{Ident, Lit};
 
 use parser::{GtkWidget, RelmWidget, Widget};
 use parser::Widget::{Gtk, Relm};
@@ -62,10 +62,24 @@ fn gen_gtk_widget(widget: &GtkWidget, parent: Option<&Ident>, widget_names: &mut
     widget_names.push(widget_name.clone());
 
     let mut params = Tokens::new();
-    for param in &widget.init_parameters {
-        params.append(param);
-        params.append(",");
+    for (name, value) in &widget.init_parameters {
+        let name = format!("b\"{}\0\"", name);
+        params.append(name);
+        params.append(quote! {
+            .as_ptr() as *const i8, #value,
+        });
     }
+
+    let construct_widget =
+        quote! {
+            unsafe {
+                use gtk::StaticType;
+                use relm::{Downcast, FromGlibPtrNone, ToGlib};
+                ::gtk::Widget::from_glib_none(::relm::g_object_new(#struct_name::static_type().to_glib(),
+                #params ::std::ptr::null() as *const i8) as *mut _)
+                    .downcast_unchecked()
+            }
+        };
 
     let mut events = vec![];
     for (name, event) in &widget.events {
@@ -112,13 +126,7 @@ fn gen_gtk_widget(widget: &GtkWidget, parent: Option<&Ident>, widget_names: &mut
     }
 
     quote! {
-        let #widget_name: #struct_name = unsafe {
-            use gtk::StaticType;
-            use relm::{Downcast, FromGlibPtrNone, ToGlib};
-            ::gtk::Widget::from_glib_none(::relm::g_object_new(#struct_name::static_type().to_glib(),
-                ::std::ptr::null()) as *mut _)
-                .downcast_unchecked()
-        };
+        let #widget_name: #struct_name = #construct_widget;
         #(#properties)*
         #(#events)*
         #(#children)*

@@ -39,8 +39,9 @@ use gtk::{
     Window,
 };
 use gtk::Orientation::Vertical;
+use gtk::WindowType::Popup;
 use relm::{Relm, RemoteRelm, Widget};
-use relm::gtk_ext::BoxChildProperty;
+use relm::gtk_ext::BoxExtManual;
 use relm_attributes::widget;
 
 use self::Msg::*;
@@ -75,6 +76,9 @@ impl Widget<Msg> for Win {
 
     view! {
         Window {
+            construct: {
+                type: Popup,
+            },
             gtk::Box {
                 orientation: Vertical,
                 Label {
@@ -85,10 +89,10 @@ impl Widget<Msg> for Win {
                     label: "-",
                 },
                 Button {
-                    packing {
+                    packing: {
                         expand: false,
                         fill: true,
-                        pack_type: PackType::End,
+                        pack_type: PackType::Start,
                         padding: 10,
                         position: 0,
                     },
