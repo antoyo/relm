@@ -38,7 +38,6 @@ lazy_static! {
 
 enum Value {
     ChildProperties(HashMap<String, Tokens>),
-    ConstructProperties(HashMap<String, Tokens>),
     Value(Tokens),
 }
 
@@ -85,7 +84,7 @@ pub struct GtkWidget {
     pub children: Vec<Widget>,
     pub events: HashMap<String, Event>,
     pub gtk_type: syn::Ident,
-    pub init_parameters: HashMap<String, Tokens>,
+    pub init_parameters: Vec<String>,
     pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
     pub relm_name: Option<syn::Ident>,
@@ -99,7 +98,7 @@ impl GtkWidget {
             children: vec![],
             events: HashMap::new(),
             gtk_type: syn::Ident::new(gtk_type),
-            init_parameters: HashMap::new(),
+            init_parameters: vec![],
             name: name,
             properties: HashMap::new(),
             relm_name: None,
@@ -136,6 +135,11 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
 fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     let (gtk_type, mut tokens) = parse_qualified_name(tokens);
     let mut widget = GtkWidget::new(&gtk_type);
+    if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
+        let parameters = parse_comma_list(tts);
+        widget.init_parameters = parameters;
+        tokens = &tokens[1..];
+    }
     if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tokens[0] {
         let mut tts = &tts[..];
         while !tts.is_empty() {
@@ -168,7 +172,6 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
                         tts = new_tts;
                         match value {
                             ChildProperties(child_properties) => widget.child_properties = child_properties,
-                            ConstructProperties(construct_properties) => widget.init_parameters = construct_properties,
                             Value(value) => { widget.properties.insert(ident, value); },
                         }
                     },
@@ -277,14 +280,8 @@ fn parse_event(mut tokens: &[TokenTree]) -> (Event, &[TokenTree]) {
 fn parse_value_or_child_properties<'a>(ident: &str, tokens: &'a [TokenTree]) -> (Value, &'a [TokenTree]) {
     match tokens[0] {
         TokenTree::Delimited(Delimited { delim: Brace, tts: ref child_tokens }) => {
-            if ident == "construct" {
-                let construct_properties = parse_child_properties(child_tokens);
-                (ConstructProperties(construct_properties), &tokens[1..])
-            }
-            else {
-                let child_properties = parse_child_properties(child_tokens);
-                (ChildProperties(child_properties), &tokens[1..])
-            }
+            let child_properties = parse_child_properties(child_tokens);
+            (ChildProperties(child_properties), &tokens[1..])
         },
         _ => {
             let (value, tts) = parse_value(tokens);

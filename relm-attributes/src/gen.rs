@@ -21,8 +21,8 @@
 
 use std::collections::HashMap;
 
-use quote::{Tokens, ToTokens};
-use syn::{Ident, Lit};
+use quote::Tokens;
+use syn::Ident;
 
 use parser::{GtkWidget, RelmWidget, Widget};
 use parser::Widget::{Gtk, Relm};
@@ -62,22 +62,26 @@ fn gen_gtk_widget(widget: &GtkWidget, parent: Option<&Ident>, widget_names: &mut
     widget_names.push(widget_name.clone());
 
     let mut params = Tokens::new();
-    for (name, value) in &widget.init_parameters {
-        let name = format!("b\"{}\0\"", name);
-        params.append(name);
-        params.append(quote! {
-            .as_ptr() as *const i8, #value,
-        });
+    for param in &widget.init_parameters {
+        params.append(param);
+        params.append(",");
     }
 
     let construct_widget =
-        quote! {
-            unsafe {
-                use gtk::StaticType;
-                use relm::{Downcast, FromGlibPtrNone, ToGlib};
-                ::gtk::Widget::from_glib_none(::relm::g_object_new(#struct_name::static_type().to_glib(),
-                #params ::std::ptr::null() as *const i8) as *mut _)
+        if widget.init_parameters.is_empty() {
+            quote! {
+                unsafe {
+                    use gtk::StaticType;
+                    use relm::{Downcast, FromGlibPtrNone, ToGlib};
+                    ::gtk::Widget::from_glib_none(::relm::g_object_new(#struct_name::static_type().to_glib(),
+                    #params ::std::ptr::null() as *const i8) as *mut _)
                     .downcast_unchecked()
+                }
+            }
+        }
+        else {
+            quote! {
+                #struct_name::new(#params)
             }
         };
 

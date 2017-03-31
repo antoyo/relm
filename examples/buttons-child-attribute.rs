@@ -75,10 +75,7 @@ impl Widget<Msg> for Win {
     }
 
     view! {
-        Window {
-            construct: {
-                type: Popup,
-            },
+        Window(Popup) {
             gtk::Box {
                 orientation: Vertical,
                 Label {
