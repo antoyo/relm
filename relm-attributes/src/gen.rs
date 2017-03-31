@@ -102,6 +102,15 @@ fn gen_gtk_widget(widget: &GtkWidget, parent: Option<&Ident>, widget_names: &mut
         });
     }
 
+    let mut child_properties = vec![];
+    for (key, value) in &widget.child_properties {
+        let property_func = Ident::new(format!("set_child_{}", key));
+        let parent = parent.expect("child properties only allowed for non-root widgets");
+        child_properties.push(quote! {
+            #parent.#property_func(&#widget_name, #value);
+        });
+    }
+
     quote! {
         let #widget_name: #struct_name = unsafe {
             use gtk::StaticType;
@@ -114,6 +123,7 @@ fn gen_gtk_widget(widget: &GtkWidget, parent: Option<&Ident>, widget_names: &mut
         #(#events)*
         #(#children)*
         #add_child_or_show_all
+        #(#child_properties)*
     }
 }
 

@@ -74,6 +74,7 @@ impl Widget {
 
 #[derive(Debug)]
 pub struct GtkWidget {
+    pub child_properties: HashMap<String, Tokens>,
     pub children: Vec<Widget>,
     pub events: HashMap<String, Event>,
     pub gtk_type: syn::Ident,
@@ -87,6 +88,7 @@ impl GtkWidget {
     fn new(gtk_type: &str) -> Self {
         let name = syn::Ident::new(gen_widget_name(&gtk_type));
         GtkWidget {
+            child_properties: HashMap::new(),
             children: vec![],
             events: HashMap::new(),
             gtk_type: syn::Ident::new(gtk_type),
@@ -170,6 +172,10 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
                         let (event, new_tts) = parse_event(tts);
                         widget.events.insert(ident, event);
                         tts = new_tts;
+                    },
+                    TokenTree::Delimited(Delimited { delim: Brace, tts: ref child_tokens }) => {
+                        widget.child_properties = parse_child_properties(child_tokens);
+                        tts = &tts[1..];
                     },
                     _ => panic!("Expected `:` or `(` but found `{:?}` in view! macro", tts[0]),
                 }
@@ -294,4 +300,25 @@ fn gen_widget_name(name: &str) -> String {
     let index = hashmap.entry(name.clone()).or_insert(0);
     *index += 1;
     format!("{}{}", name, index)
+}
+
+fn parse_child_properties(mut tokens: &[TokenTree]) -> HashMap<String, Tokens> {
+    // TODO: panic if the same child properties is set twice.
+    // TODO: same for normal properties?
+    let mut properties = HashMap::new();
+    while !tokens.is_empty() {
+        let (ident, _) = parse_ident(tokens);
+        tokens = &tokens[1..];
+        if let Token(Colon) = tokens[0] {
+            tokens = &tokens[1..];
+            let (value, new_tokens) = parse_value(tokens);
+            tokens = new_tokens;
+            properties.insert(ident, value);
+        }
+
+        if tokens.first() == Some(&Token(Comma)) {
+            tokens = &tokens[1..];
+        }
+    }
+    properties
 }

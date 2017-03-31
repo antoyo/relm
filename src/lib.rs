@@ -53,10 +53,12 @@ extern crate glib;
 extern crate glib_itc;
 extern crate gobject_sys;
 extern crate gtk;
+extern crate gtk_sys;
 #[macro_use]
 extern crate log;
 extern crate relm_core;
 
+pub mod gtk_ext;
 mod macros;
 mod stream;
 mod widget;

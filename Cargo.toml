@@ -14,6 +14,7 @@ glib = "^0.1.2"
 glib-itc = "^0.1.1"
 gobject-sys = "^0.3.3"
 gtk = "^0.1.1"
+gtk-sys = "^0.3.3"
 log = "^0.3.7"
 relm-core = "^0.1.0"
 
