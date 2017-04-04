@@ -16,7 +16,6 @@ gobject-sys = "^0.3.3"
 gtk = "^0.1.1"
 gtk-sys = "^0.3.3"
 log = "^0.3.7"
-relm-core = "^0.1.0"
 
 [dev-dependencies]
 base64 = "^0.4.0"
@@ -39,6 +38,9 @@ git = "https://github.com/hyperium/hyper"
 
 [dev-dependencies.hyper-tls]
 git = "https://github.com/hyperium/hyper-tls"
+
+[dependencies.relm-core]
+path = "relm-core"
 
 [dev-dependencies.relm-derive]
 path = "relm-derive"

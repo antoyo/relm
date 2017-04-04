@@ -31,13 +31,6 @@
  * TODO: add Cargo travis badge.
  *
  * TODO: add default type of () for Model in Widget when it is stable.
- * TODO: use macros 2.0 instead for the:
- * * view: to create the dependencies between the view items and the model.
- * * model: to add boolean fields in an inner struct specifying which parts of the view to update
- * *        after the update.
- * * update: to set the boolean fields to true depending on which parts of the model was updated.
- * * create default values for gtk widgets (like Label::new(None)).
- * * create attributes for constructor gtk widgets (like orientation for Box::new(orientation)).
  * TODO: optionnaly multi-threaded.
  * TODO: try to avoid having two update() functions by adding the futures to a struct that's
  * returned from the update() function and these futures will then be added to the tokio loop (that
