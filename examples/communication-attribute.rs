@@ -28,9 +28,17 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
-use gtk::{Button, ButtonExt, ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
-use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, Relm, RemoteRelm, Widget};
+use gtk::{
+    ButtonExt,
+    EditableSignals,
+    EntryExt,
+    Inhibit,
+    OrientableExt,
+    WidgetExt,
+};
+use gtk::Orientation::Vertical;
+use relm::{Relm, RemoteRelm, Widget};
+use relm_attributes::widget;
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -43,9 +51,10 @@ struct TextModel {
 
 #[derive(Msg)]
 enum TextMsg {
-    Change,
+    Change(String),
 }
 
+#[widget]
 impl Widget<TextMsg> for Text {
     fn model() -> TextModel {
         TextModel {
@@ -55,17 +64,17 @@ impl Widget<TextMsg> for Text {
 
     fn update(&mut self, event: TextMsg, model: &mut TextModel) {
         match event {
-            Change => model.content = self.input.get_text().unwrap().chars().rev().collect(),
+            Change(text) => model.content = text.chars().rev().collect(),
         }
     }
 
     view! {
         gtk::Box {
             orientation: Vertical,
-            Entry {
+            gtk::Entry {
                 changed(entry) => Change(entry.get_text().unwrap()),
             },
-            Label {
+            gtk::Label {
                 text: &model.content,
             },
         }
@@ -83,6 +92,7 @@ enum CounterMsg {
     Increment,
 }
 
+#[widget]
 impl Widget<CounterMsg> for Counter {
     fn model() -> CounterModel {
         CounterModel {
@@ -100,14 +110,14 @@ impl Widget<CounterMsg> for Counter {
     view! {
         gtk::Box {
             orientation: Vertical,
-            Button {
+            gtk::Button {
                 label: "+",
                 clicked => Increment,
             },
-            Label {
+            gtk::Label {
                 text: &model.counter.to_string(),
             },
-            Button {
+            gtk::Button {
                 label: "-",
                 clicked => Decrement,
             },
@@ -121,10 +131,11 @@ struct Model {
 
 #[derive(Msg)]
 enum Msg {
-    TextChange,
+    TextChange(String),
     Quit,
 }
 
+#[widget]
 impl Widget<Msg> for Win {
     fn model() -> Model {
         Model {
@@ -134,28 +145,32 @@ impl Widget<Msg> for Win {
 
     fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
-            TextChange => model.counter += 1,
+            TextChange(text) => {
+                println!("{}", text);
+                model.counter += 1
+            },
             Quit => gtk::main_quit(),
         }
     }
 
 
     view! {
-        Window {
+        gtk::Window {
             gtk::Box {
-                Button {
+                gtk::Button {
                     label: "Decrement",
-                    clicked => counter0::Decrement,
+                    // TODO: name the widget and use its name here.
+                    clicked => _counter1@Decrement,
                 },
                 Counter {
-                    Increment => counter1::Decrement,
+                    Increment => _counter2@Decrement,
                 },
                 Counter,
                 Text {
-                    Change => counter0::Increment,
-                    Change => relm::TextChange,
+                    Change(_) => _counter1@Increment,
+                    Change(text) => TextChange(text),
                 },
-                Label {
+                gtk::Label {
                     text: &model.counter.to_string(),
                 }
             },

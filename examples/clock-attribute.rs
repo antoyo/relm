@@ -35,9 +35,7 @@ use std::time::Duration;
 use chrono::{DateTime, Local};
 use gtk::{
     Inhibit,
-    Label,
     WidgetExt,
-    Window,
 };
 use relm::{Relm, RemoteRelm, Widget};
 use relm_attributes::widget;
@@ -77,8 +75,8 @@ impl Widget<Msg> for Win {
     }
 
     view! {
-        Window {
-            Label {
+        gtk::Window {
+            gtk::Label {
                 text: &model.time.format("%H:%M:%S").to_string(),
             },
             delete_event(_, _) => (Quit, Inhibit(false)),

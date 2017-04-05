@@ -20,7 +20,9 @@
  */
 
 /*
- * TODO: use weak pointers to avoid leaking.
+ * TODO: reset widget name counters when creating new widget?
+ *
+ * TODO: refactor the code.
  *
  * TODO: chat client/server example.
  *
@@ -29,6 +31,8 @@
  * TODO: err if trying to use the SimpleMsg custom derive on stable.
  *
  * TODO: add Cargo travis badge.
+ *
+ * TODO: use weak pointers to avoid leaking.
  *
  * TODO: add default type of () for Model in Widget when it is stable.
  * TODO: optionnaly multi-threaded.

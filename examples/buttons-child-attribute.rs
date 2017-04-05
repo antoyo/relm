@@ -29,14 +29,11 @@ extern crate relm_attributes;
 extern crate relm_derive;
 
 use gtk::{
-    Button,
     ButtonExt,
     Inhibit,
-    Label,
     OrientableExt,
     PackType,
     WidgetExt,
-    Window,
 };
 use gtk::Orientation::Vertical;
 use gtk::WindowType::Popup;
@@ -75,17 +72,17 @@ impl Widget<Msg> for Win {
     }
 
     view! {
-        Window(Popup) {
+        gtk::Window(Popup) {
             gtk::Box {
                 orientation: Vertical,
-                Label {
+                gtk::Label {
                     text: &model.counter.to_string(),
                 },
-                Button {
+                gtk::Button {
                     clicked => Decrement,
                     label: "-",
                 },
-                Button {
+                gtk::Button {
                     packing: {
                         expand: false,
                         fill: true,

@@ -26,8 +26,6 @@
  * TODO: does an attribute #[msg] would simplify the implementation instead of #[derive(Msg)]?
  * TODO: allow pattern matching by creating a function update(&mut self, Quit: Msg, model: &mut Model) so that we can separate
  * the update function in multiple functions.
- * TODO: provide default parameter for constructor (like Toplevel). Is it still necessary?
- * Perhaps for construct-only properties (if they don't have a default value, does this happen?).
  * TODO: think about conditions and loops (widget-list).
  */
 

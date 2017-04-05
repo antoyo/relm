@@ -29,16 +29,12 @@ extern crate relm_attributes;
 extern crate relm_derive;
 
 use gtk::{
-    Button,
     ButtonExt,
     EditableSignals,
-    Entry,
     EntryExt,
     Inhibit,
-    Label,
     OrientableExt,
     WidgetExt,
-    Window,
 };
 use gtk::Orientation::Vertical;
 use relm::{Relm, RemoteRelm, Widget};
@@ -75,10 +71,10 @@ impl Widget<TextMsg> for Text {
     view! {
         gtk::Box {
             orientation: Vertical,
-            Entry {
+            gtk::Entry {
                 changed(entry) => Change(entry.get_text().unwrap()),
             },
-            Label {
+            gtk::Label {
                 text: &model.content,
             },
         }
@@ -114,14 +110,14 @@ impl Widget<CounterMsg> for Counter {
     view! {
         gtk::Box {
             orientation: Vertical,
-            Button {
+            gtk::Button {
                 label: "+",
                 clicked => Increment,
             },
-            Label {
+            gtk::Label {
                 text: &model.counter.to_string(),
             },
-            Button {
+            gtk::Button {
                 label: "-",
                 clicked => Decrement,
             },
@@ -147,7 +143,7 @@ impl Widget<Msg> for Win {
     }
 
     view! {
-        Window {
+        gtk::Window {
             gtk::Box {
                 Counter,
                 Counter,

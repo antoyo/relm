@@ -27,13 +27,22 @@ use syn;
 use syn::Delimited;
 use syn::DelimToken::{Brace, Paren};
 use syn::TokenTree::{self, Token};
-use syn::Token::{Colon, Comma, FatArrow, Ident, ModSep};
+use syn::Token::{At, Colon, Comma, FatArrow, Ident, ModSep};
 
+use self::DefaultParam::*;
+use self::EventValue::*;
+use self::EventValueReturn::*;
 use self::Value::*;
 use Widget::*;
 
 lazy_static! {
     static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
+}
+
+#[derive(PartialEq)]
+enum DefaultParam {
+    DefaultNoParam,
+    DefaultOneParam,
 }
 
 enum Value {
@@ -42,15 +51,27 @@ enum Value {
 }
 
 #[derive(Debug)]
+pub enum EventValueReturn {
+    Return(Tokens, Tokens),
+    WithoutReturn(Tokens),
+}
+
+#[derive(Debug)]
+pub enum EventValue {
+    CurrentWidget(EventValueReturn),
+    ForeignWidget(Tokens, EventValueReturn),
+}
+
+#[derive(Debug)]
 pub struct Event {
     pub params: Vec<String>,
-    pub value: Tokens,
+    pub value: EventValue,
 }
 
 impl Event {
     fn new() -> Self {
         Event {
-            value: Tokens::new(),
+            value: CurrentWidget(WithoutReturn(Tokens::new())),
             params: vec!["_".to_string()],
         }
     }
@@ -108,7 +129,7 @@ impl GtkWidget {
 
 #[derive(Debug)]
 pub struct RelmWidget {
-    //pub events: HashMap<String, Event>,
+    pub events: HashMap<String, Vec<Event>>,
     pub name: syn::Ident,
     pub relm_type: syn::Ident,
 }
@@ -121,6 +142,7 @@ impl RelmWidget {
         // So prepend an underscore to hide a warning.
         name.insert(0, '_');
         RelmWidget {
+            events: HashMap::new(),
             name: syn::Ident::new(name),
             relm_type: syn::Ident::new(relm_type),
         }
@@ -144,21 +166,17 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
         let mut tts = &tts[..];
         while !tts.is_empty() {
             if try_parse_name(tts).is_some() {
-                // Widget.
-                match tts[1] {
-                    // GTK+ widget.
-                    Token(ModSep) | TokenTree::Delimited(Delimited { delim: Brace, .. }) => {
-                        let (child, new_tts) = parse_widget(tts);
-                        tts = new_tts;
-                        widget.children.push(child);
-                    },
-                    // Relm widget.
-                    Token(Comma) => {
-                        let (relm_type, _) = parse_qualified_name(tts);
-                        widget.children.push(Relm(RelmWidget::new(relm_type)));
-                        tts = &tts[2..];
-                    }
-                    _ => panic!("Expected property, event or child but found `{:?}{:?}` in view! macro", tts[0], tts[1]),
+                // GTK+ widget.
+                if tts[0] == Token(Ident(syn::Ident::new("gtk"))) {
+                    let (child, new_tts) = parse_widget(tts);
+                    tts = new_tts;
+                    widget.children.push(child);
+                }
+                // Relm widget.
+                else {
+                    let (child, new_tts) = parse_relm_widget(tts);
+                    tts = new_tts;
+                    widget.children.push(Relm(child));
                 }
             }
             else {
@@ -168,7 +186,7 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
                 match tts[0] {
                     Token(Colon) => {
                         tts = &tts[1..];
-                        let (value, new_tts) = parse_value_or_child_properties(&ident, tts);
+                        let (value, new_tts) = parse_value_or_child_properties(tts);
                         tts = new_tts;
                         match value {
                             ChildProperties(child_properties) => widget.child_properties = child_properties,
@@ -176,7 +194,7 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
                         }
                     },
                     TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
-                        let (event, new_tts) = parse_event(tts);
+                        let (event, new_tts) = parse_event(tts, DefaultOneParam);
                         widget.events.insert(ident, event);
                         tts = new_tts;
                     },
@@ -225,7 +243,10 @@ fn try_parse_name(mut tokens: &[TokenTree]) -> Option<(String, &[TokenTree])> {
         None
     }
     else {
-        Some((segments.join("::"), tokens))
+        match tokens[0] {
+            TokenTree::Delimited(_) | Token(Comma) => Some((segments.join("::"), tokens)),
+            _ => None,
+        }
     }
 }
 
@@ -245,8 +266,11 @@ fn parse_comma_list(tokens: &[TokenTree]) -> Vec<String> {
     params
 }
 
-fn parse_event(mut tokens: &[TokenTree]) -> (Event, &[TokenTree]) {
+fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event, &[TokenTree]) {
     let mut event = Event::new();
+    if default_param == DefaultNoParam {
+        event.params.clear();
+    }
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
         event.params = parse_comma_list(tts);
         tokens = &tokens[1..];
@@ -255,29 +279,40 @@ fn parse_event(mut tokens: &[TokenTree]) -> (Event, &[TokenTree]) {
         panic!("Expected `=>` but found `{:?}` in view! macro", tokens[0]);
     }
     tokens = &tokens[1..];
-    if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
-        let (value1, new_toks) = parse_value(tts);
-        let (value2, new_toks) = parse_value(&new_toks[1..]);
-        tokens = new_toks;
-        let new_val = quote! {
-            (#value1, #value2)
+    event.value =
+        if tokens.len() >= 2 && tokens[1] == Token(At) {
+            let (event_value, new_tokens) = parse_event_value(&tokens[2..]);
+            if let Token(Ident(ref ident)) = tokens[0] {
+                tokens = new_tokens;
+                let mut ident_tokens = Tokens::new();
+                ident_tokens.append(ident);
+                ForeignWidget(ident_tokens, event_value)
+            }
+            else {
+                panic!("Expected ident, but found {:?} in view! macro", tokens[0]);
+            }
+        }
+        else {
+            let (event_value, new_tokens) = parse_event_value(tokens);
+            tokens = new_tokens;
+            CurrentWidget(event_value)
         };
-        let mut value_tokens = Tokens::new();
-        value_tokens.append(new_val.parse::<String>().unwrap());
-        event.value = value_tokens;
-    }
-    else {
-        let (value, new_toks) = parse_value(tokens);
-        let mut value_tokens = Tokens::new();
-        value_tokens.append(",");
-        value_tokens.append(value);
-        event.value = value_tokens;
-        tokens = new_toks;
-    }
     (event, tokens)
 }
 
-fn parse_value_or_child_properties<'a>(ident: &str, tokens: &'a [TokenTree]) -> (Value, &'a [TokenTree]) {
+fn parse_event_value(tokens: &[TokenTree]) -> (EventValueReturn, &[TokenTree]) {
+    if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
+        let (value1, tokens) = parse_value(tts);
+        let (value2, tokens) = parse_value(&tokens[1..]);
+        (Return(value1, value2), tokens)
+    }
+    else {
+        let (value, tokens) = parse_value(tokens);
+        (WithoutReturn(value), tokens)
+    }
+}
+
+fn parse_value_or_child_properties<'a>(tokens: &'a [TokenTree]) -> (Value, &'a [TokenTree]) {
     match tokens[0] {
         TokenTree::Delimited(Delimited { delim: Brace, tts: ref child_tokens }) => {
             let child_properties = parse_child_properties(child_tokens);
@@ -336,4 +371,29 @@ fn parse_child_properties(mut tokens: &[TokenTree]) -> HashMap<String, Tokens> {
         }
     }
     properties
+}
+
+fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
+    let (relm_type, tokens) = parse_qualified_name(tokens);
+    let mut widget = RelmWidget::new(relm_type);
+    if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tokens[0] {
+        let mut tts = &tts[..];
+        while !tts.is_empty() {
+            let (ident, _) = parse_ident(tts);
+            match tts[1] {
+                TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
+                    let (event, new_tts) = parse_event(&tts[1..], DefaultNoParam);
+                    let mut entry = widget.events.entry(ident).or_insert_with(Vec::new);
+                    entry.push(event);
+                    tts = new_tts;
+                },
+                _ => panic!("Expected event, but found {:?}", tts[0]),
+            }
+
+            if tts.first() == Some(&Token(Comma)) {
+                tts = &tts[1..];
+            }
+        }
+    }
+    (widget, &tokens[1..])
 }

@@ -29,13 +29,10 @@ extern crate relm_attributes;
 extern crate relm_derive;
 
 use gtk::{
-    Button,
     ButtonExt,
     Inhibit,
-    Label,
     OrientableExt,
     WidgetExt,
-    Window,
 };
 use gtk::Orientation::Vertical;
 use relm::{Relm, RemoteRelm, Widget};
@@ -72,17 +69,18 @@ impl Widget<Msg> for Win {
     }
 
     view! {
-        Window {
+        gtk::Window {
             gtk::Box {
                 orientation: Vertical,
-                Button {
+                gtk::Button {
                     clicked => Increment,
+                    // TODO: check if using two events of the same name work.
                     label: "+",
                 },
-                Label {
+                gtk::Label {
                     text: &model.counter.to_string(),
                 },
-                Button {
+                gtk::Button {
                     clicked => Decrement,
                     label: "-",
                 },

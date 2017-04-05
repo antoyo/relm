@@ -44,16 +44,12 @@ use blake2::{Blake2b, Digest};
 use byteorder::{BigEndian, WriteBytesExt};
 use futures::Future;
 use gtk::{
-    Button,
     ButtonExt,
     EditableSignals,
-    Entry,
     EntryExt,
     Inhibit,
-    Label,
     OrientableExt,
     WidgetExt,
-    Window,
 };
 use gtk::Orientation::Vertical;
 use rand::Rng;
@@ -124,18 +120,18 @@ impl Widget<Msg> for Win {
     }
 
     view! {
-        Window {
+        gtk::Window {
             gtk::Box {
                 orientation: Vertical,
-                Label {
+                gtk::Label {
                     text: &model.text,
                 },
-                Entry {
+                gtk::Entry {
                     activate => Send,
                     changed(entry) => Change(entry.get_text().unwrap_or_else(String::new)),
                     text: &model.message,
                 },
-                Button {
+                gtk::Button {
                     clicked => Send,
                     label: "Send",
                 },
