@@ -25,9 +25,11 @@ use std::sync::Mutex;
 use quote::{Tokens, ToTokens};
 use syn;
 use syn::Delimited;
-use syn::DelimToken::{Brace, Paren};
+use syn::DelimToken::{Brace, Bracket, Paren};
+use syn::Lit::Str;
+use syn::StrStyle::Cooked;
 use syn::TokenTree::{self, Token};
-use syn::Token::{At, Colon, Comma, FatArrow, Ident, ModSep};
+use syn::Token::{At, Colon, Comma, Eq, FatArrow, Ident, Literal, ModSep, Pound};
 
 use self::DefaultParam::*;
 use self::EventValue::*;
@@ -151,10 +153,10 @@ impl RelmWidget {
 
 pub fn parse(tokens: &[TokenTree]) -> Widget {
     let (widget, _) = parse_widget(tokens);
-    widget
+    Gtk(widget)
 }
 
-fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
+fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
     let (gtk_type, mut tokens) = parse_qualified_name(tokens);
     let mut widget = GtkWidget::new(&gtk_type);
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
@@ -165,16 +167,24 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tokens[0] {
         let mut tts = &tts[..];
         while !tts.is_empty() {
-            if try_parse_name(tts).is_some() {
+            if &tts[0] == &Token(Pound) || try_parse_name(tts).is_some() {
+                let (name, new_tts) = try_parse_name_attribute(tts);
+                tts = new_tts;
                 // GTK+ widget.
                 if tts[0] == Token(Ident(syn::Ident::new("gtk"))) {
-                    let (child, new_tts) = parse_widget(tts);
+                    let (mut child, new_tts) = parse_widget(tts);
+                    if let Some(name) = name {
+                        child.name = syn::Ident::new(name);
+                    }
                     tts = new_tts;
-                    widget.children.push(child);
+                    widget.children.push(Gtk(child));
                 }
                 // Relm widget.
                 else {
-                    let (child, new_tts) = parse_relm_widget(tts);
+                    let (mut child, new_tts) = parse_relm_widget(tts);
+                    if let Some(name) = name {
+                        child.name = syn::Ident::new(name);
+                    }
                     tts = new_tts;
                     widget.children.push(Relm(child));
                 }
@@ -210,7 +220,7 @@ fn parse_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     else {
         panic!("Expected {{ but found `{:?}` in view! macro", tokens[0]);
     }
-    (Gtk(widget), &tokens[1..])
+    (widget, &tokens[1..])
 }
 
 fn parse_ident(tokens: &[TokenTree]) -> (String, &[TokenTree]) {
@@ -282,15 +292,11 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
     event.value =
         if tokens.len() >= 2 && tokens[1] == Token(At) {
             let (event_value, new_tokens) = parse_event_value(&tokens[2..]);
-            if let Token(Ident(ref ident)) = tokens[0] {
-                tokens = new_tokens;
-                let mut ident_tokens = Tokens::new();
-                ident_tokens.append(ident);
-                ForeignWidget(ident_tokens, event_value)
-            }
-            else {
-                panic!("Expected ident, but found {:?} in view! macro", tokens[0]);
-            }
+            let (ident, _) = parse_ident(tokens);
+            tokens = new_tokens;
+            let mut ident_tokens = Tokens::new();
+            ident_tokens.append(ident);
+            ForeignWidget(ident_tokens, event_value)
         }
         else {
             let (event_value, new_tokens) = parse_event_value(tokens);
@@ -396,4 +402,17 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
         }
     }
     (widget, &tokens[1..])
+}
+
+fn try_parse_name_attribute(tokens: &[TokenTree]) -> (Option<String>, &[TokenTree]) {
+    if &tokens[0] == &Token(Pound) {
+        if let TokenTree::Delimited(Delimited { delim: Bracket, ref tts }) = tokens[1] {
+            if Token(Ident(syn::Ident::new("name"))) == tts[0] && Token(Eq) == tts[1] {
+                if let Token(Literal(Str(ref name, Cooked))) = tts[2] {
+                    return (Some(name.clone()), &tokens[2..]);
+                }
+            }
+        }
+    }
+    (None, tokens)
 }

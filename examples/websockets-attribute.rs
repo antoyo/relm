@@ -104,7 +104,7 @@ impl Widget<Msg> for Win {
             Message(message) => model.text += &format!("{}\n", message),
             Send => {
                 model.message = String::new();
-                self.entry1.grab_focus();
+                self.entry.grab_focus();
             },
             Quit => gtk::main_quit(),
         }
@@ -126,6 +126,7 @@ impl Widget<Msg> for Win {
                 gtk::Label {
                     text: &model.text,
                 },
+                #[name="entry"]
                 gtk::Entry {
                     activate => Send,
                     changed(entry) => Change(entry.get_text().unwrap_or_else(String::new)),

@@ -159,15 +159,16 @@ impl Widget<Msg> for Win {
             gtk::Box {
                 gtk::Button {
                     label: "Decrement",
-                    // TODO: name the widget and use its name here.
-                    clicked => _counter1@Decrement,
+                    clicked => counter1@Decrement,
                 },
+                #[name="counter1"]
                 Counter {
-                    Increment => _counter2@Decrement,
+                    Increment => counter2@Decrement,
                 },
+                #[name="counter2"]
                 Counter,
                 Text {
-                    Change(_) => _counter1@Increment,
+                    Change(_) => counter1@Increment,
                     Change(text) => TextChange(text),
                 },
                 gtk::Label {

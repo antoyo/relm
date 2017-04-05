@@ -19,6 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+// TODO: remove this file when the next gtk-rs version release.
+
 use glib::translate::{ToGlib, ToGlibPtr};
 use gtk;
 use gtk::{IsA, PackType, Value, Widget};

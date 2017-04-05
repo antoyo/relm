@@ -22,7 +22,6 @@
 /*
  * TODO: automatically add the model() method with a () return type when it is not found?
  * FIXME: Doing model.text.push_str() will not cause a set_text() to be added.
- * TODO: allow giving a name to a widget so that it can be used in the update() method.
  * TODO: does an attribute #[msg] would simplify the implementation instead of #[derive(Msg)]?
  * TODO: allow pattern matching by creating a function update(&mut self, Quit: Msg, model: &mut Model) so that we can separate
  * the update function in multiple functions.
@@ -212,6 +211,7 @@ fn create_struct(name: &Ident, widgets: HashMap<Ident, Ident>, relm_widgets: Has
     let relm_idents = relm_widgets.keys();
     let relm_types = relm_widgets.values();
     quote! {
+        #[allow(dead_code)]
         struct #name {
             #(#idents: #types,)*
             #(#relm_idents: #relm_types,)*
