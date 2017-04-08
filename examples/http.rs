@@ -98,6 +98,7 @@ impl Widget<Msg> for Win {
         match event {
             DownloadCompleted => {
                 self.button.set_sensitive(true);
+                self.button.grab_focus();
                 self.loader.close().unwrap();
                 self.image.set_from_pixbuf(self.loader.get_pixbuf().as_ref());
                 self.loader = PixbufLoader::new();
@@ -181,11 +182,7 @@ impl Drop for Win {
 
 fn http_get<'a>(url: &str, handle: &Handle) -> impl Future<Item=Vec<u8>, Error=Error> + 'a {
     let stream = http_get_stream(url, handle);
-    // TODO: use the new Stream::concat().
-    stream.fold(vec![], |mut acc, chunk| {
-        acc.extend_from_slice(&chunk);
-        Ok::<Vec<u8>, Error>(acc)
-    })
+    stream.concat()
 }
 
 fn http_get_stream<'a>(url: &str, handle: &Handle) -> impl Stream<Item=Vec<u8>, Error=Error> + 'a {

@@ -176,6 +176,7 @@ fn gen_relm_widget(widget: &RelmWidget, parent: Option<&Ident>, widget_names: &m
             let connect =
                 match event.value {
                     CurrentWidget(WithoutReturn(ref event_value)) => quote! {
+                        // TODO: add the missing connect!() rules instead of expanding to this.
                         let stream = relm.stream().clone();
                         #widget_name.stream().observe(move |msg| {
                             #[allow(unreachable_patterns)]

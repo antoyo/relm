@@ -30,17 +30,19 @@
  *
  * TODO: err if trying to use the SimpleMsg custom derive on stable.
  *
- * TODO: add Cargo travis badge.
- *
- * TODO: use weak pointers to avoid leaking.
+ * TODO: add Cargo travis/appveyor badges.
  *
  * TODO: add default type of () for Model in Widget when it is stable.
  * TODO: optionnaly multi-threaded.
+ * TODO: convert GTK+ callback to Stream (does not seem worth it, nor convenient since it will
+ * still need to use USFC for the callback method).
+ *
+ * These probably won't be needed anymore when switching to futures-glib (single-threaded model).
+ * TODO: use weak pointers to avoid leaking.
  * TODO: try to avoid having two update() functions by adding the futures to a struct that's
  * returned from the update() function and these futures will then be added to the tokio loop (that
  * probably requires boxing the futures, which we want to avoid).
- * TODO: convert GTK+ callback to Stream (does not seem worth it, nor convenient since it will
- * still need to use USFC for the callback method).
+ * TODO: should have a free function to delete the stream in connect_recv.
  */
 
 #![feature(conservative_impl_trait)]
@@ -265,7 +267,6 @@ fn create_widget<WIDGET, MSG>(remote: &Remote) -> Component<WIDGET::Model, MSG, 
                 let mut model = model.lock().unwrap();
                 update_widget(&mut widget, event, &mut *model);
             }
-            // TODO: should have a free function to delete the stream.
             Continue(true)
         });
     }
