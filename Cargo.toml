@@ -41,12 +41,15 @@ git = "https://github.com/hyperium/hyper-tls"
 
 [dependencies.relm-core]
 path = "relm-core"
+version = "0.1"
 
 [dev-dependencies.relm-derive]
 path = "relm-derive"
+version = "0.1"
 
 [dev-dependencies.relm-attributes]
 path = "relm-attributes"
+version = "0.1"
 
 [features]
 nightly = []
