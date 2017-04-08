@@ -25,7 +25,16 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use gtk::{Button, ButtonExt, ContainerExt, Label, WidgetExt, Window, WindowType};
+use gtk::{
+    Button,
+    ButtonExt,
+    ContainerExt,
+    Inhibit,
+    Label,
+    WidgetExt,
+    Window,
+    WindowType,
+};
 use gtk::Orientation::Vertical;
 use relm::{Relm, RemoteRelm, Widget};
 
@@ -96,7 +105,7 @@ impl Widget<Msg> for Win {
 
         connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
         connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Msg::Quit);
+        connect!(relm, window, connect_delete_event(_, _) (Some(Msg::Quit), Inhibit(false)));
 
         Win {
             counter_label: counter_label,

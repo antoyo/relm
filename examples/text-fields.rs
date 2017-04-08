@@ -25,7 +25,17 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use gtk::{ContainerExt, EditableSignals, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
+use gtk::{
+    ContainerExt,
+    EditableSignals,
+    Entry,
+    EntryExt,
+    Inhibit,
+    Label,
+    WidgetExt,
+    Window,
+    WindowType,
+};
 use gtk::Orientation::Vertical;
 use relm::{Relm, RemoteRelm, Widget};
 
@@ -88,7 +98,7 @@ impl Widget<Msg> for Win {
         window.show_all();
 
         connect!(relm, input, connect_changed(_), Change);
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
 
         Win {
             input: input,

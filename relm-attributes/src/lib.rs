@@ -131,7 +131,7 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
                             state.msg_type = Some(get_second_param_type(sig));
                             state.update_method = Some(i)
                         },
-                        "update_command" => new_items.push(i), // TODO: automatically create this function from the events present in the view (or by splitting the update() fucntion).
+                        "update_command" => new_items.push(i),
                         method_name => panic!("Unexpected method {}", method_name),
                     }
                 },

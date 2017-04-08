@@ -43,6 +43,7 @@
  * returned from the update() function and these futures will then be added to the tokio loop (that
  * probably requires boxing the futures, which we want to avoid).
  * TODO: should have a free function to delete the stream in connect_recv.
+ * TODO: automatically create the update_command() function from the events present in the view (or by splitting the update() fucntion).
  */
 
 #![feature(conservative_impl_trait)]

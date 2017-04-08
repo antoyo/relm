@@ -108,7 +108,7 @@ impl Widget<Msg> for Win {
         // GTK+ widgets are used normally within a `Widget`.
         let window = Window::new(WindowType::Toplevel);
         // Connect the signal `delete_event` to send the `Quit` message.
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
         // There is also a `connect!()` macro for GTK+ events that does not need a
         // value to be returned in the callback.
         window.show_all();

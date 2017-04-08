@@ -30,7 +30,7 @@ extern crate tokio_core;
 use std::time::Duration;
 
 use chrono::Local;
-use gtk::{ContainerExt, Label, WidgetExt, Window, WindowType};
+use gtk::{ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
 use relm::{Relm, RemoteRelm, Widget};
 use tokio_core::reactor::Interval;
 
@@ -86,7 +86,7 @@ impl Widget<Msg> for Win {
 
         window.show_all();
 
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
 
         let mut win = Win {
             label: label,

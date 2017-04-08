@@ -39,7 +39,18 @@ use std::str::FromStr;
 use futures::{Future, Stream};
 use gdk_pixbuf::PixbufLoader;
 use gdk_sys::GdkRGBA;
-use gtk::{Button, ButtonExt, ContainerExt, Image, Label, WidgetExt, Window, WindowType, STATE_FLAG_NORMAL};
+use gtk::{
+    Button,
+    ButtonExt,
+    ContainerExt,
+    Image,
+    Inhibit,
+    Label,
+    WidgetExt,
+    Window,
+    WindowType,
+    STATE_FLAG_NORMAL,
+};
 use gtk::prelude::WidgetExtManual;
 use hyper::{Client, Error};
 use hyper_tls::HttpsConnector;
@@ -161,7 +172,7 @@ impl Widget<Msg> for Win {
         window.show_all();
 
         connect!(relm, button, connect_clicked(_), FetchUrl);
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
 
         Win {
             button: button,

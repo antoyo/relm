@@ -31,7 +31,19 @@ extern crate tokio_core;
 use std::time::Duration;
 
 use chrono::Local;
-use gtk::{Button, ButtonExt, ContainerExt, Dialog, DialogExt, Label, WidgetExt, Window, WindowType, DIALOG_MODAL};
+use gtk::{
+    Button,
+    ButtonExt,
+    ContainerExt,
+    Dialog,
+    DialogExt,
+    Inhibit,
+    Label,
+    WidgetExt,
+    Window,
+    WindowType,
+    DIALOG_MODAL,
+};
 use gtk::Orientation::Vertical;
 use relm::{Relm, RemoteRelm, Widget};
 use simplelog::{Config, TermLogger};
@@ -106,7 +118,7 @@ impl Widget<Msg> for Win {
                 Open(num)
             });
         }
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
 
         let mut win = Win {
             label: label,

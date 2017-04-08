@@ -47,7 +47,18 @@ use base64::encode;
 use blake2::{Blake2b, Digest};
 use byteorder::{BigEndian, WriteBytesExt};
 use futures::Future;
-use gtk::{Button, ButtonExt, ContainerExt, Entry, EntryExt, Label, WidgetExt, Window, WindowType};
+use gtk::{
+    Button,
+    ButtonExt,
+    ContainerExt,
+    Entry,
+    EntryExt,
+    Inhibit,
+    Label,
+    WidgetExt,
+    Window,
+    WindowType,
+};
 use gtk::Orientation::Vertical;
 use rand::Rng;
 use relm::{Handle, Relm, RemoteRelm, Widget};
@@ -160,7 +171,7 @@ impl Widget<Msg> for Win {
                 Send(message)
             });
         }
-        connect_no_inhibit!(relm, window, connect_delete_event(_, _), Quit);
+        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
 
         Win {
             entry: entry,
