@@ -17,7 +17,7 @@ image:https://img.shields.io/crates/l/relm.svg[link="LICENSE"]
 
 Since relm is based on GTK+, you need this library on your system in order to use it.
 
-See [this page](http://gtk-rs.org/docs-src/requirements) for information on how to install GTK+.
+See http://gtk-rs.org/docs-src/requirements[this page] for information on how to install GTK+.
 
 == Usage
 
@@ -25,7 +25,7 @@ First, add this to you `Cargo.toml`:
 
 [source,bash]
 ----
-relm = "0.1.0"
+relm = "0.4.0"
 ----
 
 Next, add this to your crate:
@@ -185,24 +185,24 @@ impl Widget<Msg> for Win {
     }
 
     view! {
-        Window {
+        gtk::Window {
             gtk::Box {
                 orientation: Vertical,
-                Button {
+                gtk::Button {
                     // By default, an event with one paramater is assumed.
                     clicked => Increment,
                     // Hence, the previous line is equivalent to:
                     // clicked(_) => Increment,
                     label: "+",
                 },
-                Label {
+                gtk::Label {
                     // Bind the text property of this Label to the counter attribute
                     // of the model.
                     // Every time the counter attribute is updated, the text property
                     // will be updated too.
                     text: &model.counter.to_string(),
                 },
-                Button {
+                gtk::Button {
                     clicked => Decrement,
                     label: "-",
                 },
