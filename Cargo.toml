@@ -16,6 +16,7 @@ gobject-sys = "^0.3.3"
 gtk = "^0.1.1"
 gtk-sys = "^0.3.3"
 log = "^0.3.7"
+relm-core = "^0.1.1"
 
 [dev-dependencies]
 base64 = "^0.4.0"
@@ -26,6 +27,8 @@ gdk-pixbuf = "^0.1.1"
 gdk-sys = "^0.3.3"
 json = "^0.11.5"
 rand = "^0.3.15"
+relm-attributes = "^0.1.0"
+relm-derive = "^0.1.1"
 simplelog = "^0.4.2"
 tokio-core = "^0.1.4"
 tokio-proto = "^0.1.0"
@@ -38,18 +41,6 @@ git = "https://github.com/hyperium/hyper"
 
 [dev-dependencies.hyper-tls]
 git = "https://github.com/hyperium/hyper-tls"
-
-[dependencies.relm-core]
-path = "relm-core"
-version = "0.1"
-
-[dev-dependencies.relm-derive]
-path = "relm-derive"
-version = "0.1"
-
-[dev-dependencies.relm-attributes]
-path = "relm-attributes"
-version = "0.1"
 
 [features]
 nightly = []
