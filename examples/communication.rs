@@ -52,11 +52,10 @@ struct TextModel {
 
 #[derive(Msg)]
 enum TextMsg {
-    Change,
+    Change(String),
 }
 
 struct Text {
-    input: Entry,
     label: Label,
     vbox: gtk::Box,
 }
@@ -77,8 +76,8 @@ impl Widget<TextMsg> for Text {
 
     fn update(&mut self, event: TextMsg, model: &mut TextModel) {
         match event {
-            Change => {
-                model.content = self.input.get_text().unwrap().chars().rev().collect();
+            Change(text) => {
+                model.content = text.chars().rev().collect();
                 self.label.set_text(&model.content);
             },
         }
@@ -93,10 +92,10 @@ impl Widget<TextMsg> for Text {
         let label = Label::new(None);
         vbox.add(&label);
 
-        connect!(relm, input, connect_changed(_), Change);
+        let input2 = input.clone();
+        connect!(relm, input, connect_changed(_), Change(input2.get_text().unwrap()));
 
         Text {
-            input: input,
             label: label,
             vbox: vbox,
         }
@@ -176,7 +175,7 @@ struct Model {
 
 #[derive(Msg)]
 enum Msg {
-    TextChange,
+    TextChange(String),
     Quit,
 }
 
@@ -204,7 +203,8 @@ impl Widget<Msg> for Win {
 
     fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
-            TextChange => {
+            TextChange(text) => {
+                println!("{}", text);
                 model.counter += 1;
                 self.label.set_text(&model.counter.to_string());
             },
@@ -223,9 +223,9 @@ impl Widget<Msg> for Win {
         let counter1 = hbox.add_widget::<Counter, _, _>(&relm);
         let counter2 = hbox.add_widget::<Counter, _, _>(&relm);
         let text = hbox.add_widget::<Text, _, _>(&relm);
-        connect!(text, Change, relm, TextChange);
-        connect!(text, Change, counter1, Increment);
-        connect!(counter1, Increment, counter2, Decrement);
+        connect!(text@Change(text), relm, TextChange(text));
+        connect!(text@Change(_), counter1, Increment);
+        connect!(counter1@Increment, counter2, Decrement);
         connect!(button, connect_clicked(_), counter1, Decrement);
 
         let label = Label::new(None);

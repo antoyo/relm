@@ -23,8 +23,6 @@
  * TODO: automatically add the model() method with a () return type when it is not found?
  * FIXME: Doing model.text.push_str() will not cause a set_text() to be added.
  * TODO: does an attribute #[msg] would simplify the implementation instead of #[derive(Msg)]?
- * TODO: allow pattern matching by creating a function update(&mut self, Quit: Msg, model: &mut Model) so that we can separate
- * the update function in multiple functions.
  * TODO: think about conditions and loops (widget-list).
  */
 

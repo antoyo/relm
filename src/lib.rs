@@ -20,13 +20,15 @@
  */
 
 /*
+ * TODO: for the #[widget] attribute allow pattern matching by creating a function update(&mut
+ * self, Quit: Msg, model: &mut Model) so that we can separate the update function in multiple
+ * functions.
+ *
  * TODO: reset widget name counters when creating new widget?
  *
  * TODO: refactor the code.
  *
  * TODO: chat client/server example.
- *
- * TODO: try tk-easyloop in another branch.
  *
  * TODO: err if trying to use the SimpleMsg custom derive on stable.
  *
@@ -44,6 +46,7 @@
  * probably requires boxing the futures, which we want to avoid).
  * TODO: should have a free function to delete the stream in connect_recv.
  * TODO: automatically create the update_command() function from the events present in the view (or by splitting the update() fucntion).
+ * TODO: try tk-easyloop in another branch.
  */
 
 #![feature(conservative_impl_trait)]

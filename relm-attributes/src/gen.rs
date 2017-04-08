@@ -176,29 +176,10 @@ fn gen_relm_widget(widget: &RelmWidget, parent: Option<&Ident>, widget_names: &m
             let connect =
                 match event.value {
                     CurrentWidget(WithoutReturn(ref event_value)) => quote! {
-                        // TODO: add the missing connect!() rules instead of expanding to this.
-                        let stream = relm.stream().clone();
-                        #widget_name.stream().observe(move |msg| {
-                            #[allow(unreachable_patterns)]
-                            match msg {
-                                #event_ident #params =>  {
-                                    stream.emit(#event_value);
-                                },
-                                _ => (),
-                            }
-                        });
+                        connect!(#widget_name@#event_ident #params, relm, #event_value);
                     },
                     ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {
-                        let stream = #foreign_widget_name.stream().clone();
-                        #widget_name.stream().observe(move |msg| {
-                            #[allow(unreachable_patterns)]
-                            match msg {
-                                #event_ident #params =>  {
-                                    stream.emit(#event_value);
-                                },
-                                _ => (),
-                            }
-                        });
+                        connect!(#widget_name@#event_ident #params, #foreign_widget_name, #event_value);
                     },
                     CurrentWidget(Return(_, _)) | ForeignWidget(_, Return(_, _)) => unreachable!(),
                 };
