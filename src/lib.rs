@@ -324,11 +324,20 @@ fn create_widget<WIDGET, MSG>(remote: &Remote) -> Component<WIDGET::Model, MSG, 
     }
 }
 
+// TODO: remove this workaround.
+fn init_gtk() {
+    let mut argc = 0;
+    unsafe {
+        gtk_sys::gtk_init(&mut argc, std::ptr::null_mut());
+        gtk::set_initialized();
+    }
+}
+
 pub fn init_test<WIDGET, MSG: Clone + DisplayVariant + Send + 'static>() -> Result<(Component<WIDGET::Model, MSG, WIDGET::Container>, WIDGET), Error>
     where WIDGET: Widget<MSG> + Clone + 'static,
           WIDGET::Model: Send,
-    {
-    gtk::init()?;
+{
+    init_gtk();
 
     let remote = Core::run();
     let (component, widgets) = create_widget_test::<WIDGET, MSG>(&remote);

@@ -29,7 +29,6 @@ after_success:
 
 env:
   global:
-    - GTK_DEBUG=misc
     - TRAVIS_CARGO_NIGHTLY_FEATURE=nightly
 
 matrix:
