@@ -1,6 +1,11 @@
 [package]
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
+categories = ["development-tools::testing", "gui"]
+description = "Testing library for relm"
+documentation = "https://docs.rs/relm-test/"
+license = "MIT"
 name = "relm-test"
+repository = "https://github.com/antoyo/relm"
 version = "0.1.0"
 
 [dependencies]
