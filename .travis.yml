@@ -28,6 +28,7 @@ after_success:
   - ./kcov/build/src/kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov target/debug/lib-*
 
 env:
+  - GTK_DEBUG=misc
   global:
     - TRAVIS_CARGO_NIGHTLY_FEATURE=nightly
 

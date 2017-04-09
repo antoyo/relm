@@ -12,6 +12,7 @@ macro_rules! assert_text {
 
 /// Simulate a click on a button.
 pub fn click<B: ButtonExt>(button: &B) {
+    // TODO: look at how this is implemented to support other widgets.
     button.clicked();
     run_loop();
 }
