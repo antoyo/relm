@@ -1,0 +1,11 @@
+[package]
+authors = ["Antoni Boucher <bouanto@zoho.com>"]
+name = "relm-test"
+version = "0.1.0"
+
+[dependencies]
+gdk-sys = "^0.3.3"
+glib = "^0.1.2"
+glib-sys = "^0.3.3"
+gtk = "^0.1.2"
+gtk-sys = "^0.3.3"

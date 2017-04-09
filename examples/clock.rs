@@ -47,9 +47,6 @@ struct Win {
     window: Window,
 }
 
-impl Win {
-}
-
 impl Widget<Msg> for Win {
     type Container = Window;
     type Model = ();

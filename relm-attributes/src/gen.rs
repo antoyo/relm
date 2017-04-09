@@ -66,6 +66,10 @@ fn gen_gtk_widget(widget: &GtkWidget, parent: Option<&Ident>, widget_names: &mut
     let widget_name = &widget.name;
     widget_names.push(widget_name.clone());
 
+    if widget.save {
+        relm_widgets.insert(widget_name.clone(), struct_name.clone());
+    }
+
     let mut params = Tokens::new();
     for param in &widget.init_parameters {
         params.append(param);

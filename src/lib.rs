@@ -20,6 +20,8 @@
  */
 
 /*
+ * TODO: the widget names should start with __relm_field_.
+ *
  * TODO: for the #[widget] attribute allow pattern matching by creating a function update(&mut
  * self, Quit: Msg, model: &mut Model) so that we can separate the update function in multiple
  * functions.
@@ -87,9 +89,10 @@ use self::stream::ToStream;
 pub use self::widget::*;
 
 #[must_use]
+#[derive(Clone)]
 pub struct Component<MODEL, MSG: Clone + DisplayVariant, WIDGET> {
     model: Arc<Mutex<MODEL>>,
-    _receiver: Receiver,
+    _receiver: Arc<Receiver>,
     stream: EventStream<MSG>,
     widget: WIDGET,
 }
@@ -219,11 +222,7 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
         where WIDGET: Widget<MSG> + 'static,
               WIDGET::Model: Send,
     {
-        gtk::init()?;
-
-        let remote = Core::run();
-        let component = create_widget::<WIDGET, MSG>(&remote);
-        init_component::<WIDGET, MSG>(&component, &remote);
+        let _component = init::<WIDGET, MSG>()?;
         gtk::main();
         Ok(())
     }
@@ -242,6 +241,48 @@ impl<'a, MSG: Clone + DisplayVariant> RemoteRelm<MSG> {
     pub fn stream(&self) -> &EventStream<MSG> {
         &self.stream
     }
+}
+
+fn create_widget_test<WIDGET, MSG>(remote: &Remote) -> (Component<WIDGET::Model, MSG, WIDGET::Container>, WIDGET)
+    where WIDGET: Widget<MSG> + Clone + 'static,
+          MSG: Clone + DisplayVariant + 'static,
+{
+    let (sender, mut receiver) = channel();
+    let stream = EventStream::new(Arc::new(sender));
+
+    let (widget, model) = {
+        let relm = RemoteRelm {
+            remote: remote.clone(),
+            stream: stream.clone(),
+        };
+        let model = WIDGET::model();
+        (WIDGET::view(relm, &model), model)
+    };
+
+    let container = widget.container().clone();
+    let model = Arc::new(Mutex::new(model));
+
+    {
+        let mut widget = widget.clone();
+        let stream = stream.clone();
+        let model = model.clone();
+        receiver.connect_recv(move || {
+            if let Some(event) = stream.pop_ui_events() {
+                let mut model = model.lock().unwrap();
+                update_widget(&mut widget, event, &mut *model);
+            }
+            Continue(true)
+        });
+    }
+
+    let component = Component {
+        model: model,
+        _receiver: Arc::new(receiver),
+        stream: stream,
+        widget: container,
+    };
+
+    (component, widget)
 }
 
 fn create_widget<WIDGET, MSG>(remote: &Remote) -> Component<WIDGET::Model, MSG, WIDGET::Container>
@@ -277,10 +318,34 @@ fn create_widget<WIDGET, MSG>(remote: &Remote) -> Component<WIDGET::Model, MSG, 
 
     Component {
         model: model,
-        _receiver: receiver,
+        _receiver: Arc::new(receiver),
         stream: stream,
         widget: container,
     }
+}
+
+pub fn init_test<WIDGET, MSG: Clone + DisplayVariant + Send + 'static>() -> Result<(Component<WIDGET::Model, MSG, WIDGET::Container>, WIDGET), Error>
+    where WIDGET: Widget<MSG> + Clone + 'static,
+          WIDGET::Model: Send,
+    {
+    gtk::init()?;
+
+    let remote = Core::run();
+    let (component, widgets) = create_widget_test::<WIDGET, MSG>(&remote);
+    init_component::<WIDGET, MSG>(&component, &remote);
+    Ok((component, widgets))
+}
+
+fn init<WIDGET, MSG: Clone + DisplayVariant + Send + 'static>() -> Result<Component<WIDGET::Model, MSG, WIDGET::Container>, Error>
+    where WIDGET: Widget<MSG> + 'static,
+          WIDGET::Model: Send,
+    {
+    gtk::init()?;
+
+    let remote = Core::run();
+    let component = create_widget::<WIDGET, MSG>(&remote);
+    init_component::<WIDGET, MSG>(&component, &remote);
+    Ok(component)
 }
 
 fn init_component<WIDGET, MSG>(component: &Component<WIDGET::Model, MSG, WIDGET::Container>, remote: &Remote)

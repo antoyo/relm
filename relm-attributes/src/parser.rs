@@ -111,6 +111,7 @@ pub struct GtkWidget {
     pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
     pub relm_name: Option<syn::Ident>,
+    pub save: bool,
 }
 
 impl GtkWidget {
@@ -125,6 +126,7 @@ impl GtkWidget {
             name: name,
             properties: HashMap::new(),
             relm_name: None,
+            save: false,
         }
     }
 }
@@ -174,6 +176,7 @@ fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
                 if tts[0] == Token(Ident(syn::Ident::new("gtk"))) {
                     let (mut child, new_tts) = parse_widget(tts);
                     if let Some(name) = name {
+                        child.save = true;
                         child.name = syn::Ident::new(name);
                     }
                     tts = new_tts;

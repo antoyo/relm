@@ -204,12 +204,13 @@ fn block_to_impl_item(tokens: Tokens) -> ImplItem {
 }
 
 fn create_struct(name: &Ident, widgets: HashMap<Ident, Ident>, relm_widgets: HashMap<Ident, Ident>) -> Tokens {
-    let idents = widgets.keys();
-    let types = widgets.values();
+    let widgets = widgets.iter().filter(|&(ident, _)| !relm_widgets.contains_key(ident));
+    let (idents, types): (Vec<_>, Vec<_>) = widgets.unzip();
     let relm_idents = relm_widgets.keys();
     let relm_types = relm_widgets.values();
     quote! {
         #[allow(dead_code)]
+        #[derive(Clone)]
         struct #name {
             #(#idents: #types,)*
             #(#relm_idents: #relm_types,)*
