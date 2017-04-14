@@ -12,4 +12,5 @@ proc-macro = true
 
 [dependencies]
 quote = "^0.3.14"
+relm-gen-widget = "^0.1.0"
 syn = "^0.11.8"
