@@ -186,7 +186,7 @@ pub fn widget(input: TokenStream) -> TokenStream {
 }
 
 fn impl_widget(ast: &Item) -> Tokens {
-    let name = Ident::new(format!("{}Widgets", &ast.ident));
+    let name = Ident::new(format!("{}Widget", &ast.ident));
 
     if let Struct(VariantData::Struct(ref fields), _) = ast.node {
         for field in fields {

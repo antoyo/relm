@@ -46,15 +46,18 @@ enum Msg {
     Quit,
 }
 
+// An alternative to the #[widget] attribute which works on stable.
 #[derive(Widget)]
 struct _Win {
     widget: impl_widget! {
+        // The initial model.
         fn model() -> Model {
             Model {
                 counter: 0,
             }
         }
 
+        // Update the model according to the message received.
         fn update(&mut self, event: Msg, model: &mut Model) {
             match event {
                 Msg::Decrement => model.counter -= 1,
@@ -66,12 +69,16 @@ struct _Win {
         view! {
             gtk::Window {
                 gtk::Box {
+                    // Set the orientation property of the Box.
                     orientation: Vertical,
+                    // Create a Button inside the Box.
                     gtk::Button {
+                        // Send the message Increment when the button is clicked.
                         clicked => Msg::Increment,
                         label: "+",
                     },
                     gtk::Label {
+                        // Bind the text property of the label to the counter attribute of the model.
                         text: &model.counter.to_string(),
                     },
                     gtk::Button {
@@ -86,5 +93,6 @@ struct _Win {
 }
 
 fn main() {
-    Relm::run::<_WinWidgets>().unwrap();
+    // The name `_WinWidget` comes from the struct name `_Win` with the suffix `Widget`.
+    Relm::run::<_WinWidget>().unwrap();
 }
