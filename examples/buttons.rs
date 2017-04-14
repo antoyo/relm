@@ -50,15 +50,19 @@ enum Msg {
     Quit,
 }
 
+// Create the structure that holds the widgets used in the view.
 struct Win {
     counter_label: Label,
     window: Window,
 }
 
 impl Widget<Msg> for Win {
+    // Specify the type of the outer widget.
     type Container = Window;
+    // Specify the model used for this widget.
     type Model = Model;
 
+    // Return the outer widget.
     fn container(&self) -> &Self::Container {
         &self.window
     }
@@ -75,6 +79,7 @@ impl Widget<Msg> for Win {
         match event {
             Msg::Decrement => {
                 model.counter -= 1;
+                // Manually update the view.
                 label.set_text(&model.counter.to_string());
             },
             Msg::Increment => {
@@ -86,6 +91,7 @@ impl Widget<Msg> for Win {
     }
 
     fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+        // Create the view using the normal GTK+ method calls.
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -103,6 +109,7 @@ impl Widget<Msg> for Win {
 
         window.show_all();
 
+        // Send the message Increment when the button is clicked.
         connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
         connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
         connect!(relm, window, connect_delete_event(_, _) (Some(Msg::Quit), Inhibit(false)));

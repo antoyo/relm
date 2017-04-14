@@ -53,7 +53,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use rand::Rng;
-use relm::{Handle, Relm, RemoteRelm, Widget};
+use relm::{Handle, Relm, Widget};
 use relm_attributes::widget;
 use tokio_core::net::TcpStream;
 use tokio_proto::TcpClient;
@@ -67,16 +67,22 @@ type WSService = ClientService<TcpStream, WebSocketProtocol>;
 
 #[derive(Clone)]
 struct Model {
+    // The message to be sent.
     message: String,
     service: Option<WSService>,
+    // This contains all the messages received from the websockets server.
     text: String,
 }
 
 #[derive(Msg)]
 enum Msg {
+    // The user changed the message to be sent.
     Change(String),
+    // Connection to the server successful.
     Connected(WSService),
+    // A message received from the server.
     Message(String),
+    // Send a message to the server.
     Send,
     Quit,
 }
@@ -92,6 +98,7 @@ impl Widget<Msg> for Win {
     }
 
     fn subscriptions(relm: &Relm<Msg>) {
+        // Connect to the websocket server.
         let handshake_future = ws_handshake(relm.handle());
         let future = relm.connect_ignore_err(handshake_future, Connected);
         relm.exec(future);
@@ -113,6 +120,7 @@ impl Widget<Msg> for Win {
     fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
         if let Send = event {
             if let Some(ref service) = model.service {
+                // Send the message to the server.
                 let send_future = ws_send(service, &model.message);
                 relm.connect_exec_ignore_err(send_future, Message);
             }
@@ -126,6 +134,7 @@ impl Widget<Msg> for Win {
                 gtk::Label {
                     text: &model.text,
                 },
+                // Give a name to this widget, so that we can use it in the update function.
                 #[name="entry"]
                 gtk::Entry {
                     activate => Send,

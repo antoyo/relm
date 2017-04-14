@@ -338,7 +338,7 @@ fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, Ha
         let event_type = &state.msg_type;
         let item = block_to_impl_item(quote! {
             #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
-            fn view(relm: RemoteRelm<#event_type>, model: &Self::Model) -> Self {
+            fn view(relm: ::relm::RemoteRelm<#event_type>, model: &Self::Model) -> Self {
                 #view
             }
         });

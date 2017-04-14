@@ -35,16 +35,18 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, RemoteRelm, Widget};
+use relm::{Relm, Widget};
 use relm_attributes::widget;
 
 use self::Msg::*;
 
+// Define the structure of the model.
 #[derive(Clone)]
 struct Model {
     counter: i32,
 }
 
+// The messages that can be sent to the update function.
 #[derive(Msg)]
 enum Msg {
     Decrement,
@@ -54,12 +56,14 @@ enum Msg {
 
 #[widget]
 impl Widget<Msg> for Win {
+    // The initial model.
     fn model() -> Model {
         Model {
             counter: 0,
         }
     }
 
+    // Update the model according to the message received.
     fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
             Decrement => model.counter -= 1,
@@ -71,13 +75,17 @@ impl Widget<Msg> for Win {
     view! {
         gtk::Window {
             gtk::Box {
+                // Set the orientation property of the Box.
                 orientation: Vertical,
+                // Create a Button inside the Box.
                 gtk::Button {
+                    // Send the message Increment when the button is clicked.
                     clicked => Increment,
                     // TODO: check if using two events of the same name work.
                     label: "+",
                 },
                 gtk::Label {
+                    // Bind the text property of the label to the counter attribute of the model.
                     text: &model.counter.to_string(),
                 },
                 gtk::Button {

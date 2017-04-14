@@ -37,7 +37,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, RemoteRelm, Widget};
+use relm::{Relm, Widget};
 use relm_attributes::widget;
 
 use self::CounterMsg::*;

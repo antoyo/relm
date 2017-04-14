@@ -37,7 +37,7 @@ use gtk::{
     Inhibit,
     WidgetExt,
 };
-use relm::{Relm, RemoteRelm, Widget};
+use relm::{Relm, Widget};
 use relm_attributes::widget;
 use tokio_core::reactor::Interval;
 

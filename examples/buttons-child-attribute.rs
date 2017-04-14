@@ -37,7 +37,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use gtk::WindowType::Popup;
-use relm::{Relm, RemoteRelm, Widget};
+use relm::{Relm, Widget};
 use relm::gtk_ext::BoxExtManual;
 use relm_attributes::widget;
 

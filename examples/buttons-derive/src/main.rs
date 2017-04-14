@@ -32,7 +32,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, RemoteRelm};
+use relm::Relm;
 
 #[derive(Clone)]
 struct Model {
