@@ -48,7 +48,7 @@ enum Msg {
 
 #[derive(Widget)]
 struct _Win {
-    widget: widget! {
+    widget: impl_widget! {
         fn model() -> Model {
             Model {
                 counter: 0,
