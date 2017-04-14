@@ -74,7 +74,7 @@ mod stream;
 mod widget;
 
 #[macro_export]
-macro_rules! widget {
+macro_rules! impl_widget {
     ($($tt:tt)*) => {
         ()
     };
