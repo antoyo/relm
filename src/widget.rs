@@ -28,26 +28,39 @@ pub trait Widget<MSG: Clone + DisplayVariant>
     where Self: Sized,
           Self::Container: Clone + IsA<gtk::Widget>,
 {
+    /// The type of the containing widget.
     type Container;
+    /// The type of the model.
     type Model;
 
-    /// Get the containing widget.
+    /// Get the containing widget, i.e. the parent widget of the view.
     fn container(&self) -> &Self::Container;
 
-    /// Create the model.
+    /// Create the initial model.
     fn model() -> Self::Model;
 
     /// Connect the subscriptions.
+    /// Subscriptions are `Future`/`Stream` that are spawn when the widget is created.
+    ///
+    /// ## Note
+    /// This method is called in the tokio thread, so that you can spawn `Future`s and `Stream`s.
     fn subscriptions(_relm: &Relm<MSG>) {
     }
 
     /// Method called when a message is received from an event.
+    ///
+    /// ## Note
+    /// This method is called in the GTK+ thread, so that you can update widgets.
     fn update(&mut self, event: MSG, model: &mut Self::Model);
 
-    /// Connect the commands when receiving an event.
+    /// Connect `Future`s or `Stream`s when receiving an event.
+    ///
+    /// ## Warning
+    /// This method is executed in the tokio thread: hence, you **must** spawn any futures in this
+    /// method, not in `Widget::update()`.
     fn update_command(_relm: &Relm<MSG>, _event: MSG, _model: &mut Self::Model) {
     }
 
-    /// Create the view.
+    /// Create the initial view.
     fn view(relm: RemoteRelm<MSG>, model: &Self::Model) -> Self;
 }

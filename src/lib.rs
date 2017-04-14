@@ -19,9 +19,25 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// Asynchronous GUI library based on GTK+ and futures/tokio.
-//
-// This library provides a `Widget` trait that you can use to create asynchronous GUI components.
+//! Asynchronous GUI library based on GTK+ and futures/tokio.
+//!
+//! This library provides a `Widget` trait that you can use to create asynchronous GUI components.
+//! This is the trait you will need to implement for your application.
+//! It helps you to implement MVC (Model, View, Controller) in an elegant way.
+//!
+//! ## Installation
+//! Add this to your `Cargo.toml`:
+//! ```toml
+//! [dependencies]
+//! gtk = "^0.1.2"
+//! relm = "^0.4.0"
+//! relm-derive = "^0.1.2"
+//! ```
+//!
+//! More info can be found in the [readme](https://github.com/antoyo/relm#relm).
+
+#![cfg_attr(feature = "use_impl_trait", feature(conservative_impl_trait))]
+#![warn(missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces, unused_qualifications, unused_results)]
 
 /*
  * TODO: the widget names should start with __relm_field_.
@@ -55,9 +71,6 @@
  * TODO: try tk-easyloop in another branch.
  */
 
-#![cfg_attr(feature = "use_impl_trait", feature(conservative_impl_trait))]
-#![warn(missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces, unused_qualifications, unused_results)]
-
 extern crate futures;
 extern crate glib;
 extern crate glib_itc;
@@ -73,26 +86,29 @@ mod macros;
 mod stream;
 mod widget;
 
-use std::error;
-use std::fmt::{self, Display, Formatter};
-use std::io;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
 use futures::{Future, Stream};
 use glib::Continue;
+#[doc(hidden)]
 pub use glib::object::Downcast;
+#[doc(hidden)]
 pub use glib::translate::{FromGlibPtrNone, ToGlib};
 use glib_itc::{Receiver, channel};
-pub use gobject_sys::{GObject, g_object_new};
+#[doc(hidden)]
+pub use gobject_sys::g_object_new;
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 use relm_core::Core;
+#[doc(hidden)]
 pub use relm_core::{EventStream, Handle, Remote};
 
-pub use self::Error::*;
 use self::stream::ToStream;
 pub use self::widget::*;
 
+/// Dummy macro to be used with `#[derive(Widget)]`.
+///
+/// An example can be found [here](https://github.com/antoyo/relm/blob/master/examples/buttons-derive/src/main.rs#L52).
 #[macro_export]
 macro_rules! impl_widget {
     ($($tt:tt)*) => {
@@ -130,6 +146,14 @@ macro_rules! relm_connect_ignore {
     }};
 }
 
+/// Widget that was added by the `ContainerWidget::add_widget()` method.
+///
+/// ## Warning
+/// You must keep your components as long as you want them to send/receive events.
+/// Common practice is to store `Component`s in the `Widget` struct (see the [communication
+/// example](https://github.com/antoyo/relm/blob/master/examples/communication.rs#L182-L188)).
+/// The `#[widget]` attribute takes care of storing them in the struct automatically (see the
+/// [communication-attribute example](https://github.com/antoyo/relm/blob/master/examples/communication-attribute.rs)).
 #[must_use]
 #[derive(Clone)]
 pub struct Component<MODEL, MSG: Clone + DisplayVariant, WIDGET> {
@@ -140,6 +164,8 @@ pub struct Component<MODEL, MSG: Clone + DisplayVariant, WIDGET> {
 }
 
 impl<MODEL, MSG: Clone + DisplayVariant, WIDGET> Component<MODEL, MSG, WIDGET> {
+    /// Get the event stream of the widget.
+    /// This is used internally by the library.
     pub fn stream(&self) -> &EventStream<MSG> {
         &self.stream
     }
@@ -151,49 +177,7 @@ impl<MODEL, MSG: Clone + DisplayVariant, WIDGET> Drop for Component<MODEL, MSG, 
     }
 }
 
-#[derive(Debug)]
-pub enum Error {
-    GtkInit,
-    Io(io::Error),
-}
-
-impl Display for Error {
-    fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
-        match *self {
-            GtkInit => write!(formatter, "Cannot init GTK+"),
-            Io(ref error) => write!(formatter, "IO error: {}", error),
-        }
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match *self {
-            GtkInit => "Cannot init GTK+",
-            Io(ref error) => error.description(),
-        }
-    }
-
-    fn cause(&self) -> Option<&error::Error> {
-        match *self {
-            GtkInit => None,
-            Io(ref error) => Some(error),
-        }
-    }
-}
-
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Error {
-        Io(error)
-    }
-}
-
-impl From<()> for Error {
-    fn from((): ()) -> Error {
-        GtkInit
-    }
-}
-
+/// Handle connection of futures to send messages to the [`update()`](trait.Widget.html#tymethod.update) and [`update_command()`](trait.Widget.html#method.update_command) methods.
 pub struct Relm<MSG: Clone + DisplayVariant> {
     handle: Handle,
     stream: EventStream<MSG>,
@@ -211,6 +195,17 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
     }
 
     #[cfg(not(feature = "use_impl_trait"))]
+    /// Connect a `Future` or a `Stream` called `to_stream` to send the message `success_callback`
+    /// in case of success and `failure_callback` in case of failure.
+    ///
+    /// ## Note
+    /// This function does not spawn the future.
+    /// You'll usually want to use [`Relm::connect_exec()`](struct.Relm.html#method.connect_exec) to both connect and spawn the future.
+    ///
+    /// ## Warning
+    /// This function **must** be executed of the tokio thread, i.e. in the
+    /// [`subscriptions()`](trait.Widget.html#method.subscriptions) or
+    /// [`update_command()`](trait.Widget.html#method.update_command) methods.
     pub fn connect<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK, failure_callback: FAILCALLBACK) -> Box<Future<Item=(), Error=()>>
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               FAILCALLBACK: Fn(STREAM::Error) -> MSG + 'static,
@@ -231,6 +226,13 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
     }
 
     #[cfg(not(feature = "use_impl_trait"))]
+    /// This function is the same as [`Relm::connect()`](struct.Relm.html#method.connect) except it does not take a
+    /// `failure_callback`; hence, it ignores the errors.
+    ///
+    /// ## Warning
+    /// This function **must** be executed of the tokio thread, i.e. in the
+    /// [`subscriptions()`](trait.Widget.html#method.subscriptions) or
+    /// [`update_command()`](trait.Widget.html#method.update_command) methods.
     pub fn connect_ignore_err<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK) -> Box<Future<Item=(), Error=()>>
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               STREAM: Stream + 'static,
@@ -239,6 +241,12 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
         Box::new(relm_connect_ignore!(self, to_stream, success_callback))
     }
 
+    /// Connect the future `to_stream` and spawn it on the tokio main loop.
+    ///
+    /// ## Warning
+    /// This function **must** be executed of the tokio thread, i.e. in the
+    /// [`subscriptions()`](trait.Widget.html#method.subscriptions) or
+    /// [`update_command()`](trait.Widget.html#method.update_command) methods.
     pub fn connect_exec<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK, failure_callback: FAILCALLBACK)
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               FAILCALLBACK: Fn(STREAM::Error) -> MSG + 'static,
@@ -248,6 +256,12 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
         self.exec(self.connect(to_stream, callback, failure_callback));
     }
 
+    /// Connect the future `to_stream` and spawn it on the tokio main loop, ignoring any error.
+    ///
+    /// ## Warning
+    /// This function **must** be executed of the tokio thread, i.e. in the
+    /// [`subscriptions()`](trait.Widget.html#method.subscriptions) or
+    /// [`update_command()`](trait.Widget.html#method.update_command) methods.
     pub fn connect_exec_ignore_err<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK)
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               STREAM: Stream + 'static,
@@ -256,15 +270,70 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
         self.exec(self.connect_ignore_err(to_stream, callback));
     }
 
+    /// Spawn a future in the tokio event loop.
+    ///
+    /// ## Warning
+    /// This function **must** be executed of the tokio thread, i.e. in the
+    /// [`subscriptions()`](trait.Widget.html#method.subscriptions) or
+    /// [`update_command()`](trait.Widget.html#method.update_command) methods.
     pub fn exec<FUTURE: Future<Item=(), Error=()> + 'static>(&self, future: FUTURE) {
         self.handle.spawn(future);
     }
 
+    /// Get a handle to the tokio event loop.
     pub fn handle(&self) -> &Handle {
         &self.handle
     }
 
-    pub fn run<WIDGET>() -> Result<(), Error>
+    /// Create the specified relm `Widget` and run the main event loops.
+    /// ```
+    /// # extern crate gtk;
+    /// # #[macro_use]
+    /// # extern crate relm;
+    /// # #[macro_use]
+    /// # extern crate relm_derive;
+    /// #
+    /// # use gtk::{Window, WindowType};
+    /// # use relm::{Relm, RemoteRelm, Widget};
+    /// #
+    /// # #[derive(Clone)]
+    /// # struct Win {
+    /// #     window: Window,
+    /// # }
+    /// # impl Widget<Msg> for Win {
+    /// #     type Container = Window;
+    /// #     type Model = ();
+    /// #
+    /// #     fn container(&self) -> &Self::Container {
+    /// #         &self.window
+    /// #     }
+    /// #
+    /// #     fn model() -> () {
+    /// #         ()
+    /// #     }
+    /// #
+    /// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
+    /// #     }
+    /// #
+    /// #     fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+    /// #         let window = Window::new(WindowType::Toplevel);
+    /// #
+    /// #         Win {
+    /// #             window: window,
+    /// #         }
+    /// #     }
+    /// # }
+    /// # #[derive(Msg)]
+    /// # enum Msg {}
+    /// # fn main() {
+    /// # }
+    /// #
+    /// # fn run() {
+    /// /// `Win` is a relm `Widget`.
+    /// Relm::run::<Win>();
+    /// # }
+    /// ```
+    pub fn run<WIDGET>() -> Result<(), ()>
         where WIDGET: Widget<MSG> + 'static,
               WIDGET::Model: Send,
     {
@@ -273,17 +342,22 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
         Ok(())
     }
 
+    /// Get the event stream of the widget.
+    /// This is used internally by the library.
     pub fn stream(&self) -> &EventStream<MSG> {
         &self.stream
     }
 }
 
+/// Handle to the tokio event loop, to be used from the GTK+ thread.
 pub struct RemoteRelm<MSG: Clone + DisplayVariant> {
     remote: Remote,
     stream: EventStream<MSG>,
 }
 
 impl<'a, MSG: Clone + DisplayVariant> RemoteRelm<MSG> {
+    /// Get the event stream of the widget.
+    /// This is used internally by the library.
     pub fn stream(&self) -> &EventStream<MSG> {
         &self.stream
     }
@@ -293,6 +367,7 @@ fn create_widget_test<WIDGET, MSG>(remote: &Remote) -> (Component<WIDGET::Model,
     where WIDGET: Widget<MSG> + Clone + 'static,
           MSG: Clone + DisplayVariant + 'static,
 {
+    // TODO: remove redundancy with create_widget.
     let (sender, mut receiver) = channel();
     let stream = EventStream::new(Arc::new(sender));
 
@@ -379,7 +454,59 @@ fn init_gtk() {
     }
 }
 
-pub fn init_test<WIDGET, MSG: Clone + DisplayVariant + Send + 'static>() -> Result<(Component<WIDGET::Model, MSG, WIDGET::Container>, WIDGET), Error>
+/// Initialize a widget for a test.
+///
+/// It is to be used this way:
+/// ```
+/// # extern crate gtk;
+/// # #[macro_use]
+/// # extern crate relm;
+/// # #[macro_use]
+/// # extern crate relm_derive;
+/// #
+/// # use gtk::{Window, WindowType};
+/// # use relm::{RemoteRelm, Widget};
+/// #
+/// # #[derive(Clone)]
+/// # struct Win {
+/// #     window: Window,
+/// # }
+/// #
+/// # impl Widget<Msg> for Win {
+/// #     type Container = Window;
+/// #     type Model = ();
+/// #
+/// #     fn container(&self) -> &Self::Container {
+/// #         &self.window
+/// #     }
+/// #
+/// #     fn model() -> () {
+/// #         ()
+/// #     }
+/// #
+/// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
+/// #     }
+/// #
+/// #     fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+/// #         let window = Window::new(WindowType::Toplevel);
+/// #
+/// #         Win {
+/// #             window: window,
+/// #         }
+/// #     }
+/// # }
+/// #
+/// # #[derive(Msg)]
+/// # enum Msg {}
+/// # fn main() {
+/// let (_component, widgets) = relm::init_test::<Win, Msg>().unwrap();
+/// # }
+/// ```
+///
+/// ## Warning
+/// You **should** use `_component` instead of `_` to avoid dropping it too early, which will cause
+/// events to not be sent.
+pub fn init_test<WIDGET, MSG: Clone + DisplayVariant + Send + 'static>() -> Result<(Component<WIDGET::Model, MSG, WIDGET::Container>, WIDGET), ()>
     where WIDGET: Widget<MSG> + Clone + 'static,
           WIDGET::Model: Send,
 {
@@ -391,7 +518,7 @@ pub fn init_test<WIDGET, MSG: Clone + DisplayVariant + Send + 'static>() -> Resu
     Ok((component, widgets))
 }
 
-fn init<WIDGET, MSG: Clone + DisplayVariant + Send + 'static>() -> Result<Component<WIDGET::Model, MSG, WIDGET::Container>, Error>
+fn init<WIDGET, MSG: Clone + DisplayVariant + Send + 'static>() -> Result<Component<WIDGET::Model, MSG, WIDGET::Container>, ()>
     where WIDGET: Widget<MSG> + 'static,
           WIDGET::Model: Send,
     {
@@ -453,17 +580,16 @@ fn update_widget<MSG, WIDGET>(widget: &mut WIDGET, event: MSG, model: &mut WIDGE
     }
 }
 
+/// Extension trait for GTK+ containers to add and remove relm `Widget`s.
 pub trait ContainerWidget
     where Self: ContainerExt
 {
-    /**
-     * Add a widget `WIDGET` to the current widget.
-     *
-     * # Note
-     *
-     * The returned `Component` must be stored in a `Widget`. If it is not stored, a communication
-     * receiver will be droped which will cause events to be ignored for this widget.
-     */
+    /// Add a relm `Widget` to the current GTK+ container.
+    ///
+    /// # Note
+    ///
+    /// The returned `Component` must be stored in a `Widget`. If it is not stored, a communication
+    /// receiver will be droped which will cause events to be ignored for this widget.
     fn add_widget<WIDGET, MSG, WIDGETMSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET::Model, WIDGETMSG, WIDGET::Container>
         where MSG: Clone + DisplayVariant + Send + 'static,
               WIDGET: Widget<WIDGETMSG> + 'static,
@@ -478,6 +604,7 @@ pub trait ContainerWidget
         component
     }
 
+    /// Remove a relm `Widget` from the current GTK+ container.
     fn remove_widget<MODEL, MSG: Clone + DisplayVariant + 'static, WIDGET>(&self, component: Component<MODEL, MSG, WIDGET>)
         where WIDGET: IsA<gtk::Widget>,
     {
@@ -487,6 +614,13 @@ pub trait ContainerWidget
 
 impl<W: ContainerExt> ContainerWidget for W { }
 
+/// Format trait for enum variants.
+///
+/// `DisplayVariant` is similar to `Debug`, but only works on enum and does not list the
+/// variants' parameters.
+///
+/// This is used internally by the library.
 pub trait DisplayVariant {
+    /// Formats the current variant of the enum.
     fn display_variant(&self) -> &'static str;
 }

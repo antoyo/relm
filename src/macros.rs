@@ -19,6 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/// Connect events to sending a message.
+///
 /// Rule #1:
 /// Send `$msg` to `$other_component` when the GTK+ `$event` is emitted on `$widget`.
 ///
