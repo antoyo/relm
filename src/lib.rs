@@ -73,13 +73,6 @@ mod macros;
 mod stream;
 mod widget;
 
-#[macro_export]
-macro_rules! impl_widget {
-    ($($tt:tt)*) => {
-        ()
-    };
-}
-
 use std::error;
 use std::fmt::{self, Display, Formatter};
 use std::io;
@@ -100,6 +93,43 @@ pub use self::Error::*;
 use self::stream::ToStream;
 pub use self::widget::*;
 
+#[macro_export]
+macro_rules! impl_widget {
+    ($($tt:tt)*) => {
+        ()
+    };
+}
+
+macro_rules! relm_connect {
+    ($_self:expr, $to_stream:expr, $success_callback:expr, $failure_callback:expr) => {{
+        let event_stream = $_self.stream.clone();
+        let fail_event_stream = $_self.stream.clone();
+        let stream = $to_stream.to_stream();
+        stream.map_err(move |error| {
+            fail_event_stream.emit($failure_callback(error));
+            ()
+        })
+            .for_each(move |result| {
+                event_stream.emit($success_callback(result));
+                Ok::<(), STREAM::Error>(())
+            }
+            .map_err(|_| ()))
+    }};
+}
+
+macro_rules! relm_connect_ignore {
+    ($_self:expr, $to_stream:expr, $success_callback:expr) => {{
+        let event_stream = $_self.stream.clone();
+        let stream = $to_stream.to_stream();
+        stream.map_err(|_| ())
+            .for_each(move |result| {
+                event_stream.emit($success_callback(result));
+                Ok::<(), STREAM::Error>(())
+            }
+            .map_err(|_| ()))
+    }};
+}
+
 #[must_use]
 #[derive(Clone)]
 pub struct Component<MODEL, MSG: Clone + DisplayVariant, WIDGET> {
@@ -117,7 +147,7 @@ impl<MODEL, MSG: Clone + DisplayVariant, WIDGET> Component<MODEL, MSG, WIDGET> {
 
 impl<MODEL, MSG: Clone + DisplayVariant, WIDGET> Drop for Component<MODEL, MSG, WIDGET> {
     fn drop(&mut self) {
-        self.stream.close().ok();
+        let _ = self.stream.close();
     }
 }
 
@@ -177,18 +207,7 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
               STREAM: Stream + 'static,
               TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
     {
-        let event_stream = self.stream.clone();
-        let fail_event_stream = self.stream.clone();
-        let stream = to_stream.to_stream();
-        stream.map_err(move |error| {
-            fail_event_stream.emit(failure_callback(error));
-            ()
-        })
-            .for_each(move |result| {
-                event_stream.emit(success_callback(result));
-                Ok::<(), STREAM::Error>(())
-            }
-            .map_err(|_| ()))
+        relm_connect!(self, to_stream, success_callback, failure_callback)
     }
 
     #[cfg(not(feature = "use_impl_trait"))]
@@ -198,18 +217,7 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
               STREAM: Stream + 'static,
               TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
     {
-        let event_stream = self.stream.clone();
-        let fail_event_stream = self.stream.clone();
-        let stream = to_stream.to_stream();
-        let future = stream.map_err(move |error| {
-            fail_event_stream.emit(failure_callback(error));
-            ()
-        })
-            .for_each(move |result| {
-                event_stream.emit(success_callback(result));
-                Ok::<(), STREAM::Error>(())
-            }
-            .map_err(|_| ()));
+        let future = relm_connect!(self, to_stream, success_callback, failure_callback);
         Box::new(future)
     }
 
@@ -219,14 +227,7 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
               STREAM: Stream + 'static,
               TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
     {
-        let event_stream = self.stream.clone();
-        let stream = to_stream.to_stream();
-        stream.map_err(|_| ())
-            .for_each(move |result| {
-                event_stream.emit(success_callback(result));
-                Ok::<(), STREAM::Error>(())
-            }
-            .map_err(|_| ()))
+        relm_connect_ignore!(self, to_stream, success_callback)
     }
 
     #[cfg(not(feature = "use_impl_trait"))]
@@ -235,15 +236,7 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
               STREAM: Stream + 'static,
               TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
     {
-        let event_stream = self.stream.clone();
-        let stream = to_stream.to_stream();
-        let future = stream.map_err(|_| ())
-            .for_each(move |result| {
-                event_stream.emit(success_callback(result));
-                Ok::<(), STREAM::Error>(())
-            }
-            .map_err(|_| ()));
-        Box::new(future)
+        Box::new(relm_connect_ignore!(self, to_stream, success_callback))
     }
 
     pub fn connect_exec<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK, failure_callback: FAILCALLBACK)
