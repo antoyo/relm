@@ -32,12 +32,12 @@ use syn::Unsafety::Normal;
 use super::PropertyModelMap;
 
 macro_rules! fold_assign {
-    ($self:expr, $lhs:expr, $new_assign:expr) => {{
+    ($_self:expr, $lhs:expr, $new_assign:expr) => {{
         let mut statements = vec![];
         let new_statements =
             if let Field(ref field_expr, ref ident) = $lhs.node {
                 if is_model_path(field_expr) {
-                    Some(create_stmts(ident, $self.map))
+                    Some(create_stmts(ident, $_self.map))
                 }
                 else {
                     None

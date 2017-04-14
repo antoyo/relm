@@ -5,15 +5,12 @@ documentation = "https://docs.rs/relm-attributes/"
 license = "MIT"
 name = "relm-attributes"
 repository = "https://github.com/antoyo/relm"
-version = "0.1.1"
+version = "0.1.2-pre"
 
 [dependencies]
-lazy_static = "^0.2.4"
 quote = "^0.3.15"
-
-[dependencies.syn]
-features = ["fold", "full", "visit"]
-version = "^0.11.9"
+relm-gen-widget = "^0.1.0"
+syn = "^0.11.9"
 
 [lib]
 proc-macro = true
