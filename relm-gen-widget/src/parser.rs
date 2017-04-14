@@ -20,12 +20,15 @@
  */
 
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Read;
 use std::sync::Mutex;
 
 use quote::{Tokens, ToTokens};
-use syn;
+use syn::{self, parse_item};
 use syn::Delimited;
 use syn::DelimToken::{Brace, Bracket, Paren};
+use syn::ItemKind::Mac;
 use syn::Lit::Str;
 use syn::StrStyle::Cooked;
 use syn::TokenTree::{self, Token};
@@ -154,7 +157,29 @@ impl RelmWidget {
 }
 
 pub fn parse(tokens: &[TokenTree]) -> Widget {
-    let (widget, _) = parse_widget(tokens);
+    let tokens =
+        if let Token(Literal(Str(ref relm_view_file, _))) = tokens[0] {
+            // TODO: also support glade file.
+            let mut file = File::open(relm_view_file).unwrap();
+            let mut file_content = String::new();
+            file.read_to_string(&mut file_content).unwrap();
+            let item = parse_item(&file_content).unwrap();
+            if let Mac(syn::Mac { tts, .. }) = item.node {
+                if let TokenTree::Delimited(Delimited { ref tts, .. }) = tts[0] {
+                    tts.clone()
+                }
+                else {
+                    panic!("Expected delimited macro")
+                }
+            }
+            else {
+                panic!("Expecting a macro")
+            }
+        }
+        else {
+            tokens.to_vec()
+        };
+    let (widget, _) = parse_widget(&tokens);
     Gtk(widget)
 }
 
