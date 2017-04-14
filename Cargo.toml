@@ -44,6 +44,5 @@ git = "https://github.com/hyperium/hyper"
 git = "https://github.com/hyperium/hyper-tls"
 
 [features]
-default = ["use_impl_trait"]
 nightly = []
 use_impl_trait = []
