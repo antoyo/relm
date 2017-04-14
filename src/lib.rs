@@ -19,6 +19,10 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+// Asynchronous GUI library based on GTK+ and futures/tokio.
+//
+// This library provides a `Widget` trait that you can use to create asynchronous GUI components.
+
 /*
  * TODO: the widget names should start with __relm_field_.
  *
@@ -52,6 +56,7 @@
  */
 
 #![feature(conservative_impl_trait)]
+#![warn(missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces, unused_qualifications, unused_results)]
 
 extern crate futures;
 extern crate glib;
