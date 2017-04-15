@@ -238,7 +238,7 @@ fn get_container_type(container_type: Option<ImplItem>, root_widget_type: Option
 
 fn get_model_type(model_type: Option<ImplItem>, widget_model_type: Option<Ty>) -> ImplItem {
     model_type.unwrap_or_else(|| {
-        let widget_model_type = widget_model_type.expect("widget model type");
+        let widget_model_type = widget_model_type.expect("missing model method");
         block_to_impl_item(quote! {
             type Model = #widget_model_type;
         })
@@ -324,7 +324,7 @@ fn get_update(mut func: ImplItem, map: &PropertyModelMap) -> ImplItem {
 
 fn get_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, HashMap<Ident, Ident>) {
     {
-        let segments = &state.view_macro.as_ref().unwrap().path.segments;
+        let segments = &state.view_macro.as_ref().expect("view! macro missing").path.segments;
         if segments.len() != 1 || segments[0].ident != "view" {
             panic!("Unexpected macro item")
         }
@@ -340,8 +340,8 @@ fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, Ha
             widget.relm_name = Some(name.clone());
             let mut components = COMPONENTS.lock().unwrap();
             components.insert(name.clone(), Component {
-                msg_type: state.msg_type.clone().unwrap(),
-                model_type: state.widget_model_type.clone().expect("widget model type"),
+                msg_type: state.msg_type.clone().expect("missing update method"),
+                model_type: state.widget_model_type.clone().expect("missing model method"),
                 view_type: widget.gtk_type.clone(),
             });
         }
