@@ -32,7 +32,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::Relm;
+use relm::{Relm, Widget};
 
 #[derive(Clone)]
 struct Model {
@@ -47,9 +47,8 @@ enum Msg {
 }
 
 // An alternative to the #[widget] attribute which works on stable.
-#[derive(Widget)]
-struct _Win {
-    widget: impl_widget! {
+relm_widget! {
+    impl Widget<Msg> for Win {
         // The initial model.
         fn model() -> Model {
             Model {
@@ -93,6 +92,5 @@ struct _Win {
 }
 
 fn main() {
-    // The name `_WinWidget` comes from the struct name `_Win` with the suffix `Widget`.
-    Relm::run::<_WinWidget>().unwrap();
+    Relm::run::<Win>().unwrap();
 }

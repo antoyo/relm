@@ -146,6 +146,33 @@ macro_rules! relm_connect_ignore {
     }};
 }
 
+/// Macro to be used as a stable alternative to the #[widget] attribute.
+#[macro_export]
+macro_rules! relm_widget {
+    ($($tts:tt)*) => {
+        mod __relm_gen_private {
+            use super::*;
+
+            #[derive(Widget)]
+            struct __RelmPrivateWidget {
+                widget: impl_widget! {
+                    $($tts)*
+                }
+            }
+        }
+
+        use_impl_self_type!($($tts)*);
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! use_impl_self_type {
+    (impl Widget<$msg_type:ty> for $self_type:ident { $($tts:tt)* }) => {
+        pub use __relm_gen_private::$self_type;
+    };
+}
+
 /// Widget that was added by the `ContainerWidget::add_widget()` method.
 ///
 /// ## Warning
