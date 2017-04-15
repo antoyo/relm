@@ -117,12 +117,11 @@ pub fn gen_widget(input: Tokens) -> Tokens {
                             state.widget_model_type = Some(get_return_type(sig));
                             new_items.push(i);
                         },
-                        "subscriptions" => new_items.push(i),
+                        "subscriptions" | "update_command" => new_items.push(i),
                         "update" => {
-                            state.msg_type = Some(get_second_param_type(sig));
+                            state.msg_type = Some(get_second_param_type(&sig));
                             state.update_method = Some(i)
                         },
-                        "update_command" => new_items.push(i),
                         method_name => panic!("Unexpected method {}", method_name),
                     }
                 },
@@ -147,11 +146,11 @@ pub fn gen_widget(input: Tokens) -> Tokens {
         new_items.push(get_model_type(state.model_type, state.widget_model_type));
         new_items.push(get_container_type(state.container_type, state.root_widget_type));
         new_items.push(get_update(state.update_method.expect("update method"),
-            state.properties_model_map.expect("properties model map")));
+            &state.properties_model_map.expect("properties model map")));
         new_items.push(get_container(state.container_method, state.root_widget));
         let item = Impl(unsafety, polarity, generics, path, typ, new_items);
         ast.node = item;
-        let widget_struct = create_struct(&name, state.widgets, relm_widgets);
+        let widget_struct = create_struct(&name, &state.widgets, &relm_widgets);
         quote! {
             #widget_struct
             #ast
@@ -202,7 +201,7 @@ fn block_to_impl_item(tokens: Tokens) -> ImplItem {
     }
 }
 
-fn create_struct(name: &Ident, widgets: HashMap<Ident, Ident>, relm_widgets: HashMap<Ident, Ident>) -> Tokens {
+fn create_struct(name: &Ident, widgets: &HashMap<Ident, Ident>, relm_widgets: &HashMap<Ident, Ident>) -> Tokens {
     let widgets = widgets.iter().filter(|&(ident, _)| !relm_widgets.contains_key(ident));
     let (idents, types): (Vec<_>, Vec<_>) = widgets.unzip();
     let relm_idents = relm_widgets.keys();
@@ -301,7 +300,7 @@ fn get_return_type(sig: MethodSig) -> Ty {
     }
 }
 
-fn get_second_param_type(sig: MethodSig) -> Ty {
+fn get_second_param_type(sig: &MethodSig) -> Ty {
     if let Captured(_, ref path) = sig.decl.inputs[1] {
         path.clone()
     }
@@ -314,9 +313,9 @@ fn get_second_param_type(sig: MethodSig) -> Ty {
  * TODO: Create a control flow graph for each variable of the model.
  * Add the set_property() calls in every leaf of every graphs.
  */
-fn get_update(mut func: ImplItem, map: PropertyModelMap) -> ImplItem {
+fn get_update(mut func: ImplItem, map: &PropertyModelMap) -> ImplItem {
     if let Method(_, ref mut block) = func.node {
-        let mut adder = Adder::new(&map);
+        let mut adder = Adder::new(map);
         *block = adder.fold_block(block.clone());
     }
     // TODO: consider gtk::main_quit() as return.
@@ -325,8 +324,8 @@ fn get_update(mut func: ImplItem, map: PropertyModelMap) -> ImplItem {
 
 fn get_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, HashMap<Ident, Ident>) {
     {
-        let ref segments = state.view_macro.as_ref().unwrap().path.segments;
-        if segments.len() != 1 || segments[0].ident.to_string() != "view" {
+        let segments = &state.view_macro.as_ref().unwrap().path.segments;
+        if segments.len() != 1 || segments[0].ident != "view" {
             panic!("Unexpected macro item")
         }
     }
@@ -349,8 +348,8 @@ fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, Ha
         let mut properties_model_map = HashMap::new();
         get_properties_model_map(&widget, &mut properties_model_map);
         add_widgets(&widget, &mut state.widgets, &properties_model_map);
-        let idents = state.widgets.keys().collect();
-        let (view, relm_widgets) = gen(name, widget, &mut state.root_widget, &mut state.root_widget_type, idents);
+        let idents: Vec<_> = state.widgets.keys().collect();
+        let (view, relm_widgets) = gen(name, &widget, &mut state.root_widget, &mut state.root_widget_type, &idents);
         let event_type = &state.msg_type;
         let item = block_to_impl_item(quote! {
             #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.

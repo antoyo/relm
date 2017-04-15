@@ -30,9 +30,9 @@ use parser::EventValueReturn::{Return, WithoutReturn};
 use parser::Widget::{Gtk, Relm};
 use super::COMPONENTS;
 
-pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: Vec<&Ident>) -> (Tokens, HashMap<Ident, Ident>) {
+pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>) {
     let mut generator = Generator::new(root_widget, root_widget_type);
-    let widget = generator.widget(&widget, None);
+    let widget = generator.widget(widget, None);
     let widget_names1: Vec<_> = generator.widget_names.iter()
         .filter(|ident| idents.contains(ident) || generator.relm_widgets.contains_key(ident))
         .collect();
@@ -150,15 +150,15 @@ impl<'a> Generator<'a> {
             self.relm_widgets.insert(widget_name.clone(), struct_name.clone());
         }
 
-        let construct_widget = gen_construct_widget(&widget);
-        self.collect_events(&widget);
+        let construct_widget = gen_construct_widget(widget);
+        self.collect_events(widget);
 
         let children: Vec<_> = widget.children.iter()
             .map(|child| self.widget(child, Some(widget_name))).collect();
 
-        let add_child_or_show_all = self.add_child_or_show_all(&widget, parent);
-        let properties = gen_set_prop_calls(&widget);
-        let child_properties = gen_set_child_prop_calls(&widget, parent);
+        let add_child_or_show_all = self.add_child_or_show_all(widget, parent);
+        let properties = gen_set_prop_calls(widget);
+        let child_properties = gen_set_child_prop_calls(widget, parent);
 
         quote! {
             let #widget_name: #struct_name = #construct_widget;

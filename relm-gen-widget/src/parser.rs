@@ -44,7 +44,7 @@ lazy_static! {
     static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
 }
 
-#[derive(PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 enum DefaultParam {
     DefaultNoParam,
     DefaultOneParam,
@@ -119,7 +119,7 @@ pub struct GtkWidget {
 
 impl GtkWidget {
     fn new(gtk_type: &str) -> Self {
-        let name = syn::Ident::new(gen_widget_name(&gtk_type));
+        let name = syn::Ident::new(gen_widget_name(gtk_type));
         GtkWidget {
             child_properties: HashMap::new(),
             children: vec![],
@@ -196,7 +196,7 @@ fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
     if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tokens[0] {
         let mut tts = &tts[..];
         while !tts.is_empty() {
-            if &tts[0] == &Token(Pound) || try_parse_name(tts).is_some() {
+            if tts[0] == Token(Pound) || try_parse_name(tts).is_some() {
                 let (child, new_tts) = parse_child(tts);
                 tts = new_tts;
                 widget.children.push(child);
@@ -352,7 +352,7 @@ fn parse_event_value(tokens: &[TokenTree]) -> (EventValueReturn, &[TokenTree]) {
     }
 }
 
-fn parse_value_or_child_properties<'a>(tokens: &'a [TokenTree]) -> (Value, &'a [TokenTree]) {
+fn parse_value_or_child_properties(tokens: &[TokenTree]) -> (Value, &[TokenTree]) {
     match tokens[0] {
         TokenTree::Delimited(Delimited { delim: Brace, tts: ref child_tokens }) => {
             let child_properties = parse_child_properties(child_tokens);
@@ -421,7 +421,7 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
         while !tts.is_empty() {
             let is_child =
                 if let Some((_, next_tokens)) = try_parse_name(tts) {
-                    if let &TokenTree::Delimited(Delimited { delim: Brace, .. }) = &next_tokens[0] {
+                    if let TokenTree::Delimited(Delimited { delim: Brace, .. }) = next_tokens[0] {
                         true
                     }
                     else {
@@ -431,7 +431,7 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
                 else {
                     false
                 };
-            if &tts[0] == &Token(Pound) || is_child {
+            if tts[0] == Token(Pound) || is_child {
                 let (child, new_tts) = parse_child(tts);
                 tts = new_tts;
                 widget.children.push(child);
@@ -458,7 +458,7 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
 }
 
 fn try_parse_name_attribute(tokens: &[TokenTree]) -> (Option<String>, &[TokenTree]) {
-    if &tokens[0] == &Token(Pound) {
+    if tokens[0] == Token(Pound) {
         if let TokenTree::Delimited(Delimited { delim: Bracket, ref tts }) = tokens[1] {
             if Token(Ident(syn::Ident::new("name"))) == tts[0] && Token(Eq) == tts[1] {
                 if let Token(Literal(Str(ref name, Cooked))) = tts[2] {

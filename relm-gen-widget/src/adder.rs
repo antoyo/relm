@@ -73,8 +73,7 @@ impl<'a> Folder for Adder<'a> {
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         let lhs_clone =
             match expr.node {
-                Assign(ref lhs, _) => lhs.clone(),
-                AssignOp(_, ref lhs, _) => lhs.clone(),
+                Assign(ref lhs, _) | AssignOp(_, ref lhs, _) => lhs.clone(),
                 _ => return noop_fold_expr(self, expr),
             };
         let new_expr = noop_fold_expr(self, expr);
