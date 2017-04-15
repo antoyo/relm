@@ -41,7 +41,7 @@ use std::sync::Mutex;
 
 use adder::{Adder, Property};
 use gen::gen;
-use parser::Widget::Gtk;
+use parser::Widget::{Gtk, Relm};
 use parser::{Widget, parse};
 use quote::{Tokens, ToTokens};
 use syn::{Delimited, FunctionRetTy, Ident, ImplItem, Mac, MethodSig, TokenTree, parse_expr, parse_item};
@@ -175,10 +175,17 @@ fn add_widgets(widget: &Widget, widgets: &mut HashMap<Ident, Ident>, map: &Prope
     if to_add {
         widgets.insert(widget.name().clone(), widget.typ().clone());
     }
-    if let Gtk(ref gtk_widget) = *widget {
-        for child in &gtk_widget.children {
-            add_widgets(child, widgets, map);
-        }
+    match *widget {
+        Gtk(ref widget) =>  {
+            for child in &widget.children {
+                add_widgets(child, widgets, map);
+            }
+        },
+        Relm(ref widget) =>  {
+            for child in &widget.children {
+                add_widgets(child, widgets, map);
+            }
+        },
     }
 }
 
@@ -250,29 +257,38 @@ fn get_name(typ: &Ty) -> Ident {
     }
 }
 
+macro_rules! get_map {
+    ($widget:expr, $map:expr) => {{
+        for child in &$widget.children {
+            get_properties_model_map(child, $map);
+        }
+    }};
+}
+
 /*
  * The map maps model variable name to a vector of tuples (widget name, property name).
  */
 fn get_properties_model_map(widget: &Widget, map: &mut PropertyModelMap) {
-    if let Gtk(ref gtk_widget) = *widget {
-        for (name, value) in &gtk_widget.properties {
-            let string = value.parse::<String>().unwrap();
-            let expr = parse_expr(&string).unwrap();
-            let mut visitor = ModelVariableVisitor::new();
-            visitor.visit_expr(&expr);
-            let model_variables = visitor.idents;
-            for var in model_variables {
-                let set = map.entry(var).or_insert_with(HashSet::new);
-                set.insert(Property {
-                    expr: string.clone(),
-                    name: name.clone(),
-                    widget_name: gtk_widget.name.clone(),
-                });
+    match *widget {
+        Gtk(ref widget) => {
+            for (name, value) in &widget.properties {
+                let string = value.parse::<String>().unwrap();
+                let expr = parse_expr(&string).unwrap();
+                let mut visitor = ModelVariableVisitor::new();
+                visitor.visit_expr(&expr);
+                let model_variables = visitor.idents;
+                for var in model_variables {
+                    let set = map.entry(var).or_insert_with(HashSet::new);
+                    set.insert(Property {
+                        expr: string.clone(),
+                        name: name.clone(),
+                        widget_name: widget.name.clone(),
+                    });
+                }
             }
-        }
-        for child in &gtk_widget.children {
-            get_properties_model_map(child, map);
-        }
+            get_map!(widget, map);
+        },
+        Relm(ref widget) => get_map!(widget, map),
     }
 }
 
@@ -326,7 +342,7 @@ fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, Ha
             let mut components = COMPONENTS.lock().unwrap();
             components.insert(name.clone(), Component {
                 msg_type: state.msg_type.clone().unwrap(),
-                model_type: state.widget_model_type.clone().unwrap(),
+                model_type: state.widget_model_type.clone().expect("widget model type"),
                 view_type: widget.gtk_type.clone(),
             });
         }

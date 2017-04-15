@@ -136,6 +136,7 @@ impl GtkWidget {
 
 #[derive(Debug)]
 pub struct RelmWidget {
+    pub children: Vec<Widget>,
     pub events: HashMap<String, Vec<Event>>,
     pub name: syn::Ident,
     pub relm_type: syn::Ident,
@@ -145,10 +146,11 @@ impl RelmWidget {
     fn new(relm_type: String) -> Self {
         let mut name = gen_widget_name(&relm_type);
         // Relm widgets are not used in the update() method; they are only saved to avoid dropping
-        // their channel too soon.std
+        // their channel too soon.
         // So prepend an underscore to hide a warning.
         name.insert(0, '_');
         RelmWidget {
+            children: vec![],
             events: HashMap::new(),
             name: syn::Ident::new(name),
             relm_type: syn::Ident::new(relm_type),
@@ -195,27 +197,9 @@ fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
         let mut tts = &tts[..];
         while !tts.is_empty() {
             if &tts[0] == &Token(Pound) || try_parse_name(tts).is_some() {
-                let (name, new_tts) = try_parse_name_attribute(tts);
+                let (child, new_tts) = parse_child(tts);
                 tts = new_tts;
-                // GTK+ widget.
-                if tts[0] == Token(Ident(syn::Ident::new("gtk"))) {
-                    let (mut child, new_tts) = parse_widget(tts);
-                    if let Some(name) = name {
-                        child.save = true;
-                        child.name = syn::Ident::new(name);
-                    }
-                    tts = new_tts;
-                    widget.children.push(Gtk(child));
-                }
-                // Relm widget.
-                else {
-                    let (mut child, new_tts) = parse_relm_widget(tts);
-                    if let Some(name) = name {
-                        child.name = syn::Ident::new(name);
-                    }
-                    tts = new_tts;
-                    widget.children.push(Relm(child));
-                }
+                widget.children.push(child);
             }
             else {
                 // Property or event.
@@ -249,6 +233,28 @@ fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
         panic!("Expected {{ but found `{:?}` in view! macro", tokens[0]);
     }
     (widget, &tokens[1..])
+}
+
+fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
+    let (name, new_tokens) = try_parse_name_attribute(tokens);
+    tokens = new_tokens;
+    // GTK+ widget.
+    if tokens[0] == Token(Ident(syn::Ident::new("gtk"))) {
+        let (mut child, new_tokens) = parse_widget(tokens);
+        if let Some(name) = name {
+            child.save = true;
+            child.name = syn::Ident::new(name);
+        }
+        (Gtk(child), new_tokens)
+    }
+    // Relm widget.
+    else {
+        let (mut child, new_tokens) = parse_relm_widget(tokens);
+        if let Some(name) = name {
+            child.name = syn::Ident::new(name);
+        }
+        (Relm(child), new_tokens)
+    }
 }
 
 fn parse_ident(tokens: &[TokenTree]) -> (String, &[TokenTree]) {
@@ -414,14 +420,21 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
         let mut tts = &tts[..];
         while !tts.is_empty() {
             let (ident, _) = parse_ident(tts);
-            match tts[1] {
-                TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
-                    let (event, new_tts) = parse_event(&tts[1..], DefaultNoParam);
-                    let mut entry = widget.events.entry(ident).or_insert_with(Vec::new);
-                    entry.push(event);
-                    tts = new_tts;
-                },
-                _ => panic!("Expected event, but found {:?}", tts[0]),
+            if &tts[0] == &Token(Pound) || try_parse_name(tts).is_some() {
+                let (child, new_tts) = parse_child(tts);
+                tts = new_tts;
+                widget.children.push(child);
+            }
+            else {
+                match tts[1] {
+                    TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
+                        let (event, new_tts) = parse_event(&tts[1..], DefaultNoParam);
+                        let mut entry = widget.events.entry(ident).or_insert_with(Vec::new);
+                        entry.push(event);
+                        tts = new_tts;
+                    },
+                    _ => panic!("Expected event, but found {:?}", tts[0]),
+                }
             }
 
             if tts.first() == Some(&Token(Comma)) {

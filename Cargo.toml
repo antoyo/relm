@@ -9,6 +9,7 @@ repository = "https://github.com/antoyo/relm"
 version = "0.4.3-pre"
 
 [dependencies]
+cairo-rs = "^0.1.2"
 futures = "^0.1.10"
 glib = "^0.1.2"
 glib-itc = "^0.1.1"

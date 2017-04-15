@@ -57,10 +57,11 @@ pub fn gen(name: &Ident, widget: Widget, root_widget: &mut Option<Ident>, root_w
 fn gen_widget(widget: &Widget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, relm_widgets: &mut HashMap<Ident, Ident>, events: &mut Vec<Tokens>) -> Tokens {
     match *widget {
         Gtk(ref gtk_widget) => gen_gtk_widget(gtk_widget, parent, widget_names, root_widget, root_widget_type, relm_widgets, events),
-        Relm(ref relm_widget) => gen_relm_widget(relm_widget, parent, widget_names, relm_widgets, events),
+        Relm(ref relm_widget) => gen_relm_widget(relm_widget, parent, widget_names, relm_widgets, events, root_widget, root_widget_type),
     }
 }
 
+// TODO: refactor to use a struct which will contain the state.
 fn gen_gtk_widget(widget: &GtkWidget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, relm_widgets: &mut HashMap<Ident, Ident>, events: &mut Vec<Tokens>) -> Tokens {
     let struct_name = &widget.gtk_type;
     let widget_name = &widget.name;
@@ -156,7 +157,7 @@ fn gen_gtk_widget(widget: &GtkWidget, parent: Option<&Ident>, widget_names: &mut
     }
 }
 
-fn gen_relm_widget(widget: &RelmWidget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, relm_widgets: &mut HashMap<Ident, Ident>, events: &mut Vec<Tokens>) -> Tokens {
+fn gen_relm_widget(widget: &RelmWidget, parent: Option<&Ident>, widget_names: &mut Vec<Ident>, relm_widgets: &mut HashMap<Ident, Ident>, events: &mut Vec<Tokens>, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>) -> Tokens {
     widget_names.push(widget.name.clone());
     let widget_name = &widget.name;
     let widget_type = Ident::new(widget.relm_type.as_ref());
@@ -191,16 +192,22 @@ fn gen_relm_widget(widget: &RelmWidget, parent: Option<&Ident>, widget_names: &m
         }
     }
 
+    let children: Vec<_> = widget.children.iter()
+        .map(|child| gen_widget(child, Some(widget_name), widget_names, root_widget, root_widget_type, relm_widgets, events)).collect();
+
     quote! {
         let #widget_name = {
             ::relm::ContainerWidget::add_widget::<#widget_type, _, _>(&#parent, &relm)
         };
+        #(#children)*
     }
 }
 
 fn gen_relm_component_type(name: &Ident) -> Ident {
     let components = COMPONENTS.lock().unwrap();
-    let model_type = &components[name].model_type;
+    let model_type = &components.get(name)
+        .expect(&format!("Cannot find relm Widget {}", name))
+        .model_type;
     let msg_type = &components[name].msg_type;
     let view_type = &components[name].view_type;
 

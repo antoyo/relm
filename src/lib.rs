@@ -71,6 +71,7 @@
  * TODO: try tk-easyloop in another branch.
  */
 
+extern crate cairo;
 extern crate futures;
 extern crate glib;
 extern crate glib_itc;
@@ -202,6 +203,35 @@ impl<MODEL, MSG: Clone + DisplayVariant, WIDGET> Drop for Component<MODEL, MSG, 
     fn drop(&mut self) {
         let _ = self.stream.close();
     }
+}
+
+impl<MODEL, MSG: Clone + DisplayVariant, WIDGET: ContainerExt> ContainerExt for Component<MODEL, MSG, WIDGET> {
+    fn add<T: IsA<gtk::Widget>>(&self, widget: &T) { self.widget.add(widget) }
+    fn check_resize(&self) { self.widget.check_resize() }
+    fn child_notify<T: IsA<gtk::Widget>>(&self, child: &T, child_property: &str) { self.widget.child_notify(child, child_property) }
+    fn child_type(&self) -> gtk::Type { self.widget.child_type() }
+    fn get_border_width(&self) -> u32 { self.widget.get_border_width() }
+    fn get_children(&self) -> Vec<gtk::Widget> { self.widget.get_children() }
+    fn get_focus_child(&self) -> Option<gtk::Widget> { self.widget.get_focus_child() }
+    fn get_focus_hadjustment(&self) -> Option<gtk::Adjustment> { self.widget.get_focus_hadjustment() }
+    fn get_focus_vadjustment(&self) -> Option<gtk::Adjustment> { self.widget.get_focus_vadjustment() }
+    fn get_resize_mode(&self) -> gtk::ResizeMode { self.widget.get_resize_mode() }
+    fn propagate_draw<T: IsA<gtk::Widget>>(&self, child: &T, cr: &cairo::Context) { self.widget.propagate_draw(child, cr) }
+    fn remove<T: IsA<gtk::Widget>>(&self, widget: &T) { self.widget.remove(widget) }
+    fn resize_children(&self) { self.widget.resize_children() }
+    fn set_border_width(&self, border_width: u32) { self.widget.set_border_width(border_width) }
+    fn set_focus_chain(&self, focusable_widgets: &[gtk::Widget]) { self.widget.set_focus_chain(focusable_widgets) }
+    fn set_focus_child<T: IsA<gtk::Widget>>(&self, child: Option<&T>) { self.widget.set_focus_child(child) }
+    fn set_focus_hadjustment(&self, adjustment: &gtk::Adjustment) { self.widget.set_focus_hadjustment(adjustment) }
+    fn set_focus_vadjustment(&self, adjustment: &gtk::Adjustment) { self.widget.set_focus_vadjustment(adjustment) }
+    fn set_reallocate_redraws(&self, needs_redraws: bool) { self.widget.set_reallocate_redraws(needs_redraws) }
+    fn set_resize_mode(&self, resize_mode: gtk::ResizeMode) { self.widget.set_resize_mode(resize_mode) }
+    fn unset_focus_chain(&self) { self.widget.unset_focus_chain() }
+    fn set_property_child(&self, child: Option<&gtk::Widget>) { self.widget.set_property_child(child) }
+    fn connect_add<F: Fn(&Self, &gtk::Widget) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
+    fn connect_check_resize<F: Fn(&Self) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
+    fn connect_remove<F: Fn(&Self, &gtk::Widget) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
+    fn connect_set_focus_child<F: Fn(&Self, &gtk::Widget) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
 }
 
 /// Handle connection of futures to send messages to the [`update()`](trait.Widget.html#tymethod.update) and [`update_command()`](trait.Widget.html#method.update_command) methods.
