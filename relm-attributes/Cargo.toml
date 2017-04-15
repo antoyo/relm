@@ -5,7 +5,7 @@ documentation = "https://docs.rs/relm-attributes/"
 license = "MIT"
 name = "relm-attributes"
 repository = "https://github.com/antoyo/relm"
-version = "0.1.3-pre"
+version = "0.1.3"
 
 [dependencies]
 quote = "^0.3.15"
