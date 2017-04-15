@@ -152,7 +152,8 @@ fn main() {
     }
 
     let stream = stream.clone();
-    Core::run(move |handle| {
+    let remote = Core::run();
+    remote.spawn(move |handle| {
         let interval = {
             let interval = Interval::new(Duration::from_secs(1), handle).unwrap();
             let stream = stream.clone();
