@@ -14,11 +14,10 @@ use proc_macro::TokenStream;
 
 use quote::Tokens;
 use relm_gen_widget::gen_widget;
-use syn::{Body, Ident, Item, MacroInput, Path, VariantData, parse_item, parse_items, parse_macro_input};
-use syn::FnArg::Captured;
-use syn::ItemKind::{Fn, Struct};
+use syn::{Body, Ident, Item, MacroInput, VariantData, parse_item, parse_macro_input};
+use syn::ItemKind::Struct;
 use syn::TokenTree::Delimited;
-use syn::Ty::{self, Mac};
+use syn::Ty::Mac;
 
 #[proc_macro_derive(SimpleMsg)]
 pub fn simple_msg(input: TokenStream) -> TokenStream {
@@ -186,8 +185,6 @@ pub fn widget(input: TokenStream) -> TokenStream {
 }
 
 fn impl_widget(ast: &Item) -> Tokens {
-    let name = Ident::new(format!("{}Widget", &ast.ident));
-
     if let Struct(VariantData::Struct(ref fields), _) = ast.node {
         for field in fields {
             if field.ident == Some(Ident::new("widget")) {
@@ -195,13 +192,7 @@ fn impl_widget(ast: &Item) -> Tokens {
                     if let Delimited(syn::Delimited { ref tts, .. }) = mac.tts[0] {
                         let mut tokens = Tokens::new();
                         tokens.append_all(tts);
-                        let msg_type = get_msg_type(&tokens);
-                        let widget_impl = quote! {
-                            impl ::relm::Widget<#msg_type> for #name {
-                                #tokens
-                            }
-                        };
-                        return gen_widget(widget_impl);
+                        return gen_widget(tokens);
                     }
                 }
             }
@@ -209,19 +200,4 @@ fn impl_widget(ast: &Item) -> Tokens {
     }
 
     panic!("Expecting `widget` field.");
-}
-
-fn get_msg_type(tokens: &Tokens) -> Path {
-    let ast = parse_items(&tokens.to_string()).unwrap();
-    for item in ast {
-        if item.ident == Ident::new("update") {
-            if let Fn(ref func, _, _, _, _, _) = item.node {
-                if let Captured(_, Ty::Path(_, ref path)) = func.inputs[1] {
-                    return path.clone();
-                }
-            }
-        }
-    }
-
-    panic!("Expected `update` function with 3 parameters");
 }
