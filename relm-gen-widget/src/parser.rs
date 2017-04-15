@@ -419,13 +419,25 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
     if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tokens[0] {
         let mut tts = &tts[..];
         while !tts.is_empty() {
-            let (ident, _) = parse_ident(tts);
-            if &tts[0] == &Token(Pound) || try_parse_name(tts).is_some() {
+            let is_child =
+                if let Some((_, next_tokens)) = try_parse_name(tts) {
+                    if let &TokenTree::Delimited(Delimited { delim: Brace, .. }) = &next_tokens[0] {
+                        true
+                    }
+                    else {
+                        false
+                    }
+                }
+                else {
+                    false
+                };
+            if &tts[0] == &Token(Pound) || is_child {
                 let (child, new_tts) = parse_child(tts);
                 tts = new_tts;
                 widget.children.push(child);
             }
             else {
+                let (ident, _) = parse_ident(tts);
                 match tts[1] {
                     TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
                         let (event, new_tts) = parse_event(&tts[1..], DefaultNoParam);
