@@ -203,7 +203,7 @@ fn create_struct(name: &Ident, widgets: HashMap<Ident, Ident>, relm_widgets: Has
     quote! {
         #[allow(dead_code)]
         #[derive(Clone)]
-        struct #name {
+        pub struct #name {
             #(#idents: #types,)*
             #(#relm_idents: #relm_types,)*
         }
