@@ -56,8 +56,6 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
-    type Msg = Msg;
-
     // The initial model.
     fn model() -> Model {
         Model {
