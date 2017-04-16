@@ -52,9 +52,11 @@ impl Widget for Label {
     }
 
     fn update(&mut self, _event: LabelMsg, _model: &mut LabelModel) {
+        self.label.set_text("");
     }
 
     view! {
+        #[name="label"]
         gtk::Label {
             text: &model.counter.to_string(),
         }

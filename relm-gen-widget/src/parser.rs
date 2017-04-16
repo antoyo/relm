@@ -188,8 +188,13 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
 }
 
 fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
+    let (name, tokens) = try_parse_name_attribute(tokens);
     let (gtk_type, mut tokens) = parse_qualified_name(tokens);
     let mut widget = GtkWidget::new(&gtk_type);
+    if let Some(name) = name {
+        widget.save = true;
+        widget.name = syn::Ident::new(name);
+    }
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
         let parameters = parse_comma_list(tts);
         widget.init_parameters = parameters;
