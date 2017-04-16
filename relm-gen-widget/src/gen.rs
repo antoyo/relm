@@ -46,12 +46,12 @@ macro_rules! gen_set_prop_calls {
 pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>) {
     let mut generator = Generator::new(root_widget, root_widget_type);
     let widget = generator.widget(widget, None);
+    let root_widget_name = &generator.root_widget.as_ref().unwrap();
     let widget_names1: Vec<_> = generator.widget_names.iter()
-        .filter(|ident| idents.contains(ident) || generator.relm_widgets.contains_key(ident))
+        .filter(|ident| (idents.contains(ident) || generator.relm_widgets.contains_key(ident)) && ident != root_widget_name)
         .collect();
     let widget_names1 = &widget_names1;
     let widget_names2 = widget_names1;
-    let root_widget_name = &generator.root_widget.as_ref().unwrap();
     let events = &generator.events;
     let code = quote! {
         #widget
