@@ -45,14 +45,14 @@ pub struct LabelModel {
 
 #[widget]
 impl Widget for Label {
+    fn init_view(&self) {
+        self.label.set_text("Test");
+    }
+
     fn model() -> LabelModel {
         LabelModel {
             counter: 0,
         }
-    }
-
-    fn init_view(&self) {
-        self.label.set_text("Test");
     }
 
     fn update(&mut self, _event: LabelMsg, _model: &mut LabelModel) {
