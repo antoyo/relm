@@ -27,7 +27,7 @@ extern crate relm_derive;
 extern crate tokio_core;
 
 use gtk::{Dialog, DialogExt, Inhibit, WidgetExt, Window, WindowType, DIALOG_MODAL};
-use relm::{Relm, RemoteRelm, Widget};
+use relm::{RemoteRelm, Widget};
 
 use self::Msg::*;
 
@@ -40,9 +40,10 @@ struct Win {
     window: Window,
 }
 
-impl Widget<Msg> for Win {
+impl Widget for Win {
     type Container = Window;
     type Model = ();
+    type Msg = Msg;
 
     fn container(&self) -> &Self::Container {
         &self.window
@@ -87,5 +88,5 @@ fn dialog(window: &Window) -> i32 {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

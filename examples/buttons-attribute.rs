@@ -35,27 +35,29 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Widget};
+use relm::Widget;
 use relm_attributes::widget;
 
 use self::Msg::*;
 
 // Define the structure of the model.
 #[derive(Clone)]
-struct Model {
+pub struct Model {
     counter: i32,
 }
 
 // The messages that can be sent to the update function.
 #[derive(Msg)]
-enum Msg {
+pub enum Msg {
     Decrement,
     Increment,
     Quit,
 }
 
 #[widget]
-impl Widget<Msg> for Win {
+impl Widget for Win {
+    type Msg = Msg;
+
     // The initial model.
     fn model() -> Model {
         Model {
@@ -99,5 +101,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

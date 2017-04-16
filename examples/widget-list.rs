@@ -36,7 +36,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, Relm, RemoteRelm, Widget};
+use relm::{Component, ContainerWidget, RemoteRelm, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -57,9 +57,10 @@ struct Counter {
     vbox: gtk::Box,
 }
 
-impl Widget<CounterMsg> for Counter {
+impl Widget for Counter {
     type Container = gtk::Box;
     type Model = Model;
+    type Msg = CounterMsg;
 
     fn container(&self) -> &Self::Container {
         &self.vbox
@@ -122,9 +123,10 @@ struct Win {
     window: Window,
 }
 
-impl Widget<Msg> for Win {
+impl Widget for Win {
     type Container = Window;
     type Model = ();
+    type Msg = Msg;
 
     fn container(&self) -> &Self::Container {
         &self.window
@@ -137,7 +139,7 @@ impl Widget<Msg> for Win {
     fn update(&mut self, event: Msg, _model: &mut ()) {
         match event {
             Add => {
-                let widget = self.hbox.add_widget::<Counter, _, _>(&self.relm);
+                let widget = self.hbox.add_widget::<Counter, _>(&self.relm);
                 self.counters.push(widget);
             },
             Quit => gtk::main_quit(),
@@ -180,5 +182,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

@@ -28,7 +28,6 @@ use parser::{GtkWidget, RelmWidget, Widget};
 use parser::EventValue::{CurrentWidget, ForeignWidget};
 use parser::EventValueReturn::{Return, WithoutReturn};
 use parser::Widget::{Gtk, Relm};
-use super::COMPONENTS;
 
 pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>) {
     let mut generator = Generator::new(root_widget, root_widget_type);
@@ -184,7 +183,7 @@ impl<'a> Generator<'a> {
 
         quote! {
             let #widget_name = {
-                ::relm::ContainerWidget::add_widget::<#widget_type, _, _>(&#parent, &relm)
+                ::relm::ContainerWidget::add_widget::<#widget_type, _>(&#parent, &relm)
             };
             #(#children)*
         }
@@ -226,23 +225,7 @@ fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
 }
 
 fn gen_relm_component_type(name: &Ident) -> Ident {
-    let components = COMPONENTS.lock().unwrap();
-    let model_type = &components.get(name)
-        .expect(&format!("Cannot find relm Widget {}", name))
-        .model_type;
-    let msg_type = &components[name].msg_type;
-    let view_type = &components[name].view_type;
-
-    let mut model = Tokens::new();
-    model.append_all(&[model_type]);
-
-    let mut msg = Tokens::new();
-    msg.append_all(&[msg_type]);
-
-    let mut view = Tokens::new();
-    view.append(view_type);
-
-    Ident::new(format!("::relm::Component<{}, {}, {}>", model, msg, view).as_ref())
+    Ident::new(format!("::relm::Component<<{0} as ::relm::Widget>::Model, <{0} as ::relm::Widget>::Msg, <{0} as ::relm::Widget>::Container>", name).as_ref())
 }
 
 fn gen_set_child_prop_calls(widget: &GtkWidget, parent: Option<&Ident>) -> Vec<Tokens> {

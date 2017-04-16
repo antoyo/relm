@@ -37,7 +37,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Widget};
+use relm::Widget;
 use relm_attributes::widget;
 
 use self::CounterMsg::*;
@@ -45,17 +45,17 @@ use self::Msg::*;
 use self::TextMsg::*;
 
 #[derive(Clone)]
-struct TextModel {
+pub struct TextModel {
     content: String,
 }
 
 #[derive(Msg)]
-enum TextMsg {
+pub enum TextMsg {
     Change(String),
 }
 
 #[widget]
-impl Widget<TextMsg> for Text {
+impl Widget for Text {
     fn model() -> TextModel {
         TextModel {
             content: String::new(),
@@ -82,18 +82,18 @@ impl Widget<TextMsg> for Text {
 }
 
 #[derive(Clone)]
-struct CounterModel {
+pub struct CounterModel {
     counter: i32,
 }
 
 #[derive(Msg)]
-enum CounterMsg {
+pub enum CounterMsg {
     Decrement,
     Increment,
 }
 
 #[widget]
-impl Widget<CounterMsg> for Counter {
+impl Widget for Counter {
     fn model() -> CounterModel {
         CounterModel {
             counter: 0,
@@ -125,18 +125,18 @@ impl Widget<CounterMsg> for Counter {
     }
 }
 
-struct Model {
+pub struct Model {
     counter: i32,
 }
 
 #[derive(Msg)]
-enum Msg {
+pub enum Msg {
     TextChange(String),
     Quit,
 }
 
 #[widget]
-impl Widget<Msg> for Win {
+impl Widget for Win {
     fn model() -> Model {
         Model {
             counter: 0,
@@ -181,5 +181,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

@@ -65,9 +65,10 @@ struct Win {
     window: Window,
 }
 
-impl Widget<Msg> for Win {
+impl Widget for Win {
     type Container = Window;
     type Model = ();
+    type Msg = Msg;
 
     fn container(&self) -> &Self::Container {
         &self.window
@@ -140,5 +141,5 @@ fn dialog(window: &Window) -> i32 {
 
 fn main() {
     TermLogger::init(Warn, Config::default()).unwrap();
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

@@ -37,26 +37,26 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use gtk::WindowType::Popup;
-use relm::{Relm, Widget};
+use relm::Widget;
 use relm::gtk_ext::BoxExtManual;
 use relm_attributes::widget;
 
 use self::Msg::*;
 
 #[derive(Clone)]
-struct Model {
+pub struct Model {
     counter: i32,
 }
 
 #[derive(Msg)]
-enum Msg {
+pub enum Msg {
     Decrement,
     Increment,
     Quit,
 }
 
 #[widget]
-impl Widget<Msg> for Win {
+impl Widget for Win {
     fn model() -> Model {
         Model {
             counter: 0,
@@ -100,5 +100,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

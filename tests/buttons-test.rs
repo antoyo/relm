@@ -43,19 +43,19 @@ use relm_attributes::widget;
 use self::Msg::*;
 
 #[derive(Clone)]
-struct Model {
+pub struct Model {
     counter: i32,
 }
 
 #[derive(Msg)]
-enum Msg {
+pub enum Msg {
     Decrement,
     Increment,
     Quit,
 }
 
 #[widget]
-impl Widget<Msg> for Win {
+impl Widget for Win {
     fn model() -> Model {
         Model {
             counter: 0,
@@ -99,11 +99,11 @@ mod tests {
     use relm;
     use relm_test::click;
 
-    use super::{Msg, Win};
+    use super::Win;
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win, Msg>().unwrap();
+        let (_component, widgets) = relm::init_test::<Win>().unwrap();
 
         assert_text!(widgets.label, 0);
         click(&widgets.inc_button);

@@ -80,9 +80,10 @@ To make this `struct` a relm `Widget` that can be shown by the library, implemen
 
 [source,rust]
 ----
-impl Widget<Msg> for Win {
+impl Widget for Win {
     type Container = Window;
     type Model = Model;
+    type Msg = Msg;
 
     // Return the container of this widget.
     fn container(&self) -> &Self::Container {
@@ -142,12 +143,12 @@ impl Widget<Msg> for Win {
 }
 ----
 
-Finally, show this `Widget` by calling `Relm::run()`:
+Finally, show this `Widget` by calling `relm::run()`:
 
 [source,rust]
 ----
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }
 ----
 
@@ -158,7 +159,7 @@ For the nightly users, a `#[widget]` attribute is provided to simplify the creat
 This attribute does the following:
 
  * Provide a `view!` macro to create the widget with a declarative syntax.
- * Automatically create the `fn container()`, `type Model` and `type Container` items.
+ * Automatically create the `fn container()`, `type Msg`, `type Model` and `type Container` items.
  * Automatically insert the call to `Widget::set_property()` in the `update()` function when assigning to an attribute of the model.
  * Automatically create the `Widget` `struct`.
 
@@ -167,7 +168,7 @@ Here is an example using this attribute:
 [source,rust]
 ----
 #[widget]
-impl Widget<Msg> for Win {
+impl Widget for Win {
     fn model() -> Model {
         Model {
             counter: 0,
@@ -215,8 +216,10 @@ impl Widget<Msg> for Win {
 }
 ----
 
-NOTE: The `struct Win` is now automatically created by the attribute, as are the function `container()` and the types `Model` and `Container`.
+NOTE: The `struct Win` is now automatically created by the attribute, as are the function `container()` and the types `Model`, `Msg` and `Container`.
 You can still provide the method and the types if needed, but you cannot create the `struct`.
+
+WARNING: The `#[widget]` makes the generated `struct` public: hence, the corresponding model and message types must be public too.
 
 [WARNING]
 ====

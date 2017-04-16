@@ -40,6 +40,10 @@
 #![warn(missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces, unused_qualifications, unused_results)]
 
 /*
+ * FIXME: the widget-list example can trigger the following after removing widgets, adding new
+ * widgets again and using these new widgets:
+ * GLib-CRITICAL **: g_io_channel_read_unichar: assertion 'channel->is_readable' failed
+ *
  * TODO: the widget names should start with __relm_field_.
  *
  * TODO: for the #[widget] attribute allow pattern matching by creating a function update(&mut
@@ -342,63 +346,6 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
         &self.handle
     }
 
-    /// Create the specified relm `Widget` and run the main event loops.
-    /// ```
-    /// # extern crate gtk;
-    /// # #[macro_use]
-    /// # extern crate relm;
-    /// # #[macro_use]
-    /// # extern crate relm_derive;
-    /// #
-    /// # use gtk::{Window, WindowType};
-    /// # use relm::{Relm, RemoteRelm, Widget};
-    /// #
-    /// # #[derive(Clone)]
-    /// # struct Win {
-    /// #     window: Window,
-    /// # }
-    /// # impl Widget<Msg> for Win {
-    /// #     type Container = Window;
-    /// #     type Model = ();
-    /// #
-    /// #     fn container(&self) -> &Self::Container {
-    /// #         &self.window
-    /// #     }
-    /// #
-    /// #     fn model() -> () {
-    /// #         ()
-    /// #     }
-    /// #
-    /// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
-    /// #     }
-    /// #
-    /// #     fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
-    /// #         let window = Window::new(WindowType::Toplevel);
-    /// #
-    /// #         Win {
-    /// #             window: window,
-    /// #         }
-    /// #     }
-    /// # }
-    /// # #[derive(Msg)]
-    /// # enum Msg {}
-    /// # fn main() {
-    /// # }
-    /// #
-    /// # fn run() {
-    /// /// `Win` is a relm `Widget`.
-    /// Relm::run::<Win>();
-    /// # }
-    /// ```
-    pub fn run<WIDGET>() -> Result<(), ()>
-        where WIDGET: Widget<MSG> + 'static,
-              WIDGET::Model: Send,
-    {
-        let _component = init::<WIDGET, MSG>()?;
-        gtk::main();
-        Ok(())
-    }
-
     /// Get the event stream of the widget.
     /// This is used internally by the library.
     pub fn stream(&self) -> &EventStream<MSG> {
@@ -420,9 +367,9 @@ impl<'a, MSG: Clone + DisplayVariant> RemoteRelm<MSG> {
     }
 }
 
-fn create_widget_test<WIDGET, MSG>(remote: &Remote) -> (Component<WIDGET::Model, MSG, WIDGET::Container>, WIDGET)
-    where WIDGET: Widget<MSG> + Clone + 'static,
-          MSG: Clone + DisplayVariant + 'static,
+fn create_widget_test<WIDGET>(remote: &Remote) -> (Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>, WIDGET)
+    where WIDGET: Widget + Clone + 'static,
+          WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
     // TODO: remove redundancy with create_widget.
     let (sender, mut receiver) = channel();
@@ -463,9 +410,9 @@ fn create_widget_test<WIDGET, MSG>(remote: &Remote) -> (Component<WIDGET::Model,
     (component, widget)
 }
 
-fn create_widget<WIDGET, MSG>(remote: &Remote) -> Component<WIDGET::Model, MSG, WIDGET::Container>
-    where WIDGET: Widget<MSG> + 'static,
-          MSG: Clone + DisplayVariant + 'static,
+fn create_widget<WIDGET>(remote: &Remote) -> Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>
+    where WIDGET: Widget + 'static,
+          WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
     let (sender, mut receiver) = channel();
     let stream = EventStream::new(Arc::new(sender));
@@ -529,9 +476,10 @@ fn init_gtk() {
 /// #     window: Window,
 /// # }
 /// #
-/// # impl Widget<Msg> for Win {
+/// # impl Widget for Win {
 /// #     type Container = Window;
 /// #     type Model = ();
+/// #     type Msg = Msg;
 /// #
 /// #     fn container(&self) -> &Self::Container {
 /// #         &self.window
@@ -556,41 +504,43 @@ fn init_gtk() {
 /// # #[derive(Msg)]
 /// # enum Msg {}
 /// # fn main() {
-/// let (_component, widgets) = relm::init_test::<Win, Msg>().unwrap();
+/// let (_component, widgets) = relm::init_test::<Win>().unwrap();
 /// # }
 /// ```
 ///
 /// ## Warning
 /// You **should** use `_component` instead of `_` to avoid dropping it too early, which will cause
 /// events to not be sent.
-pub fn init_test<WIDGET, MSG: Clone + DisplayVariant + Send + 'static>() -> Result<(Component<WIDGET::Model, MSG, WIDGET::Container>, WIDGET), ()>
-    where WIDGET: Widget<MSG> + Clone + 'static,
+pub fn init_test<WIDGET>() -> Result<(Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>, WIDGET), ()>
+    where WIDGET: Widget + Clone + 'static,
           WIDGET::Model: Send,
+          WIDGET::Msg: Clone + DisplayVariant + Send + 'static
 {
     init_gtk();
 
     let remote = Core::run();
-    let (component, widgets) = create_widget_test::<WIDGET, MSG>(&remote);
-    init_component::<WIDGET, MSG>(&component, &remote);
+    let (component, widgets) = create_widget_test::<WIDGET>(&remote);
+    init_component::<WIDGET>(&component, &remote);
     Ok((component, widgets))
 }
 
-fn init<WIDGET, MSG: Clone + DisplayVariant + Send + 'static>() -> Result<Component<WIDGET::Model, MSG, WIDGET::Container>, ()>
-    where WIDGET: Widget<MSG> + 'static,
+fn init<WIDGET>() -> Result<Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>, ()>
+    where WIDGET: Widget + 'static,
           WIDGET::Model: Send,
-    {
+          WIDGET::Msg: Clone + DisplayVariant + Send + 'static
+{
     gtk::init()?;
 
     let remote = Core::run();
-    let component = create_widget::<WIDGET, MSG>(&remote);
-    init_component::<WIDGET, MSG>(&component, &remote);
+    let component = create_widget::<WIDGET>(&remote);
+    init_component::<WIDGET>(&component, &remote);
     Ok(component)
 }
 
-fn init_component<WIDGET, MSG>(component: &Component<WIDGET::Model, MSG, WIDGET::Container>, remote: &Remote)
-    where WIDGET: Widget<MSG> + 'static,
+fn init_component<WIDGET>(component: &Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>, remote: &Remote)
+    where WIDGET: Widget + 'static,
           WIDGET::Model: Send,
-          MSG: Clone + DisplayVariant + Send + 'static,
+          WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
 {
     let stream = component.stream.clone();
     let model = component.model.clone();
@@ -610,9 +560,68 @@ fn init_component<WIDGET, MSG>(component: &Component<WIDGET::Model, MSG, WIDGET:
     });
 }
 
-fn update_widget<MSG, WIDGET>(widget: &mut WIDGET, event: MSG, model: &mut WIDGET::Model)
-    where MSG: Clone + DisplayVariant,
-          WIDGET: Widget<MSG>,
+/// Create the specified relm `Widget` and run the main event loops.
+/// ```
+/// # extern crate gtk;
+/// # #[macro_use]
+/// # extern crate relm;
+/// # #[macro_use]
+/// # extern crate relm_derive;
+/// #
+/// # use gtk::{Window, WindowType};
+/// # use relm::{RemoteRelm, Widget};
+/// #
+/// # #[derive(Clone)]
+/// # struct Win {
+/// #     window: Window,
+/// # }
+/// #
+/// # impl Widget for Win {
+/// #     type Container = Window;
+/// #     type Model = ();
+/// #     type Msg = Msg;
+/// #
+/// #     fn container(&self) -> &Self::Container {
+/// #         &self.window
+/// #     }
+/// #
+/// #     fn model() -> () {
+/// #         ()
+/// #     }
+/// #
+/// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
+/// #     }
+/// #
+/// #     fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+/// #         let window = Window::new(WindowType::Toplevel);
+/// #
+/// #         Win {
+/// #             window: window,
+/// #         }
+/// #     }
+/// # }
+/// # #[derive(Msg)]
+/// # enum Msg {}
+/// # fn main() {
+/// # }
+/// #
+/// # fn run() {
+/// /// `Win` is a relm `Widget`.
+/// relm::run::<Win>();
+/// # }
+/// ```
+pub fn run<WIDGET>() -> Result<(), ()>
+    where WIDGET: Widget + 'static,
+          WIDGET::Model: Send,
+          WIDGET::Msg: Send,
+{
+    let _component = init::<WIDGET>()?;
+    gtk::main();
+    Ok(())
+}
+
+fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg, model: &mut WIDGET::Model)
+    where WIDGET: Widget,
 {
     if cfg!(debug_assertions) {
         let time = SystemTime::now();
@@ -647,17 +656,17 @@ pub trait ContainerWidget
     ///
     /// The returned `Component` must be stored in a `Widget`. If it is not stored, a communication
     /// receiver will be droped which will cause events to be ignored for this widget.
-    fn add_widget<WIDGET, MSG, WIDGETMSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET::Model, WIDGETMSG, WIDGET::Container>
+    fn add_widget<WIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>
         where MSG: Clone + DisplayVariant + Send + 'static,
-              WIDGET: Widget<WIDGETMSG> + 'static,
+              WIDGET: Widget + 'static,
               WIDGET::Container: IsA<Object> + WidgetExt,
               WIDGET::Model: Send,
-              WIDGETMSG: Clone + DisplayVariant + Send + 'static,
+              WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
     {
-        let component = create_widget::<WIDGET, WIDGETMSG>(&relm.remote);
+        let component = create_widget::<WIDGET>(&relm.remote);
         self.add(&component.widget);
         component.widget.show_all();
-        init_component::<WIDGET, WIDGETMSG>(&component, &relm.remote);
+        init_component::<WIDGET>(&component, &relm.remote);
         component
     }
 

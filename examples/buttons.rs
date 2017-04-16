@@ -36,7 +36,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, RemoteRelm, Widget};
+use relm::{RemoteRelm, Widget};
 
 #[derive(Clone)]
 struct Model {
@@ -56,11 +56,13 @@ struct Win {
     window: Window,
 }
 
-impl Widget<Msg> for Win {
+impl Widget for Win {
     // Specify the type of the outer widget.
     type Container = Window;
     // Specify the model used for this widget.
     type Model = Model;
+    // Specify the type of the messages sent to the update function.
+    type Msg = Msg;
 
     // Return the outer widget.
     fn container(&self) -> &Self::Container {
@@ -122,5 +124,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

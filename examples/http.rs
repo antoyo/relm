@@ -90,9 +90,10 @@ struct Win {
 impl Win {
 }
 
-impl Widget<Msg> for Win {
+impl Widget for Win {
     type Container = Window;
     type Model = Model;
+    type Msg = Msg;
 
     fn container(&self) -> &Self::Container {
         &self.window
@@ -217,5 +218,5 @@ fn hyper_error_to_msg(error: Error) -> Msg {
 
 fn main() {
     TermLogger::init(Warn, Config::default()).unwrap();
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

@@ -37,7 +37,6 @@ mod parser;
 mod walker;
 
 use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
 
 use adder::{Adder, Property};
 use gen::gen;
@@ -55,28 +54,19 @@ use walker::ModelVariableVisitor;
 
 type PropertyModelMap = HashMap<Ident, HashSet<Property>>;
 
-struct Component {
-    model_type: Ty,
-    msg_type: Ty,
-    view_type: Ident,
-}
-
-lazy_static! {
-    static ref COMPONENTS: Mutex<HashMap<Ident, Component>> = Mutex::new(HashMap::new());
-}
-
 #[derive(Debug)]
 struct State {
     container_method: Option<ImplItem>,
     container_type: Option<ImplItem>,
     model_type: Option<ImplItem>,
-    msg_type: Option<Ty>,
+    msg_type: Option<ImplItem>,
     properties_model_map: Option<PropertyModelMap>,
     root_widget: Option<Ident>,
     root_widget_type: Option<Ident>,
     update_method: Option<ImplItem>,
     view_macro: Option<Mac>,
     widget_model_type: Option<Ty>,
+    widget_msg_type: Option<Ty>,
     widgets: HashMap<Ident, Ident>, // Map widget ident to widget type.
 }
 
@@ -93,6 +83,7 @@ impl State {
             update_method: None,
             view_macro: None,
             widget_model_type: None,
+            widget_msg_type: None,
             widgets: HashMap::new(),
         }
     }
@@ -119,21 +110,18 @@ pub fn gen_widget(input: Tokens) -> Tokens {
                         },
                         "subscriptions" | "update_command" => new_items.push(i),
                         "update" => {
-                            state.msg_type = Some(get_second_param_type(&sig));
+                            state.widget_msg_type = Some(get_second_param_type(&sig));
                             state.update_method = Some(i)
                         },
                         method_name => panic!("Unexpected method {}", method_name),
                     }
                 },
                 Type(_) => {
-                    if item.ident == Ident::new("Container") {
-                        state.container_type = Some(i);
-                    }
-                    else if item.ident == Ident::new("Model") {
-                        state.model_type = Some(i);
-                    }
-                    else {
-                        panic!("Unexpected type item {:?}", item.ident);
+                    match item.ident.to_string().as_ref() {
+                        "Container" => state.container_type = Some(i),
+                        "Model" => state.model_type = Some(i),
+                        "Msg" => state.msg_type = Some(i),
+                        _ => panic!("Unexpected type item {:?}", item.ident),
                     }
                 },
             }
@@ -143,6 +131,7 @@ pub fn gen_widget(input: Tokens) -> Tokens {
         new_items.push(view);
         state.widgets.insert(state.root_widget.clone().expect("root widget"),
             state.root_widget_type.clone().expect("root widget type"));
+        new_items.push(get_msg_type(state.msg_type, state.widget_msg_type));
         new_items.push(get_model_type(state.model_type, state.widget_model_type));
         new_items.push(get_container_type(state.container_type, state.root_widget_type));
         new_items.push(get_update(state.update_method.expect("update method"),
@@ -245,6 +234,15 @@ fn get_model_type(model_type: Option<ImplItem>, widget_model_type: Option<Ty>) -
     })
 }
 
+fn get_msg_type(msg_type: Option<ImplItem>, widget_msg_type: Option<Ty>) -> ImplItem {
+    msg_type.unwrap_or_else(|| {
+        let widget_msg_type = widget_msg_type.expect("missing update method");
+        block_to_impl_item(quote! {
+            type Msg = #widget_msg_type;
+        })
+    })
+}
+
 fn get_name(typ: &Ty) -> Ident {
     if let Ty::Path(_, ref path) = *typ {
         let mut tokens = Tokens::new();
@@ -338,19 +336,13 @@ fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, Ha
         let mut widget = parse(tts);
         if let Gtk(ref mut widget) = widget {
             widget.relm_name = Some(name.clone());
-            let mut components = COMPONENTS.lock().unwrap();
-            components.insert(name.clone(), Component {
-                msg_type: state.msg_type.clone().expect("missing update method"),
-                model_type: state.widget_model_type.clone().expect("missing model method"),
-                view_type: widget.gtk_type.clone(),
-            });
         }
         let mut properties_model_map = HashMap::new();
         get_properties_model_map(&widget, &mut properties_model_map);
         add_widgets(&widget, &mut state.widgets, &properties_model_map);
         let idents: Vec<_> = state.widgets.keys().collect();
         let (view, relm_widgets) = gen(name, &widget, &mut state.root_widget, &mut state.root_widget_type, &idents);
-        let event_type = &state.msg_type;
+        let event_type = &state.widget_msg_type;
         let item = block_to_impl_item(quote! {
             #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
             fn view(relm: ::relm::RemoteRelm<#event_type>, model: &Self::Model) -> Self {

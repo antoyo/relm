@@ -36,24 +36,24 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Widget};
+use relm::Widget;
 use relm_attributes::widget;
 
 use self::Msg::*;
 
 #[derive(Clone)]
-struct Model {
+pub struct Model {
     content: String,
 }
 
 #[derive(Msg)]
-enum Msg {
+pub enum Msg {
     Change(String),
     Quit,
 }
 
 #[widget]
-impl Widget<Msg> for Win {
+impl Widget for Win {
     fn model() -> Model {
         Model {
             content: String::new(),
@@ -88,5 +88,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

@@ -92,9 +92,10 @@ struct Win {
     window: Window,
 }
 
-impl Widget<Msg> for Win {
+impl Widget for Win {
     type Container = Window;
     type Model = Model;
+    type Msg = Msg;
 
     fn container(&self) -> &Self::Container {
         &self.window
@@ -239,5 +240,5 @@ fn ws_send(service: &WSService, message: &str) -> impl Future<Item=String> {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

@@ -47,9 +47,10 @@ struct Win {
     window: Window,
 }
 
-impl Widget<Msg> for Win {
+impl Widget for Win {
     type Container = Window;
     type Model = ();
+    type Msg = Msg;
 
     fn container(&self) -> &Self::Container {
         &self.window
@@ -96,5 +97,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

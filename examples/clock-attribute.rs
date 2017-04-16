@@ -44,18 +44,18 @@ use tokio_core::reactor::Interval;
 use self::Msg::*;
 
 #[derive(Clone)]
-struct Model {
+pub struct Model {
     time: DateTime<Local>,
 }
 
 #[derive(SimpleMsg)]
-enum Msg {
+pub enum Msg {
     Quit,
     Tick,
 }
 
 #[widget]
-impl Widget<Msg> for Win {
+impl Widget for Win {
     fn model() -> Model {
         Model {
             time: Local::now(),
@@ -85,5 +85,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

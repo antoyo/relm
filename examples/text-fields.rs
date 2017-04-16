@@ -37,7 +37,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, RemoteRelm, Widget};
+use relm::{RemoteRelm, Widget};
 
 use self::Msg::*;
 
@@ -58,9 +58,10 @@ struct Win {
     window: Window,
 }
 
-impl Widget<Msg> for Win {
+impl Widget for Win {
     type Container = Window;
     type Model = Model;
+    type Msg = Msg;
 
     fn container(&self) -> &Self::Container {
         &self.window
@@ -109,5 +110,5 @@ impl Widget<Msg> for Win {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }

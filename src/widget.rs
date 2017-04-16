@@ -24,14 +24,17 @@ use gtk::{self, IsA};
 use super::{DisplayVariant, Relm, RemoteRelm};
 
 /// Trait to implement to manage widget's events.
-pub trait Widget<MSG: Clone + DisplayVariant>
+pub trait Widget
     where Self: Sized,
           Self::Container: Clone + IsA<gtk::Widget>,
+          Self::Msg: Clone + DisplayVariant,
 {
     /// The type of the containing widget.
     type Container;
     /// The type of the model.
     type Model;
+    /// The type of the messages sent to the [`update()`](trait.Widget.html#tymethod.update) method.
+    type Msg;
 
     /// Get the containing widget, i.e. the parent widget of the view.
     fn container(&self) -> &Self::Container;
@@ -44,23 +47,23 @@ pub trait Widget<MSG: Clone + DisplayVariant>
     ///
     /// ## Note
     /// This method is called in the tokio thread, so that you can spawn `Future`s and `Stream`s.
-    fn subscriptions(_relm: &Relm<MSG>) {
+    fn subscriptions(_relm: &Relm<Self::Msg>) {
     }
 
     /// Method called when a message is received from an event.
     ///
     /// ## Note
     /// This method is called in the GTK+ thread, so that you can update widgets.
-    fn update(&mut self, event: MSG, model: &mut Self::Model);
+    fn update(&mut self, event: Self::Msg, model: &mut Self::Model);
 
     /// Connect `Future`s or `Stream`s when receiving an event.
     ///
     /// ## Warning
     /// This method is executed in the tokio thread: hence, you **must** spawn any futures in this
     /// method, not in `Widget::update()`.
-    fn update_command(_relm: &Relm<MSG>, _event: MSG, _model: &mut Self::Model) {
+    fn update_command(_relm: &Relm<Self::Msg>, _event: Self::Msg, _model: &mut Self::Model) {
     }
 
     /// Create the initial view.
-    fn view(relm: RemoteRelm<MSG>, model: &Self::Model) -> Self;
+    fn view(relm: RemoteRelm<Self::Msg>, model: &Self::Model) -> Self;
 }

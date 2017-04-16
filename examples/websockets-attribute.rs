@@ -66,7 +66,7 @@ use self::Msg::*;
 type WSService = ClientService<TcpStream, WebSocketProtocol>;
 
 #[derive(Clone)]
-struct Model {
+pub struct Model {
     // The message to be sent.
     message: String,
     service: Option<WSService>,
@@ -75,7 +75,7 @@ struct Model {
 }
 
 #[derive(Msg)]
-enum Msg {
+pub enum Msg {
     // The user changed the message to be sent.
     Change(String),
     // Connection to the server successful.
@@ -88,7 +88,7 @@ enum Msg {
 }
 
 #[widget]
-impl Widget<Msg> for Win {
+impl Widget for Win {
     fn model() -> Model {
         Model {
             message: String::new(),
@@ -209,5 +209,5 @@ fn ws_send(service: &WSService, message: &str) -> impl Future<Item=String> {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }
