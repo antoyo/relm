@@ -59,3 +59,10 @@ version = "^0.1.0"
 [features]
 nightly = []
 use_impl_trait = []
+
+[package.metadata.release]
+pre-release-replacements = [
+    {file="README.adoc", search="relm = \"[a-z0-9^\\.-]+\"", replace="relm = \"{{version}}\""},
+    {file="src/lib.rs", search="relm = \"[a-z0-9^\\.-]+\"", replace="relm = \"{{version}}\""},
+    {file="examples/buttons-derive/Cargo.toml", search="relm = \"[a-z0-9^\\.-]+\"", replace="relm = \"{{version}}\""},
+]

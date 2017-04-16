@@ -30,7 +30,7 @@
 //! ```toml
 //! [dependencies]
 //! gtk = "^0.1.2"
-//! relm = "^0.4.0"
+//! relm = "^0.5.0"
 //! relm-derive = "^0.1.2"
 //! ```
 //!
