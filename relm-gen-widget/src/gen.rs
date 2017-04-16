@@ -173,12 +173,13 @@ impl<'a> Generator<'a> {
         self.collect_events(widget);
 
         let children: Vec<_> = widget.children.iter()
-            .map(|child| self.widget(child, Some(widget_name))).collect();
+            .map(|child| self.widget(child, Some(widget_name)))
+            .collect();
 
         let add_child_or_show_all = self.add_child_or_show_all(widget, parent);
         let ident = quote! { #widget_name };
         let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
-        let child_properties = gen_set_child_prop_calls(widget);
+        let child_properties = gen_set_child_prop_calls(widget, parent);
 
         quote! {
             let #widget_name: #struct_name = #construct_widget;
@@ -202,7 +203,8 @@ impl<'a> Generator<'a> {
         self.collect_relm_events(widget);
 
         let children: Vec<_> = widget.children.iter()
-            .map(|child| self.widget(child, Some(widget_name))).collect();
+            .map(|child| self.widget(child, Some(widget_name)))
+            .collect();
         let ident = quote! { #widget_name.widget() };
         let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
 
@@ -255,17 +257,16 @@ fn gen_relm_component_type(name: &Ident) -> Ident {
     Ident::new(format!("::relm::Component<{0}>", name).as_ref())
 }
 
-fn gen_set_child_prop_calls(widget: &GtkWidget) -> Vec<Tokens> {
+fn gen_set_child_prop_calls(widget: &GtkWidget, parent: Option<&Ident>) -> Vec<Tokens> {
     let widget_name = &widget.name;
     let mut child_properties = vec![];
-    for (key, value) in &widget.child_properties {
-        let property_func = Ident::new(format!("set_child_{}", key));
-        child_properties.push(quote! {
-            let parent: gtk::Box = gtk::Cast::downcast(#widget_name.get_parent()
-                .expect("child properties only allowed for non-root widgets"))
-                .expect("the parent of a widget with child properties must be a gtk::Box");
-            parent.#property_func(&#widget_name, #value);
-        });
+    if let Some(parent) = parent {
+        for (key, value) in &widget.child_properties {
+            let property_func = Ident::new(format!("set_child_{}", key));
+            child_properties.push(quote! {
+                #parent.#property_func(&#widget_name, #value);
+            });
+        }
     }
     child_properties
 }

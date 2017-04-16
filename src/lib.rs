@@ -40,6 +40,7 @@
 #![warn(missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces, unused_qualifications, unused_results)]
 
 /*
+ * FIXME: the relm_widget! macro is broken.
  * FIXME: the widget-list example can trigger the following after removing widgets, adding new
  * widgets again and using these new widgets:
  * GLib-CRITICAL **: g_io_channel_read_unichar: assertion 'channel->is_readable' failed
@@ -103,7 +104,7 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib};
 use glib_itc::{Receiver, channel};
 #[doc(hidden)]
 pub use gobject_sys::g_object_new;
-use gtk::{ContainerExt, IsA, Object, WidgetExt};
+use gtk::{Cast, Container, ContainerExt, IsA, Object, WidgetExt};
 use relm_core::Core;
 #[doc(hidden)]
 pub use relm_core::{EventStream, Handle, Remote};
@@ -655,7 +656,7 @@ fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg, model: &mut WI
 
 /// Extension trait for GTK+ containers to add and remove relm `Widget`s.
 pub trait ContainerWidget
-    where Self: ContainerExt
+    where Self: Clone + IsA<Container> + IsA<gtk::Widget> + IsA<Object> + Sized,
 {
     /// Add a relm `Widget` to the current GTK+ container.
     ///
@@ -672,6 +673,7 @@ pub trait ContainerWidget
     {
         let component = create_widget::<WIDGET>(&relm.remote);
         self.add(component.widget.container());
+        component.widget.on_add(self.clone().upcast());
         init_component::<WIDGET>(&component, &relm.remote);
         component
     }
@@ -685,7 +687,8 @@ pub trait ContainerWidget
     }
 }
 
-impl<W: ContainerExt> ContainerWidget for W { }
+impl<W: Clone + IsA<Container> + IsA<gtk::Widget> + IsA<Object>> ContainerWidget for W {
+}
 
 /// Format trait for enum variants.
 ///

@@ -48,6 +48,10 @@ pub trait Widget
     /// Create the initial model.
     fn model() -> Self::Model;
 
+    /// Method called when the widget is added to its parent.
+    fn on_add(&self, _parent: gtk::Widget) {
+    }
+
     /// Connect the subscriptions.
     /// Subscriptions are `Future`/`Stream` that are spawn when the widget is created.
     ///

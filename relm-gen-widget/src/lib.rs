@@ -126,7 +126,10 @@ pub fn gen_widget(input: Tokens) -> Tokens {
                 },
             }
         }
-        let (view, map, relm_widgets) = get_view(&name, &mut state);
+        let (view, widget, map, relm_widgets) = get_view(&name, &mut state);
+        if let Some(on_add) = gen_set_child_prop_calls(&widget) {
+            new_items.push(on_add);
+        }
         state.properties_model_map = Some(map);
         new_items.push(view);
         state.widgets.insert(state.root_widget.clone().expect("root widget"),
@@ -319,7 +322,7 @@ fn get_update(mut func: ImplItem, map: &PropertyModelMap) -> ImplItem {
     func
 }
 
-fn get_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, HashMap<Ident, Ident>) {
+fn get_view(name: &Ident, state: &mut State) -> (ImplItem, Widget, PropertyModelMap, HashMap<Ident, Ident>) {
     {
         let segments = &state.view_macro.as_ref().expect("view! macro missing").path.segments;
         if segments.len() != 1 || segments[0].ident != "view" {
@@ -329,7 +332,7 @@ fn get_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, Has
     impl_view(name, state)
 }
 
-fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, HashMap<Ident, Ident>) {
+fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, Widget, PropertyModelMap, HashMap<Ident, Ident>) {
     let tokens = &state.view_macro.as_ref().unwrap().tts;
     if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
         let mut widget = parse(tts);
@@ -348,9 +351,36 @@ fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, PropertyModelMap, Ha
                 #view
             }
         });
-        (item, properties_model_map, relm_widgets)
+        (item, widget, properties_model_map, relm_widgets)
     }
     else {
         panic!("Expected `{{` but found `{:?}` in view! macro", tokens[0]);
+    }
+}
+
+fn gen_set_child_prop_calls(widget: &Widget) -> Option<ImplItem> {
+    let widget = match *widget {
+        Gtk(ref gtk_widget) => gtk_widget,
+        Relm(_) => return None,
+    };
+    let mut tokens = Tokens::new();
+    let widget_name = &widget.name;
+    for (key, value) in &widget.child_properties {
+        let property_func = Ident::new(format!("set_child_{}", key));
+        tokens.append(quote! {
+            parent.#property_func(&self.#widget_name, #value);
+        });
+    }
+    if !widget.child_properties.is_empty() {
+        Some(block_to_impl_item(quote! {
+            fn on_add(&self, parent: ::gtk::Widget) {
+                let parent: gtk::Box = gtk::Cast::downcast(parent)
+                    .expect("the parent of a widget with child properties must be a gtk::Box");
+                #tokens
+            }
+        }))
+    }
+    else {
+        None
     }
 }
