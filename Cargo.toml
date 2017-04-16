@@ -6,7 +6,7 @@ documentation = "https://docs.rs/relm/"
 license = "MIT"
 name = "relm"
 repository = "https://github.com/antoyo/relm"
-version = "0.6.2"
+version = "0.6.3"
 
 [dependencies]
 cairo-rs = "^0.1.2"
