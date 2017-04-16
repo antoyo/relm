@@ -178,7 +178,7 @@ impl<'a> Generator<'a> {
         let add_child_or_show_all = self.add_child_or_show_all(widget, parent);
         let ident = quote! { #widget_name };
         let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
-        let child_properties = gen_set_child_prop_calls(widget, parent);
+        let child_properties = gen_set_child_prop_calls(widget);
 
         quote! {
             let #widget_name: #struct_name = #construct_widget;
@@ -255,14 +255,16 @@ fn gen_relm_component_type(name: &Ident) -> Ident {
     Ident::new(format!("::relm::Component<{0}>", name).as_ref())
 }
 
-fn gen_set_child_prop_calls(widget: &GtkWidget, parent: Option<&Ident>) -> Vec<Tokens> {
+fn gen_set_child_prop_calls(widget: &GtkWidget) -> Vec<Tokens> {
     let widget_name = &widget.name;
     let mut child_properties = vec![];
     for (key, value) in &widget.child_properties {
         let property_func = Ident::new(format!("set_child_{}", key));
-        let parent = parent.expect("child properties only allowed for non-root widgets");
         child_properties.push(quote! {
-            #parent.#property_func(&#widget_name, #value);
+            let parent: gtk::Box = gtk::Cast::downcast(#widget_name.get_parent()
+                .expect("child properties only allowed for non-root widgets"))
+                .expect("the parent of a widget with child properties must be a gtk::Box");
+            parent.#property_func(&#widget_name, #value);
         });
     }
     child_properties
