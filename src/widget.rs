@@ -39,6 +39,12 @@ pub trait Widget
     /// Get the containing widget, i.e. the parent widget of the view.
     fn container(&self) -> &Self::Container;
 
+    /// Update the view after it is initially created.
+    /// This method is only useful when using the `#[widget]` attribute, because when not using it,
+    /// you can use the [`view()`](trait.Widget.html#tymethod.view) method instead.
+    fn init_view(&self) {
+    }
+
     /// Create the initial model.
     fn model() -> Self::Model;
 

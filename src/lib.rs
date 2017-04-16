@@ -391,6 +391,7 @@ fn create_widget_test<WIDGET>(remote: &Remote) -> Component<WIDGET>
         let model = WIDGET::model();
         (WIDGET::view(relm, &model), model)
     };
+    widget.init_view();
 
     let model = Arc::new(Mutex::new(model));
 
@@ -430,6 +431,7 @@ fn create_widget<WIDGET>(remote: &Remote) -> Component<WIDGET>
         let model = WIDGET::model();
         (WIDGET::view(relm, &model), model)
     };
+    widget.init_view();
 
     let model = Arc::new(Mutex::new(model));
 

@@ -108,7 +108,7 @@ pub fn gen_widget(input: Tokens) -> Tokens {
                             state.widget_model_type = Some(get_return_type(sig));
                             new_items.push(i);
                         },
-                        "subscriptions" | "update_command" => new_items.push(i),
+                        "init_view" | "subscriptions" | "update_command" => new_items.push(i),
                         "update" => {
                             state.widget_msg_type = Some(get_second_param_type(&sig));
                             state.update_method = Some(i)
