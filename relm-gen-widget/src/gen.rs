@@ -33,13 +33,20 @@ macro_rules! gen_set_prop_calls {
     ($widget:expr, $ident:expr) => {{
         let ident = $ident;
         let mut properties = vec![];
+        let mut visible_properties = vec![];
         for (key, value) in &$widget.properties {
             let property_func = Ident::new(format!("set_{}", key));
-            properties.push(quote! {
+            let property = quote! {
                 #ident.#property_func(#value);
-            });
+            };
+            if key == "visible" {
+                visible_properties.push(property);
+            }
+            else {
+                properties.push(property);
+            }
         }
-        properties
+        (properties, visible_properties)
     }};
 }
 
@@ -97,7 +104,6 @@ impl<'a> Generator<'a> {
             *self.root_widget_type = Some(struct_name.clone());
             *self.root_widget = Some(widget_name.clone());
             quote! {
-                #widget_name.show_all();
             }
         }
     }
@@ -171,7 +177,7 @@ impl<'a> Generator<'a> {
 
         let add_child_or_show_all = self.add_child_or_show_all(widget, parent);
         let ident = quote! { #widget_name };
-        let properties = gen_set_prop_calls!(widget, ident);
+        let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
         let child_properties = gen_set_child_prop_calls(widget, parent);
 
         quote! {
@@ -179,6 +185,8 @@ impl<'a> Generator<'a> {
             #(#properties)*
             #(#children)*
             #add_child_or_show_all
+            #widget_name.show();
+            #(#visible_properties)*
             #(#child_properties)*
         }
     }
@@ -196,13 +204,14 @@ impl<'a> Generator<'a> {
         let children: Vec<_> = widget.children.iter()
             .map(|child| self.widget(child, Some(widget_name))).collect();
         let ident = quote! { #widget_name.widget() };
-        let properties = gen_set_prop_calls!(widget, ident);
+        let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
 
         quote! {
             let #widget_name = {
                 ::relm::ContainerWidget::add_widget::<#widget_type, _>(&#parent, &relm)
             };
             #(#properties)*
+            #(#visible_properties)*
             #(#children)*
         }
     }

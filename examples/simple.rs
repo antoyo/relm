@@ -63,6 +63,7 @@ impl Widget for Label {
         #[name="label"]
         gtk::Label {
             text: &model.counter.to_string(),
+            visible: false,
         }
     }
 }

@@ -672,7 +672,6 @@ pub trait ContainerWidget
     {
         let component = create_widget::<WIDGET>(&relm.remote);
         self.add(component.widget.container());
-        component.widget.container().show_all();
         init_component::<WIDGET>(&component, &relm.remote);
         component
     }
