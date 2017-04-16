@@ -51,6 +51,7 @@ enum Msg {
 }
 
 // Create the structure that holds the widgets used in the view.
+#[derive(Clone)]
 struct Win {
     counter_label: Label,
     window: Window,

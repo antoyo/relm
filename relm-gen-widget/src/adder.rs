@@ -88,6 +88,7 @@ impl<'a> Folder for Adder<'a> {
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Property {
     pub expr: String,
+    pub is_relm_widget: bool,
     pub name: String,
     pub widget_name: Ident,
 }
@@ -100,9 +101,17 @@ fn create_stmts(ident: &Ident, map: &PropertyModelMap) -> Vec<Stmt> {
             let prop_name = Ident::new(format!("set_{}", property.name));
             let mut tokens = Tokens::new();
             tokens.append(&property.expr);
-            let stmt = quote! {
-                { self.#widget_name.#prop_name(#tokens); }
-            };
+            let stmt =
+                if property.is_relm_widget {
+                    quote! {
+                        { self.#widget_name.widget().#prop_name(#tokens); }
+                    }
+                }
+                else {
+                    quote! {
+                        { self.#widget_name.#prop_name(#tokens); }
+                    }
+                };
             let expr = parse_expr(&stmt.parse::<String>().unwrap()).unwrap();
             if let ExprKind::Block(_, ref block) = expr.node {
                 stmts.push(block.stmts[0].clone());

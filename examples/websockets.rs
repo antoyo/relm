@@ -86,6 +86,7 @@ enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
 struct Win {
     entry: Entry,
     label: Label,

@@ -29,6 +29,20 @@ use parser::EventValue::{CurrentWidget, ForeignWidget};
 use parser::EventValueReturn::{Return, WithoutReturn};
 use parser::Widget::{Gtk, Relm};
 
+macro_rules! gen_set_prop_calls {
+    ($widget:expr, $ident:expr) => {{
+        let ident = $ident;
+        let mut properties = vec![];
+        for (key, value) in &$widget.properties {
+            let property_func = Ident::new(format!("set_{}", key));
+            properties.push(quote! {
+                #ident.#property_func(#value);
+            });
+        }
+        properties
+    }};
+}
+
 pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>) {
     let mut generator = Generator::new(root_widget, root_widget_type);
     let widget = generator.widget(widget, None);
@@ -156,7 +170,8 @@ impl<'a> Generator<'a> {
             .map(|child| self.widget(child, Some(widget_name))).collect();
 
         let add_child_or_show_all = self.add_child_or_show_all(widget, parent);
-        let properties = gen_set_prop_calls(widget);
+        let ident = quote! { #widget_name };
+        let properties = gen_set_prop_calls!(widget, ident);
         let child_properties = gen_set_child_prop_calls(widget, parent);
 
         quote! {
@@ -180,11 +195,14 @@ impl<'a> Generator<'a> {
 
         let children: Vec<_> = widget.children.iter()
             .map(|child| self.widget(child, Some(widget_name))).collect();
+        let ident = quote! { #widget_name.widget() };
+        let properties = gen_set_prop_calls!(widget, ident);
 
         quote! {
             let #widget_name = {
                 ::relm::ContainerWidget::add_widget::<#widget_type, _>(&#parent, &relm)
             };
+            #(#properties)*
             #(#children)*
         }
     }
@@ -225,7 +243,7 @@ fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
 }
 
 fn gen_relm_component_type(name: &Ident) -> Ident {
-    Ident::new(format!("::relm::Component<<{0} as ::relm::Widget>::Model, <{0} as ::relm::Widget>::Msg, <{0} as ::relm::Widget>::Container>", name).as_ref())
+    Ident::new(format!("::relm::Component<{0}>", name).as_ref())
 }
 
 fn gen_set_child_prop_calls(widget: &GtkWidget, parent: Option<&Ident>) -> Vec<Tokens> {
@@ -239,16 +257,4 @@ fn gen_set_child_prop_calls(widget: &GtkWidget, parent: Option<&Ident>) -> Vec<T
         });
     }
     child_properties
-}
-
-fn gen_set_prop_calls(widget: &GtkWidget) -> Vec<Tokens> {
-    let widget_name = &widget.name;
-    let mut properties = vec![];
-    for (key, value) in &widget.properties {
-        let property_func = Ident::new(format!("set_{}", key));
-        properties.push(quote! {
-            #widget_name.#property_func(#value);
-        });
-    }
-    properties
 }

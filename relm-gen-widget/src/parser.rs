@@ -139,6 +139,7 @@ pub struct RelmWidget {
     pub children: Vec<Widget>,
     pub events: HashMap<String, Vec<Event>>,
     pub name: syn::Ident,
+    pub properties: HashMap<String, Tokens>,
     pub relm_type: syn::Ident,
 }
 
@@ -153,6 +154,7 @@ impl RelmWidget {
             children: vec![],
             events: HashMap::new(),
             name: syn::Ident::new(name),
+            properties: HashMap::new(),
             relm_type: syn::Ident::new(relm_type),
         }
     }
@@ -437,15 +439,23 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
                 widget.children.push(child);
             }
             else {
+                // Property or event.
                 let (ident, _) = parse_ident(tts);
-                match tts[1] {
+                tts = &tts[1..];
+                match tts[0] {
+                    Token(Colon) => {
+                        tts = &tts[1..];
+                        let (value, new_tts) = parse_value(tts);
+                        tts = new_tts;
+                        widget.properties.insert(ident, value);
+                    },
                     TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
-                        let (event, new_tts) = parse_event(&tts[1..], DefaultNoParam);
+                        let (event, new_tts) = parse_event(&tts[0..], DefaultNoParam);
                         let mut entry = widget.events.entry(ident).or_insert_with(Vec::new);
                         entry.push(event);
                         tts = new_tts;
                     },
-                    _ => panic!("Expected event, but found {:?}", tts[0]),
+                    _ => panic!("Expected `:`, `=>` or `(` but found `{:?}` in view! macro", tts[0]),
                 }
             }
 

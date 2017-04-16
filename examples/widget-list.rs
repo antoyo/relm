@@ -52,6 +52,7 @@ enum CounterMsg {
     Increment,
 }
 
+#[derive(Clone)]
 struct Counter {
     counter_label: Label,
     vbox: gtk::Box,
@@ -116,8 +117,9 @@ enum Msg {
     Remove,
 }
 
+#[derive(Clone)]
 struct Win {
-    counters: Vec<Component<Model, CounterMsg, gtk::Box>>,
+    counters: Vec<Component<Counter>>,
     hbox: gtk::Box,
     relm: RemoteRelm<Msg>,
     window: Window,

@@ -188,50 +188,57 @@ macro_rules! use_impl_self_type {
 /// [communication-attribute example](https://github.com/antoyo/relm/blob/master/examples/communication-attribute.rs)).
 #[must_use]
 #[derive(Clone)]
-pub struct Component<MODEL, MSG: Clone + DisplayVariant, WIDGET> {
-    model: Arc<Mutex<MODEL>>,
+pub struct Component<WIDGET: Widget> {
+    model: Arc<Mutex<WIDGET::Model>>,
     _receiver: Arc<Receiver>,
-    stream: EventStream<MSG>,
+    stream: EventStream<WIDGET::Msg>,
     widget: WIDGET,
 }
 
-impl<MODEL, MSG: Clone + DisplayVariant, WIDGET> Component<MODEL, MSG, WIDGET> {
+impl<WIDGET: Widget> Component<WIDGET> {
     /// Get the event stream of the widget.
     /// This is used internally by the library.
-    pub fn stream(&self) -> &EventStream<MSG> {
+    pub fn stream(&self) -> &EventStream<WIDGET::Msg> {
         &self.stream
+    }
+
+    /// Get the widget of this component.
+    pub fn widget(&self) -> &WIDGET {
+        &self.widget
     }
 }
 
-impl<MODEL, MSG: Clone + DisplayVariant, WIDGET> Drop for Component<MODEL, MSG, WIDGET> {
+impl<WIDGET: Widget> Drop for Component<WIDGET> {
     fn drop(&mut self) {
         let _ = self.stream.close();
     }
 }
 
-impl<MODEL, MSG: Clone + DisplayVariant, WIDGET: ContainerExt> ContainerExt for Component<MODEL, MSG, WIDGET> {
-    fn add<T: IsA<gtk::Widget>>(&self, widget: &T) { self.widget.add(widget) }
-    fn check_resize(&self) { self.widget.check_resize() }
-    fn child_notify<T: IsA<gtk::Widget>>(&self, child: &T, child_property: &str) { self.widget.child_notify(child, child_property) }
-    fn child_type(&self) -> gtk::Type { self.widget.child_type() }
-    fn get_border_width(&self) -> u32 { self.widget.get_border_width() }
-    fn get_children(&self) -> Vec<gtk::Widget> { self.widget.get_children() }
-    fn get_focus_child(&self) -> Option<gtk::Widget> { self.widget.get_focus_child() }
-    fn get_focus_hadjustment(&self) -> Option<gtk::Adjustment> { self.widget.get_focus_hadjustment() }
-    fn get_focus_vadjustment(&self) -> Option<gtk::Adjustment> { self.widget.get_focus_vadjustment() }
-    fn get_resize_mode(&self) -> gtk::ResizeMode { self.widget.get_resize_mode() }
-    fn propagate_draw<T: IsA<gtk::Widget>>(&self, child: &T, cr: &cairo::Context) { self.widget.propagate_draw(child, cr) }
-    fn remove<T: IsA<gtk::Widget>>(&self, widget: &T) { self.widget.remove(widget) }
-    fn resize_children(&self) { self.widget.resize_children() }
-    fn set_border_width(&self, border_width: u32) { self.widget.set_border_width(border_width) }
-    fn set_focus_chain(&self, focusable_widgets: &[gtk::Widget]) { self.widget.set_focus_chain(focusable_widgets) }
-    fn set_focus_child<T: IsA<gtk::Widget>>(&self, child: Option<&T>) { self.widget.set_focus_child(child) }
-    fn set_focus_hadjustment(&self, adjustment: &gtk::Adjustment) { self.widget.set_focus_hadjustment(adjustment) }
-    fn set_focus_vadjustment(&self, adjustment: &gtk::Adjustment) { self.widget.set_focus_vadjustment(adjustment) }
-    fn set_reallocate_redraws(&self, needs_redraws: bool) { self.widget.set_reallocate_redraws(needs_redraws) }
-    fn set_resize_mode(&self, resize_mode: gtk::ResizeMode) { self.widget.set_resize_mode(resize_mode) }
-    fn unset_focus_chain(&self) { self.widget.unset_focus_chain() }
-    fn set_property_child(&self, child: Option<&gtk::Widget>) { self.widget.set_property_child(child) }
+impl<WIDGET: Widget> ContainerExt for Component<WIDGET>
+    where WIDGET::Container: ContainerExt,
+{
+    fn add<T: IsA<gtk::Widget>>(&self, widget: &T) { self.widget.container().add(widget) }
+    fn check_resize(&self) { self.widget.container().check_resize() }
+    fn child_notify<T: IsA<gtk::Widget>>(&self, child: &T, child_property: &str) { self.widget.container().child_notify(child, child_property) }
+    fn child_type(&self) -> gtk::Type { self.widget.container().child_type() }
+    fn get_border_width(&self) -> u32 { self.widget.container().get_border_width() }
+    fn get_children(&self) -> Vec<gtk::Widget> { self.widget.container().get_children() }
+    fn get_focus_child(&self) -> Option<gtk::Widget> { self.widget.container().get_focus_child() }
+    fn get_focus_hadjustment(&self) -> Option<gtk::Adjustment> { self.widget.container().get_focus_hadjustment() }
+    fn get_focus_vadjustment(&self) -> Option<gtk::Adjustment> { self.widget.container().get_focus_vadjustment() }
+    fn get_resize_mode(&self) -> gtk::ResizeMode { self.widget.container().get_resize_mode() }
+    fn propagate_draw<T: IsA<gtk::Widget>>(&self, child: &T, cr: &cairo::Context) { self.widget.container().propagate_draw(child, cr) }
+    fn remove<T: IsA<gtk::Widget>>(&self, widget: &T) { self.widget.container().remove(widget) }
+    fn resize_children(&self) { self.widget.container().resize_children() }
+    fn set_border_width(&self, border_width: u32) { self.widget.container().set_border_width(border_width) }
+    fn set_focus_chain(&self, focusable_widgets: &[gtk::Widget]) { self.widget.container().set_focus_chain(focusable_widgets) }
+    fn set_focus_child<T: IsA<gtk::Widget>>(&self, child: Option<&T>) { self.widget.container().set_focus_child(child) }
+    fn set_focus_hadjustment(&self, adjustment: &gtk::Adjustment) { self.widget.container().set_focus_hadjustment(adjustment) }
+    fn set_focus_vadjustment(&self, adjustment: &gtk::Adjustment) { self.widget.container().set_focus_vadjustment(adjustment) }
+    fn set_reallocate_redraws(&self, needs_redraws: bool) { self.widget.container().set_reallocate_redraws(needs_redraws) }
+    fn set_resize_mode(&self, resize_mode: gtk::ResizeMode) { self.widget.container().set_resize_mode(resize_mode) }
+    fn unset_focus_chain(&self) { self.widget.container().unset_focus_chain() }
+    fn set_property_child(&self, child: Option<&gtk::Widget>) { self.widget.container().set_property_child(child) }
     fn connect_add<F: Fn(&Self, &gtk::Widget) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
     fn connect_check_resize<F: Fn(&Self) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
     fn connect_remove<F: Fn(&Self, &gtk::Widget) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
@@ -354,6 +361,7 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
 }
 
 /// Handle to the tokio event loop, to be used from the GTK+ thread.
+#[derive(Clone)]
 pub struct RemoteRelm<MSG: Clone + DisplayVariant> {
     remote: Remote,
     stream: EventStream<MSG>,
@@ -367,7 +375,7 @@ impl<'a, MSG: Clone + DisplayVariant> RemoteRelm<MSG> {
     }
 }
 
-fn create_widget_test<WIDGET>(remote: &Remote) -> (Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>, WIDGET)
+fn create_widget_test<WIDGET>(remote: &Remote) -> Component<WIDGET>
     where WIDGET: Widget + Clone + 'static,
           WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
@@ -384,7 +392,6 @@ fn create_widget_test<WIDGET>(remote: &Remote) -> (Component<WIDGET::Model, WIDG
         (WIDGET::view(relm, &model), model)
     };
 
-    let container = widget.container().clone();
     let model = Arc::new(Mutex::new(model));
 
     {
@@ -400,24 +407,22 @@ fn create_widget_test<WIDGET>(remote: &Remote) -> (Component<WIDGET::Model, WIDG
         });
     }
 
-    let component = Component {
+    Component {
         model: model,
         _receiver: Arc::new(receiver),
         stream: stream,
-        widget: container,
-    };
-
-    (component, widget)
+        widget: widget,
+    }
 }
 
-fn create_widget<WIDGET>(remote: &Remote) -> Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>
+fn create_widget<WIDGET>(remote: &Remote) -> Component<WIDGET>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
     let (sender, mut receiver) = channel();
     let stream = EventStream::new(Arc::new(sender));
 
-    let (mut widget, model) = {
+    let (widget, model) = {
         let relm = RemoteRelm {
             remote: remote.clone(),
             stream: stream.clone(),
@@ -426,10 +431,10 @@ fn create_widget<WIDGET>(remote: &Remote) -> Component<WIDGET::Model, WIDGET::Ms
         (WIDGET::view(relm, &model), model)
     };
 
-    let container = widget.container().clone();
     let model = Arc::new(Mutex::new(model));
 
     {
+        let mut widget = widget.clone();
         let stream = stream.clone();
         let model = model.clone();
         receiver.connect_recv(move || {
@@ -445,7 +450,7 @@ fn create_widget<WIDGET>(remote: &Remote) -> Component<WIDGET::Model, WIDGET::Ms
         model: model,
         _receiver: Arc::new(receiver),
         stream: stream,
-        widget: container,
+        widget: widget,
     }
 }
 
@@ -504,14 +509,14 @@ fn init_gtk() {
 /// # #[derive(Msg)]
 /// # enum Msg {}
 /// # fn main() {
-/// let (_component, widgets) = relm::init_test::<Win>().unwrap();
+/// let component = relm::init_test::<Win>().unwrap();
 /// # }
 /// ```
 ///
 /// ## Warning
 /// You **should** use `_component` instead of `_` to avoid dropping it too early, which will cause
 /// events to not be sent.
-pub fn init_test<WIDGET>() -> Result<(Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>, WIDGET), ()>
+pub fn init_test<WIDGET>() -> Result<Component<WIDGET>, ()>
     where WIDGET: Widget + Clone + 'static,
           WIDGET::Model: Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static
@@ -519,12 +524,12 @@ pub fn init_test<WIDGET>() -> Result<(Component<WIDGET::Model, WIDGET::Msg, WIDG
     init_gtk();
 
     let remote = Core::run();
-    let (component, widgets) = create_widget_test::<WIDGET>(&remote);
+    let component = create_widget_test::<WIDGET>(&remote);
     init_component::<WIDGET>(&component, &remote);
-    Ok((component, widgets))
+    Ok(component)
 }
 
-fn init<WIDGET>() -> Result<Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>, ()>
+fn init<WIDGET>() -> Result<Component<WIDGET>, ()>
     where WIDGET: Widget + 'static,
           WIDGET::Model: Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static
@@ -537,7 +542,7 @@ fn init<WIDGET>() -> Result<Component<WIDGET::Model, WIDGET::Msg, WIDGET::Contai
     Ok(component)
 }
 
-fn init_component<WIDGET>(component: &Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>, remote: &Remote)
+fn init_component<WIDGET>(component: &Component<WIDGET>, remote: &Remote)
     where WIDGET: Widget + 'static,
           WIDGET::Model: Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
@@ -656,7 +661,7 @@ pub trait ContainerWidget
     ///
     /// The returned `Component` must be stored in a `Widget`. If it is not stored, a communication
     /// receiver will be droped which will cause events to be ignored for this widget.
-    fn add_widget<WIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET::Model, WIDGET::Msg, WIDGET::Container>
+    fn add_widget<WIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET>
         where MSG: Clone + DisplayVariant + Send + 'static,
               WIDGET: Widget + 'static,
               WIDGET::Container: IsA<Object> + WidgetExt,
@@ -664,17 +669,18 @@ pub trait ContainerWidget
               WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
     {
         let component = create_widget::<WIDGET>(&relm.remote);
-        self.add(&component.widget);
-        component.widget.show_all();
+        self.add(component.widget.container());
+        component.widget.container().show_all();
         init_component::<WIDGET>(&component, &relm.remote);
         component
     }
 
     /// Remove a relm `Widget` from the current GTK+ container.
-    fn remove_widget<MODEL, MSG: Clone + DisplayVariant + 'static, WIDGET>(&self, component: Component<MODEL, MSG, WIDGET>)
-        where WIDGET: IsA<gtk::Widget>,
+    fn remove_widget<WIDGET>(&self, component: Component<WIDGET>)
+        where WIDGET: Widget,
+              WIDGET::Container: IsA<gtk::Widget>,
     {
-        self.remove(&component.widget);
+        self.remove(component.widget.container());
     }
 }
 

@@ -59,6 +59,7 @@ enum Msg {
     Tick(()),
 }
 
+#[derive(Clone)]
 struct Win {
     label: Label,
     num_label: Label,

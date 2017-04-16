@@ -19,93 +19,113 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#![feature(proc_macro)]
+
 extern crate gtk;
 #[macro_use]
 extern crate relm;
+extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
 use gtk::{
-    ContainerExt,
+    ButtonExt,
     EditableSignals,
-    Entry,
     EntryExt,
     Inhibit,
-    Label,
+    OrientableExt,
     WidgetExt,
-    Window,
-    WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{RemoteRelm, Widget};
+use relm::Widget;
+use relm_attributes::widget;
 
-use self::Msg::*;
+use Msg::*;
+use TextMsg::*;
 
 #[derive(Clone)]
-struct Model {
+pub struct TextModel {
     content: String,
 }
 
 #[derive(Msg)]
-enum Msg {
-    Change,
-    Quit,
+pub enum TextMsg {
+    Change(String),
+}
+
+#[widget]
+impl Widget for Text {
+    fn model() -> TextModel {
+        TextModel {
+            content: String::new(),
+        }
+    }
+
+    fn update(&mut self, event: TextMsg, model: &mut TextModel) {
+        match event {
+            Change(text) => model.content = text.chars().rev().collect(),
+        }
+    }
+
+    view! {
+        gtk::Box {
+            orientation: Vertical,
+            #[name="text_entry"]
+            gtk::Entry {
+                changed(entry) => Change(entry.get_text().unwrap()),
+            },
+            gtk::Label {
+                text: &model.content,
+            },
+        }
+    }
+}
+
+impl Text {
+    fn set_text(&self, text: &str) {
+        self.text_entry.set_text(text);
+    }
 }
 
 #[derive(Clone)]
-struct Win {
-    input: Entry,
-    label: Label,
-    window: Window,
+pub struct Model {
+    text: String,
 }
 
+#[derive(Msg)]
+pub enum Msg {
+    Reset,
+    Quit,
+}
+
+#[widget]
 impl Widget for Win {
-    type Container = Window;
-    type Model = Model;
-    type Msg = Msg;
-
-    fn container(&self) -> &Self::Container {
-        &self.window
-    }
-
     fn model() -> Model {
         Model {
-            content: String::new(),
+            text: "Test".to_string(),
         }
     }
 
     fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
-            Change => {
-                model.content = self.input.get_text().unwrap().chars().rev().collect();
-                self.label.set_text(&model.content);
-            },
+            Reset => model.text = String::new(),
             Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
-        let vbox = gtk::Box::new(Vertical, 0);
-
-        let input = Entry::new();
-        vbox.add(&input);
-
-        let label = Label::new(None);
-        vbox.add(&label);
-
-        let window = Window::new(WindowType::Toplevel);
-
-        window.add(&vbox);
-
-        window.show_all();
-
-        connect!(relm, input, connect_changed(_), Change);
-        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
-
-        Win {
-            input: input,
-            label: label,
-            window: window,
+    view! {
+        gtk::Window {
+            gtk::Box {
+                orientation: Vertical,
+                gtk::Button {
+                    clicked => Reset,
+                    label: "Reset",
+                }
+                Text {
+                    text: &model.text,
+                },
+            },
+            delete_event(_, _) => (Quit, Inhibit(false)),
         }
     }
 }

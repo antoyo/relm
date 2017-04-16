@@ -255,7 +255,23 @@ fn get_name(typ: &Ty) -> Ident {
 }
 
 macro_rules! get_map {
-    ($widget:expr, $map:expr) => {{
+    ($widget:expr, $map:expr, $is_relm:expr) => {{
+        for (name, value) in &$widget.properties {
+            let string = value.parse::<String>().unwrap();
+            let expr = parse_expr(&string).unwrap();
+            let mut visitor = ModelVariableVisitor::new();
+            visitor.visit_expr(&expr);
+            let model_variables = visitor.idents;
+            for var in model_variables {
+                let set = $map.entry(var).or_insert_with(HashSet::new);
+                set.insert(Property {
+                    expr: string.clone(),
+                    is_relm_widget: $is_relm,
+                    name: name.clone(),
+                    widget_name: $widget.name.clone(),
+                });
+            }
+        }
         for child in &$widget.children {
             get_properties_model_map(child, $map);
         }
@@ -267,25 +283,8 @@ macro_rules! get_map {
  */
 fn get_properties_model_map(widget: &Widget, map: &mut PropertyModelMap) {
     match *widget {
-        Gtk(ref widget) => {
-            for (name, value) in &widget.properties {
-                let string = value.parse::<String>().unwrap();
-                let expr = parse_expr(&string).unwrap();
-                let mut visitor = ModelVariableVisitor::new();
-                visitor.visit_expr(&expr);
-                let model_variables = visitor.idents;
-                for var in model_variables {
-                    let set = map.entry(var).or_insert_with(HashSet::new);
-                    set.insert(Property {
-                        expr: string.clone(),
-                        name: name.clone(),
-                        widget_name: widget.name.clone(),
-                    });
-                }
-            }
-            get_map!(widget, map);
-        },
-        Relm(ref widget) => get_map!(widget, map),
+        Gtk(ref widget) => get_map!(widget, map, false),
+        Relm(ref widget) => get_map!(widget, map, true),
     }
 }
 

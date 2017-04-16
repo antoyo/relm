@@ -44,6 +44,7 @@ enum Msg {
     Tick,
 }
 
+#[derive(Clone)]
 struct Win {
     label: Label,
     window: Window,

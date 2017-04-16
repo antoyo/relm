@@ -55,6 +55,7 @@ enum TextMsg {
     Change(String),
 }
 
+#[derive(Clone)]
 struct Text {
     label: Label,
     vbox: gtk::Box,
@@ -114,6 +115,7 @@ enum CounterMsg {
     Increment,
 }
 
+#[derive(Clone)]
 struct Counter {
     counter_label: Label,
     vbox: gtk::Box,
@@ -181,11 +183,12 @@ enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
 struct Win {
-    _counter1: Component<CounterModel, CounterMsg, gtk::Box>,
-    _counter2: Component<CounterModel, CounterMsg, gtk::Box>,
+    _counter1: Component<Counter>,
+    _counter2: Component<Counter>,
     label: Label,
-    _text: Component<TextModel, TextMsg, gtk::Box>,
+    _text: Component<Text>,
     window: Window,
 }
 

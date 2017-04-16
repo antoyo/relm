@@ -79,15 +79,13 @@ enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
 struct Win {
     button: Button,
     image: Image,
     label: Label,
     loader: PixbufLoader,
     window: Window,
-}
-
-impl Win {
 }
 
 impl Widget for Win {
