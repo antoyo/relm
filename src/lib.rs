@@ -87,6 +87,7 @@ extern crate gtk_sys;
 extern crate log;
 extern crate relm_core;
 
+mod component;
 pub mod gtk_ext;
 mod macros;
 mod stream;
@@ -104,11 +105,13 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib};
 use glib_itc::{Receiver, channel};
 #[doc(hidden)]
 pub use gobject_sys::g_object_new;
-use gtk::{ContainerExt, IsA, Object, WidgetExt};
+use gtk::{IsA, Object, WidgetExt};
 use relm_core::Core;
 #[doc(hidden)]
 pub use relm_core::{EventStream, Handle, Remote};
 
+use component::Comp;
+pub use component::Component;
 use self::stream::ToStream;
 pub use self::widget::*;
 
@@ -177,73 +180,6 @@ macro_rules! use_impl_self_type {
     (impl Widget<$msg_type:ty> for $self_type:ident { $($tts:tt)* }) => {
         pub use __relm_gen_private::$self_type;
     };
-}
-
-/// Widget that was added by the `ContainerWidget::add_widget()` method.
-///
-/// ## Warning
-/// You must keep your components as long as you want them to send/receive events.
-/// Common practice is to store `Component`s in the `Widget` struct (see the [communication
-/// example](https://github.com/antoyo/relm/blob/master/examples/communication.rs#L182-L188)).
-/// The `#[widget]` attribute takes care of storing them in the struct automatically (see the
-/// [communication-attribute example](https://github.com/antoyo/relm/blob/master/examples/communication-attribute.rs)).
-#[must_use]
-#[derive(Clone)]
-pub struct Component<WIDGET: Widget> {
-    model: Arc<Mutex<WIDGET::Model>>,
-    _receiver: Arc<Receiver>,
-    stream: EventStream<WIDGET::Msg>,
-    widget: WIDGET,
-}
-
-impl<WIDGET: Widget> Component<WIDGET> {
-    /// Get the event stream of the widget.
-    /// This is used internally by the library.
-    pub fn stream(&self) -> &EventStream<WIDGET::Msg> {
-        &self.stream
-    }
-
-    /// Get the widget of this component.
-    pub fn widget(&self) -> &WIDGET {
-        &self.widget
-    }
-}
-
-impl<WIDGET: Widget> Drop for Component<WIDGET> {
-    fn drop(&mut self) {
-        let _ = self.stream.close();
-    }
-}
-
-impl<WIDGET: Widget> ContainerExt for Component<WIDGET>
-    where WIDGET::Container: ContainerExt,
-{
-    fn add<T: IsA<gtk::Widget>>(&self, widget: &T) { self.widget.container().add(widget) }
-    fn check_resize(&self) { self.widget.container().check_resize() }
-    fn child_notify<T: IsA<gtk::Widget>>(&self, child: &T, child_property: &str) { self.widget.container().child_notify(child, child_property) }
-    fn child_type(&self) -> gtk::Type { self.widget.container().child_type() }
-    fn get_border_width(&self) -> u32 { self.widget.container().get_border_width() }
-    fn get_children(&self) -> Vec<gtk::Widget> { self.widget.container().get_children() }
-    fn get_focus_child(&self) -> Option<gtk::Widget> { self.widget.container().get_focus_child() }
-    fn get_focus_hadjustment(&self) -> Option<gtk::Adjustment> { self.widget.container().get_focus_hadjustment() }
-    fn get_focus_vadjustment(&self) -> Option<gtk::Adjustment> { self.widget.container().get_focus_vadjustment() }
-    fn get_resize_mode(&self) -> gtk::ResizeMode { self.widget.container().get_resize_mode() }
-    fn propagate_draw<T: IsA<gtk::Widget>>(&self, child: &T, cr: &cairo::Context) { self.widget.container().propagate_draw(child, cr) }
-    fn remove<T: IsA<gtk::Widget>>(&self, widget: &T) { self.widget.container().remove(widget) }
-    fn resize_children(&self) { self.widget.container().resize_children() }
-    fn set_border_width(&self, border_width: u32) { self.widget.container().set_border_width(border_width) }
-    fn set_focus_chain(&self, focusable_widgets: &[gtk::Widget]) { self.widget.container().set_focus_chain(focusable_widgets) }
-    fn set_focus_child<T: IsA<gtk::Widget>>(&self, child: Option<&T>) { self.widget.container().set_focus_child(child) }
-    fn set_focus_hadjustment(&self, adjustment: &gtk::Adjustment) { self.widget.container().set_focus_hadjustment(adjustment) }
-    fn set_focus_vadjustment(&self, adjustment: &gtk::Adjustment) { self.widget.container().set_focus_vadjustment(adjustment) }
-    fn set_reallocate_redraws(&self, needs_redraws: bool) { self.widget.container().set_reallocate_redraws(needs_redraws) }
-    fn set_resize_mode(&self, resize_mode: gtk::ResizeMode) { self.widget.container().set_resize_mode(resize_mode) }
-    fn unset_focus_chain(&self) { self.widget.container().unset_focus_chain() }
-    fn set_property_child(&self, child: Option<&gtk::Widget>) { self.widget.container().set_property_child(child) }
-    fn connect_add<F: Fn(&Self, &gtk::Widget) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
-    fn connect_check_resize<F: Fn(&Self) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
-    fn connect_remove<F: Fn(&Self, &gtk::Widget) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
-    fn connect_set_focus_child<F: Fn(&Self, &gtk::Widget) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
 }
 
 /// Handle connection of futures to send messages to the [`update()`](trait.Widget.html#tymethod.update) and [`update_command()`](trait.Widget.html#method.update_command) methods.
@@ -378,7 +314,8 @@ impl<'a, MSG: Clone + DisplayVariant> RemoteRelm<MSG> {
 
 fn create_widget_test<WIDGET>(remote: &Remote) -> Component<WIDGET>
     where WIDGET: Widget + Clone + 'static,
-          WIDGET::Msg: Clone + DisplayVariant + 'static,
+          WIDGET::Model: Clone + Send,
+          WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
 {
     // TODO: remove redundancy with create_widget.
     let (sender, mut receiver) = channel();
@@ -409,15 +346,18 @@ fn create_widget_test<WIDGET>(remote: &Remote) -> Component<WIDGET>
         });
     }
 
-    Component {
+    let component = Comp {
         model: model,
         _receiver: Arc::new(receiver),
         stream: stream,
         widget: widget,
-    }
+    };
+    init_component::<WIDGET>(&component, remote);
+
+    Component::new(component)
 }
 
-fn create_widget<WIDGET>(remote: &Remote) -> Component<WIDGET>
+fn create_widget<WIDGET>(remote: &Remote) -> Comp<WIDGET>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
@@ -449,7 +389,7 @@ fn create_widget<WIDGET>(remote: &Remote) -> Component<WIDGET>
         });
     }
 
-    Component {
+    Comp {
         model: model,
         _receiver: Arc::new(receiver),
         stream: stream,
@@ -521,20 +461,19 @@ fn init_gtk() {
 /// events to not be sent.
 pub fn init_test<WIDGET>() -> Result<Component<WIDGET>, ()>
     where WIDGET: Widget + Clone + 'static,
-          WIDGET::Model: Send,
+          WIDGET::Model: Clone + Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static
 {
     init_gtk();
 
     let remote = Core::run();
     let component = create_widget_test::<WIDGET>(&remote);
-    init_component::<WIDGET>(&component, &remote);
     Ok(component)
 }
 
 fn init<WIDGET>() -> Result<Component<WIDGET>, ()>
     where WIDGET: Widget + 'static,
-          WIDGET::Model: Send,
+          WIDGET::Model: Clone + Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static
 {
     gtk::init()?;
@@ -542,10 +481,10 @@ fn init<WIDGET>() -> Result<Component<WIDGET>, ()>
     let remote = Core::run();
     let component = create_widget::<WIDGET>(&remote);
     init_component::<WIDGET>(&component, &remote);
-    Ok(component)
+    Ok(Component::new(component))
 }
 
-fn init_component<WIDGET>(component: &Component<WIDGET>, remote: &Remote)
+fn init_component<WIDGET>(component: &Comp<WIDGET>, remote: &Remote)
     where WIDGET: Widget + 'static,
           WIDGET::Model: Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
@@ -620,7 +559,7 @@ fn init_component<WIDGET>(component: &Component<WIDGET>, remote: &Remote)
 /// ```
 pub fn run<WIDGET>() -> Result<(), ()>
     where WIDGET: Widget + 'static,
-          WIDGET::Model: Send,
+          WIDGET::Model: Clone + Send,
           WIDGET::Msg: Send,
 {
     let _component = init::<WIDGET>()?;
@@ -668,59 +607,14 @@ pub trait ContainerWidget
         where MSG: Clone + DisplayVariant + Send + 'static,
               WIDGET: Widget + 'static,
               WIDGET::Container: IsA<Object> + WidgetExt,
-              WIDGET::Model: Send,
+              WIDGET::Model: Clone + Send,
               WIDGET::Msg: Clone + DisplayVariant + Send + 'static;
 
     /// Remove a relm `Widget` from the current GTK+ container.
     fn remove_widget<WIDGET>(&self, component: Component<WIDGET>)
         where WIDGET: Widget,
-              WIDGET::Container: IsA<gtk::Widget>;
-}
-
-impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget for W {
-    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<CHILDWIDGET>
-        where MSG: Clone + DisplayVariant + Send + 'static,
-              CHILDWIDGET: Widget + 'static,
-              CHILDWIDGET::Container: IsA<Object> + WidgetExt,
-              CHILDWIDGET::Model: Send,
-              CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
-    {
-        let component = create_widget::<CHILDWIDGET>(&relm.remote);
-        self.add(component.widget.container());
-        component.widget.on_add(self.clone());
-        init_component::<CHILDWIDGET>(&component, &relm.remote);
-        component
-    }
-
-    fn remove_widget<WIDGET>(&self, component: Component<WIDGET>)
-        where WIDGET: Widget,
               WIDGET::Container: IsA<gtk::Widget>,
-    {
-        self.remove(component.widget.container());
-    }
-}
-
-impl<WIDGET: ContainerExt + IsA<gtk::Widget> + IsA<Object> + Widget> ContainerWidget for Component<WIDGET> {
-    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<CHILDWIDGET>
-        where MSG: Clone + DisplayVariant + Send + 'static,
-              CHILDWIDGET: Widget + 'static,
-              CHILDWIDGET::Container: IsA<Object> + WidgetExt,
-              CHILDWIDGET::Model: Send,
-              CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
-    {
-        let component = create_widget::<CHILDWIDGET>(&relm.remote);
-        self.widget.add(component.widget.container());
-        component.widget.on_add(self.widget.clone());
-        init_component::<CHILDWIDGET>(&component, &relm.remote);
-        component
-    }
-
-    fn remove_widget<CHILDWIDGET>(&self, component: Component<CHILDWIDGET>)
-        where CHILDWIDGET: Widget,
-              CHILDWIDGET::Container: IsA<gtk::Widget>,
-    {
-        self.widget.remove(component.widget.container());
-    }
+              WIDGET::Model: Clone;
 }
 
 /// Format trait for enum variants.

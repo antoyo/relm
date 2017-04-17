@@ -125,6 +125,7 @@ impl Widget for Counter {
     }
 }
 
+#[derive(Clone)]
 pub struct Model {
     counter: i32,
 }

@@ -173,6 +173,7 @@ impl Widget for Counter {
     }
 }
 
+#[derive(Clone)]
 struct Model {
     counter: i32,
 }
