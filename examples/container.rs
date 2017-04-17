@@ -21,6 +21,7 @@
 
 #![feature(proc_macro)]
 
+extern crate glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
@@ -39,6 +40,25 @@ use relm::Widget;
 use relm_attributes::widget;
 
 use self::Msg::*;
+
+#[derive(Msg)]
+pub enum ButtonMsg {
+}
+
+#[widget]
+impl Widget for Button {
+    fn model() -> () {
+    }
+
+    fn update(&mut self, _msg: ButtonMsg, _model: &mut ()) {
+    }
+
+    view! {
+        gtk::Button {
+            label: "+",
+        },
+    }
+}
 
 #[widget]
 impl Widget for VBox {
@@ -95,6 +115,8 @@ impl Widget for Win {
                 },
                 gtk::Label {
                     text: &model.counter.to_string(),
+                },
+                Button {
                 },
                 gtk::Button {
                     clicked => Decrement,

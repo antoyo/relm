@@ -22,6 +22,7 @@
 #![feature(fn_traits, proc_macro, unboxed_closures)]
 
 extern crate chrono;
+extern crate glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;

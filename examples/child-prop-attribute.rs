@@ -21,6 +21,7 @@
 
 #![feature(proc_macro)]
 
+extern crate glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;

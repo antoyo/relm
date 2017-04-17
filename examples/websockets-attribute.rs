@@ -25,6 +25,7 @@ extern crate base64;
 extern crate blake2;
 extern crate byteorder;
 extern crate futures;
+extern crate glib;
 extern crate gtk;
 extern crate rand;
 #[macro_use]

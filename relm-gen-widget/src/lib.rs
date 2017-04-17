@@ -146,6 +146,12 @@ pub fn gen_widget(input: Tokens) -> Tokens {
         quote! {
             #widget_struct
             #ast
+
+            impl From<#name> for glib::object::ObjectRef {
+                fn from(_value: #name) -> Self {
+                    unimplemented!()
+                }
+            }
         }
     }
     else {

@@ -22,8 +22,20 @@
 use std::sync::{Arc, Mutex};
 
 use cairo;
+use glib::object::{GObject, ObjectRef};
+use glib::translate::{Stash, ToGlibPtr};
+use glib::wrapper::{UnsafeFrom, Wrapper};
 use gtk;
-use gtk::{ContainerExt, IsA, Object, WidgetExt};
+use gtk::{
+    Container,
+    ContainerExt,
+    IsA,
+    Object,
+    StaticType,
+    Type,
+    WidgetExt,
+};
+use gtk_sys;
 
 use super::{ContainerWidget, DisplayVariant, EventStream, Receiver, RemoteRelm, Widget, create_widget, init_component};
 
@@ -85,7 +97,7 @@ impl<WIDGET: Widget> ContainerExt for Component<WIDGET>
     fn add<T: IsA<gtk::Widget>>(&self, widget: &T) { self.0.widget.container().add(widget) }
     fn check_resize(&self) { self.0.widget.container().check_resize() }
     fn child_notify<T: IsA<gtk::Widget>>(&self, child: &T, child_property: &str) { self.0.widget.container().child_notify(child, child_property) }
-    fn child_type(&self) -> gtk::Type { self.0.widget.container().child_type() }
+    fn child_type(&self) -> Type { self.0.widget.container().child_type() }
     fn get_border_width(&self) -> u32 { self.0.widget.container().get_border_width() }
     fn get_children(&self) -> Vec<gtk::Widget> { self.0.widget.container().get_children() }
     fn get_focus_child(&self) -> Option<gtk::Widget> { self.0.widget.container().get_focus_child() }
@@ -110,31 +122,85 @@ impl<WIDGET: Widget> ContainerExt for Component<WIDGET>
     fn connect_set_focus_child<F: Fn(&Self, &gtk::Widget) + 'static>(&self, _f: F) -> u64 { unimplemented!() }
 }
 
-impl<WIDGET> ContainerWidget for Component<WIDGET>
-    where WIDGET: ContainerExt + IsA<gtk::Widget> + IsA<Object> + Widget,
+impl<WIDGET> From<Component<WIDGET>> for ObjectRef
+    where WIDGET: Widget,
+          WIDGET::Container: ContainerExt + IsA<Container>,
+          WIDGET::Model: Clone,
+          ObjectRef: From<WIDGET>,
+{
+    fn from(_value: Component<WIDGET>) -> Self {
+        unimplemented!()
+    }
+}
+
+impl<'a, WIDGET> ToGlibPtr<'a, *mut gtk_sys::GtkWidget> for Component<WIDGET>
+    where WIDGET: Widget,
+          WIDGET::Container: ContainerExt + IsA<Container> + ToGlibPtr<'a, *mut gtk_sys::GtkWidget>,
           WIDGET::Model: Clone,
 {
-    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<CHILDWIDGET>
-        where MSG: Clone + DisplayVariant + Send + 'static,
-              CHILDWIDGET: Widget + 'static,
-              CHILDWIDGET::Container: IsA<Object> + WidgetExt,
-              CHILDWIDGET::Model: Clone + Send,
-              CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
-    {
-        let component = create_widget::<CHILDWIDGET>(&relm.remote);
-        self.0.widget.add(component.widget.container());
-        component.widget.on_add(self.0.widget.clone());
-        init_component::<CHILDWIDGET>(&component, &relm.remote);
-        Component(component)
-    }
+    type Storage = <WIDGET::Container as ToGlibPtr<'a, *mut <gtk::Widget as Wrapper>::GlibType>>::Storage;
 
-    fn remove_widget<CHILDWIDGET>(&self, component: Component<CHILDWIDGET>)
-        where CHILDWIDGET: Widget,
-              CHILDWIDGET::Container: IsA<gtk::Widget>,
-              CHILDWIDGET::Model: Clone,
-    {
-        self.0.widget.remove(component.0.widget.container());
+    fn to_glib_none(&'a self) -> Stash<'a, *mut <gtk::Widget as Wrapper>::GlibType, Self> {
+        unimplemented!()
     }
+}
+
+impl<'a, WIDGET> ToGlibPtr<'a, *mut GObject> for Component<WIDGET>
+    where WIDGET: Widget,
+          WIDGET::Container: ContainerExt + IsA<Container> + ToGlibPtr<'a, *mut GObject>,
+          WIDGET::Model: Clone,
+{
+    type Storage = <WIDGET::Container as ToGlibPtr<'a, *mut <Object as Wrapper>::GlibType>>::Storage;
+
+    fn to_glib_none(&'a self) -> Stash<'a, *mut <Object as Wrapper>::GlibType, Self> {
+        unimplemented!()
+    }
+}
+
+impl<WIDGET> UnsafeFrom<ObjectRef> for Component<WIDGET>
+    where WIDGET: Widget,
+          WIDGET::Container: ContainerExt + IsA<Container>,
+          WIDGET::Model: Clone,
+{
+    unsafe fn from(_t: ObjectRef) -> Self {
+        unimplemented!()
+    }
+}
+
+impl<WIDGET> StaticType for Component<WIDGET>
+    where WIDGET: Widget,
+          WIDGET::Container: ContainerExt + IsA<Container>,
+          WIDGET::Model: Clone,
+{
+    fn static_type() -> Type {
+        <WIDGET::Container as StaticType>::static_type()
+    }
+}
+
+impl<WIDGET> Wrapper for Component<WIDGET>
+    where WIDGET: Widget,
+          WIDGET::Container: ContainerExt + IsA<Container>,
+          WIDGET::Model: Clone,
+{
+    type GlibType = <WIDGET::Container as Wrapper>::GlibType;
+}
+
+impl<WIDGET> IsA<gtk::Widget> for Component<WIDGET>
+    where WIDGET: Widget,
+          WIDGET::Container: ContainerExt + IsA<Container>,
+          for<'a> <WIDGET as Widget>::Container: ToGlibPtr<'a, *mut gtk_sys::GtkWidget>,
+          WIDGET::Model: Clone,
+          ObjectRef: From<WIDGET>,
+{
+}
+
+impl<WIDGET> IsA<Object> for Component<WIDGET>
+    where WIDGET: Widget,
+          WIDGET::Container: ContainerExt + IsA<Container>,
+          for<'a> <WIDGET as Widget>::Container: ToGlibPtr<'a, *mut GObject>,
+          WIDGET::Model: Clone,
+          ObjectRef: From<WIDGET>,
+{
 }
 
 impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget for W {
