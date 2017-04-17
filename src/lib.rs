@@ -104,7 +104,7 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib};
 use glib_itc::{Receiver, channel};
 #[doc(hidden)]
 pub use gobject_sys::g_object_new;
-use gtk::{Cast, Container, ContainerExt, IsA, Object, WidgetExt};
+use gtk::{ContainerExt, IsA, Object, WidgetExt};
 use relm_core::Core;
 #[doc(hidden)]
 pub use relm_core::{EventStream, Handle, Remote};
@@ -656,7 +656,7 @@ fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg, model: &mut WI
 
 /// Extension trait for GTK+ containers to add and remove relm `Widget`s.
 pub trait ContainerWidget
-    where Self: Clone + IsA<Container> + IsA<gtk::Widget> + IsA<Object> + Sized,
+    where Self: Sized,
 {
     /// Add a relm `Widget` to the current GTK+ container.
     ///
@@ -669,16 +669,29 @@ pub trait ContainerWidget
               WIDGET: Widget + 'static,
               WIDGET::Container: IsA<Object> + WidgetExt,
               WIDGET::Model: Send,
-              WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
+              WIDGET::Msg: Clone + DisplayVariant + Send + 'static;
+
+    /// Remove a relm `Widget` from the current GTK+ container.
+    fn remove_widget<WIDGET>(&self, component: Component<WIDGET>)
+        where WIDGET: Widget,
+              WIDGET::Container: IsA<gtk::Widget>;
+}
+
+impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget for W {
+    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<CHILDWIDGET>
+        where MSG: Clone + DisplayVariant + Send + 'static,
+              CHILDWIDGET: Widget + 'static,
+              CHILDWIDGET::Container: IsA<Object> + WidgetExt,
+              CHILDWIDGET::Model: Send,
+              CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
     {
-        let component = create_widget::<WIDGET>(&relm.remote);
+        let component = create_widget::<CHILDWIDGET>(&relm.remote);
         self.add(component.widget.container());
-        component.widget.on_add(self.clone().upcast());
-        init_component::<WIDGET>(&component, &relm.remote);
+        component.widget.on_add(self.clone());
+        init_component::<CHILDWIDGET>(&component, &relm.remote);
         component
     }
 
-    /// Remove a relm `Widget` from the current GTK+ container.
     fn remove_widget<WIDGET>(&self, component: Component<WIDGET>)
         where WIDGET: Widget,
               WIDGET::Container: IsA<gtk::Widget>,
@@ -687,7 +700,27 @@ pub trait ContainerWidget
     }
 }
 
-impl<W: Clone + IsA<Container> + IsA<gtk::Widget> + IsA<Object>> ContainerWidget for W {
+impl<WIDGET: ContainerExt + IsA<gtk::Widget> + IsA<Object> + Widget> ContainerWidget for Component<WIDGET> {
+    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<CHILDWIDGET>
+        where MSG: Clone + DisplayVariant + Send + 'static,
+              CHILDWIDGET: Widget + 'static,
+              CHILDWIDGET::Container: IsA<Object> + WidgetExt,
+              CHILDWIDGET::Model: Send,
+              CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
+    {
+        let component = create_widget::<CHILDWIDGET>(&relm.remote);
+        self.widget.add(component.widget.container());
+        component.widget.on_add(self.widget.clone());
+        init_component::<CHILDWIDGET>(&component, &relm.remote);
+        component
+    }
+
+    fn remove_widget<CHILDWIDGET>(&self, component: Component<CHILDWIDGET>)
+        where CHILDWIDGET: Widget,
+              CHILDWIDGET::Container: IsA<gtk::Widget>,
+    {
+        self.widget.remove(component.widget.container());
+    }
 }
 
 /// Format trait for enum variants.

@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use gtk::{self, IsA};
+use gtk::{self, IsA, Object};
 
 use super::{DisplayVariant, Relm, RemoteRelm};
 
@@ -49,7 +49,7 @@ pub trait Widget
     fn model() -> Self::Model;
 
     /// Method called when the widget is added to its parent.
-    fn on_add(&self, _parent: gtk::Widget) {
+    fn on_add<W: IsA<gtk::Widget> + IsA<Object>>(&self, _parent: W) {
     }
 
     /// Connect the subscriptions.

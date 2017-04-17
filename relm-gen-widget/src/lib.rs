@@ -373,8 +373,8 @@ fn gen_set_child_prop_calls(widget: &Widget) -> Option<ImplItem> {
     }
     if !widget.child_properties.is_empty() {
         Some(block_to_impl_item(quote! {
-            fn on_add(&self, parent: ::gtk::Widget) {
-                let parent: gtk::Box = gtk::Cast::downcast(parent)
+            fn on_add<W: ::gtk::IsA<::gtk::Widget> + ::gtk::IsA<::gtk::Object>>(&self, parent: W) {
+                let parent: gtk::Box = ::gtk::Cast::downcast(::gtk::Cast::upcast::<::gtk::Widget>(parent))
                     .expect("the parent of a widget with child properties must be a gtk::Box");
                 #tokens
             }

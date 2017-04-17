@@ -32,6 +32,8 @@ use gtk::{
     Cast,
     ContainerExt,
     Inhibit,
+    IsA,
+    Object,
     PackType,
     WidgetExt,
 };
@@ -63,8 +65,9 @@ impl Widget for Button {
     fn model() -> () {
     }
 
-    fn on_add(&self, parent: gtk::Widget) {
+    fn on_add<W: IsA<gtk::Widget> + IsA<Object>>(&self, parent: W) {
         let parent: gtk::Box = parent
+            .upcast::<gtk::Widget>()
             .downcast()
             .expect("Button widget must be added in a gtk::Box");
         parent.set_child_expand(&self.button, false);
