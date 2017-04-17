@@ -76,7 +76,6 @@
  * TODO: try tk-easyloop in another branch.
  */
 
-extern crate cairo;
 extern crate futures;
 extern crate glib;
 extern crate glib_itc;
@@ -88,6 +87,7 @@ extern crate log;
 extern crate relm_core;
 
 mod component;
+mod container;
 pub mod gtk_ext;
 mod macros;
 mod stream;
@@ -105,12 +105,12 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib};
 use glib_itc::{Receiver, channel};
 #[doc(hidden)]
 pub use gobject_sys::g_object_new;
-use gtk::{IsA, Object, WidgetExt};
 use relm_core::Core;
 #[doc(hidden)]
 pub use relm_core::{EventStream, Handle, Remote};
 
 use component::Comp;
+pub use container::{ContainerWidget, RelmContainer};
 pub use component::Component;
 use self::stream::ToStream;
 pub use self::widget::*;
@@ -591,30 +591,6 @@ fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg, model: &mut WI
     else {
         widget.update(event, model)
     }
-}
-
-/// Extension trait for GTK+ containers to add and remove relm `Widget`s.
-pub trait ContainerWidget
-    where Self: Sized,
-{
-    /// Add a relm `Widget` to the current GTK+ container.
-    ///
-    /// # Note
-    ///
-    /// The returned `Component` must be stored in a `Widget`. If it is not stored, a communication
-    /// receiver will be droped which will cause events to be ignored for this widget.
-    fn add_widget<WIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET>
-        where MSG: Clone + DisplayVariant + Send + 'static,
-              WIDGET: Widget + 'static,
-              WIDGET::Container: IsA<Object> + WidgetExt,
-              WIDGET::Model: Clone + Send,
-              WIDGET::Msg: Clone + DisplayVariant + Send + 'static;
-
-    /// Remove a relm `Widget` from the current GTK+ container.
-    fn remove_widget<WIDGET>(&self, component: Component<WIDGET>)
-        where WIDGET: Widget,
-              WIDGET::Container: IsA<gtk::Widget>,
-              WIDGET::Model: Clone;
 }
 
 /// Format trait for enum variants.

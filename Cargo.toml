@@ -6,10 +6,9 @@ documentation = "https://docs.rs/relm/"
 license = "MIT"
 name = "relm"
 repository = "https://github.com/antoyo/relm"
-version = "0.6.5"
+version = "0.6.6"
 
 [dependencies]
-cairo-rs = "^0.1.2"
 futures = "^0.1.10"
 glib = "^0.1.2"
 glib-itc = "^0.1.1"
