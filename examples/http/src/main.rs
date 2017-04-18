@@ -89,19 +89,19 @@ struct Win {
 }
 
 impl Widget for Win {
-    type Container = Window;
     type Model = Model;
     type Msg = Msg;
-
-    fn container(&self) -> &Self::Container {
-        &self.window
-    }
+    type Root = Window;
 
     fn model() -> Model {
         Model {
             gif_url: "waiting.gif".to_string(),
             topic: "cats".to_string(),
         }
+    }
+
+    fn root(&self) -> &Self::Root {
+        &self.window
     }
 
     fn update(&mut self, event: Msg, _model: &mut Model) {

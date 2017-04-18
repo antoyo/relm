@@ -59,18 +59,18 @@ struct Counter {
 }
 
 impl Widget for Counter {
-    type Container = gtk::Box;
+    type Root = gtk::Box;
     type Model = Model;
     type Msg = CounterMsg;
-
-    fn container(&self) -> &Self::Container {
-        &self.vbox
-    }
 
     fn model() -> Model {
         Model {
             counter: 0,
         }
+    }
+
+    fn root(&self) -> &Self::Root {
+        &self.vbox
     }
 
     fn update(&mut self, event: CounterMsg, model: &mut Model) {
@@ -100,6 +100,8 @@ impl Widget for Counter {
         let minus_button = Button::new_with_label("-");
         vbox.add(&minus_button);
 
+        vbox.show_all();
+
         connect!(relm, plus_button, connect_clicked(_), Increment);
         connect!(relm, minus_button, connect_clicked(_), Decrement);
 
@@ -126,16 +128,16 @@ struct Win {
 }
 
 impl Widget for Win {
-    type Container = Window;
     type Model = ();
     type Msg = Msg;
-
-    fn container(&self) -> &Self::Container {
-        &self.window
-    }
+    type Root = Window;
 
     fn model() -> () {
         ()
+    }
+
+    fn root(&self) -> &Self::Root {
+        &self.window
     }
 
     fn update(&mut self, event: Msg, _model: &mut ()) {

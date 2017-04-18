@@ -58,22 +58,22 @@ struct Win {
 }
 
 impl Widget for Win {
-    // Specify the type of the outer widget.
-    type Container = Window;
     // Specify the model used for this widget.
     type Model = Model;
     // Specify the type of the messages sent to the update function.
     type Msg = Msg;
-
-    // Return the outer widget.
-    fn container(&self) -> &Self::Container {
-        &self.window
-    }
+    // Specify the type of the root widget.
+    type Root = Window;
 
     fn model() -> Model {
         Model {
             counter: 0,
         }
+    }
+
+    // Return the root widget.
+    fn root(&self) -> &Self::Root {
+        &self.window
     }
 
     fn update(&mut self, event: Msg, model: &mut Model) {

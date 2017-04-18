@@ -111,6 +111,7 @@ pub struct GtkWidget {
     pub events: HashMap<String, Event>,
     pub gtk_type: syn::Ident,
     pub init_parameters: Vec<String>,
+    pub is_container: bool,
     pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
     pub relm_name: Option<syn::Ident>,
@@ -126,6 +127,7 @@ impl GtkWidget {
             events: HashMap::new(),
             gtk_type: syn::Ident::new(gtk_type),
             init_parameters: vec![],
+            is_container: false,
             name: name,
             properties: HashMap::new(),
             relm_name: None,
@@ -138,6 +140,7 @@ impl GtkWidget {
 pub struct RelmWidget {
     pub children: Vec<Widget>,
     pub events: HashMap<String, Vec<Event>>,
+    pub is_container: bool,
     pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
     pub relm_type: syn::Ident,
@@ -153,6 +156,7 @@ impl RelmWidget {
         RelmWidget {
             children: vec![],
             events: HashMap::new(),
+            is_container: false,
             name: syn::Ident::new(name),
             properties: HashMap::new(),
             relm_type: syn::Ident::new(relm_type),
@@ -183,8 +187,8 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
         else {
             tokens.to_vec()
         };
-    let (widget, _) = parse_widget(&tokens);
-    Gtk(widget)
+    let (widget, _) = parse_child(&tokens);
+    widget
 }
 
 fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
@@ -243,7 +247,17 @@ fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
 }
 
 fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
-    let (name, new_tokens) = try_parse_name_attribute(tokens);
+    let (is_container, new_tokens) = try_parse_container_attribute(tokens);
+    let (name, new_tokens) = try_parse_name_attribute(new_tokens);
+    // Try to parse again because the order of the attributes does not matter.
+    // TODO: improve that.
+    let (is_container, new_tokens) =
+        if !is_container {
+            try_parse_container_attribute(new_tokens)
+        }
+        else {
+            (is_container, new_tokens)
+        };
     tokens = new_tokens;
     // GTK+ widget.
     if tokens[0] == Token(Ident(syn::Ident::new("gtk"))) {
@@ -252,6 +266,7 @@ fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
             child.save = true;
             child.name = syn::Ident::new(name);
         }
+        child.is_container = is_container;
         (Gtk(child), new_tokens)
     }
     // Relm widget.
@@ -260,6 +275,7 @@ fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
         if let Some(name) = name {
             child.name = syn::Ident::new(name);
         }
+        child.is_container = is_container;
         (Relm(child), new_tokens)
     }
 }
@@ -470,6 +486,17 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
         }
     }
     (widget, &tokens[1..])
+}
+
+fn try_parse_container_attribute(tokens: &[TokenTree]) -> (bool, &[TokenTree]) {
+    if tokens[0] == Token(Pound) {
+        if let TokenTree::Delimited(Delimited { delim: Bracket, ref tts }) = tokens[1] {
+            if Token(Ident(syn::Ident::new("container"))) == tts[0] {
+                return (true, &tokens[2..]);
+            }
+        }
+    }
+    (false, tokens)
 }
 
 fn try_parse_name_attribute(tokens: &[TokenTree]) -> (Option<String>, &[TokenTree]) {

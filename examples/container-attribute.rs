@@ -19,93 +19,112 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#![feature(proc_macro)]
+
 extern crate gtk;
 #[macro_use]
 extern crate relm;
+extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
 use gtk::{
-    ContainerExt,
-    EditableSignals,
-    Entry,
-    EntryExt,
+    ButtonExt,
     Inhibit,
-    Label,
+    OrientableExt,
     WidgetExt,
-    Window,
-    WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{RemoteRelm, Widget};
+use relm::Widget;
+use relm_attributes::widget;
 
 use self::Msg::*;
 
+#[derive(Msg)]
+pub enum ButtonMsg {
+}
+
+#[widget]
+impl Widget for Button {
+    fn model() -> () {
+    }
+
+    fn update(&mut self, _msg: ButtonMsg, _model: &mut ()) {
+    }
+
+    view! {
+        gtk::Button {
+            label: "+",
+        },
+    }
+}
+
+#[widget]
+impl Widget for VBox {
+    fn model() -> () {
+        ()
+    }
+
+    fn update(&mut self, _event: Msg, _model: &mut ()) {
+    }
+
+    view! {
+        gtk::EventBox {
+            // Specify where the widgets will be added in this container.
+            #[container]
+            gtk::Box {
+                orientation: Vertical,
+            }
+        }
+    }
+}
+
 #[derive(Clone)]
-struct Model {
-    content: String,
+pub struct Model {
+    counter: i32,
 }
 
 #[derive(Msg)]
-enum Msg {
-    Change,
+pub enum Msg {
+    Decrement,
+    Increment,
     Quit,
 }
 
-#[derive(Clone)]
-struct Win {
-    input: Entry,
-    label: Label,
-    window: Window,
-}
-
+#[widget]
 impl Widget for Win {
-    type Model = Model;
-    type Msg = Msg;
-    type Root = Window;
-
     fn model() -> Model {
         Model {
-            content: String::new(),
+            counter: 0,
         }
-    }
-
-    fn root(&self) -> &Self::Root {
-        &self.window
     }
 
     fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
-            Change => {
-                model.content = self.input.get_text().unwrap().chars().rev().collect();
-                self.label.set_text(&model.content);
-            },
+            Decrement => model.counter -= 1,
+            Increment => model.counter += 1,
             Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
-        let vbox = gtk::Box::new(Vertical, 0);
-
-        let input = Entry::new();
-        vbox.add(&input);
-
-        let label = Label::new(None);
-        vbox.add(&label);
-
-        let window = Window::new(WindowType::Toplevel);
-
-        window.add(&vbox);
-
-        window.show_all();
-
-        connect!(relm, input, connect_changed(_), Change);
-        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
-
-        Win {
-            input: input,
-            label: label,
-            window: window,
+    view! {
+        gtk::Window {
+            VBox {
+                gtk::Button {
+                    clicked => Increment,
+                    label: "+",
+                },
+                gtk::Label {
+                    text: &model.counter.to_string(),
+                },
+                Button {
+                },
+                gtk::Button {
+                    clicked => Decrement,
+                    label: "-",
+                },
+            },
+            delete_event(_, _) => (Quit, Inhibit(false)),
         }
     }
 }

@@ -81,19 +81,19 @@ To make this `struct` a relm `Widget` that can be shown by the library, implemen
 [source,rust]
 ----
 impl Widget for Win {
-    type Container = Window;
     type Model = Model;
     type Msg = Msg;
-
-    // Return the container of this widget.
-    fn container(&self) -> &Self::Container {
-        &self.window
-    }
+    type Root = Window;
 
     // Return the initial model.
     fn model() -> Model {
         Model {
         }
+    }
+
+    // Return the root of this widget.
+    fn root(&self) -> &Self::Root {
+        &self.window
     }
 
     // The model may be updated when a message is received.
@@ -159,7 +159,7 @@ For the nightly users, a `#[widget]` attribute is provided to simplify the creat
 This attribute does the following:
 
  * Provide a `view!` macro to create the widget with a declarative syntax.
- * Automatically create the `fn container()`, `type Msg`, `type Model` and `type Container` items.
+ * Automatically create the `fn container()`, `type Msg`, `type Model` and `type Root` items.
  * Automatically insert the call to `Widget::set_property()` in the `update()` function when assigning to an attribute of the model.
  * Automatically create the `Widget` `struct`.
 

@@ -29,100 +29,138 @@ extern crate relm_attributes;
 extern crate relm_derive;
 
 use gtk::{
-    ButtonExt,
+    ContainerExt,
+    EventBox,
     Inhibit,
-    OrientableExt,
+    Label,
     WidgetExt,
+    Window,
 };
 use gtk::Orientation::Vertical;
-use relm::Widget;
-use relm_attributes::widget;
+use gtk::WindowType::Toplevel;
+use relm::{Component, Container, ContainerWidget, RelmContainer, RemoteRelm, Widget};
 
 use self::Msg::*;
 
 #[derive(Msg)]
-pub enum ButtonMsg {
+pub enum DummyMsg {
 }
 
-#[widget]
+#[derive(Clone)]
+struct Button {
+    button: gtk::Button,
+}
+
 impl Widget for Button {
+    type Model = ();
+    type Msg = DummyMsg;
+    type Root = gtk::Button;
+
     fn model() -> () {
     }
 
-    fn update(&mut self, _msg: ButtonMsg, _model: &mut ()) {
+    fn root(&self) -> &Self::Root {
+        &self.button
     }
 
-    view! {
-        gtk::Button {
-            label: "+",
-        },
+    fn update(&mut self, _msg: DummyMsg, _model: &mut ()) {
+    }
+
+    fn view(_relm: RemoteRelm<DummyMsg>, _model: &()) -> Self {
+        let button = gtk::Button::new_with_label("+");
+        Button {
+            button: button,
+        }
     }
 }
 
-#[widget]
+#[derive(Clone)]
+struct VBox {
+    event_box: EventBox,
+    vbox: gtk::Box,
+}
+
+impl Container for VBox {
+    type Container = gtk::Box;
+
+    fn container(&self) -> &Self::Container {
+        &self.vbox
+    }
+}
+
 impl Widget for VBox {
+    type Model = ();
+    type Msg = DummyMsg;
+    type Root = EventBox;
+
     fn model() -> () {
         ()
     }
 
-    fn update(&mut self, _event: Msg, _model: &mut ()) {
+    fn root(&self) -> &Self::Root {
+        &self.event_box
     }
 
-    view! {
-        gtk::Box {
-            orientation: Vertical,
+    fn update(&mut self, _event: DummyMsg, _model: &mut ()) {
+    }
+
+    fn view(_relm: RemoteRelm<DummyMsg>, _model: &Self::Model) -> Self {
+        let event_box = EventBox::new();
+        let vbox = gtk::Box::new(Vertical, 0);
+        event_box.add(&vbox);
+        VBox {
+            event_box: event_box,
+            vbox: vbox,
         }
     }
 }
 
-// Define the structure of the model.
-#[derive(Clone)]
-pub struct Model {
-    counter: i32,
-}
-
-// The messages that can be sent to the update function.
 #[derive(Msg)]
 pub enum Msg {
-    Decrement,
-    Increment,
     Quit,
 }
 
-#[widget]
+#[derive(Clone)]
+struct Win {
+    button: Component<Button>,
+    vbox: Component<VBox>,
+    window: Window,
+}
+
 impl Widget for Win {
-    fn model() -> Model {
-        Model {
-            counter: 0,
-        }
+    type Model = ();
+    type Msg = Msg;
+    type Root = Window;
+
+    fn model() -> () {
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn root(&self) -> &Self::Root {
+        &self.window
+    }
+
+    fn update(&mut self, event: Msg, _model: &mut ()) {
         match event {
-            Decrement => model.counter -= 1,
-            Increment => model.counter += 1,
             Quit => gtk::main_quit(),
         }
     }
 
-    view! {
-        gtk::Window {
-            VBox {
-                gtk::Button {
-                    clicked => Increment,
-                    label: "+",
-                },
-                gtk::Label {
-                    text: &model.counter.to_string(),
-                },
-                Button {
-                },
-                gtk::Button {
-                    clicked => Decrement,
-                    label: "-",
-                },
-            },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+    fn view(relm: RemoteRelm<Msg>, _model: &()) -> Self {
+        let window = Window::new(Toplevel);
+        let vbox = window.add_widget::<VBox, _>(&relm);
+        let plus_button = gtk::Button::new_with_label("+");
+        vbox.add(&plus_button);
+        let label = Label::new(Some("0"));
+        vbox.add(&label);
+        let button = vbox.add_widget::<Button, _>(&relm);
+        let minus_button = gtk::Button::new_with_label("-");
+        vbox.add(&minus_button);
+        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
+        window.show_all();
+        Win {
+            button: button,
+            vbox: vbox,
+            window: window,
         }
     }
 }

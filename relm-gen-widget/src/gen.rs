@@ -52,13 +52,26 @@ macro_rules! gen_set_prop_calls {
     }};
 }
 
+macro_rules! set_container {
+    ($_self:expr, $widget:expr, $widget_name:expr, $widget_type:expr) => {
+        if $widget.is_container {
+            if $_self.container_name.is_some() {
+                panic!("Cannot use the #[container] attribute twice in the same widget");
+            }
+            $_self.relm_widgets.insert($widget_name.clone(), $widget_type.clone());
+            $_self.container_name = Some($widget_name.clone());
+            $_self.container_type = Some($widget_type.clone());
+        }
+    };
+}
+
 #[derive(PartialEq)]
 enum WidgetType {
     IsGtk,
     IsRelm,
 }
 
-pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>) {
+pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>, Tokens) {
     let mut generator = Generator::new(root_widget, root_widget_type);
     let widget = generator.widget(widget, None, IsGtk);
     let root_widget_name = &generator.root_widget.as_ref().unwrap();
@@ -78,10 +91,13 @@ pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_
             #(#widget_names1: #widget_names2),*
         }
     };
-    (code, generator.relm_widgets)
+    let container_impl = gen_container_impl(&generator);
+    (code, generator.relm_widgets, container_impl)
 }
 
 struct Generator<'a> {
+    container_name: Option<Ident>,
+    container_type: Option<Ident>,
     events: Vec<Tokens>,
     relm_widgets: HashMap<Ident, Ident>,
     root_widget: &'a mut Option<Ident>,
@@ -92,6 +108,8 @@ struct Generator<'a> {
 impl<'a> Generator<'a> {
     fn new(root_widget: &'a mut Option<Ident>, root_widget_type: &'a mut Option<Ident>) -> Self {
         Generator {
+            container_name: None,
+            container_type: None,
             events: vec![],
             relm_widgets: HashMap::new(),
             root_widget: root_widget,
@@ -178,6 +196,7 @@ impl<'a> Generator<'a> {
     fn gtk_widget(&mut self, widget: &GtkWidget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Tokens {
         let struct_name = &widget.gtk_type;
         let widget_name = &widget.name;
+        set_container!(self, widget, widget_name, struct_name);
         self.widget_names.push(widget_name.clone());
 
         if widget.save {
@@ -211,6 +230,7 @@ impl<'a> Generator<'a> {
         self.widget_names.push(widget.name.clone());
         let widget_name = &widget.name;
         let widget_type_ident = Ident::new(widget.relm_type.as_ref());
+        set_container!(self, widget, widget_name, widget_type_ident);
         let relm_component_type = gen_relm_component_type(&widget.relm_type);
         self.relm_widgets.insert(widget.name.clone(), relm_component_type);
         let parent = parent.unwrap();
@@ -279,6 +299,23 @@ fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
         quote! {
             #struct_name::new(#params)
         }
+    }
+}
+
+fn gen_container_impl(generator: &Generator) -> Tokens {
+    match (&generator.container_name, &generator.container_type) {
+        (&Some(ref name), &Some(ref typ)) => {
+            quote! {
+                impl ::relm::Container for VBox {
+                    type Container = #typ;
+
+                    fn container(&self) -> &Self::Container {
+                        &self.#name
+                    }
+                }
+            }
+        },
+        _ => quote! {},
     }
 }
 

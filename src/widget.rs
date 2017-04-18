@@ -26,18 +26,15 @@ use super::{DisplayVariant, Relm, RemoteRelm};
 /// Trait to implement to manage widget's events.
 pub trait Widget
     where Self: Clone + Sized,
-          Self::Container: Clone + IsA<gtk::Widget>,
+          Self::Root: Clone + IsA<gtk::Widget>,
           Self::Msg: Clone + DisplayVariant,
 {
-    /// The type of the containing widget.
-    type Container;
     /// The type of the model.
     type Model;
     /// The type of the messages sent to the [`update()`](trait.Widget.html#tymethod.update) method.
     type Msg;
-
-    /// Get the containing widget, i.e. the parent widget of the view.
-    fn container(&self) -> &Self::Container;
+    /// The type of the root widget.
+    type Root;
 
     /// Update the view after it is initially created.
     /// This method is only useful when using the `#[widget]` attribute, because when not using it,
@@ -51,6 +48,9 @@ pub trait Widget
     /// Method called when the widget is added to its parent.
     fn on_add<W: IsA<gtk::Widget> + IsA<Object>>(&self, _parent: W) {
     }
+
+    /// Get the root widget of the view.e. the root widget of the view.
+    fn root(&self) -> &Self::Root;
 
     /// Connect the subscriptions.
     /// Subscriptions are `Future`/`Stream` that are spawn when the widget is created.

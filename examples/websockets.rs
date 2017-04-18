@@ -94,19 +94,19 @@ struct Win {
 }
 
 impl Widget for Win {
-    type Container = Window;
     type Model = Model;
     type Msg = Msg;
-
-    fn container(&self) -> &Self::Container {
-        &self.window
-    }
+    type Root = Window;
 
     fn model() -> Model {
         Model {
             service: None,
             text: String::new(),
         }
+    }
+
+    fn root(&self) -> &Self::Root {
+        &self.window
     }
 
     fn subscriptions(relm: &Relm<Msg>) {

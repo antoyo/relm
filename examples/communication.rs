@@ -62,18 +62,18 @@ struct Text {
 }
 
 impl Widget for Text {
-    type Container = gtk::Box;
     type Model = TextModel;
     type Msg = TextMsg;
-
-    fn container(&self) -> &Self::Container {
-        &self.vbox
-    }
+    type Root = gtk::Box;
 
     fn model() -> TextModel {
         TextModel {
             content: String::new(),
         }
+    }
+
+    fn root(&self) -> &Self::Root {
+        &self.vbox
     }
 
     fn update(&mut self, event: TextMsg, model: &mut TextModel) {
@@ -122,18 +122,18 @@ struct Counter {
 }
 
 impl Widget for Counter {
-    type Container = gtk::Box;
     type Model = CounterModel;
     type Msg = CounterMsg;
-
-    fn container(&self) -> &Self::Container {
-        &self.vbox
-    }
+    type Root = gtk::Box;
 
     fn model() -> CounterModel {
         CounterModel {
             counter: 0,
         }
+    }
+
+    fn root(&self) -> &Self::Root {
+        &self.vbox
     }
 
     fn update(&mut self, event: CounterMsg, model: &mut CounterModel) {
@@ -194,18 +194,18 @@ struct Win {
 }
 
 impl Widget for Win {
-    type Container = Window;
     type Model = Model;
     type Msg = Msg;
-
-    fn container(&self) -> &Self::Container {
-        &self.window
-    }
+    type Root = Window;
 
     fn model() -> Model {
         Model {
             counter: 0,
         }
+    }
+
+    fn root(&self) -> &Self::Root {
+        &self.window
     }
 
     fn update(&mut self, event: Msg, model: &mut Model) {

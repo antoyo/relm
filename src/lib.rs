@@ -41,7 +41,7 @@
 
 /*
  * FIXME: the relm_widget! macro is broken.
- * FIXME: the widget-list example can trigger the following after removing widgets, adding new
+ * FIXME: the widget-list example can trigger (and is broken) the following after removing widgets, adding new
  * widgets again and using these new widgets:
  * GLib-CRITICAL **: g_io_channel_read_unichar: assertion 'channel->is_readable' failed
  *
@@ -110,10 +110,10 @@ use relm_core::Core;
 pub use relm_core::{EventStream, Handle, Remote};
 
 use component::Comp;
-pub use container::{ContainerWidget, RelmContainer};
+pub use container::{Container, ContainerWidget, RelmContainer};
 pub use component::Component;
-use self::stream::ToStream;
-pub use self::widget::*;
+use stream::ToStream;
+pub use widget::Widget;
 
 /// Dummy macro to be used with `#[derive(Widget)]`.
 ///
@@ -425,16 +425,16 @@ fn init_gtk() {
 /// # }
 /// #
 /// # impl Widget for Win {
-/// #     type Container = Window;
 /// #     type Model = ();
 /// #     type Msg = Msg;
-/// #
-/// #     fn container(&self) -> &Self::Container {
-/// #         &self.window
-/// #     }
+/// #     type Root = Window;
 /// #
 /// #     fn model() -> () {
 /// #         ()
+/// #     }
+/// #
+/// #     fn root(&self) -> &Self::Root {
+/// #         &self.window
 /// #     }
 /// #
 /// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
@@ -524,16 +524,16 @@ fn init_component<WIDGET>(component: &Comp<WIDGET>, remote: &Remote)
 /// # }
 /// #
 /// # impl Widget for Win {
-/// #     type Container = Window;
 /// #     type Model = ();
 /// #     type Msg = Msg;
-/// #
-/// #     fn container(&self) -> &Self::Container {
-/// #         &self.window
-/// #     }
+/// #     type Root = Window;
 /// #
 /// #     fn model() -> () {
 /// #         ()
+/// #     }
+/// #
+/// #     fn root(&self) -> &Self::Root {
+/// #         &self.window
 /// #     }
 /// #
 /// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
