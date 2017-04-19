@@ -73,7 +73,7 @@ enum WidgetType {
 
 pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>, Tokens) {
     let mut generator = Generator::new(root_widget, root_widget_type);
-    let widget = generator.widget(widget, None, IsGtk);
+    let widget_tokens = generator.widget(widget, None, IsGtk);
     let root_widget_name = &generator.root_widget.as_ref().unwrap();
     let widget_names1: Vec<_> = generator.widget_names.iter()
         .filter(|ident| (idents.contains(ident) || generator.relm_widgets.contains_key(ident)) && ident != root_widget_name)
@@ -82,7 +82,7 @@ pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_
     let widget_names2 = widget_names1;
     let events = &generator.events;
     let code = quote! {
-        #widget
+        #widget_tokens
 
         #(#events)*
 
@@ -91,7 +91,7 @@ pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_
             #(#widget_names1: #widget_names2),*
         }
     };
-    let container_impl = gen_container_impl(&generator);
+    let container_impl = gen_container_impl(&generator, widget);
     (code, generator.relm_widgets, container_impl)
 }
 
@@ -302,11 +302,16 @@ fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
     }
 }
 
-fn gen_container_impl(generator: &Generator) -> Tokens {
+fn gen_container_impl(generator: &Generator, widget: &Widget) -> Tokens {
+    let widget_type =
+        match *widget {
+            Gtk(ref gtk_widget) => &gtk_widget.relm_name,
+            Relm(_) => panic!("Expecting gtk widget"),
+        };
     match (&generator.container_name, &generator.container_type) {
         (&Some(ref name), &Some(ref typ)) => {
             quote! {
-                impl ::relm::Container for VBox {
+                impl ::relm::Container for #widget_type {
                     type Container = #typ;
 
                     fn container(&self) -> &Self::Container {
