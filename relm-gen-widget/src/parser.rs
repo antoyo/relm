@@ -168,10 +168,10 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
     let tokens =
         if let Token(Literal(Str(ref relm_view_file, _))) = tokens[0] {
             // TODO: also support glade file.
-            let mut file = File::open(relm_view_file).unwrap();
+            let mut file = File::open(relm_view_file).expect("File::open() in parse()");
             let mut file_content = String::new();
-            file.read_to_string(&mut file_content).unwrap();
-            let item = parse_item(&file_content).unwrap();
+            file.read_to_string(&mut file_content).expect("read_to_string() in parse()");
+            let item = parse_item(&file_content).expect("parse_item() in parse()");
             if let Mac(syn::Mac { tts, .. }) = item.node {
                 if let TokenTree::Delimited(Delimited { ref tts, .. }) = tts[0] {
                     tts.clone()
@@ -306,7 +306,9 @@ fn try_parse_name(mut tokens: &[TokenTree]) -> Option<(String, &[TokenTree])> {
         }
         tokens = &tokens[1..];
     }
-    if segments.is_empty() || segments.last().unwrap().chars().next().unwrap().is_lowercase() {
+    if segments.is_empty() || segments.last().expect("last() in try_parse_name()")
+        .chars().next().expect("next() in try_parse_name()").is_lowercase()
+    {
         None
     }
     else {
@@ -409,7 +411,7 @@ fn gen_widget_name(name: &str) -> String {
         else {
             name.to_lowercase()
         };
-    let mut hashmap = NAMES_INDEX.lock().unwrap();
+    let mut hashmap = NAMES_INDEX.lock().expect("lock() in gen_widget_name()");
     let index = hashmap.entry(name.clone()).or_insert(0);
     *index += 1;
     format!("{}{}", name, index)

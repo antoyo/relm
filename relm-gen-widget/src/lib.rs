@@ -91,7 +91,7 @@ impl State {
 
 pub fn gen_widget(input: Tokens) -> Tokens {
     let source = input.to_string();
-    let mut ast = parse_item(&source).unwrap();
+    let mut ast = parse_item(&source).expect("parse_item() in gen_widget()");
     if let Impl(unsafety, polarity, generics, path, typ, items) = ast.node {
         let name = get_name(&typ);
         let mut new_items = vec![];
@@ -187,7 +187,7 @@ fn block_to_impl_item(tokens: Tokens) -> ImplItem {
             #tokens
         }
     };
-    let implementation = parse_item(implementation.as_str()).unwrap();
+    let implementation = parse_item(implementation.as_str()).expect("parse_ẗem in block_to_impl_item");
     match implementation.node {
         Impl(_, _, _, _, _, items) => items[0].clone(),
         _ => unreachable!(),
@@ -241,8 +241,8 @@ fn get_name(typ: &Ty) -> Ident {
 macro_rules! get_map {
     ($widget:expr, $map:expr, $is_relm:expr) => {{
         for (name, value) in &$widget.properties {
-            let string = value.parse::<String>().unwrap();
-            let expr = parse_expr(&string).unwrap();
+            let string = value.parse::<String>().expect("parse::<String>() in get_map!");
+            let expr = parse_expr(&string).expect("parse_expr in get_map!");
             let mut visitor = ModelVariableVisitor::new();
             visitor.visit_expr(&expr);
             let model_variables = visitor.idents;
@@ -335,7 +335,7 @@ fn get_view(name: &Ident, state: &mut State) -> (ImplItem, Widget, PropertyModel
 }
 
 fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, Widget, PropertyModelMap, HashMap<Ident, Ident>, Tokens) {
-    let tokens = &state.view_macro.as_ref().unwrap().tts;
+    let tokens = &state.view_macro.as_ref().expect("view_macro in impl_view()").tts;
     if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
         let mut widget = parse(tts);
         if let Gtk(ref mut widget) = widget {

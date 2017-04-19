@@ -74,7 +74,7 @@ enum WidgetType {
 pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>, Tokens) {
     let mut generator = Generator::new(root_widget, root_widget_type);
     let widget_tokens = generator.widget(widget, None, IsGtk);
-    let root_widget_name = &generator.root_widget.as_ref().unwrap();
+    let root_widget_name = &generator.root_widget.as_ref().expect("root_widget is None");
     let widget_names1: Vec<_> = generator.widget_names.iter()
         .filter(|ident| (idents.contains(ident) || generator.relm_widgets.contains_key(ident)) && ident != root_widget_name)
         .collect();
@@ -233,7 +233,7 @@ impl<'a> Generator<'a> {
         set_container!(self, widget, widget_name, widget_type_ident);
         let relm_component_type = gen_relm_component_type(&widget.relm_type);
         self.relm_widgets.insert(widget.name.clone(), relm_component_type);
-        let parent = parent.unwrap();
+        let parent = parent.expect("parent is None");
 
         self.collect_relm_events(widget);
 

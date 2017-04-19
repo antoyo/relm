@@ -112,7 +112,8 @@ fn create_stmts(ident: &Ident, map: &PropertyModelMap) -> Vec<Stmt> {
                         { self.#widget_name.#prop_name(#tokens); }
                     }
                 };
-            let expr = parse_expr(&stmt.parse::<String>().unwrap()).unwrap();
+            let expr = parse_expr(&stmt.parse::<String>().expect("parse::<String>() in create_stmts"))
+                .expect("parse_expr() in create_stmts");
             if let ExprKind::Block(_, ref block) = expr.node {
                 stmts.push(block.stmts[0].clone());
             }
