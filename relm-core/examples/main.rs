@@ -27,7 +27,7 @@ extern crate gtk;
 extern crate relm_core;
 extern crate tokio_core;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use chrono::Local;
@@ -81,7 +81,7 @@ fn main() {
     window.add(&vbox);
 
     let (sender, mut receiver) = channel();
-    let sender = Arc::new(sender);
+    let sender = Arc::new(Mutex::new(sender));
 
     let stream = EventStream::new(sender.clone());
 

@@ -319,7 +319,7 @@ fn create_widget_test<WIDGET>(remote: &Remote) -> Component<WIDGET>
 {
     // TODO: remove redundancy with create_widget.
     let (sender, mut receiver) = channel();
-    let stream = EventStream::new(Arc::new(sender));
+    let stream = EventStream::new(Arc::new(Mutex::new(sender)));
 
     let (widget, model) = {
         let relm = RemoteRelm {
@@ -362,7 +362,7 @@ fn create_widget<WIDGET>(remote: &Remote) -> Comp<WIDGET>
           WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
     let (sender, mut receiver) = channel();
-    let stream = EventStream::new(Arc::new(sender));
+    let stream = EventStream::new(Arc::new(Mutex::new(sender)));
 
     let (widget, model) = {
         let relm = RemoteRelm {

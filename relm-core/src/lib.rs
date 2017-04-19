@@ -56,7 +56,7 @@ impl Core {
 struct _EventStream<MSG> {
     events: VecDeque<MSG>,
     observers: Vec<Box<Fn(MSG) + Send>>,
-    sender: Arc<Sender>,
+    sender: Arc<Mutex<Sender>>,
     task: Option<Task>,
     terminated: bool,
     ui_events: VecDeque<MSG>,
@@ -68,7 +68,7 @@ pub struct EventStream<MSG> {
 }
 
 impl<MSG> EventStream<MSG> {
-    pub fn new(sender: Arc<Sender>) -> Self {
+    pub fn new(sender: Arc<Mutex<Sender>>) -> Self {
         EventStream {
             stream: Arc::new(Mutex::new(_EventStream {
                 events: VecDeque::new(),
@@ -83,7 +83,7 @@ impl<MSG> EventStream<MSG> {
 
     pub fn close(&self) -> Result<(), Error> {
         let mut stream = self.stream.lock().unwrap();
-        stream.sender.close()?;
+        stream.sender.lock().unwrap().close()?;
         stream.terminated = true;
         if let Some(ref task) = stream.task {
             task.unpark();
@@ -138,7 +138,7 @@ impl<MSG: Clone + 'static> Stream for EventStream<MSG> {
                     let mut stream = self.stream.lock().unwrap();
                     stream.task = None;
                     stream.ui_events.push_back(event.clone());
-                    stream.sender.send();
+                    stream.sender.lock().unwrap().send();
                     // TODO: try to avoid clone by sending a reference.
                     Ok(Async::Ready(Some(event)))
                 },
