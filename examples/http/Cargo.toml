@@ -9,8 +9,8 @@ gdk-pixbuf = "^0.1.1"
 gdk-sys = "^0.3.3"
 gtk = "^0.1.2"
 json = "^0.11.5"
-relm =  "^0.5.0"
-relm-derive = "^0.2.0"
+relm =  "^0.7.0"
+relm-derive = "^0.7.0"
 simplelog = "^0.4.2"
 
 [dependencies.hyper]
