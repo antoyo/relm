@@ -260,7 +260,7 @@ fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
         };
     tokens = new_tokens;
     // GTK+ widget.
-    if tokens[0] == Token(Ident(syn::Ident::new("gtk"))) {
+    if tokens.get(1) == Some(&Token(ModSep)) {
         let (mut child, new_tokens) = parse_widget(tokens);
         if let Some(name) = name {
             child.save = true;
