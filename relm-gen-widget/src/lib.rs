@@ -71,6 +71,14 @@ struct State {
     widgets: HashMap<Ident, Ident>, // Map widget ident to widget type.
 }
 
+struct View {
+    container_impl: Tokens,
+    item: ImplItem,
+    properties_model_map: PropertyModelMap,
+    relm_widgets: HashMap<Ident, Ident>,
+    widget: Widget,
+}
+
 impl State {
     fn new() -> Self {
         State {
@@ -128,12 +136,12 @@ pub fn gen_widget(input: Tokens) -> Tokens {
                 },
             }
         }
-        let (view, widget, map, relm_widgets, container_impl) = get_view(&name, &mut state);
-        if let Some(on_add) = gen_set_child_prop_calls(&widget) {
+        let view = get_view(&name, &mut state);
+        if let Some(on_add) = gen_set_child_prop_calls(&view.widget) {
             new_items.push(on_add);
         }
-        state.properties_model_map = Some(map);
-        new_items.push(view);
+        state.properties_model_map = Some(view.properties_model_map);
+        new_items.push(view.item);
         state.widgets.insert(state.root_widget.clone().expect("root widget"),
             state.root_widget_type.clone().expect("root widget type"));
         new_items.push(get_msg_type(state.msg_type, state.widget_msg_type));
@@ -144,7 +152,8 @@ pub fn gen_widget(input: Tokens) -> Tokens {
         new_items.push(get_root(state.root_method, state.root_widget_expr));
         let item = Impl(unsafety, polarity, generics, path, typ, new_items);
         ast.node = item;
-        let widget_struct = create_struct(&name, &state.widgets, &relm_widgets);
+        let widget_struct = create_struct(&name, &state.widgets, &view.relm_widgets);
+        let container_impl = view.container_impl;
         quote! {
             #widget_struct
             #ast
@@ -325,8 +334,7 @@ fn get_update(mut func: ImplItem, map: &PropertyModelMap) -> ImplItem {
     func
 }
 
-// TODO: improve the return type.
-fn get_view(name: &Ident, state: &mut State) -> (ImplItem, Widget, PropertyModelMap, HashMap<Ident, Ident>, Tokens) {
+fn get_view(name: &Ident, state: &mut State) -> View {
     {
         let segments = &state.view_macro.as_ref().expect("view! macro missing").path.segments;
         if segments.len() != 1 || segments[0].ident != "view" {
@@ -336,7 +344,7 @@ fn get_view(name: &Ident, state: &mut State) -> (ImplItem, Widget, PropertyModel
     impl_view(name, state)
 }
 
-fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, Widget, PropertyModelMap, HashMap<Ident, Ident>, Tokens) {
+fn impl_view(name: &Ident, state: &mut State) -> View {
     let tokens = &state.view_macro.as_ref().expect("view_macro in impl_view()").tts;
     if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
         let mut widget = parse(tts);
@@ -355,7 +363,13 @@ fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, Widget, PropertyMode
                 #view
             }
         });
-        (item, widget, properties_model_map, relm_widgets, container_impl)
+        View {
+            container_impl: container_impl,
+            item: item,
+            properties_model_map: properties_model_map,
+            relm_widgets: relm_widgets,
+            widget: widget,
+        }
     }
     else {
         panic!("Expected `{{` but found `{:?}` in view! macro", tokens[0]);

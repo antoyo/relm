@@ -192,7 +192,8 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
 }
 
 fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
-    let (name, tokens) = try_parse_name_attribute(tokens);
+    let (attributes, tokens) = parse_attributes(tokens);
+    let name = attributes.get("name").and_then(|name| *name);
     let (gtk_type, mut tokens) = parse_qualified_name(tokens);
     let mut widget = GtkWidget::new(&gtk_type);
     if let Some(name) = name {
@@ -247,17 +248,9 @@ fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
 }
 
 fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
-    let (is_container, new_tokens) = try_parse_container_attribute(tokens);
-    let (name, new_tokens) = try_parse_name_attribute(new_tokens);
-    // Try to parse again because the order of the attributes does not matter.
-    // TODO: improve that.
-    let (is_container, new_tokens) =
-        if !is_container {
-            try_parse_container_attribute(new_tokens)
-        }
-        else {
-            (is_container, new_tokens)
-        };
+    let (attributes, new_tokens) = parse_attributes(tokens);
+    let is_container = attributes.contains_key("container");
+    let name = attributes.get("name").and_then(|name| *name);
     tokens = new_tokens;
     // GTK+ widget.
     if tokens.get(1) == Some(&Token(ModSep)) {
@@ -417,6 +410,33 @@ fn gen_widget_name(name: &str) -> String {
     format!("{}{}", name, index)
 }
 
+fn parse_attributes(mut tokens: &[TokenTree]) -> (HashMap<&str, Option<&str>>, &[TokenTree]) {
+    let mut attributes = HashMap::new();
+    while tokens[0] == Token(Pound) {
+        tokens = &tokens[1..];
+        if let TokenTree::Delimited(Delimited { delim: Bracket, ref tts }) = tokens[0] {
+            tokens = &tokens[1..];
+            if let Token(Ident(ref ident)) = tts[0] {
+                let name = ident.as_ref();
+                let value =
+                    if let Some(&Token(Eq)) = tts.get(1) {
+                        if let Token(Literal(Str(ref name, Cooked))) = tts[2] {
+                            Some(name.as_str())
+                        }
+                        else {
+                            None
+                        }
+                    }
+                    else {
+                        None
+                    };
+                attributes.insert(name, value);
+            }
+        }
+    }
+    (attributes, tokens)
+}
+
 fn parse_child_properties(mut tokens: &[TokenTree]) -> HashMap<String, Tokens> {
     // TODO: panic if the same child properties is set twice.
     // TODO: same for normal properties?
@@ -488,28 +508,4 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
         }
     }
     (widget, &tokens[1..])
-}
-
-fn try_parse_container_attribute(tokens: &[TokenTree]) -> (bool, &[TokenTree]) {
-    if tokens[0] == Token(Pound) {
-        if let TokenTree::Delimited(Delimited { delim: Bracket, ref tts }) = tokens[1] {
-            if Token(Ident(syn::Ident::new("container"))) == tts[0] {
-                return (true, &tokens[2..]);
-            }
-        }
-    }
-    (false, tokens)
-}
-
-fn try_parse_name_attribute(tokens: &[TokenTree]) -> (Option<String>, &[TokenTree]) {
-    if tokens[0] == Token(Pound) {
-        if let TokenTree::Delimited(Delimited { delim: Bracket, ref tts }) = tokens[1] {
-            if Token(Ident(syn::Ident::new("name"))) == tts[0] && Token(Eq) == tts[1] {
-                if let Token(Literal(Str(ref name, Cooked))) = tts[2] {
-                    return (Some(name.clone()), &tokens[2..]);
-                }
-            }
-        }
-    }
-    (None, tokens)
 }

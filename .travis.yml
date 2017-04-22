@@ -15,24 +15,13 @@ rust:
   - stable
 
 before_script:
-  - |
-      pip install 'travis-cargo<0.2' --user &&
-      export PATH=$HOME/.local/bin:$PATH
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
 
 script:
-  - |
-      travis-cargo build &&
-      travis-cargo test
-after_success:
-  - travis-cargo coveralls --no-sudo --verify
-  - ./kcov/build/src/kcov --verify --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov target/debug/lib-*
-
-env:
-  global:
-    - TRAVIS_CARGO_NIGHTLY_FEATURE=nightly
+  - cargo build
+  - cargo test
 
 matrix:
   allow_failures:

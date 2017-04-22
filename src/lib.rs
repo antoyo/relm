@@ -357,6 +357,8 @@ fn create_widget_test<WIDGET>(remote: &Remote) -> Component<WIDGET>
     Component::new(component)
 }
 
+/// Create a new relm widget without adding it to an existing widget.
+/// This is useful when a relm widget is at the root of another relm widget.
 pub fn create_component<WIDGET, MSG>(relm: &RemoteRelm<MSG>) -> Component<WIDGET>
     where MSG: Clone + DisplayVariant,
           WIDGET: Widget + 'static,
