@@ -8,6 +8,7 @@ addons:
       - libdw-dev
       - binutils-dev
       - libgtk-3-dev
+      - libsoup2.4-dev
 
 rust:
   - nightly
