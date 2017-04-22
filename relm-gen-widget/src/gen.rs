@@ -71,8 +71,8 @@ enum WidgetType {
     IsRelm,
 }
 
-pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>, Tokens) {
-    let mut generator = Generator::new(root_widget, root_widget_type);
+pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_expr: &mut Option<Tokens>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>, Tokens) {
+    let mut generator = Generator::new(root_widget, root_widget_expr, root_widget_type);
     let widget_tokens = generator.widget(widget, None, IsGtk);
     let root_widget_name = &generator.root_widget.as_ref().expect("root_widget is None");
     let widget_names1: Vec<_> = generator.widget_names.iter()
@@ -101,18 +101,20 @@ struct Generator<'a> {
     events: Vec<Tokens>,
     relm_widgets: HashMap<Ident, Ident>,
     root_widget: &'a mut Option<Ident>,
+    root_widget_expr: &'a mut Option<Tokens>,
     root_widget_type: &'a mut Option<Ident>,
     widget_names: Vec<Ident>,
 }
 
 impl<'a> Generator<'a> {
-    fn new(root_widget: &'a mut Option<Ident>, root_widget_type: &'a mut Option<Ident>) -> Self {
+    fn new(root_widget: &'a mut Option<Ident>, root_widget_expr: &'a mut Option<Tokens>, root_widget_type: &'a mut Option<Ident>) -> Self {
         Generator {
             container_name: None,
             container_type: None,
             events: vec![],
             relm_widgets: HashMap::new(),
             root_widget: root_widget,
+            root_widget_expr: root_widget_expr,
             root_widget_type: root_widget_type,
             widget_names: vec![],
         }
@@ -136,7 +138,41 @@ impl<'a> Generator<'a> {
             let struct_name = &widget.gtk_type;
             *self.root_widget_type = Some(struct_name.clone());
             *self.root_widget = Some(widget_name.clone());
+            *self.root_widget_expr = Some(quote! {
+                #widget_name
+            });
             quote! {
+            }
+        }
+    }
+
+    fn add_or_create_widget(&mut self, parent: Option<&Ident>, parent_widget_type: WidgetType, widget_name: &Ident, widget_type_ident: Ident) -> Tokens {
+        if let Some(parent) = parent {
+            if parent_widget_type == IsGtk {
+                quote! {
+                    let #widget_name = {
+                        ::relm::ContainerWidget::add_widget::<#widget_type_ident, _>(&#parent, &relm)
+                    };
+                }
+            }
+            else {
+                quote! {
+                    let #widget_name = {
+                        ::relm::RelmContainer::add_widget::<#widget_type_ident, _>(&#parent, &relm)
+                    };
+                }
+            }
+        }
+        else {
+            *self.root_widget_type = Some(Ident::new(format!("<{} as ::relm::Widget>::Root", widget_type_ident)));
+            *self.root_widget = Some(widget_name.clone());
+            *self.root_widget_expr = Some(quote! {
+                #widget_name.widget().root()
+            });
+            quote! {
+                let #widget_name = {
+                    ::relm::create_component::<#widget_type_ident, _>(&relm)
+                };
             }
         }
     }
@@ -233,7 +269,6 @@ impl<'a> Generator<'a> {
         set_container!(self, widget, widget_name, widget_type_ident);
         let relm_component_type = gen_relm_component_type(&widget.relm_type);
         self.relm_widgets.insert(widget.name.clone(), relm_component_type);
-        let parent = parent.expect("parent is None");
 
         self.collect_relm_events(widget);
 
@@ -243,24 +278,10 @@ impl<'a> Generator<'a> {
         let ident = quote! { #widget_name.widget() };
         let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
 
-        let add_widget =
-            if parent_widget_type == IsGtk {
-                quote! {
-                    let #widget_name = {
-                        ::relm::ContainerWidget::add_widget::<#widget_type_ident, _>(&#parent, &relm)
-                    };
-                }
-            }
-            else {
-                quote! {
-                    let #widget_name = {
-                        ::relm::RelmContainer::add_widget::<#widget_type_ident, _>(&#parent, &relm)
-                    };
-                }
-            };
+        let add_or_create_widget = self.add_or_create_widget(parent, parent_widget_type, widget_name, widget_type_ident);
 
         quote! {
-            #add_widget
+            #add_or_create_widget
             #(#properties)*
             #(#visible_properties)*
             #(#children)*
@@ -305,8 +326,8 @@ fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
 fn gen_container_impl(generator: &Generator, widget: &Widget) -> Tokens {
     let widget_type =
         match *widget {
-            Gtk(ref gtk_widget) => &gtk_widget.relm_name,
-            Relm(_) => panic!("Expecting gtk widget"),
+            Gtk(ref gtk_widget) => gtk_widget.relm_name.as_ref().unwrap(),
+            Relm(ref relm_widget) => &relm_widget.relm_type,
         };
     match (&generator.container_name, &generator.container_type) {
         (&Some(ref name), &Some(ref typ)) => {

@@ -357,6 +357,17 @@ fn create_widget_test<WIDGET>(remote: &Remote) -> Component<WIDGET>
     Component::new(component)
 }
 
+pub fn create_component<WIDGET, MSG>(relm: &RemoteRelm<MSG>) -> Component<WIDGET>
+    where MSG: Clone + DisplayVariant,
+          WIDGET: Widget + 'static,
+          WIDGET::Model: Clone + Send,
+          WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
+{
+        let component = create_widget::<WIDGET>(&relm.remote);
+        init_component::<WIDGET>(&component, &relm.remote);
+        Component::new(component)
+}
+
 fn create_widget<WIDGET>(remote: &Remote) -> Comp<WIDGET>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: Clone + DisplayVariant + 'static,
@@ -395,6 +406,29 @@ fn create_widget<WIDGET>(remote: &Remote) -> Comp<WIDGET>
         stream: stream,
         widget: widget,
     }
+}
+
+fn init_component<WIDGET>(component: &Comp<WIDGET>, remote: &Remote)
+    where WIDGET: Widget + 'static,
+          WIDGET::Model: Send,
+          WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
+{
+    let stream = component.stream.clone();
+    let model = component.model.clone();
+    remote.spawn(move |handle| {
+        let relm = Relm {
+            handle: handle.clone(),
+            stream: stream.clone(),
+        };
+        WIDGET::subscriptions(&relm);
+        let event_future = stream.for_each(move |event| {
+            let mut model = model.lock().unwrap();
+            WIDGET::update_command(&relm, event, &mut *model);
+            Ok(())
+        });
+        handle.spawn(event_future);
+        Ok(())
+    });
 }
 
 // TODO: remove this workaround.
@@ -482,29 +516,6 @@ fn init<WIDGET>() -> Result<Component<WIDGET>, ()>
     let component = create_widget::<WIDGET>(&remote);
     init_component::<WIDGET>(&component, &remote);
     Ok(Component::new(component))
-}
-
-fn init_component<WIDGET>(component: &Comp<WIDGET>, remote: &Remote)
-    where WIDGET: Widget + 'static,
-          WIDGET::Model: Send,
-          WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
-{
-    let stream = component.stream.clone();
-    let model = component.model.clone();
-    remote.spawn(move |handle| {
-        let relm = Relm {
-            handle: handle.clone(),
-            stream: stream.clone(),
-        };
-        WIDGET::subscriptions(&relm);
-        let event_future = stream.for_each(move |event| {
-            let mut model = model.lock().unwrap();
-            WIDGET::update_command(&relm, event, &mut *model);
-            Ok(())
-        });
-        handle.spawn(event_future);
-        Ok(())
-    });
 }
 
 /// Create the specified relm `Widget` and run the main event loops.

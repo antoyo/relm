@@ -62,6 +62,7 @@ struct State {
     root_method: Option<ImplItem>,
     root_type: Option<ImplItem>,
     root_widget: Option<Ident>,
+    root_widget_expr: Option<Tokens>,
     root_widget_type: Option<Ident>,
     update_method: Option<ImplItem>,
     view_macro: Option<Mac>,
@@ -79,6 +80,7 @@ impl State {
             msg_type: None,
             properties_model_map: None,
             root_widget: None,
+            root_widget_expr: None,
             root_widget_type: None,
             update_method: None,
             view_macro: None,
@@ -139,7 +141,7 @@ pub fn gen_widget(input: Tokens) -> Tokens {
         new_items.push(get_root_type(state.root_type, state.root_widget_type));
         new_items.push(get_update(state.update_method.expect("update method"),
             &state.properties_model_map.expect("properties model map")));
-        new_items.push(get_root(state.root_method, state.root_widget));
+        new_items.push(get_root(state.root_method, state.root_widget_expr));
         let item = Impl(unsafety, polarity, generics, path, typ, new_items);
         ast.node = item;
         let widget_struct = create_struct(&name, &state.widgets, &relm_widgets);
@@ -281,12 +283,12 @@ fn get_return_type(sig: MethodSig) -> Ty {
     }
 }
 
-fn get_root(root_method: Option<ImplItem>, root_widget: Option<Ident>) -> ImplItem {
+fn get_root(root_method: Option<ImplItem>, root_widget_expr: Option<Tokens>) -> ImplItem {
     root_method.unwrap_or_else(|| {
-        let root_widget = root_widget.expect("root widget");
+        let root_widget_expr = root_widget_expr.expect("root widget expr");
         block_to_impl_item(quote! {
             fn root(&self) -> &Self::Root {
-                &self.#root_widget
+                &self.#root_widget_expr
             }
         })
     })
@@ -345,7 +347,7 @@ fn impl_view(name: &Ident, state: &mut State) -> (ImplItem, Widget, PropertyMode
         get_properties_model_map(&widget, &mut properties_model_map);
         add_widgets(&widget, &mut state.widgets, &properties_model_map);
         let idents: Vec<_> = state.widgets.keys().collect();
-        let (view, relm_widgets, container_impl) = gen(name, &widget, &mut state.root_widget, &mut state.root_widget_type, &idents);
+        let (view, relm_widgets, container_impl) = gen(name, &widget, &mut state.root_widget, &mut state.root_widget_expr, &mut state.root_widget_type, &idents);
         let event_type = &state.widget_msg_type;
         let item = block_to_impl_item(quote! {
             #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
