@@ -22,6 +22,12 @@ before_script:
 script:
   - cargo build
   - cargo test
+  - cd examples/http
+  - cargo build
+  - cd ../webkit-test
+  - cargo build
+  - cd ../buttons-derive
+  - cargo build
 
 matrix:
   allow_failures:
