@@ -32,15 +32,15 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Widget};
+use relm::Widget;
 
 #[derive(Clone)]
-struct Model {
+pub struct Model {
     counter: i32,
 }
 
 #[derive(Msg)]
-enum Msg {
+pub enum Msg {
     Decrement,
     Increment,
     Quit,
@@ -48,7 +48,7 @@ enum Msg {
 
 // An alternative to the #[widget] attribute which works on stable.
 relm_widget! {
-    impl Widget<Msg> for Win {
+    impl Widget for Win {
         // The initial model.
         fn model() -> Model {
             Model {
@@ -92,5 +92,5 @@ relm_widget! {
 }
 
 fn main() {
-    Relm::run::<Win>().unwrap();
+    relm::run::<Win>().unwrap();
 }
