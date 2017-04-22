@@ -25,7 +25,7 @@ use super::{DisplayVariant, Relm, RemoteRelm};
 
 /// Trait to implement to manage widget's events.
 pub trait Widget
-    where Self: Clone + Sized,
+    where Self: Clone,
           Self::Root: Clone + IsA<gtk::Widget>,
           Self::Msg: Clone + DisplayVariant,
 {

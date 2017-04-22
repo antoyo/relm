@@ -40,7 +40,7 @@
 #![warn(missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces, unused_qualifications, unused_results)]
 
 /*
- * FIXME: the relm_widget! macro is broken.
+   TODO: after switching to futures-glib, remove the unnecessary Arc, Mutex and Clone.
  * FIXME: the widget-list example can trigger (and is broken) the following after removing widgets, adding new
  * widgets again and using these new widgets:
  * GLib-CRITICAL **: g_io_channel_read_unichar: assertion 'channel->is_readable' failed
@@ -365,9 +365,9 @@ pub fn create_component<WIDGET, MSG>(relm: &RemoteRelm<MSG>) -> Component<WIDGET
           WIDGET::Model: Clone + Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
 {
-        let component = create_widget::<WIDGET>(&relm.remote);
-        init_component::<WIDGET>(&component, &relm.remote);
-        Component::new(component)
+    let component = create_widget::<WIDGET>(&relm.remote);
+    init_component::<WIDGET>(&component, &relm.remote);
+    Component::new(component)
 }
 
 fn create_widget<WIDGET>(remote: &Remote) -> Comp<WIDGET>

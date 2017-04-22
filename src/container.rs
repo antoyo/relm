@@ -36,9 +36,7 @@ pub trait Container: Widget {
 }
 
 /// Extension trait for GTK+ containers to add and remove relm `Widget`s.
-pub trait ContainerWidget
-    where Self: Sized,
-{
+pub trait ContainerWidget {
     /// Add a relm `Widget` to the current GTK+ container.
     ///
     /// # Note
