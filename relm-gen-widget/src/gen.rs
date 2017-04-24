@@ -26,7 +26,7 @@ use syn::Ident;
 
 use parser::{GtkWidget, RelmWidget, Widget};
 use parser::EventValue::{CurrentWidget, ForeignWidget};
-use parser::EventValueReturn::{Return, WithoutReturn};
+use parser::EventValueReturn::{CallReturn, Return, WithoutReturn};
 use parser::Widget::{Gtk, Relm};
 
 use self::WidgetType::*;
@@ -193,7 +193,11 @@ impl<'a> Generator<'a> {
                     CurrentWidget(Return(ref event_value, ref return_value)) => quote! {
                         connect!(relm, #widget_name, #event_ident(#(#event_params),*) (#event_value, #return_value));
                     },
-                    ForeignWidget(_, Return(_, _)) => unreachable!(),
+                    ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
+                    CurrentWidget(CallReturn(ref func)) => quote! {
+                        connect!(relm, #widget_name, #event_ident(#(#event_params),*) #func);
+                    },
+
                 };
             self.events.push(connect);
         }
@@ -222,7 +226,7 @@ impl<'a> Generator<'a> {
                         ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {
                             connect!(#widget_name@#event_ident #params, #foreign_widget_name, #event_value);
                         },
-                        CurrentWidget(Return(_, _)) | ForeignWidget(_, Return(_, _)) => unreachable!(),
+                        CurrentWidget(Return(_, _)) | CurrentWidget(CallReturn(_)) | ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
                     };
                 self.events.push(connect);
             }

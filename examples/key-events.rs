@@ -62,8 +62,14 @@ impl Widget for Win {
         gtk::Window {
             key_press_event(_, key) => (Press, Inhibit(false)),
             key_release_event(_, key) => (Release, Inhibit(false)),
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => return Self::quit(),
         }
+    }
+}
+
+impl Win {
+    fn quit() -> (Msg, Inhibit) {
+        (Quit, Inhibit(false))
     }
 }
 

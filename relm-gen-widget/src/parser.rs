@@ -57,6 +57,7 @@ enum Value {
 
 #[derive(Debug)]
 pub enum EventValueReturn {
+    CallReturn(Tokens),
     Return(Tokens, Tokens),
     WithoutReturn(Tokens),
 }
@@ -361,7 +362,11 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
 }
 
 fn parse_event_value(tokens: &[TokenTree]) -> (EventValueReturn, &[TokenTree]) {
-    if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
+    if Token(Ident(syn::Ident::new("return"))) == tokens[0] {
+        let (value, tokens) = parse_value(&tokens[1..]);
+        (CallReturn(value), tokens)
+    }
+    else if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
         let (value1, new_tts) = parse_value(tts);
         if new_tts[0] != Token(Comma) {
             panic!("Expected `,` but found `{:?}` in view! macro", new_tts[0]);
