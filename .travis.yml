@@ -26,6 +26,7 @@ before_script:
 
 script:
   - cargo build
+  - cargo run --example clock
   - cargo test -v
   - cd examples/http
   - cargo build
