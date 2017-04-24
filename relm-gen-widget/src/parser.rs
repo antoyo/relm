@@ -342,6 +342,7 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
     }
     tokens = &tokens[1..];
     event.value =
+        // Message sent to another widget.
         if tokens.len() >= 2 && tokens[1] == Token(At) {
             let (event_value, new_tokens) = parse_event_value(&tokens[2..]);
             let (ident, _) = parse_ident(tokens);
@@ -350,6 +351,7 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
             ident_tokens.append(ident);
             ForeignWidget(ident_tokens, event_value)
         }
+        // Message sent to the same widget.
         else {
             let (event_value, new_tokens) = parse_event_value(tokens);
             tokens = new_tokens;
@@ -360,9 +362,12 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
 
 fn parse_event_value(tokens: &[TokenTree]) -> (EventValueReturn, &[TokenTree]) {
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
-        let (value1, tokens) = parse_value(tts);
-        let (value2, tokens) = parse_value(&tokens[1..]);
-        (Return(value1, value2), tokens)
+        let (value1, new_tts) = parse_value(tts);
+        if new_tts[0] != Token(Comma) {
+            panic!("Expected `,` but found `{:?}` in view! macro", new_tts[0]);
+        }
+        let (value2, _) = parse_value(&new_tts[1..]);
+        (Return(value1, value2), &tokens[1..])
     }
     else {
         let (value, tokens) = parse_value(tokens);
