@@ -42,10 +42,6 @@ use relm::{Component, Container, ContainerWidget, RelmContainer, RemoteRelm, Wid
 
 use self::Msg::*;
 
-#[derive(Msg)]
-pub enum DummyMsg {
-}
-
 #[derive(Clone)]
 struct Button {
     button: gtk::Button,
@@ -53,7 +49,7 @@ struct Button {
 
 impl Widget for Button {
     type Model = ();
-    type Msg = DummyMsg;
+    type Msg = ();
     type Root = gtk::Button;
 
     fn model() -> () {
@@ -63,10 +59,10 @@ impl Widget for Button {
         &self.button
     }
 
-    fn update(&mut self, _msg: DummyMsg, _model: &mut ()) {
+    fn update(&mut self, _msg: (), _model: &mut ()) {
     }
 
-    fn view(_relm: RemoteRelm<DummyMsg>, _model: &()) -> Self {
+    fn view(_relm: RemoteRelm<()>, _model: &()) -> Self {
         let button = gtk::Button::new_with_label("+");
         Button {
             button: button,
@@ -90,7 +86,7 @@ impl Container for VBox {
 
 impl Widget for VBox {
     type Model = ();
-    type Msg = DummyMsg;
+    type Msg = ();
     type Root = EventBox;
 
     fn model() -> () {
@@ -101,10 +97,10 @@ impl Widget for VBox {
         &self.event_box
     }
 
-    fn update(&mut self, _event: DummyMsg, _model: &mut ()) {
+    fn update(&mut self, _event: (), _model: &mut ()) {
     }
 
-    fn view(_relm: RemoteRelm<DummyMsg>, _model: &Self::Model) -> Self {
+    fn view(_relm: RemoteRelm<()>, _model: &Self::Model) -> Self {
         let event_box = EventBox::new();
         let vbox = gtk::Box::new(Vertical, 0);
         event_box.add(&vbox);

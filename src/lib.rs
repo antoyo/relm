@@ -612,3 +612,9 @@ pub trait DisplayVariant {
     /// Formats the current variant of the enum.
     fn display_variant(&self) -> &'static str;
 }
+
+impl DisplayVariant for () {
+    fn display_variant(&self) -> &'static str {
+        ""
+    }
+}

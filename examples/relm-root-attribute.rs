@@ -40,16 +40,12 @@ use relm_attributes::widget;
 
 use self::Msg::*;
 
-#[derive(Msg)]
-pub enum DummyMsg {
-}
-
 #[widget]
 impl Widget for Button {
     fn model() -> () {
     }
 
-    fn update(&mut self, _msg: DummyMsg, _model: &mut ()) {
+    fn update(&mut self, _msg: (), _model: &mut ()) {
     }
 
     view! {
@@ -83,7 +79,7 @@ impl Widget for MyVBox {
     fn model() -> () {
     }
 
-    fn update(&mut self, _event: DummyMsg, _model: &mut ()) {
+    fn update(&mut self, _event: (), _model: &mut ()) {
     }
 
     view! {

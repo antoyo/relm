@@ -41,10 +41,6 @@ use relm::{Component, Container, ContainerWidget, RelmContainer, RemoteRelm, Wid
 
 use self::Msg::*;
 
-#[derive(Msg)]
-pub enum DummyMsg {
-}
-
 #[derive(Clone)]
 struct Button {
     button: gtk::Button,
@@ -52,7 +48,7 @@ struct Button {
 
 impl Widget for Button {
     type Model = ();
-    type Msg = DummyMsg;
+    type Msg = ();
     type Root = gtk::Button;
 
     fn model() -> () {
@@ -62,10 +58,10 @@ impl Widget for Button {
         &self.button
     }
 
-    fn update(&mut self, _msg: DummyMsg, _model: &mut ()) {
+    fn update(&mut self, _msg: (), _model: &mut ()) {
     }
 
-    fn view(_relm: RemoteRelm<DummyMsg>, _model: &Self::Model) -> Self {
+    fn view(_relm: RemoteRelm<()>, _model: &Self::Model) -> Self {
         let button = gtk::Button::new_with_label("+");
         Button {
             button: button,
@@ -89,7 +85,7 @@ impl Container for VBox {
 
 impl Widget for VBox {
     type Model = ();
-    type Msg = DummyMsg;
+    type Msg = ();
     type Root = EventBox;
 
     fn model() -> () {
@@ -100,10 +96,10 @@ impl Widget for VBox {
         &self.event_box
     }
 
-    fn update(&mut self, _event: DummyMsg, _model: &mut ()) {
+    fn update(&mut self, _event: (), _model: &mut ()) {
     }
 
-    fn view(_relm: RemoteRelm<DummyMsg>, _model: &Self::Model) -> Self {
+    fn view(_relm: RemoteRelm<()>, _model: &Self::Model) -> Self {
         let event_box = EventBox::new();
         let vbox = gtk::Box::new(Vertical, 0);
         event_box.add(&vbox);
@@ -123,7 +119,7 @@ struct MyVBox {
 
 impl Widget for MyVBox {
     type Model = ();
-    type Msg = DummyMsg;
+    type Msg = ();
     type Root = <VBox as Widget>::Root;
 
     fn model() -> () {
@@ -133,10 +129,10 @@ impl Widget for MyVBox {
         self.vbox.widget().root()
     }
 
-    fn update(&mut self, _event: DummyMsg, _model: &mut ()) {
+    fn update(&mut self, _event: (), _model: &mut ()) {
     }
 
-    fn view(relm: RemoteRelm<DummyMsg>, _model: &Self::Model) -> Self {
+    fn view(relm: RemoteRelm<()>, _model: &Self::Model) -> Self {
         let vbox = create_component::<VBox, _>(&relm);
 
         let plus_button = gtk::Button::new_with_label("+");
