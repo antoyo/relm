@@ -6,8 +6,8 @@ Asynchronous, GTK+-based, GUI library, inspired by Elm, written in Rust.
 
 *This library is in alpha stage: it has not been thoroughly tested and its API may change at any time.*
 
-image:https://img.shields.io/travis/antoyo/relm.svg[link="https://travis-ci.org/antoyo/relm"]
-image:https://img.shields.io/appveyor/ci/antoyo/relm.svg[link="https://ci.appveyor.com/project/antoyo/relm"]
+image:https://img.shields.io/travis/antoyo/relm/master.svg[link="https://travis-ci.org/antoyo/relm"]
+image:https://img.shields.io/appveyor/ci/antoyo/relm/master.svg[link="https://ci.appveyor.com/project/antoyo/relm"]
 //image:https://img.shields.io/coveralls/antoyo/relm.svg[link="https://coveralls.io/github/antoyo/relm"]
 image:https://img.shields.io/crates/v/relm.svg[link="https://crates.io/crates/relm"]
 image:https://img.shields.io/badge/rust-documentation-blue.svg[link="https://docs.rs/relm/"]
