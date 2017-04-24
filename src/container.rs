@@ -24,7 +24,7 @@ use gtk;
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 
 use component::Component;
-use super::{DisplayVariant, RemoteRelm, create_widget, init_component};
+use super::{DisplayVariant, Relm, create_widget, init_component};
 use widget::Widget;
 
 /// Trait to implement relm container widget.
@@ -56,12 +56,12 @@ pub trait ContainerWidget {
     ///
     /// The returned `Component` must be stored in a `Widget`. If it is not stored, a communication
     /// receiver will be droped which will cause events to be ignored for this widget.
-    fn add_widget<CHILDWIDGET, WIDGET: Widget>(&self, relm: &RemoteRelm<WIDGET>,
-            model_param: CHILDWIDGET::ModelParam) -> Component<CHILDWIDGET>
-        where CHILDWIDGET: Widget + 'static,
-              CHILDWIDGET::Model: Clone + Send,
-              CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
-              CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt;
+    fn add_widget<WIDGET, MSG>(&self, relm: &Relm<MSG>) -> Component<WIDGET>
+        where MSG: Clone + DisplayVariant + 'static,
+              WIDGET: Widget + 'static,
+              WIDGET::Model: Clone,
+              WIDGET::Msg: Clone + DisplayVariant + 'static,
+              WIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt;
 
     /// Remove a relm `Widget` from the current GTK+ container.
     fn remove_widget<CHILDWIDGET>(&self, component: Component<CHILDWIDGET>)
@@ -71,17 +71,17 @@ pub trait ContainerWidget {
 }
 
 impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget for W {
-    fn add_widget<CHILDWIDGET, WIDGET: Widget>(&self, relm: &RemoteRelm<WIDGET>,
-            model_param: CHILDWIDGET::ModelParam) -> Component<CHILDWIDGET>
-        where CHILDWIDGET: Widget + 'static,
-              CHILDWIDGET::Model: Clone + Send,
-              CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
+    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &Relm<MSG>) -> Component<CHILDWIDGET>
+        where MSG: Clone + DisplayVariant + 'static,
+              CHILDWIDGET: Widget + 'static,
+              CHILDWIDGET::Model: Clone,
+              CHILDWIDGET::Msg: Clone + DisplayVariant + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
     {
-        let component = create_widget::<CHILDWIDGET>(&relm.remote, model_param);
+        let component = create_widget::<CHILDWIDGET>(&relm.cx);
         self.add(component.widget.root());
         component.widget.on_add(self.clone());
-        init_component::<CHILDWIDGET>(&component, &relm.remote);
+        init_component::<CHILDWIDGET>(&component, &relm.cx);
         Component::new(component)
     }
 
@@ -100,12 +100,10 @@ pub trait RelmContainer {
     fn add<W: IsA<gtk::Widget>>(&self, widget: &W);
 
     /// Add a relm widget to a relm container.
-    fn add_widget<CHILDWIDGET, WIDGET>(&self, relm: &RemoteRelm<WIDGET>,
-            model_param: CHILDWIDGET::ModelParam) -> Component<CHILDWIDGET>
-        where CHILDWIDGET: Widget + 'static,
-              CHILDWIDGET::Model: Clone + Send,
-              CHILDWIDGET::Msg: Send,
-              WIDGET: Widget;
+    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &Relm<MSG>) -> Component<CHILDWIDGET>
+        where MSG: Clone + DisplayVariant,
+              CHILDWIDGET: Widget + 'static,
+              CHILDWIDGET::Model: Clone;
 
     // TODO: add delete methods?
 }
@@ -119,17 +117,16 @@ impl<WIDGET> RelmContainer for Component<WIDGET>
         self.widget().add(widget);
     }
 
-    fn add_widget<CHILDWIDGET, PARENTWIDGET>(&self, relm: &RemoteRelm<PARENTWIDGET>,
-            model_param: CHILDWIDGET::ModelParam) -> Component<CHILDWIDGET>
-        where CHILDWIDGET: Widget + 'static,
-              CHILDWIDGET::Model: Clone + Send,
-              CHILDWIDGET::Msg: Send,
-              PARENTWIDGET: Widget
+    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &Relm<MSG>) -> Component<CHILDWIDGET>
+        where MSG: Clone + DisplayVariant,
+              CHILDWIDGET: Widget + 'static,
+              CHILDWIDGET::Model: Clone,
     {
-        let component = create_widget::<CHILDWIDGET>(&relm.remote, model_param);
-        let container = self.widget().add_widget(&component.widget);
+        let component = create_widget::<CHILDWIDGET>(&relm.cx);
+        let container = self.widget().container();
+        container.add(component.widget.root());
         component.widget.on_add(container.clone());
-        init_component::<CHILDWIDGET>(&component, &relm.remote);
+        init_component::<CHILDWIDGET>(&component, &relm.cx);
         Component::new(component)
     }
 }

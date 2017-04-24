@@ -27,7 +27,7 @@ extern crate relm_derive;
 extern crate tokio_core;
 
 use gtk::{Dialog, DialogExt, Inhibit, WidgetExt, Window, WindowType, DIALOG_MODAL};
-use relm::{RemoteRelm, Widget};
+use relm::{Relm, Widget};
 
 use self::Msg::*;
 
@@ -61,7 +61,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
         let window = Window::new(WindowType::Toplevel);
 
         window.show_all();

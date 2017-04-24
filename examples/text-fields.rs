@@ -37,7 +37,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{RemoteRelm, Widget};
+use relm::{Relm, Widget};
 
 use self::Msg::*;
 
@@ -85,7 +85,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();

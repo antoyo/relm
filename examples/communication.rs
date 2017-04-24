@@ -39,7 +39,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, RemoteRelm, Widget};
+use relm::{Component, ContainerWidget, Relm, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -86,7 +86,7 @@ impl Widget for Text {
         }
     }
 
-    fn view(relm: &RemoteRelm<Text>, _model: &TextModel) -> Self {
+    fn view(relm: Relm<TextMsg>, _model: &TextModel) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -153,7 +153,7 @@ impl Widget for Counter {
         }
     }
 
-    fn view(relm: &RemoteRelm<Counter>, _model: &CounterModel) -> Self {
+    fn view(relm: Relm<CounterMsg>, _model: &CounterModel) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -222,7 +222,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &Model) -> Self {
+    fn view(relm: Relm<Msg>, _model: &Model) -> Self {
         let window = Window::new(WindowType::Toplevel);
 
         let hbox = gtk::Box::new(Horizontal, 0);

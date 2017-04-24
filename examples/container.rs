@@ -38,7 +38,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use gtk::WindowType::Toplevel;
-use relm::{Component, Container, ContainerWidget, RelmContainer, RemoteRelm, Widget};
+use relm::{Component, Container, ContainerWidget, Relm, RelmContainer, Widget};
 
 use self::Msg::*;
 
@@ -63,7 +63,7 @@ impl Widget for Button {
     fn update(&mut self, _msg: (), _model: &mut ()) {
     }
 
-    fn view(_relm: &RemoteRelm<Self>, _model: &()) -> Self {
+    fn view(_relm: Relm<DummyMsg>, _model: &()) -> Self {
         let button = gtk::Button::new_with_label("+");
         Button {
             button: button,
@@ -102,7 +102,7 @@ impl Widget for VBox {
     fn update(&mut self, _event: (), _model: &mut ()) {
     }
 
-    fn view(_relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(_relm: Relm<DummyMsg>, _model: &Self::Model) -> Self {
         let event_box = EventBox::new();
         let vbox = gtk::Box::new(Vertical, 0);
         event_box.add(&vbox);
@@ -144,7 +144,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &()) -> Self {
+    fn view(relm: Relm<Msg>, _model: &()) -> Self {
         let window = Window::new(Toplevel);
         let vbox = window.add_widget::<VBox, _>(&relm, ());
         let plus_button = gtk::Button::new_with_label("+");

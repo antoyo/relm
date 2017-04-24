@@ -19,14 +19,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
+use std::rc::Rc;
 
-use super::{EventStream, Receiver, Widget};
+use super::{EventStream, Widget};
 
 #[derive(Clone)]
 pub struct Comp<WIDGET: Widget> {
-    pub model: Arc<Mutex<WIDGET::Model>>,
-    pub _receiver: Arc<Receiver>,
+    pub model: Rc<RefCell<WIDGET::Model>>,
     pub stream: EventStream<WIDGET::Msg>,
     pub widget: WIDGET,
 }

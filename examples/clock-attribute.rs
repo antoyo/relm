@@ -22,24 +22,24 @@
 #![feature(fn_traits, proc_macro, unboxed_closures)]
 
 extern crate chrono;
+extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-extern crate tokio_core;
 
 use std::time::Duration;
 
 use chrono::{DateTime, Local};
+use futures_glib::Interval;
 use gtk::{
     Inhibit,
     WidgetExt,
 };
 use relm::{Relm, Widget};
 use relm_attributes::widget;
-use tokio_core::reactor::Interval;
 
 use self::Msg::*;
 
@@ -63,7 +63,7 @@ impl Widget for Win {
     }
 
     fn subscriptions(relm: &Relm<Msg>) {
-        let stream = Interval::new(Duration::from_secs(1), relm.handle()).unwrap();
+        let stream = Interval::new(Duration::from_secs(1));
         relm.connect_exec_ignore_err(stream, Tick);
     }
 

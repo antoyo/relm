@@ -13,7 +13,8 @@ travis-ci = { repository = "antoyo/relm", branch = "master" }
 appveyor = { repository = "antoyo/relm", branch = "master" }
 
 [dependencies]
-futures = "^0.1.10"
+futures = { git = "https://github.com/alexcrichton/futures-rs", branch = "spawn-trait" }
+futures-glib = { git = "https://github.com/antoyo/futures-glib-rs" }
 glib = "^0.1.2"
 glib-itc = "^0.1.1"
 gobject-sys = "^0.3.3"
@@ -60,3 +61,6 @@ pre-release-replacements = [
     {file="src/lib.rs", search="relm = \"[a-z0-9^\\.-]+\"", replace="relm = \"{{version}}\""},
     {file="examples/buttons-derive/Cargo.toml", search="relm = \"[a-z0-9^\\.-]+\"", replace="relm = \"{{version}}\""},
 ]
+
+[replace]
+"futures:0.1.13" = { git = "https://github.com/alexcrichton/futures-rs", branch = "spawn-trait" }

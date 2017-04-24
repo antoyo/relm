@@ -37,7 +37,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Component, Container, ContainerWidget, RelmContainer, RemoteRelm, Widget, create_component};
+use relm::{Component, Container, ContainerWidget, Relm, RelmContainer, Widget, create_component};
 
 use self::Msg::*;
 
@@ -62,7 +62,7 @@ impl Widget for Button {
     fn update(&mut self, _msg: (), _model: &mut ()) {
     }
 
-    fn view(_relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(_relm: Relm<DummyMsg>, _model: &Self::Model) -> Self {
         let button = gtk::Button::new_with_label("+");
         Button {
             button: button,
@@ -101,7 +101,7 @@ impl Widget for VBox {
     fn update(&mut self, _event: (), _model: &mut ()) {
     }
 
-    fn view(_relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(_relm: Relm<DummyMsg>, _model: &Self::Model) -> Self {
         let event_box = EventBox::new();
         let vbox = gtk::Box::new(Vertical, 0);
         event_box.add(&vbox);
@@ -135,8 +135,8 @@ impl Widget for MyVBox {
     fn update(&mut self, _event: (), _model: &mut ()) {
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
-        let vbox = create_component::<VBox, _>(&relm, ());
+    fn view(relm: Relm<DummyMsg>, _model: &Self::Model) -> Self {
+        let vbox = create_component::<VBox, _>(&relm);
 
         let plus_button = gtk::Button::new_with_label("+");
         vbox.add(&plus_button);
@@ -186,7 +186,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
         let window = Window::new(WindowType::Toplevel);
         let vbox = window.add_widget::<MyVBox, _>(&relm, ());
         window.show_all();

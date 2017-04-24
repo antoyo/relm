@@ -42,7 +42,7 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use relm::{Relm, RemoteRelm, Widget};
+use relm::{Relm, Widget};
 ----
 
 Then, create your model:
@@ -55,7 +55,7 @@ struct Model {
 }
 ----
 
-The model contains the data related to a `Widget`. It may be updated by the `Widget::update` or the `Widget::update_command` function.
+The model contains the data related to a `Widget`. It may be updated by the `Widget::update` function.
 
 Create your message `enum`:
 
@@ -68,7 +68,7 @@ enum Msg {
 }
 ----
 
-Messages are sent to both `Widget::update` and `Widget::update_command` to indicate that an event happened. The model can be updated when an event is received.
+Messages are sent to `Widget::update` to indicate that an event happened. The model can be updated when an event is received.
 
 Create a `struct` which represents a `Widget` which contains the GTK+ widgets (in this case, the main window of the application):
 
@@ -102,14 +102,19 @@ impl Widget for Win {
 
     // The model may be updated when a message is received.
     // Widgets may also be updated in this function.
+    // Futures and streams can be connected to send a message when a value is ready.
     fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
+             SomeEvent => {
+                 let future = create_future();
+                 relm.connect_exec_ignore_err(future, SomeEvent);
+             },
             Quit => gtk::main_quit(),
         }
     }
 
     // Create the widgets.
-    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
         // GTK+ widgets are used normally within a `Widget`.
         let window = Window::new(WindowType::Toplevel);
         // Connect the signal `delete_event` to send the `Quit` message.
@@ -122,21 +127,7 @@ impl Widget for Win {
         }
     }
 
-    // The next methods are optional.
-
-    // Futures and streams can be connected to send a message when a value is ready.
-    // However, since the tokio event loop runs in another thread, they cannot be
-    // connected in the `update` function which is ran in the main thread.
-    // Thus, they must be added in the `update_command()` method which is ran in
-    // the tokio thread.
-    // fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
-    //     match event {
-    //         SomeEvent => {
-    //             let future = create_future();
-    //             relm.connect_exec_ignore_err(future, SomeEvent);
-    //         },
-    //     }
-    // }
+    // The next method is optional.
 
     // Futures and streams can be connected when the `Widget` is created in the
     // `subscriptions()` method.

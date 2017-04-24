@@ -22,19 +22,19 @@
 #![feature(fn_traits, unboxed_closures)]
 
 extern crate chrono;
+extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-extern crate tokio_core;
 
 use std::time::Duration;
 
 use chrono::Local;
+use futures_glib::Interval;
 use gtk::{ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
-use relm::{Relm, RemoteRelm, Widget};
-use tokio_core::reactor::Interval;
+use relm::{Relm, Widget};
 
 use self::Msg::*;
 
@@ -65,7 +65,7 @@ impl Widget for Win {
     }
 
     fn subscriptions(relm: &Relm<Msg>) {
-        let stream = Interval::new(Duration::from_secs(1), relm.handle()).unwrap();
+        let stream = Interval::new(Duration::from_secs(1));
         relm.connect_exec_ignore_err(stream, Tick);
     }
 
@@ -79,7 +79,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
         let label = Label::new(None);
 
         let window = Window::new(WindowType::Toplevel);

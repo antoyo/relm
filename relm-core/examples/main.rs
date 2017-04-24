@@ -21,25 +21,31 @@
 
 extern crate chrono;
 extern crate futures;
+extern crate futures_glib;
 extern crate glib;
-extern crate glib_itc;
 extern crate gtk;
 extern crate relm_core;
-extern crate tokio_core;
 
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use chrono::Local;
 use futures::Stream;
-use glib::Continue;
-use glib_itc::channel;
-use gtk::{Button, ButtonExt, ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
+use futures::future::Spawn;
+use futures_glib::{Interval, MainContext};
+use gtk::{
+    Button,
+    ButtonExt,
+    ContainerExt,
+    Inhibit,
+    Label,
+    WidgetExt,
+    Window,
+    WindowType,
+};
 use gtk::Orientation::Vertical;
-use relm_core::{Core, EventStream};
-use tokio_core::reactor::Interval;
+use relm_core::EventStream;
 
-use self::Msg::*;
+use Msg::*;
 
 struct Widgets {
     clock_label: Label,
@@ -59,6 +65,7 @@ struct Model {
 }
 
 fn main() {
+    futures_glib::init();
     gtk::init().unwrap();
 
     let vbox = gtk::Box::new(Vertical, 0);
@@ -80,12 +87,9 @@ fn main() {
     let window = Window::new(WindowType::Toplevel);
     window.add(&vbox);
 
-    let (sender, mut receiver) = channel();
-    let sender = Arc::new(Mutex::new(sender));
+    let stream = EventStream::new();
 
-    let stream = EventStream::new(sender.clone());
-
-    let other_widget_stream = EventStream::new(sender);
+    let other_widget_stream = EventStream::new();
     {
         stream.observe(move |event: Msg| {
             other_widget_stream.emit(Quit);
@@ -141,34 +145,22 @@ fn main() {
         }
     }
 
-    {
+    let cx = MainContext::default(|cx| cx.clone());
+    let interval = {
+        let interval = Interval::new(Duration::from_secs(1));
         let stream = stream.clone();
-        receiver.connect_recv(move || {
-            if let Some(event) = stream.pop_ui_events() {
-                update(event, &mut model, &widgets);
-            }
-            Continue(true)
-        });
-    }
+        interval.map_err(|_| ()).for_each(move |_| {
+            stream.emit(Clock);
+            Ok(())
+        })
+    };
+    cx.spawn(interval);
 
-    let stream = stream.clone();
-    let remote = Core::run();
-    remote.spawn(move |handle| {
-        let interval = {
-            let interval = Interval::new(Duration::from_secs(1), handle).unwrap();
-            let stream = stream.clone();
-            interval.map_err(|_| ()).for_each(move |_| {
-                stream.emit(Clock);
-                Ok(())
-            })
-        };
-        handle.spawn(interval);
-
-        let event_future = stream.for_each(|_| Ok(()));
-
-        handle.spawn(event_future);
-
+    let event_future = stream.for_each(move |msg| {
+        update(msg, &mut model, &widgets);
         Ok(())
     });
+    cx.spawn(event_future);
+
     gtk::main();
 }

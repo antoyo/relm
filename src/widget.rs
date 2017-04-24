@@ -21,7 +21,7 @@
 
 use gtk::{self, IsA, Object};
 
-use super::{DisplayVariant, Relm, RemoteRelm, run};
+use super::{DisplayVariant, Relm};
 
 /// Trait to implement to manage widget's events.
 pub trait Widget
@@ -77,26 +77,12 @@ pub trait Widget
 
     /// Connect the subscriptions.
     /// Subscriptions are `Future`/`Stream` that are spawn when the widget is created.
-    ///
-    /// ## Note
-    /// This method is called in the tokio thread, so that you can spawn `Future`s and `Stream`s.
     fn subscriptions(_relm: &Relm<Self::Msg>) {
     }
 
     /// Method called when a message is received from an event.
-    ///
-    /// ## Note
-    /// This method is called in the GTK+ thread, so that you can update widgets.
     fn update(&mut self, event: Self::Msg, model: &mut Self::Model);
 
-    /// Connect `Future`s or `Stream`s when receiving an event.
-    ///
-    /// ## Warning
-    /// This method is executed in the tokio thread: hence, you **must** spawn any futures in this
-    /// method, not in `Widget::update()`.
-    fn update_command(_relm: &Relm<Self::Msg>, _event: Self::Msg, _model: &mut Self::Model) {
-    }
-
     /// Create the initial view.
-    fn view(relm: &RemoteRelm<Self>, model: &Self::Model) -> Self;
+    fn view(relm: Relm<Self::Msg>, model: &Self::Model) -> Self;
 }
