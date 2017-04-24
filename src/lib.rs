@@ -491,10 +491,6 @@ fn init_gtk() {
 /// let component = relm::init_test::<Win>().unwrap();
 /// # }
 /// ```
-///
-/// ## Warning
-/// You **should** use `_component` instead of `_` to avoid dropping it too early, which will cause
-/// events to not be sent.
 pub fn init_test<WIDGET>() -> Result<Component<WIDGET>, ()>
     where WIDGET: Widget + Clone + 'static,
           WIDGET::Model: Clone + Send,

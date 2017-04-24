@@ -65,7 +65,7 @@ macro_rules! set_container {
     };
 }
 
-#[derive(PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 enum WidgetType {
     IsGtk,
     IsRelm,
@@ -249,7 +249,7 @@ impl<'a> Generator<'a> {
         let add_child_or_show_all = self.add_child_or_show_all(widget, parent, parent_widget_type);
         let ident = quote! { #widget_name };
         let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
-        let child_properties = gen_set_child_prop_calls(widget, parent);
+        let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type);
 
         quote! {
             let #widget_name: #struct_name = #construct_widget;
@@ -349,12 +349,23 @@ fn gen_relm_component_type(name: &Ident) -> Ident {
     Ident::new(format!("::relm::Component<{0}>", name).as_ref())
 }
 
-fn gen_set_child_prop_calls(widget: &GtkWidget, parent: Option<&Ident>) -> Vec<Tokens> {
+fn gen_set_child_prop_calls(widget: &GtkWidget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Vec<Tokens> {
     let widget_name = &widget.name;
     let mut child_properties = vec![];
     if let Some(parent) = parent {
         for (key, value) in &widget.child_properties {
             let property_func = Ident::new(format!("set_child_{}", key));
+            let parent =
+                if parent_widget_type == IsGtk {
+                    quote! {
+                        #parent
+                    }
+                }
+                else {
+                    quote! {
+                        ::relm::Container::container(#parent.widget())
+                    }
+                };
             child_properties.push(quote! {
                 #parent.#property_func(&#widget_name, #value);
             });
