@@ -11,6 +11,9 @@ addons:
       - libsoup2.4-dev
       #- libwebkit2gtk-4.0-dev
 
+env:
+  - RUST_BACKTRACE=1
+
 rust:
   - nightly
   - beta
@@ -22,8 +25,8 @@ before_script:
   - sleep 3 # give xvfb some time to start
 
 script:
-  #- cargo build
-  - cargo test
+  - cargo build
+  - cargo test -v
   - cd examples/http
   - cargo build
   #- cd ../webkit-test
