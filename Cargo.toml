@@ -6,11 +6,11 @@ documentation = "https://docs.rs/relm/"
 license = "MIT"
 name = "relm"
 repository = "https://github.com/antoyo/relm"
-version = "0.7.5"
+version = "0.7.6"
 
 [badges]
-travis-ci = { repository = "https://github.com/antoyo/relm" }
-appveyor = { repository = "https://github.com/antoyo/relm" }
+travis-ci = { repository = "antoyo/relm" }
+appveyor = { repository = "antoyo/relm" }
 
 [dependencies]
 futures = "^0.1.10"
