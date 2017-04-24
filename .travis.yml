@@ -23,7 +23,7 @@ before_script:
 
 script:
   - cargo build
-  - cargo test
+  - cargo test -- --no-capture
   - cd examples/http
   - cargo build
   #- cd ../webkit-test
