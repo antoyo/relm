@@ -16,8 +16,8 @@ env:
 
 rust:
   - nightly
-  - beta
-  - stable
+  #- beta
+  #- stable
 
 before_script:
   - "export DISPLAY=:99.0"
