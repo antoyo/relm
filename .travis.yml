@@ -1,4 +1,4 @@
-sudo: false
+sudo: required
 language: rust
 addons:
   apt:
