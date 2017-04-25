@@ -198,7 +198,7 @@ fn block_to_impl_item(tokens: Tokens) -> ImplItem {
             #tokens
         }
     };
-    let implementation = parse_item(implementation.as_str()).expect("parse_ẗem in block_to_impl_item");
+    let implementation = parse_item(implementation.as_str()).expect("parse_item in block_to_impl_item");
     match implementation.node {
         Impl(_, _, _, _, _, items) => items[0].clone(),
         _ => unreachable!(),
