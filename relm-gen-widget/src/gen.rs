@@ -182,6 +182,16 @@ impl<'a> Generator<'a> {
         for (name, event) in &widget.events {
             let event_ident = Ident::new(format!("connect_{}", name));
             let event_params: Vec<_> = event.params.iter().map(|ident| Ident::new(ident.as_ref())).collect();
+            let event_model_ident =
+                if let Some(ref ident) = event.model_ident {
+                    quote! {
+                        with #ident
+                    }
+                }
+                else {
+                    quote! {
+                    }
+                };
             let connect =
                 match event.value {
                     CurrentWidget(WithoutReturn(ref event_value)) => quote! {
@@ -195,7 +205,7 @@ impl<'a> Generator<'a> {
                     },
                     ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
                     CurrentWidget(CallReturn(ref func)) => quote! {
-                        connect!(relm, #widget_name, #event_ident(#(#event_params),*) #func);
+                        connect!(relm, #widget_name, #event_ident(#(#event_params),*) #event_model_ident #func);
                     },
 
                 };

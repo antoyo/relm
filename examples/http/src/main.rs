@@ -151,7 +151,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: RemoteRelm<Msg>, model: &Model) -> Self {
+    fn view(relm: &RemoteRelm<Self>, model: &Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let label = Label::new(None);

@@ -58,6 +58,27 @@ macro_rules! connect {
     // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
     // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
     // Option<MSG> can be None if no message needs to be emitted.
+    // This variant also give you a model so that you can call a function that will use and mutate
+    // it.
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*) with $model:ident $msg:expr) => {{
+        let $model = $relm.model().clone();
+
+        let stream = $relm.stream().clone();
+        $widget.$event(move |$($args),*| {
+            let $model = &mut *$model.lock().unwrap();
+            let (msg, return_value) = $msg;
+            let msg: Option<_> = msg.into();
+            if let Some(msg) = msg {
+                stream.emit(msg);
+            }
+            return_value
+        });
+    }};
+
+    // Connect to a GTK+ widget event.
+    // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
+    // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
+    // Option<MSG> can be None if no message needs to be emitted.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*) $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {

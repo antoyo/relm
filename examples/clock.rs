@@ -76,7 +76,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
         let label = Label::new(None);
 
         let window = Window::new(WindowType::Toplevel);

@@ -79,7 +79,7 @@ impl Widget for Button {
     fn update(&mut self, _msg: ButtonMsg, _model: &mut ()) {
     }
 
-    fn view(_relm: RemoteRelm<ButtonMsg>, _model: &Self::Model) -> Self {
+    fn view(_relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
         let button = gtk::Button::new_with_label("+");
 
         Button {
@@ -117,7 +117,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
         let window = gtk::Window::new(Toplevel);
         let vbox = gtk::Box::new(Vertical, 0);
         window.add(&vbox);

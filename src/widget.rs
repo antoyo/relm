@@ -75,5 +75,5 @@ pub trait Widget
     }
 
     /// Create the initial view.
-    fn view(relm: RemoteRelm<Self::Msg>, model: &Self::Model) -> Self;
+    fn view(relm: &RemoteRelm<Self>, model: &Self::Model) -> Self;
 }

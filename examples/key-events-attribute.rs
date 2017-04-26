@@ -19,82 +19,74 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(fn_traits, unboxed_closures)]
+#![feature(proc_macro)]
 
-extern crate chrono;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
+extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-extern crate tokio_core;
 
-use std::time::Duration;
-
-use chrono::Local;
-use gtk::{ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
-use relm::{Relm, RemoteRelm, Widget};
-use tokio_core::reactor::Interval;
+use gtk::{
+    Inhibit,
+    WidgetExt,
+};
+use relm::Widget;
+use relm_attributes::widget;
 
 use self::Msg::*;
 
-#[derive(SimpleMsg)]
-enum Msg {
+#[derive(Msg)]
+pub enum Msg {
+    Press,
+    Release,
     Quit,
-    Tick,
 }
 
 #[derive(Clone)]
-struct Win {
-    label: Label,
-    window: Window,
+pub struct Model {
+    press_count: i32,
 }
 
+#[widget]
 impl Widget for Win {
-    type Model = ();
-    type Msg = Msg;
-    type Root = Window;
-
-    fn model() -> () {
-        ()
+    fn model() -> Model {
+        Model {
+            press_count: 0,
+        }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
-    }
-
-    fn subscriptions(relm: &Relm<Msg>) {
-        let stream = Interval::new(Duration::from_secs(1), relm.handle()).unwrap();
-        relm.connect_exec_ignore_err(stream, Tick);
-    }
-
-    fn update(&mut self, event: Msg, _model: &mut ()) {
+    fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
-            Tick => {
-                let time = Local::now();
-                self.label.set_text(&format!("{}", time.format("%H:%M:%S")));
+            Press => {
+                model.press_count += 1;
+                println!("Press");
+            },
+            Release => {
+                println!("Release");
             },
             Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
-        let label = Label::new(None);
+    view! {
+        gtk::Window {
+            key_press_event(_, key) => (Press, Inhibit(false)),
+            key_release_event(_, key) => (Release, Inhibit(false)),
+            delete_event(_, _) with model => return Self::quit(model),
+        }
+    }
+}
 
-        let window = Window::new(WindowType::Toplevel);
-
-        window.add(&label);
-
-        window.show_all();
-
-        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
-
-        let mut win = Win {
-            label: label,
-            window: window,
-        };
-        win.update(Tick, &mut ());
-        win
+impl Win {
+    fn quit(model: &mut Model) -> (Option<Msg>, Inhibit) {
+        if model.press_count > 3 {
+            (None, Inhibit(true))
+        }
+        else {
+            (Some(Quit), Inhibit(false))
+        }
     }
 }
 
