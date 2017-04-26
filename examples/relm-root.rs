@@ -61,7 +61,7 @@ impl Widget for Button {
     fn update(&mut self, _msg: (), _model: &mut ()) {
     }
 
-    fn view(_relm: RemoteRelm<()>, _model: &Self::Model) -> Self {
+    fn view(_relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
         let button = gtk::Button::new_with_label("+");
         Button {
             button: button,
@@ -99,7 +99,7 @@ impl Widget for VBox {
     fn update(&mut self, _event: (), _model: &mut ()) {
     }
 
-    fn view(_relm: RemoteRelm<()>, _model: &Self::Model) -> Self {
+    fn view(_relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
         let event_box = EventBox::new();
         let vbox = gtk::Box::new(Vertical, 0);
         event_box.add(&vbox);
@@ -132,7 +132,7 @@ impl Widget for MyVBox {
     fn update(&mut self, _event: (), _model: &mut ()) {
     }
 
-    fn view(relm: RemoteRelm<()>, _model: &Self::Model) -> Self {
+    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
         let vbox = create_component::<VBox, _>(&relm);
 
         let plus_button = gtk::Button::new_with_label("+");
@@ -182,7 +182,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
         let window = Window::new(WindowType::Toplevel);
         let vbox = window.add_widget::<MyVBox, _>(&relm);
         window.show_all();

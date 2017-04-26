@@ -299,15 +299,21 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
 
 /// Handle to the tokio event loop, to be used from the GTK+ thread.
 #[derive(Clone)]
-pub struct RemoteRelm<MSG: Clone + DisplayVariant> {
+pub struct RemoteRelm<WIDGET: Widget> {
+    model: Arc<Mutex<WIDGET::Model>>,
     remote: Remote,
-    stream: EventStream<MSG>,
+    stream: EventStream<WIDGET::Msg>,
 }
 
-impl<'a, MSG: Clone + DisplayVariant> RemoteRelm<MSG> {
+impl<WIDGET: Widget> RemoteRelm<WIDGET> {
+    /// Get the shared model.
+    pub fn model(&self) -> &Arc<Mutex<WIDGET::Model>> {
+        &self.model
+    }
+
     /// Get the event stream of the widget.
     /// This is used internally by the library.
-    pub fn stream(&self) -> &EventStream<MSG> {
+    pub fn stream(&self) -> &EventStream<WIDGET::Msg> {
         &self.stream
     }
 }
@@ -317,56 +323,21 @@ fn create_widget_test<WIDGET>(remote: &Remote) -> Component<WIDGET>
           WIDGET::Model: Clone + Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
 {
-    // TODO: remove redundancy with create_widget.
-    let (sender, mut receiver) = channel();
-    let stream = EventStream::new(Arc::new(Mutex::new(sender)));
-
-    let (widget, model) = {
-        let relm = RemoteRelm {
-            remote: remote.clone(),
-            stream: stream.clone(),
-        };
-        let model = WIDGET::model();
-        (WIDGET::view(relm, &model), model)
-    };
-    widget.init_view();
-
-    let model = Arc::new(Mutex::new(model));
-
-    {
-        let mut widget = widget.clone();
-        let stream = stream.clone();
-        let model = model.clone();
-        receiver.connect_recv(move || {
-            if let Some(event) = stream.pop_ui_events() {
-                let mut model = model.lock().unwrap();
-                update_widget(&mut widget, event, &mut *model);
-            }
-            Continue(true)
-        });
-    }
-
-    let component = Comp {
-        model: model,
-        _receiver: Arc::new(receiver),
-        stream: stream,
-        widget: widget,
-    };
+    let component = create_widget(remote);
     init_component::<WIDGET>(&component, remote);
-
     Component::new(component)
 }
 
 /// Create a new relm widget without adding it to an existing widget.
 /// This is useful when a relm widget is at the root of another relm widget.
-pub fn create_component<WIDGET, MSG>(relm: &RemoteRelm<MSG>) -> Component<WIDGET>
-    where MSG: Clone + DisplayVariant,
-          WIDGET: Widget + 'static,
-          WIDGET::Model: Clone + Send,
-          WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
+pub fn create_component<CHILDWIDGET, WIDGET>(relm: &RemoteRelm<WIDGET>) -> Component<CHILDWIDGET>
+    where CHILDWIDGET: Widget + 'static,
+          CHILDWIDGET::Model: Clone + Send,
+          CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
+          WIDGET: Widget,
 {
-    let component = create_widget::<WIDGET>(&relm.remote);
-    init_component::<WIDGET>(&component, &relm.remote);
+    let component = create_widget::<CHILDWIDGET>(&relm.remote);
+    init_component::<CHILDWIDGET>(&component, &relm.remote);
     Component::new(component)
 }
 
@@ -378,16 +349,19 @@ fn create_widget<WIDGET>(remote: &Remote) -> Comp<WIDGET>
     let stream = EventStream::new(Arc::new(Mutex::new(sender)));
 
     let (widget, model) = {
+        let model = Arc::new(Mutex::new(WIDGET::model()));
         let relm = RemoteRelm {
+            model: model,
             remote: remote.clone(),
             stream: stream.clone(),
         };
-        let model = WIDGET::model();
-        (WIDGET::view(relm, &model), model)
+        let view = {
+            let model_guard = relm.model.lock().unwrap();
+            WIDGET::view(&relm, &*model_guard)
+        };
+        (view, relm.model)
     };
     widget.init_view();
-
-    let model = Arc::new(Mutex::new(model));
 
     {
         let mut widget = widget.clone();
@@ -476,7 +450,7 @@ fn init_gtk() {
 /// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
 /// #     }
 /// #
-/// #     fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+/// #     fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
 /// #         let window = Window::new(WindowType::Toplevel);
 /// #
 /// #         Win {
@@ -548,7 +522,7 @@ fn init<WIDGET>() -> Result<Component<WIDGET>, ()>
 /// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
 /// #     }
 /// #
-/// #     fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+/// #     fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
 /// #         let window = Window::new(WindowType::Toplevel);
 /// #
 /// #         Win {

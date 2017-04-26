@@ -88,7 +88,7 @@ impl Widget for Counter {
         }
     }
 
-    fn view(relm: RemoteRelm<CounterMsg>, _model: &Model) -> Self {
+    fn view(relm: &RemoteRelm<Counter>, _model: &Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -123,7 +123,7 @@ enum Msg {
 struct Win {
     counters: Vec<Component<Counter>>,
     hbox: gtk::Box,
-    relm: RemoteRelm<Msg>,
+    relm: RemoteRelm<Win>,
     window: Window,
 }
 
@@ -155,7 +155,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: RemoteRelm<Msg>, _model: &()) -> Self {
+    fn view(relm: &RemoteRelm<Self>, _model: &()) -> Self {
         let window = Window::new(WindowType::Toplevel);
 
         let vbox = gtk::Box::new(Vertical, 0);
@@ -179,7 +179,7 @@ impl Widget for Win {
         Win {
             counters: vec![],
             hbox: hbox,
-            relm: relm,
+            relm: relm.clone(),
             window: window,
         }
     }

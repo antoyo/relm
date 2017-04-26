@@ -43,24 +43,22 @@ pub trait ContainerWidget {
     ///
     /// The returned `Component` must be stored in a `Widget`. If it is not stored, a communication
     /// receiver will be droped which will cause events to be ignored for this widget.
-    fn add_widget<WIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<WIDGET>
-        where MSG: Clone + DisplayVariant + Send + 'static,
-              WIDGET: Widget + 'static,
-              WIDGET::Model: Clone + Send,
-              WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
-              WIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt;
+    fn add_widget<CHILDWIDGET, WIDGET: Widget>(&self, relm: &RemoteRelm<WIDGET>) -> Component<CHILDWIDGET>
+        where CHILDWIDGET: Widget + 'static,
+              CHILDWIDGET::Model: Clone + Send,
+              CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
+              CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt;
 
     /// Remove a relm `Widget` from the current GTK+ container.
-    fn remove_widget<WIDGET>(&self, component: Component<WIDGET>)
-        where WIDGET: Widget,
-              WIDGET::Model: Clone,
-              WIDGET::Root: IsA<gtk::Widget>;
+    fn remove_widget<CHILDWIDGET>(&self, component: Component<CHILDWIDGET>)
+        where CHILDWIDGET: Widget,
+              CHILDWIDGET::Model: Clone,
+              CHILDWIDGET::Root: IsA<gtk::Widget>;
 }
 
 impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget for W {
-    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<CHILDWIDGET>
-        where MSG: Clone + DisplayVariant + Send + 'static,
-              CHILDWIDGET: Widget + 'static,
+    fn add_widget<CHILDWIDGET, WIDGET: Widget>(&self, relm: &RemoteRelm<WIDGET>) -> Component<CHILDWIDGET>
+        where CHILDWIDGET: Widget + 'static,
               CHILDWIDGET::Model: Clone + Send,
               CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
@@ -87,11 +85,11 @@ pub trait RelmContainer {
     fn add<W: IsA<gtk::Widget>>(&self, widget: &W);
 
     /// Add a relm widget to a relm container.
-    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<CHILDWIDGET>
-        where MSG: Clone + DisplayVariant,
-              CHILDWIDGET: Widget + 'static,
+    fn add_widget<CHILDWIDGET, WIDGET>(&self, relm: &RemoteRelm<WIDGET>) -> Component<CHILDWIDGET>
+        where CHILDWIDGET: Widget + 'static,
               CHILDWIDGET::Model: Clone + Send,
-              CHILDWIDGET::Msg: Send;
+              CHILDWIDGET::Msg: Send,
+              WIDGET: Widget;
 
     // TODO: add delete methods?
 }
@@ -106,11 +104,11 @@ impl<WIDGET> RelmContainer for Component<WIDGET>
         container.add(widget);
     }
 
-    fn add_widget<CHILDWIDGET, MSG>(&self, relm: &RemoteRelm<MSG>) -> Component<CHILDWIDGET>
-        where MSG: Clone + DisplayVariant,
-              CHILDWIDGET: Widget + 'static,
+    fn add_widget<CHILDWIDGET, PARENTWIDGET>(&self, relm: &RemoteRelm<PARENTWIDGET>) -> Component<CHILDWIDGET>
+        where CHILDWIDGET: Widget + 'static,
               CHILDWIDGET::Model: Clone + Send,
               CHILDWIDGET::Msg: Send,
+              PARENTWIDGET: Widget
     {
         let component = create_widget::<CHILDWIDGET>(&relm.remote);
         let container = self.widget().container();

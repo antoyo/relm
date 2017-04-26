@@ -97,7 +97,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: RemoteRelm<Msg>, _model: &Self::Model) -> Self {
+    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
         let button = Button::new_with_label("Open");
         let label = Label::new(None);
         let num_label = Label::new(None);

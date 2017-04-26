@@ -70,6 +70,7 @@ pub enum EventValue {
 
 #[derive(Debug)]
 pub struct Event {
+    pub model_ident: Option<syn::Ident>,
     pub params: Vec<String>,
     pub value: EventValue,
 }
@@ -77,8 +78,9 @@ pub struct Event {
 impl Event {
     fn new() -> Self {
         Event {
-            value: CurrentWidget(WithoutReturn(Tokens::new())),
+            model_ident: None,
             params: vec!["_".to_string()],
+            value: CurrentWidget(WithoutReturn(Tokens::new())),
         }
     }
 }
@@ -338,6 +340,19 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
         event.params = parse_comma_list(tts);
         tokens = &tokens[1..];
     }
+    event.model_ident =
+        if tokens[0] == Token(Ident(syn::Ident::new("with"))) {
+            if let Token(Ident(ref ident)) = tokens[1] {
+                tokens = &tokens[2..];
+                Some(ident.clone())
+            }
+            else {
+                panic!("Expecting ident after `with`, but found `{:?}` in view! macro", tokens[1]);
+            }
+        }
+        else {
+            None
+        };
     if tokens[0] != Token(FatArrow) {
         panic!("Expected `=>` but found `{:?}` in view! macro", tokens[0]);
     }
