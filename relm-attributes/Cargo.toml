@@ -13,7 +13,7 @@ syn = "^0.11.9"
 
 [dependencies.relm-gen-widget]
 path = "../relm-gen-widget"
-version = "^0.7.0"
+version = "^0.8.0"
 
 [lib]
 proc-macro = true
