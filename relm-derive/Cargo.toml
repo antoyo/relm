@@ -5,7 +5,7 @@ documentation = "https://docs.rs/relm-derive/"
 license = "MIT"
 name = "relm-derive"
 repository = "https://github.com/antoyo/relm"
-version = "0.7.0"
+version = "0.8.0"
 
 [lib]
 proc-macro = true
@@ -16,4 +16,4 @@ syn = "^0.11.8"
 
 [dependencies.relm-gen-widget]
 path = "../relm-gen-widget"
-version = "^0.7.0"
+version = "^0.8.0"
