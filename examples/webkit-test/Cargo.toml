@@ -6,9 +6,9 @@ version = "0.1.0"
 [dependencies]
 futures = "^0.1.10"
 gtk = "^0.1.2"
-relm = "^0.8.0"
-relm-attributes = "^0.8.0"
-relm-derive = "^0.8.0"
+relm = "^0.9.0"
+relm-attributes = "^0.9.0"
+relm-derive = "^0.9.0"
 
 [dependencies.webkit2gtk]
 git = "https://github.com/antoyo/webkit2gtk-rs"
