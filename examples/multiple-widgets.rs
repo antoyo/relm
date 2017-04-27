@@ -64,10 +64,11 @@ struct Text {
 
 impl Widget for Text {
     type Model = TextModel;
+    type ModelParam = ();
     type Msg = TextMsg;
     type Root = gtk::Box;
 
-    fn model() -> TextModel {
+    fn model(_: ()) -> TextModel {
         TextModel {
             content: String::new(),
         }
@@ -124,10 +125,11 @@ struct Counter {
 
 impl Widget for Counter {
     type Model = Model;
+    type ModelParam = ();
     type Msg = CounterMsg;
     type Root = gtk::Box;
 
-    fn model() -> Model {
+    fn model(_: ()) -> Model {
         Model {
             counter: 0,
         }
@@ -189,10 +191,11 @@ struct Win {
 
 impl Widget for Win {
     type Model = ();
+    type ModelParam = ();
     type Msg = Msg;
     type Root = Window;
 
-    fn model() -> () {
+    fn model(_: ()) -> () {
         ()
     }
 
@@ -211,9 +214,9 @@ impl Widget for Win {
 
         let hbox = gtk::Box::new(Horizontal, 0);
 
-        let counter1 = hbox.add_widget::<Counter, _>(&relm);
-        let counter2 = hbox.add_widget::<Counter, _>(&relm);
-        let text = hbox.add_widget::<Text, _>(&relm);
+        let counter1 = hbox.add_widget::<Counter, _>(&relm, ());
+        let counter2 = hbox.add_widget::<Counter, _>(&relm, ());
+        let text = hbox.add_widget::<Text, _>(&relm, ());
         window.add(&hbox);
 
         window.show_all();
@@ -230,5 +233,5 @@ impl Widget for Win {
 }
 
 fn main() {
-    relm::run::<Win>().unwrap();
+    Win::run(()).unwrap();
 }

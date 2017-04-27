@@ -43,7 +43,8 @@ pub trait ContainerWidget {
     ///
     /// The returned `Component` must be stored in a `Widget`. If it is not stored, a communication
     /// receiver will be droped which will cause events to be ignored for this widget.
-    fn add_widget<CHILDWIDGET, WIDGET: Widget>(&self, relm: &RemoteRelm<WIDGET>) -> Component<CHILDWIDGET>
+    fn add_widget<CHILDWIDGET, WIDGET: Widget>(&self, relm: &RemoteRelm<WIDGET>,
+            model_param: CHILDWIDGET::ModelParam) -> Component<CHILDWIDGET>
         where CHILDWIDGET: Widget + 'static,
               CHILDWIDGET::Model: Clone + Send,
               CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
@@ -57,13 +58,14 @@ pub trait ContainerWidget {
 }
 
 impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget for W {
-    fn add_widget<CHILDWIDGET, WIDGET: Widget>(&self, relm: &RemoteRelm<WIDGET>) -> Component<CHILDWIDGET>
+    fn add_widget<CHILDWIDGET, WIDGET: Widget>(&self, relm: &RemoteRelm<WIDGET>,
+            model_param: CHILDWIDGET::ModelParam) -> Component<CHILDWIDGET>
         where CHILDWIDGET: Widget + 'static,
               CHILDWIDGET::Model: Clone + Send,
               CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
     {
-        let component = create_widget::<CHILDWIDGET>(&relm.remote);
+        let component = create_widget::<CHILDWIDGET>(&relm.remote, model_param);
         self.add(component.widget.root());
         component.widget.on_add(self.clone());
         init_component::<CHILDWIDGET>(&component, &relm.remote);
@@ -85,7 +87,8 @@ pub trait RelmContainer {
     fn add<W: IsA<gtk::Widget>>(&self, widget: &W);
 
     /// Add a relm widget to a relm container.
-    fn add_widget<CHILDWIDGET, WIDGET>(&self, relm: &RemoteRelm<WIDGET>) -> Component<CHILDWIDGET>
+    fn add_widget<CHILDWIDGET, WIDGET>(&self, relm: &RemoteRelm<WIDGET>,
+            model_param: CHILDWIDGET::ModelParam) -> Component<CHILDWIDGET>
         where CHILDWIDGET: Widget + 'static,
               CHILDWIDGET::Model: Clone + Send,
               CHILDWIDGET::Msg: Send,
@@ -104,13 +107,14 @@ impl<WIDGET> RelmContainer for Component<WIDGET>
         container.add(widget);
     }
 
-    fn add_widget<CHILDWIDGET, PARENTWIDGET>(&self, relm: &RemoteRelm<PARENTWIDGET>) -> Component<CHILDWIDGET>
+    fn add_widget<CHILDWIDGET, PARENTWIDGET>(&self, relm: &RemoteRelm<PARENTWIDGET>,
+            model_param: CHILDWIDGET::ModelParam) -> Component<CHILDWIDGET>
         where CHILDWIDGET: Widget + 'static,
               CHILDWIDGET::Model: Clone + Send,
               CHILDWIDGET::Msg: Send,
               PARENTWIDGET: Widget
     {
-        let component = create_widget::<CHILDWIDGET>(&relm.remote);
+        let component = create_widget::<CHILDWIDGET>(&relm.remote, model_param);
         let container = self.widget().container();
         container.add(component.widget.root());
         component.widget.on_add(container.clone());

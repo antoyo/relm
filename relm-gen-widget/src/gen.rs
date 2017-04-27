@@ -146,19 +146,24 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn add_or_create_widget(&mut self, parent: Option<&Ident>, parent_widget_type: WidgetType, widget_name: &Ident, widget_type_ident: Ident) -> Tokens {
+    fn add_or_create_widget(&mut self, parent: Option<&Ident>, parent_widget_type: WidgetType, widget_name: &Ident,
+        widget_type_ident: Ident, model_parameters: Option<&Vec<Tokens>>) -> Tokens
+    {
+        let model_parameters = gen_model_param(model_parameters);
         if let Some(parent) = parent {
             if parent_widget_type == IsGtk {
                 quote! {
                     let #widget_name = {
-                        ::relm::ContainerWidget::add_widget::<#widget_type_ident, _>(&#parent, &relm)
+                        ::relm::ContainerWidget::add_widget::<#widget_type_ident, _>(&#parent, &relm,
+                            #model_parameters)
                     };
                 }
             }
             else {
                 quote! {
                     let #widget_name = {
-                        ::relm::RelmContainer::add_widget::<#widget_type_ident, _>(&#parent, &relm)
+                        ::relm::RelmContainer::add_widget::<#widget_type_ident, _>(&#parent, &relm,
+                            #model_parameters)
                     };
                 }
             }
@@ -171,7 +176,7 @@ impl<'a> Generator<'a> {
             });
             quote! {
                 let #widget_name = {
-                    ::relm::create_component::<#widget_type_ident, _>(&relm)
+                    ::relm::create_component::<#widget_type_ident, _>(&relm, #model_parameters)
                 };
             }
         }
@@ -292,7 +297,8 @@ impl<'a> Generator<'a> {
         let ident = quote! { #widget_name.widget() };
         let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
 
-        let add_or_create_widget = self.add_or_create_widget(parent, parent_widget_type, widget_name, widget_type_ident);
+        let add_or_create_widget = self.add_or_create_widget(
+            parent, parent_widget_type, widget_name, widget_type_ident, widget.model_parameters.as_ref());
 
         quote! {
             #add_or_create_widget
@@ -313,11 +319,7 @@ impl<'a> Generator<'a> {
 fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
     let struct_name = &widget.gtk_type;
 
-    let mut params = Tokens::new();
-    for param in &widget.init_parameters {
-        params.append(param);
-        params.append(",");
-    }
+    let params = &widget.init_parameters;
 
     if widget.init_parameters.is_empty() {
         quote! {
@@ -325,14 +327,14 @@ fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
                 use gtk::StaticType;
                 use relm::{Downcast, FromGlibPtrNone, ToGlib};
                 ::gtk::Widget::from_glib_none(::relm::g_object_new(#struct_name::static_type().to_glib(),
-                #params ::std::ptr::null() as *const i8) as *mut _)
+                #(#params,)* ::std::ptr::null() as *const i8) as *mut _)
                 .downcast_unchecked()
             }
         }
     }
     else {
         quote! {
-            #struct_name::new(#params)
+            #struct_name::new(#(#params),*)
         }
     }
 }
@@ -356,6 +358,19 @@ fn gen_container_impl(generator: &Generator, widget: &Widget) -> Tokens {
             }
         },
         _ => quote! {},
+    }
+}
+
+fn gen_model_param(model_parameters: Option<&Vec<Tokens>>) -> Tokens {
+    if let Some(model_parameters) = model_parameters {
+        quote! {
+            (#(#model_parameters),*)
+        }
+    }
+    else {
+        quote! {
+            ()
+        }
     }
 }
 

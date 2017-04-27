@@ -71,7 +71,7 @@ pub enum EventValue {
 #[derive(Debug)]
 pub struct Event {
     pub model_ident: Option<syn::Ident>,
-    pub params: Vec<String>,
+    pub params: Vec<syn::Ident>,
     pub value: EventValue,
 }
 
@@ -79,7 +79,7 @@ impl Event {
     fn new() -> Self {
         Event {
             model_ident: None,
-            params: vec!["_".to_string()],
+            params: vec![syn::Ident::new("_")],
             value: CurrentWidget(WithoutReturn(Tokens::new())),
         }
     }
@@ -113,7 +113,7 @@ pub struct GtkWidget {
     pub children: Vec<Widget>,
     pub events: HashMap<String, Event>,
     pub gtk_type: syn::Ident,
-    pub init_parameters: Vec<String>,
+    pub init_parameters: Vec<Tokens>,
     pub is_container: bool,
     pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
@@ -144,6 +144,7 @@ pub struct RelmWidget {
     pub children: Vec<Widget>,
     pub events: HashMap<String, Vec<Event>>,
     pub is_container: bool,
+    pub model_parameters: Option<Vec<Tokens>>,
     pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
     pub relm_type: syn::Ident,
@@ -160,6 +161,7 @@ impl RelmWidget {
             children: vec![],
             events: HashMap::new(),
             is_container: false,
+            model_parameters: None,
             name: syn::Ident::new(name),
             properties: HashMap::new(),
             relm_type: syn::Ident::new(relm_type),
@@ -315,19 +317,36 @@ fn try_parse_name(mut tokens: &[TokenTree]) -> Option<(String, &[TokenTree])> {
     }
 }
 
-fn parse_comma_list(tokens: &[TokenTree]) -> Vec<String> {
+fn parse_comma_ident_list(tokens: &[TokenTree]) -> Vec<syn::Ident> {
+    let mut params = vec![];
+    for token in tokens {
+        if *token != Token(Comma) {
+            if let Token(ref token) = *token {
+                let mut tokens = Tokens::new();
+                token.to_tokens(&mut tokens);
+                params.push(syn::Ident::new(tokens.as_str()));
+            }
+            else {
+                panic!("Expecting Token, but found: `{:?}`", token);
+            }
+        }
+    }
+    params
+}
+
+fn parse_comma_list(tokens: &[TokenTree]) -> Vec<Tokens> {
     let mut params = vec![];
     let mut current_param = Tokens::new();
     for token in tokens {
         if *token == Token(Comma) {
-            params.push(current_param.to_string());
+            params.push(current_param);
             current_param = Tokens::new();
         }
         else {
             token.to_tokens(&mut current_param);
         }
     }
-    params.push(current_param.to_string());
+    params.push(current_param);
     params
 }
 
@@ -337,7 +356,7 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
         event.params.clear();
     }
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
-        event.params = parse_comma_list(tts);
+        event.params = parse_comma_ident_list(tts);
         tokens = &tokens[1..];
     }
     event.model_ident =
@@ -484,8 +503,13 @@ fn parse_child_properties(mut tokens: &[TokenTree]) -> HashMap<String, Tokens> {
 }
 
 fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
-    let (relm_type, tokens) = parse_qualified_name(tokens);
+    let (relm_type, mut tokens) = parse_qualified_name(tokens);
     let mut widget = RelmWidget::new(relm_type);
+    if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
+        let parameters = parse_comma_list(tts);
+        widget.model_parameters = Some(parameters);
+        tokens = &tokens[1..];
+    }
     if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tokens[0] {
         let mut tts = &tts[..];
         while !tts.is_empty() {

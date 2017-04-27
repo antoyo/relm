@@ -61,9 +61,10 @@ struct Counter {
 impl Widget for Counter {
     type Root = gtk::Box;
     type Model = Model;
+    type ModelParam = ();
     type Msg = CounterMsg;
 
-    fn model() -> Model {
+    fn model(_: ()) -> Model {
         Model {
             counter: 0,
         }
@@ -129,10 +130,11 @@ struct Win {
 
 impl Widget for Win {
     type Model = ();
+    type ModelParam = ();
     type Msg = Msg;
     type Root = Window;
 
-    fn model() -> () {
+    fn model(_: ()) -> () {
         ()
     }
 
@@ -143,7 +145,7 @@ impl Widget for Win {
     fn update(&mut self, event: Msg, _model: &mut ()) {
         match event {
             Add => {
-                let widget = self.hbox.add_widget::<Counter, _>(&self.relm);
+                let widget = self.hbox.add_widget::<Counter, _>(&self.relm, ());
                 self.counters.push(widget);
             },
             Quit => gtk::main_quit(),
@@ -186,5 +188,5 @@ impl Widget for Win {
 }
 
 fn main() {
-    relm::run::<Win>().unwrap();
+    Win::run(()).unwrap();
 }

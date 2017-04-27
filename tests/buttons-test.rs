@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let component = relm::init_test::<Win>().unwrap();
+        let component = relm::init_test::<Win>(()).unwrap();
         let widgets = component.widget();
 
         assert_text!(widgets.label, 0);

@@ -209,5 +209,5 @@ fn ws_send(service: &WSService, message: &str) -> impl Future<Item=String> {
 }
 
 fn main() {
-    relm::run::<Win>().unwrap();
+    Win::run(()).unwrap();
 }

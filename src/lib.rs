@@ -318,30 +318,31 @@ impl<WIDGET: Widget> RemoteRelm<WIDGET> {
     }
 }
 
-fn create_widget_test<WIDGET>(remote: &Remote) -> Component<WIDGET>
+fn create_widget_test<WIDGET>(remote: &Remote, model_param: WIDGET::ModelParam) -> Component<WIDGET>
     where WIDGET: Widget + Clone + 'static,
           WIDGET::Model: Clone + Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static,
 {
-    let component = create_widget(remote);
+    let component = create_widget(remote, model_param);
     init_component::<WIDGET>(&component, remote);
     Component::new(component)
 }
 
 /// Create a new relm widget without adding it to an existing widget.
 /// This is useful when a relm widget is at the root of another relm widget.
-pub fn create_component<CHILDWIDGET, WIDGET>(relm: &RemoteRelm<WIDGET>) -> Component<CHILDWIDGET>
+pub fn create_component<CHILDWIDGET, WIDGET>(relm: &RemoteRelm<WIDGET>,
+        model_param: CHILDWIDGET::ModelParam) -> Component<CHILDWIDGET>
     where CHILDWIDGET: Widget + 'static,
           CHILDWIDGET::Model: Clone + Send,
           CHILDWIDGET::Msg: Clone + DisplayVariant + Send + 'static,
           WIDGET: Widget,
 {
-    let component = create_widget::<CHILDWIDGET>(&relm.remote);
+    let component = create_widget::<CHILDWIDGET>(&relm.remote, model_param);
     init_component::<CHILDWIDGET>(&component, &relm.remote);
     Component::new(component)
 }
 
-fn create_widget<WIDGET>(remote: &Remote) -> Comp<WIDGET>
+fn create_widget<WIDGET>(remote: &Remote, model_param: WIDGET::ModelParam) -> Comp<WIDGET>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
@@ -349,7 +350,7 @@ fn create_widget<WIDGET>(remote: &Remote) -> Comp<WIDGET>
     let stream = EventStream::new(Arc::new(Mutex::new(sender)));
 
     let (widget, model) = {
-        let model = Arc::new(Mutex::new(WIDGET::model()));
+        let model = Arc::new(Mutex::new(WIDGET::model(model_param)));
         let relm = RemoteRelm {
             model: model,
             remote: remote.clone(),
@@ -436,10 +437,11 @@ fn init_gtk() {
 /// #
 /// # impl Widget for Win {
 /// #     type Model = ();
+/// #     type ModelParam = ();
 /// #     type Msg = Msg;
 /// #     type Root = Window;
 /// #
-/// #     fn model() -> () {
+/// #     fn model(_: ()) -> () {
 /// #         ()
 /// #     }
 /// #
@@ -465,7 +467,7 @@ fn init_gtk() {
 /// let component = relm::init_test::<Win>().unwrap();
 /// # }
 /// ```
-pub fn init_test<WIDGET>() -> Result<Component<WIDGET>, ()>
+pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
     where WIDGET: Widget + Clone + 'static,
           WIDGET::Model: Clone + Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static
@@ -473,11 +475,11 @@ pub fn init_test<WIDGET>() -> Result<Component<WIDGET>, ()>
     init_gtk();
 
     let remote = Core::run();
-    let component = create_widget_test::<WIDGET>(&remote);
+    let component = create_widget_test::<WIDGET>(&remote, model_param);
     Ok(component)
 }
 
-fn init<WIDGET>() -> Result<Component<WIDGET>, ()>
+fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
     where WIDGET: Widget + 'static,
           WIDGET::Model: Clone + Send,
           WIDGET::Msg: Clone + DisplayVariant + Send + 'static
@@ -485,7 +487,7 @@ fn init<WIDGET>() -> Result<Component<WIDGET>, ()>
     gtk::init()?;
 
     let remote = Core::run();
-    let component = create_widget::<WIDGET>(&remote);
+    let component = create_widget::<WIDGET>(&remote, model_param);
     init_component::<WIDGET>(&component, &remote);
     Ok(Component::new(component))
 }
@@ -508,10 +510,11 @@ fn init<WIDGET>() -> Result<Component<WIDGET>, ()>
 /// #
 /// # impl Widget for Win {
 /// #     type Model = ();
+/// #     type ModelParam = ();
 /// #     type Msg = Msg;
 /// #     type Root = Window;
 /// #
-/// #     fn model() -> () {
+/// #     fn model(_: ()) -> () {
 /// #         ()
 /// #     }
 /// #
@@ -537,15 +540,16 @@ fn init<WIDGET>() -> Result<Component<WIDGET>, ()>
 /// #
 /// # fn run() {
 /// /// `Win` is a relm `Widget`.
-/// relm::run::<Win>();
+/// Win::run(()).unwrap();
 /// # }
 /// ```
-pub fn run<WIDGET>() -> Result<(), ()>
+pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>
     where WIDGET: Widget + 'static,
           WIDGET::Model: Clone + Send,
+          WIDGET::ModelParam: Default,
           WIDGET::Msg: Send,
 {
-    let _component = init::<WIDGET>()?;
+    let _component = init::<WIDGET>(model_param)?;
     gtk::main();
     Ok(())
 }

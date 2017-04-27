@@ -21,7 +21,7 @@
 
 use gtk::{self, IsA, Object};
 
-use super::{DisplayVariant, Relm, RemoteRelm};
+use super::{DisplayVariant, Relm, RemoteRelm, run};
 
 /// Trait to implement to manage widget's events.
 pub trait Widget
@@ -31,6 +31,8 @@ pub trait Widget
 {
     /// The type of the model.
     type Model;
+    /// The type of the parameter of the model() function used to initialize the model.
+    type ModelParam: Sized;
     /// The type of the messages sent to the [`update()`](trait.Widget.html#tymethod.update) method.
     type Msg;
     /// The type of the root widget.
@@ -43,7 +45,7 @@ pub trait Widget
     }
 
     /// Create the initial model.
-    fn model() -> Self::Model;
+    fn model(param: Self::ModelParam) -> Self::Model;
 
     /// Method called when the widget is added to its parent.
     fn on_add<W: IsA<gtk::Widget> + IsA<Object>>(&self, _parent: W) {
@@ -51,6 +53,16 @@ pub trait Widget
 
     /// Get the root widget of the view.e. the root widget of the view.
     fn root(&self) -> &Self::Root;
+
+    /// Create the window from this widget and start the main loop.
+    fn run(model_param: Self::ModelParam) -> Result<(), ()>
+        where Self: 'static,
+              Self::Model: Clone + Send,
+              Self::ModelParam: Default,
+              Self::Msg: Send,
+    {
+        run::<Self>(model_param)
+    }
 
     /// Connect the subscriptions.
     /// Subscriptions are `Future`/`Stream` that are spawn when the widget is created.

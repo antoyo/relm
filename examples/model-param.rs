@@ -26,88 +26,106 @@ extern crate relm;
 extern crate relm_derive;
 
 use gtk::{
+    Button,
+    ButtonExt,
+    ContainerExt,
     Inhibit,
+    Label,
     WidgetExt,
     Window,
     WindowType,
 };
+use gtk::Orientation::Vertical;
 use relm::{RemoteRelm, Widget};
 
-use self::Msg::*;
+#[derive(Clone)]
+struct Model {
+    counter: i32,
+}
 
 #[derive(Msg)]
-pub enum Msg {
-    Press,
-    Release,
+enum Msg {
+    Decrement,
+    Increment,
     Quit,
 }
 
-#[derive(Clone)]
-pub struct Model {
-    press_count: i32,
-}
-
+// Create the structure that holds the widgets used in the view.
 #[derive(Clone)]
 struct Win {
+    counter_label: Label,
     window: Window,
 }
 
 impl Widget for Win {
+    // Specify the model used for this widget.
     type Model = Model;
-    type ModelParam = ();
+    // Specify the model parameter used to init the model.
+    type ModelParam = i32;
+    // Specify the type of the messages sent to the update function.
     type Msg = Msg;
+    // Specify the type of the root widget.
     type Root = Window;
 
-    fn model(_: ()) -> Model {
+    fn model(counter: i32) -> Model {
         Model {
-            press_count: 0,
+            counter: counter,
         }
     }
 
+    // Return the root widget.
     fn root(&self) -> &Self::Root {
         &self.window
     }
 
     fn update(&mut self, event: Msg, model: &mut Model) {
+        let label = &self.counter_label;
+
         match event {
-            Press => {
-                model.press_count += 1;
-                println!("Press");
+            Msg::Decrement => {
+                model.counter -= 1;
+                // Manually update the view.
+                label.set_text(&model.counter.to_string());
             },
-            Release => {
-                println!("Release");
+            Msg::Increment => {
+                model.counter += 1;
+                label.set_text(&model.counter.to_string());
             },
-            Quit => gtk::main_quit(),
+            Msg::Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: &RemoteRelm<Win>, _model: &Self::Model) -> Self {
+    fn view(relm: &RemoteRelm<Self>, model: &Self::Model) -> Self {
+        // Create the view using the normal GTK+ method calls.
+        let vbox = gtk::Box::new(Vertical, 0);
+
+        let plus_button = Button::new_with_label("+");
+        vbox.add(&plus_button);
+
+        let counter_label = Label::new(model.counter.to_string().as_ref());
+        vbox.add(&counter_label);
+
+        let minus_button = Button::new_with_label("-");
+        vbox.add(&minus_button);
+
         let window = Window::new(WindowType::Toplevel);
+
+        window.add(&vbox);
 
         window.show_all();
 
-        connect!(relm, window, connect_key_press_event(_, _) (Press, Inhibit(false)));
-        connect!(relm, window, connect_key_release_event(_, _) (Release, Inhibit(false)));
-        connect!(relm, window, connect_delete_event(_, _) with model
-            Self::quit(model));
+        // Send the message Increment when the button is clicked.
+        connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
+        connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
+        connect!(relm, window, connect_delete_event(_, _) (Some(Msg::Quit), Inhibit(false)));
 
         Win {
+            counter_label: counter_label,
             window: window,
         }
     }
 }
 
-impl Win {
-    fn quit(model: &mut Model) -> (Option<Msg>, Inhibit) {
-        if model.press_count > 3 {
-            (None, Inhibit(true))
-        }
-        else {
-            (Some(Quit), Inhibit(false))
-        }
-    }
-}
-
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(42).unwrap();
 }

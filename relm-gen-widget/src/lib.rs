@@ -48,15 +48,18 @@ use syn::FnArg::Captured;
 use syn::fold::Folder;
 use syn::ImplItemKind::{Const, Macro, Method, Type};
 use syn::ItemKind::Impl;
-use syn::Ty;
+use syn::Pat::Wild;
+use syn::Ty::{self, Tup};
 use syn::visit::Visitor;
 use walker::ModelVariableVisitor;
 
 type PropertyModelMap = HashMap<Ident, HashSet<Property>>;
 
+// TODO: create a struct for this module instead of having to carry around a State.
 #[derive(Debug)]
 struct State {
     model_type: Option<ImplItem>,
+    model_param_type: Option<ImplItem>,
     msg_type: Option<ImplItem>,
     properties_model_map: Option<PropertyModelMap>,
     root_method: Option<ImplItem>,
@@ -85,6 +88,7 @@ impl State {
             root_method: None,
             root_type: None,
             model_type: None,
+            model_param_type: None,
             msg_type: None,
             properties_model_map: None,
             root_widget: None,
@@ -107,7 +111,7 @@ pub fn gen_widget(input: Tokens) -> Tokens {
         let mut new_items = vec![];
         let mut state = State::new();
         for item in items {
-            let i = item.clone();
+            let mut i = item.clone();
             match item.node {
                 Const(_, _) => panic!("Unexpected const item"),
                 Macro(mac) => state.view_macro = Some(mac),
@@ -116,6 +120,7 @@ pub fn gen_widget(input: Tokens) -> Tokens {
                         "root" => state.root_method = Some(i),
                         "model" => {
                             state.widget_model_type = Some(get_return_type(sig));
+                            add_model_param(&mut i, &mut state.model_param_type);
                             new_items.push(i);
                         },
                         "init_view" | "subscriptions" | "update_command" => new_items.push(i),
@@ -130,6 +135,7 @@ pub fn gen_widget(input: Tokens) -> Tokens {
                     match item.ident.to_string().as_ref() {
                         "Root" => state.root_type = Some(i),
                         "Model" => state.model_type = Some(i),
+                        "ModelParam" => state.model_param_type = Some(i),
                         "Msg" => state.msg_type = Some(i),
                         _ => panic!("Unexpected type item {:?}", item.ident),
                     }
@@ -146,6 +152,7 @@ pub fn gen_widget(input: Tokens) -> Tokens {
             state.root_widget_type.clone().expect("root widget type"));
         new_items.push(get_msg_type(state.msg_type, state.widget_msg_type));
         new_items.push(get_model_type(state.model_type, state.widget_model_type));
+        new_items.push(get_model_param_type(state.model_param_type));
         new_items.push(get_root_type(state.root_type, state.root_widget_type));
         new_items.push(get_update(state.update_method.expect("update method"),
             &state.properties_model_map.expect("properties model map")));
@@ -162,6 +169,21 @@ pub fn gen_widget(input: Tokens) -> Tokens {
     }
     else {
         panic!("Expected impl");
+    }
+}
+
+fn add_model_param(model_fn: &mut ImplItem, model_param_type: &mut Option<ImplItem>) {
+    if let Method(ref mut method_sig, _) = model_fn.node {
+        if method_sig.decl.inputs.is_empty() {
+            method_sig.decl.inputs.push(Captured(Wild, Tup(vec![])));
+        }
+        else {
+            if let Captured(_, ref path) = method_sig.decl.inputs[0] {
+                *model_param_type = Some(block_to_impl_item(quote! {
+                    type ModelParam = #path;
+                }));
+            }
+        }
     }
 }
 
@@ -225,6 +247,14 @@ fn get_model_type(model_type: Option<ImplItem>, widget_model_type: Option<Ty>) -
         let widget_model_type = widget_model_type.expect("missing model method");
         block_to_impl_item(quote! {
             type Model = #widget_model_type;
+        })
+    })
+}
+
+fn get_model_param_type(model_param_type: Option<ImplItem>) -> ImplItem {
+    model_param_type.unwrap_or_else(|| {
+        block_to_impl_item(quote! {
+            type ModelParam = ();
         })
     })
 }

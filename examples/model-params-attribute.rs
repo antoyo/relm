@@ -29,8 +29,7 @@ extern crate relm_attributes;
 extern crate relm_derive;
 
 use gtk::{
-    EditableSignals,
-    EntryExt,
+    ButtonExt,
     Inhibit,
     OrientableExt,
     WidgetExt,
@@ -41,28 +40,34 @@ use relm_attributes::widget;
 
 use self::Msg::*;
 
+// Define the structure of the model.
 #[derive(Clone)]
 pub struct Model {
-    content: String,
+    counter: i32,
 }
 
+// The messages that can be sent to the update function.
 #[derive(Msg)]
 pub enum Msg {
-    Change(String),
+    Decrement,
+    Increment,
     Quit,
 }
 
 #[widget]
 impl Widget for Win {
-    fn model() -> Model {
+    // The initial model.
+    fn model((counter1, counter2): (i32, i32)) -> Model {
         Model {
-            content: String::new(),
+            counter: counter1 + counter2,
         }
     }
 
+    // Update the model according to the message received.
     fn update(&mut self, event: Msg, model: &mut Model) {
         match event {
-            Change(text) => model.content = text,
+            Decrement => model.counter -= 1,
+            Increment => model.counter += 1,
             Quit => gtk::main_quit(),
         }
     }
@@ -70,16 +75,22 @@ impl Widget for Win {
     view! {
         gtk::Window {
             gtk::Box {
+                // Set the orientation property of the Box.
                 orientation: Vertical,
-                gtk::Entry {
-                    changed(entry) => Change(
-                        entry.get_text().unwrap()
-                            .chars().rev().collect()
-                    ),
-                    placeholder_text: "Text to reverse",
+                // Create a Button inside the Box.
+                gtk::Button {
+                    // Send the message Increment when the button is clicked.
+                    clicked => Increment,
+                    // TODO: check if using two events of the same name work.
+                    label: "+",
                 },
                 gtk::Label {
-                    text: &model.content,
+                    // Bind the text property of the label to the counter attribute of the model.
+                    text: &model.counter.to_string(),
+                },
+                gtk::Button {
+                    clicked => Decrement,
+                    label: "-",
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
@@ -88,5 +99,5 @@ impl Widget for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run((40, 2)).unwrap();
 }

@@ -60,12 +60,14 @@ struct Win {
 impl Widget for Win {
     // Specify the model used for this widget.
     type Model = Model;
+    // Specify the model parameter used to init the model.
+    type ModelParam = ();
     // Specify the type of the messages sent to the update function.
     type Msg = Msg;
     // Specify the type of the root widget.
     type Root = Window;
 
-    fn model() -> Model {
+    fn model(_: ()) -> Model {
         Model {
             counter: 0,
         }
@@ -125,5 +127,5 @@ impl Widget for Win {
 }
 
 fn main() {
-    relm::run::<Win>().unwrap();
+    Win::run(()).unwrap();
 }
