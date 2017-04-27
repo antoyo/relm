@@ -90,10 +90,11 @@ struct Win {
 
 impl Widget for Win {
     type Model = Model;
+    type ModelParam = ();
     type Msg = Msg;
     type Root = Window;
 
-    fn model() -> Model {
+    fn model(_: ()) -> Model {
         Model {
             gif_url: "waiting.gif".to_string(),
             topic: "cats".to_string(),
@@ -216,5 +217,5 @@ fn hyper_error_to_msg(error: Error) -> Msg {
 
 fn main() {
     TermLogger::init(Warn, Config::default()).unwrap();
-    relm::run::<Win>().unwrap();
+    Win::run(()).unwrap();
 }
