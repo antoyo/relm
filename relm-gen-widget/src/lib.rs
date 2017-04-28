@@ -43,7 +43,21 @@ use gen::gen;
 use parser::Widget::{Gtk, Relm};
 use parser::{Widget, parse};
 use quote::Tokens;
-use syn::{AngleBracketedParameterData, Delimited, FunctionRetTy, Ident, ImplItem, Mac, MethodSig, Path, PathSegment, TokenTree, parse_expr, parse_item};
+use syn::{
+    AngleBracketedParameterData,
+    Delimited,
+    FunctionRetTy,
+    Generics,
+    Ident,
+    ImplItem,
+    Mac,
+    MethodSig,
+    Path,
+    PathSegment,
+    TokenTree,
+    parse_expr,
+    parse_item,
+};
 use syn::FnArg::Captured;
 use syn::fold::Folder;
 use syn::ImplItemKind::{Const, Macro, Method, Type};
@@ -59,6 +73,7 @@ type PropertyModelMap = HashMap<Ident, HashSet<Property>>;
 // TODO: create a struct for this module instead of having to carry around a State.
 #[derive(Debug)]
 struct State {
+    generic_types: Generics,
     model_type: Option<ImplItem>,
     model_param_type: Option<ImplItem>,
     msg_type: Option<ImplItem>,
@@ -84,8 +99,9 @@ struct View {
 }
 
 impl State {
-    fn new() -> Self {
+    fn new(generics: Generics) -> Self {
         State {
+            generic_types: generics,
             root_method: None,
             root_type: None,
             model_type: None,
@@ -110,7 +126,7 @@ pub fn gen_widget(input: Tokens) -> Tokens {
     if let Impl(unsafety, polarity, generics, path, typ, items) = ast.node {
         let name = get_name(&typ);
         let mut new_items = vec![];
-        let mut state = State::new();
+        let mut state = State::new(generics.clone());
         for item in items {
             let mut i = item.clone();
             match item.node {
@@ -240,7 +256,7 @@ fn create_struct(typ: &Ty, widgets: &HashMap<Ident, Tokens>, relm_widgets: &Hash
     let phantom_field = get_phantom_field(typ);
     quote! {
         #[allow(dead_code)]
-        #[derive(Clone)]
+        #[derive(ManualClone)]
         pub struct #typ {
             #(#idents: #types,)*
             #(#relm_idents: #relm_types,)*
@@ -431,13 +447,15 @@ fn impl_view(name: &Ident, typ: &Ty, state: &mut State) -> View {
     if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
         let mut widget = parse(tts);
         if let Gtk(ref mut widget) = widget {
-            widget.relm_name = Some(name.clone());
+            widget.relm_name = Some(typ.clone());
         }
         let mut properties_model_map = HashMap::new();
         get_properties_model_map(&widget, &mut properties_model_map);
         add_widgets(&widget, &mut state.widgets, &properties_model_map);
         let idents: Vec<_> = state.widgets.keys().collect();
-        let (view, relm_widgets, container_impl) = gen(name, typ, &widget, &mut state.root_widget, &mut state.root_widget_expr, &mut state.root_widget_type, &idents);
+        let (view, relm_widgets, container_impl) =
+            gen(name, typ, &widget, &mut state.root_widget, &mut state.root_widget_expr,
+                &mut state.root_widget_type, &idents, &state.generic_types);
         let item = block_to_impl_item(quote! {
             #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
             fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {

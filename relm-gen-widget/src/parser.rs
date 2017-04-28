@@ -25,7 +25,7 @@ use std::io::Read;
 use std::sync::Mutex;
 
 use quote::{Tokens, ToTokens};
-use syn::{self, Path, parse_item, parse_path};
+use syn::{self, Path, Ty, parse_item, parse_path};
 use syn::Delimited;
 use syn::DelimToken::{Brace, Bracket, Paren};
 use syn::ItemKind::Mac;
@@ -117,7 +117,7 @@ pub struct GtkWidget {
     pub is_container: bool,
     pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
-    pub relm_name: Option<syn::Ident>,
+    pub relm_name: Option<Ty>,
     pub save: bool,
 }
 

@@ -22,7 +22,7 @@
 use std::collections::HashMap;
 
 use quote::Tokens;
-use syn::{Ident, Path, Ty, parse_path};
+use syn::{Generics, Ident, Path, Ty, parse_path};
 
 use parser::{GtkWidget, RelmWidget, Widget};
 use parser::EventValue::{CurrentWidget, ForeignWidget};
@@ -72,7 +72,10 @@ enum WidgetType {
     IsRelm,
 }
 
-pub fn gen(name: &Ident, typ: &Ty, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_expr: &mut Option<Tokens>, root_widget_type: &mut Option<Tokens>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Path>, Tokens) {
+pub fn gen(name: &Ident, typ: &Ty, widget: &Widget, root_widget: &mut Option<Ident>,
+           root_widget_expr: &mut Option<Tokens>, root_widget_type: &mut Option<Tokens>, idents: &[&Ident],
+           generics: &Generics) -> (Tokens, HashMap<Ident, Path>, Tokens)
+{
     let mut generator = Generator::new(root_widget, root_widget_expr, root_widget_type);
     let widget_tokens = generator.widget(widget, None, IsGtk);
     let root_widget_name = &generator.root_widget.as_ref().expect("root_widget is None");
@@ -94,7 +97,7 @@ pub fn gen(name: &Ident, typ: &Ty, widget: &Widget, root_widget: &mut Option<Ide
             #phantom_field
         }
     };
-    let container_impl = gen_container_impl(&generator, widget);
+    let container_impl = gen_container_impl(&generator, widget, generics);
     (code, generator.relm_widgets, container_impl)
 }
 
@@ -346,7 +349,7 @@ fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
     }
 }
 
-fn gen_container_impl(generator: &Generator, widget: &Widget) -> Tokens {
+fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Generics) -> Tokens {
     let widget_type =
         match *widget {
             Gtk(ref gtk_widget) => {
@@ -365,7 +368,7 @@ fn gen_container_impl(generator: &Generator, widget: &Widget) -> Tokens {
     match (&generator.container_name, &generator.container_type) {
         (&Some(ref name), &Some(ref typ)) => {
             quote! {
-                impl ::relm::Container for #widget_type {
+                impl #generic_types ::relm::Container for #widget_type {
                     type Container = #typ;
 
                     fn container(&self) -> &Self::Container {
