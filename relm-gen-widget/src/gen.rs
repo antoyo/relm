@@ -22,12 +22,13 @@
 use std::collections::HashMap;
 
 use quote::Tokens;
-use syn::Ident;
+use syn::{Ident, Path, Ty, parse_path};
 
 use parser::{GtkWidget, RelmWidget, Widget};
 use parser::EventValue::{CurrentWidget, ForeignWidget};
 use parser::EventValueReturn::{CallReturn, Return, WithoutReturn};
 use parser::Widget::{Gtk, Relm};
+use super::get_generic_type;
 
 use self::WidgetType::*;
 
@@ -71,7 +72,7 @@ enum WidgetType {
     IsRelm,
 }
 
-pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_expr: &mut Option<Tokens>, root_widget_type: &mut Option<Ident>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Ident>, Tokens) {
+pub fn gen(name: &Ident, typ: &Ty, widget: &Widget, root_widget: &mut Option<Ident>, root_widget_expr: &mut Option<Tokens>, root_widget_type: &mut Option<Tokens>, idents: &[&Ident]) -> (Tokens, HashMap<Ident, Path>, Tokens) {
     let mut generator = Generator::new(root_widget, root_widget_expr, root_widget_type);
     let widget_tokens = generator.widget(widget, None, IsGtk);
     let root_widget_name = &generator.root_widget.as_ref().expect("root_widget is None");
@@ -81,6 +82,7 @@ pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_
     let widget_names1 = &widget_names1;
     let widget_names2 = widget_names1;
     let events = &generator.events;
+    let phantom_field = gen_phantom_field(typ);
     let code = quote! {
         #widget_tokens
 
@@ -88,7 +90,8 @@ pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_
 
         #name {
             #root_widget_name: #root_widget_name,
-            #(#widget_names1: #widget_names2),*
+            #(#widget_names1: #widget_names2,)*
+            #phantom_field
         }
     };
     let container_impl = gen_container_impl(&generator, widget);
@@ -97,17 +100,17 @@ pub fn gen(name: &Ident, widget: &Widget, root_widget: &mut Option<Ident>, root_
 
 struct Generator<'a> {
     container_name: Option<Ident>,
-    container_type: Option<Ident>,
+    container_type: Option<Path>,
     events: Vec<Tokens>,
-    relm_widgets: HashMap<Ident, Ident>,
+    relm_widgets: HashMap<Ident, Path>,
     root_widget: &'a mut Option<Ident>,
     root_widget_expr: &'a mut Option<Tokens>,
-    root_widget_type: &'a mut Option<Ident>,
+    root_widget_type: &'a mut Option<Tokens>,
     widget_names: Vec<Ident>,
 }
 
 impl<'a> Generator<'a> {
-    fn new(root_widget: &'a mut Option<Ident>, root_widget_expr: &'a mut Option<Tokens>, root_widget_type: &'a mut Option<Ident>) -> Self {
+    fn new(root_widget: &'a mut Option<Ident>, root_widget_expr: &'a mut Option<Tokens>, root_widget_type: &'a mut Option<Tokens>) -> Self {
         Generator {
             container_name: None,
             container_type: None,
@@ -136,7 +139,9 @@ impl<'a> Generator<'a> {
         }
         else {
             let struct_name = &widget.gtk_type;
-            *self.root_widget_type = Some(struct_name.clone());
+            *self.root_widget_type = Some(quote! {
+                #struct_name
+            });
             *self.root_widget = Some(widget_name.clone());
             *self.root_widget_expr = Some(quote! {
                 #widget_name
@@ -147,7 +152,7 @@ impl<'a> Generator<'a> {
     }
 
     fn add_or_create_widget(&mut self, parent: Option<&Ident>, parent_widget_type: WidgetType, widget_name: &Ident,
-        widget_type_ident: Ident, model_parameters: Option<&Vec<Tokens>>) -> Tokens
+        widget_type_ident: &Path, model_parameters: Option<&Vec<Tokens>>) -> Tokens
     {
         let model_parameters = gen_model_param(model_parameters);
         if let Some(parent) = parent {
@@ -169,7 +174,9 @@ impl<'a> Generator<'a> {
             }
         }
         else {
-            *self.root_widget_type = Some(Ident::new(format!("<{} as ::relm::Widget>::Root", widget_type_ident)));
+            *self.root_widget_type = Some(quote! {
+                <#widget_type_ident as ::relm::Widget>::Root
+            });
             *self.root_widget = Some(widget_name.clone());
             *self.root_widget_expr = Some(quote! {
                 #widget_name.widget().root()
@@ -284,7 +291,7 @@ impl<'a> Generator<'a> {
     fn relm_widget(&mut self, widget: &RelmWidget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Tokens {
         self.widget_names.push(widget.name.clone());
         let widget_name = &widget.name;
-        let widget_type_ident = Ident::new(widget.relm_type.as_ref());
+        let widget_type_ident = &widget.relm_type;
         set_container!(self, widget, widget_name, widget_type_ident);
         let relm_component_type = gen_relm_component_type(&widget.relm_type);
         self.relm_widgets.insert(widget.name.clone(), relm_component_type);
@@ -342,8 +349,18 @@ fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
 fn gen_container_impl(generator: &Generator, widget: &Widget) -> Tokens {
     let widget_type =
         match *widget {
-            Gtk(ref gtk_widget) => gtk_widget.relm_name.as_ref().unwrap(),
-            Relm(ref relm_widget) => &relm_widget.relm_type,
+            Gtk(ref gtk_widget) => {
+                let ident = gtk_widget.relm_name.as_ref().unwrap();
+                quote! {
+                    #ident
+                }
+            },
+            Relm(ref relm_widget) => {
+                let path = &relm_widget.relm_type;
+                quote! {
+                    #path
+                }
+            },
         };
     match (&generator.container_name, &generator.container_type) {
         (&Some(ref name), &Some(ref typ)) => {
@@ -374,8 +391,23 @@ fn gen_model_param(model_parameters: Option<&Vec<Tokens>>) -> Tokens {
     }
 }
 
-fn gen_relm_component_type(name: &Ident) -> Ident {
-    Ident::new(format!("::relm::Component<{0}>", name).as_ref())
+fn gen_phantom_field(typ: &Ty) -> Tokens {
+    if get_generic_type(typ).is_some() {
+        quote! {
+            __relm_phantom_marker: ::std::marker::PhantomData,
+        }
+    }
+    else {
+        quote! {
+        }
+    }
+}
+
+fn gen_relm_component_type(name: &Path) -> Path {
+    let tokens = quote! {
+        ::relm::Component<#name>
+    };
+    parse_path(tokens.as_str()).expect("gen_relm_component_type is a Path")
 }
 
 fn gen_set_child_prop_calls(widget: &GtkWidget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Vec<Tokens> {

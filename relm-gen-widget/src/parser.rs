@@ -25,14 +25,14 @@ use std::io::Read;
 use std::sync::Mutex;
 
 use quote::{Tokens, ToTokens};
-use syn::{self, parse_item};
+use syn::{self, Path, parse_item, parse_path};
 use syn::Delimited;
 use syn::DelimToken::{Brace, Bracket, Paren};
 use syn::ItemKind::Mac;
 use syn::Lit::Str;
 use syn::StrStyle::Cooked;
 use syn::TokenTree::{self, Token};
-use syn::Token::{At, Colon, Comma, Eq, FatArrow, Ident, Literal, ModSep, Pound};
+use syn::Token::{At, Colon, Comma, Eq, FatArrow, Gt, Ident, Literal, Lt, ModSep, Pound};
 
 use self::DefaultParam::*;
 use self::EventValue::*;
@@ -99,7 +99,7 @@ impl Widget {
         }
     }
 
-    pub fn typ(&self) -> &syn::Ident {
+    pub fn typ(&self) -> &Path {
         match *self {
             Gtk(ref widget) => &widget.gtk_type,
             Relm(ref widget) => &widget.relm_type,
@@ -112,7 +112,7 @@ pub struct GtkWidget {
     pub child_properties: HashMap<String, Tokens>,
     pub children: Vec<Widget>,
     pub events: HashMap<String, Event>,
-    pub gtk_type: syn::Ident,
+    pub gtk_type: Path,
     pub init_parameters: Vec<Tokens>,
     pub is_container: bool,
     pub name: syn::Ident,
@@ -122,13 +122,13 @@ pub struct GtkWidget {
 }
 
 impl GtkWidget {
-    fn new(gtk_type: &str) -> Self {
-        let name = syn::Ident::new(gen_widget_name(gtk_type));
+    fn new(gtk_type: Path) -> Self {
+        let name = syn::Ident::new(gen_widget_name(&gtk_type));
         GtkWidget {
             child_properties: HashMap::new(),
             children: vec![],
             events: HashMap::new(),
-            gtk_type: syn::Ident::new(gtk_type),
+            gtk_type: gtk_type,
             init_parameters: vec![],
             is_container: false,
             name: name,
@@ -147,11 +147,11 @@ pub struct RelmWidget {
     pub model_parameters: Option<Vec<Tokens>>,
     pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
-    pub relm_type: syn::Ident,
+    pub relm_type: Path,
 }
 
 impl RelmWidget {
-    fn new(relm_type: String) -> Self {
+    fn new(relm_type: Path) -> Self {
         let mut name = gen_widget_name(&relm_type);
         // Relm widgets are not used in the update() method; they are only saved to avoid dropping
         // their channel too soon.
@@ -164,8 +164,20 @@ impl RelmWidget {
             model_parameters: None,
             name: syn::Ident::new(name),
             properties: HashMap::new(),
-            relm_type: syn::Ident::new(relm_type),
+            relm_type: relm_type,
         }
+    }
+}
+
+fn last_segment_lowercase(path: &Path) -> bool {
+    let last_segment = path.segments.last().expect("parsed name should have at least one segment");
+    if last_segment.ident.as_ref().chars().next()
+        .expect("last_segment should have at least one character").is_lowercase()
+    {
+        true
+    }
+    else {
+        false
     }
 }
 
@@ -200,7 +212,7 @@ fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
     let (attributes, tokens) = parse_attributes(tokens);
     let name = attributes.get("name").and_then(|name| *name);
     let (gtk_type, mut tokens) = parse_qualified_name(tokens);
-    let mut widget = GtkWidget::new(&gtk_type);
+    let mut widget = GtkWidget::new(gtk_type);
     if let Some(name) = name {
         widget.save = true;
         widget.name = syn::Ident::new(name);
@@ -287,34 +299,35 @@ fn parse_ident(tokens: &[TokenTree]) -> (String, &[TokenTree]) {
     }
 }
 
-fn parse_qualified_name(tokens: &[TokenTree]) -> (String, &[TokenTree]) {
+fn parse_qualified_name(tokens: &[TokenTree]) -> (Path, &[TokenTree]) {
     try_parse_name(tokens)
         .unwrap_or_else(|| panic!("Expected qualified name but found `{:?}` in view! macro", tokens[0]))
 }
 
-fn try_parse_name(mut tokens: &[TokenTree]) -> Option<(String, &[TokenTree])> {
-    let mut segments = vec![];
+fn try_parse_name(mut tokens: &[TokenTree]) -> Option<(Path, &[TokenTree])> {
+    let mut path_string = String::new();
     while !tokens.is_empty() {
         match tokens[0] {
-            Token(Ident(ref ident)) => {
-                segments.push(ident.to_string());
+            Token(Gt) | Token(Ident(_)) | Token(Lt) | Token(ModSep) => {
+                let mut toks = Tokens::new();
+                tokens[0].to_tokens(&mut toks);
+                path_string.push_str(&toks.to_string())
             },
-            Token(ModSep) => (), // :: is part of a name.
             _ => break,
         }
         tokens = &tokens[1..];
     }
-    if segments.is_empty() || segments.last().expect("last() in try_parse_name()")
-        .chars().next().expect("next() in try_parse_name()").is_lowercase()
-    {
-        None
+    match tokens[0] {
+        TokenTree::Delimited(_) | Token(Comma) => {
+            if let Ok(path) = parse_path(&path_string) {
+                if !last_segment_lowercase(&path) {
+                    return Some((path, tokens));
+                }
+            }
+        },
+        _ => (),
     }
-    else {
-        match tokens[0] {
-            TokenTree::Delimited(_) | Token(Comma) => Some((segments.join("::"), tokens)),
-            _ => None,
-        }
-    }
+    None
 }
 
 fn parse_comma_ident_list(tokens: &[TokenTree]) -> Vec<syn::Ident> {
@@ -440,7 +453,8 @@ fn parse_value(tokens: &[TokenTree]) -> (Tokens, &[TokenTree]) {
     (current_param, &tokens[i..])
 }
 
-fn gen_widget_name(name: &str) -> String {
+fn gen_widget_name(path: &Path) -> String {
+    let name = path_to_string(path);
     let name =
         if let Some(index) = name.rfind(':') {
             name[index + 1 ..].to_lowercase()
@@ -452,6 +466,14 @@ fn gen_widget_name(name: &str) -> String {
     let index = hashmap.entry(name.clone()).or_insert(0);
     *index += 1;
     format!("{}{}", name, index)
+}
+
+fn path_to_string(path: &Path) -> String {
+    let mut string = String::new();
+    for segment in &path.segments {
+        string.push_str(segment.ident.as_ref());
+    }
+    string
 }
 
 fn parse_attributes(mut tokens: &[TokenTree]) -> (HashMap<&str, Option<&str>>, &[TokenTree]) {

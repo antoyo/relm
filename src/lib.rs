@@ -465,7 +465,7 @@ fn init_gtk() {
 /// # #[derive(Msg)]
 /// # enum Msg {}
 /// # fn main() {
-/// let component = relm::init_test::<Win>().unwrap();
+/// let component = relm::init_test::<Win>(()).unwrap();
 /// # }
 /// ```
 pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>

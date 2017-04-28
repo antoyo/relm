@@ -42,13 +42,14 @@ use adder::{Adder, Property};
 use gen::gen;
 use parser::Widget::{Gtk, Relm};
 use parser::{Widget, parse};
-use quote::{Tokens, ToTokens};
-use syn::{Delimited, FunctionRetTy, Ident, ImplItem, Mac, MethodSig, TokenTree, parse_expr, parse_item};
+use quote::Tokens;
+use syn::{AngleBracketedParameterData, Delimited, FunctionRetTy, Ident, ImplItem, Mac, MethodSig, Path, PathSegment, TokenTree, parse_expr, parse_item};
 use syn::FnArg::Captured;
 use syn::fold::Folder;
 use syn::ImplItemKind::{Const, Macro, Method, Type};
 use syn::ItemKind::Impl;
 use syn::Pat::Wild;
+use syn::PathParameters::AngleBracketed;
 use syn::Ty::{self, Tup};
 use syn::visit::Visitor;
 use walker::ModelVariableVisitor;
@@ -66,19 +67,19 @@ struct State {
     root_type: Option<ImplItem>,
     root_widget: Option<Ident>,
     root_widget_expr: Option<Tokens>,
-    root_widget_type: Option<Ident>,
+    root_widget_type: Option<Tokens>,
     update_method: Option<ImplItem>,
     view_macro: Option<Mac>,
     widget_model_type: Option<Ty>,
     widget_msg_type: Option<Ty>,
-    widgets: HashMap<Ident, Ident>, // Map widget ident to widget type.
+    widgets: HashMap<Ident, Tokens>, // Map widget ident to widget type.
 }
 
 struct View {
     container_impl: Tokens,
     item: ImplItem,
     properties_model_map: PropertyModelMap,
-    relm_widgets: HashMap<Ident, Ident>,
+    relm_widgets: HashMap<Ident, Path>,
     widget: Widget,
 }
 
@@ -142,7 +143,7 @@ pub fn gen_widget(input: Tokens) -> Tokens {
                 },
             }
         }
-        let view = get_view(&name, &mut state);
+        let view = get_view(&name, &typ, &mut state);
         if let Some(on_add) = gen_set_child_prop_calls(&view.widget) {
             new_items.push(on_add);
         }
@@ -157,9 +158,9 @@ pub fn gen_widget(input: Tokens) -> Tokens {
         new_items.push(get_update(state.update_method.expect("update method"),
             &state.properties_model_map.expect("properties model map")));
         new_items.push(get_root(state.root_method, state.root_widget_expr));
+        let widget_struct = create_struct(&typ, &state.widgets, &view.relm_widgets);
         let item = Impl(unsafety, polarity, generics, path, typ, new_items);
         ast.node = item;
-        let widget_struct = create_struct(&name, &state.widgets, &view.relm_widgets);
         let container_impl = view.container_impl;
         quote! {
             #widget_struct
@@ -187,7 +188,7 @@ fn add_model_param(model_fn: &mut ImplItem, model_param_type: &mut Option<ImplIt
     }
 }
 
-fn add_widgets(widget: &Widget, widgets: &mut HashMap<Ident, Ident>, map: &PropertyModelMap) {
+fn add_widgets(widget: &Widget, widgets: &mut HashMap<Ident, Tokens>, map: &PropertyModelMap) {
     // Only add widgets that are needed by the update() function.
     let mut to_add = false;
     for values in map.values() {
@@ -198,7 +199,11 @@ fn add_widgets(widget: &Widget, widgets: &mut HashMap<Ident, Ident>, map: &Prope
         }
     }
     if to_add {
-        widgets.insert(widget.name().clone(), widget.typ().clone());
+        let widget_type = widget.typ();
+        let typ = quote! {
+            #widget_type
+        };
+        widgets.insert(widget.name().clone(), typ);
     }
     match *widget {
         Gtk(ref widget) =>  {
@@ -227,17 +232,19 @@ fn block_to_impl_item(tokens: Tokens) -> ImplItem {
     }
 }
 
-fn create_struct(name: &Ident, widgets: &HashMap<Ident, Ident>, relm_widgets: &HashMap<Ident, Ident>) -> Tokens {
+fn create_struct(typ: &Ty, widgets: &HashMap<Ident, Tokens>, relm_widgets: &HashMap<Ident, Path>) -> Tokens {
     let widgets = widgets.iter().filter(|&(ident, _)| !relm_widgets.contains_key(ident));
     let (idents, types): (Vec<_>, Vec<_>) = widgets.unzip();
     let relm_idents = relm_widgets.keys();
     let relm_types = relm_widgets.values();
+    let phantom_field = get_phantom_field(typ);
     quote! {
         #[allow(dead_code)]
         #[derive(Clone)]
-        pub struct #name {
+        pub struct #typ {
             #(#idents: #types,)*
             #(#relm_idents: #relm_types,)*
+            #phantom_field
         }
     }
 }
@@ -270,12 +277,45 @@ fn get_msg_type(msg_type: Option<ImplItem>, widget_msg_type: Option<Ty>) -> Impl
 
 fn get_name(typ: &Ty) -> Ident {
     if let Ty::Path(_, ref path) = *typ {
-        let mut tokens = Tokens::new();
-        path.to_tokens(&mut tokens);
-        Ident::new(tokens.to_string())
+        let mut parts = vec![];
+        for segment in &path.segments {
+            parts.push(segment.ident.as_ref());
+        }
+        Ident::new(parts.join("::"))
     }
     else {
         panic!("Expected Path")
+    }
+}
+
+fn get_generic_type(typ: &Ty) -> Option<Ident> {
+    if let Ty::Path(_, ref path) = *typ {
+        let last_segment = path.segments.last().expect("path should have at least one segment");
+        if let PathSegment {
+                parameters: AngleBracketed(AngleBracketedParameterData {
+                    ref types, ..
+                }), ..
+            } = *last_segment
+        {
+            if let Some(&Ty::Path(_, Path { ref segments, .. })) = types.last() {
+                if let Some(&PathSegment { ref ident, .. }) = segments.first() {
+                    return Some(ident.clone());
+                }
+            }
+        }
+    }
+    None
+}
+
+fn get_phantom_field(typ: &Ty) -> Tokens {
+    if let Some(ident) = get_generic_type(typ) {
+        quote! {
+            __relm_phantom_marker: ::std::marker::PhantomData<#ident>,
+        }
+    }
+    else {
+        quote! {
+        }
     }
 }
 
@@ -333,7 +373,7 @@ fn get_root(root_method: Option<ImplItem>, root_widget_expr: Option<Tokens>) -> 
     })
 }
 
-fn get_root_type(root_type: Option<ImplItem>, root_widget_type: Option<Ident>) -> ImplItem {
+fn get_root_type(root_type: Option<ImplItem>, root_widget_type: Option<Tokens>) -> ImplItem {
     root_type.unwrap_or_else(|| {
         let root_widget_type = root_widget_type.expect("root widget type");
         block_to_impl_item(quote! {
@@ -364,17 +404,17 @@ fn get_update(mut func: ImplItem, map: &PropertyModelMap) -> ImplItem {
     func
 }
 
-fn get_view(name: &Ident, state: &mut State) -> View {
+fn get_view(name: &Ident, typ: &Ty, state: &mut State) -> View {
     {
         let segments = &state.view_macro.as_ref().expect("view! macro missing").path.segments;
         if segments.len() != 1 || segments[0].ident != "view" {
             panic!("Unexpected macro item")
         }
     }
-    impl_view(name, state)
+    impl_view(name, typ, state)
 }
 
-fn impl_view(name: &Ident, state: &mut State) -> View {
+fn impl_view(name: &Ident, typ: &Ty, state: &mut State) -> View {
     let tokens = &state.view_macro.as_ref().expect("view_macro in impl_view()").tts;
     if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
         let mut widget = parse(tts);
@@ -385,7 +425,7 @@ fn impl_view(name: &Ident, state: &mut State) -> View {
         get_properties_model_map(&widget, &mut properties_model_map);
         add_widgets(&widget, &mut state.widgets, &properties_model_map);
         let idents: Vec<_> = state.widgets.keys().collect();
-        let (view, relm_widgets, container_impl) = gen(name, &widget, &mut state.root_widget, &mut state.root_widget_expr, &mut state.root_widget_type, &idents);
+        let (view, relm_widgets, container_impl) = gen(name, typ, &widget, &mut state.root_widget, &mut state.root_widget_expr, &mut state.root_widget_type, &idents);
         let item = block_to_impl_item(quote! {
             #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
             fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
