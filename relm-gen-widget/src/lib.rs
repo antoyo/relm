@@ -288,7 +288,7 @@ fn get_name(typ: &Ty) -> Ident {
     }
 }
 
-fn get_generic_type(typ: &Ty) -> Option<Ident> {
+fn get_generic_types(typ: &Ty) -> Option<Vec<Ident>> {
     if let Ty::Path(_, ref path) = *typ {
         let last_segment = path.segments.last().expect("path should have at least one segment");
         if let PathSegment {
@@ -297,10 +297,16 @@ fn get_generic_type(typ: &Ty) -> Option<Ident> {
                 }), ..
             } = *last_segment
         {
-            if let Some(&Ty::Path(_, Path { ref segments, .. })) = types.last() {
-                if let Some(&PathSegment { ref ident, .. }) = segments.first() {
-                    return Some(ident.clone());
+            let mut generic_types = vec![];
+            for typ in types {
+                if let &Ty::Path(_, Path { ref segments, .. }) = typ {
+                    if let Some(&PathSegment { ref ident, .. }) = segments.first() {
+                        generic_types.push(ident.clone());
+                    }
                 }
+            }
+            if !generic_types.is_empty() {
+                return Some(generic_types);
             }
         }
     }
@@ -308,9 +314,15 @@ fn get_generic_type(typ: &Ty) -> Option<Ident> {
 }
 
 fn get_phantom_field(typ: &Ty) -> Tokens {
-    if let Some(ident) = get_generic_type(typ) {
+    if let Some(types) = get_generic_types(typ) {
+        let fields = types.iter().map(|typ| {
+            let name = Ident::new(format!("__relm_phantom_marker_{}", typ.as_ref().to_lowercase()));
+            quote! {
+                #name: ::std::marker::PhantomData<#typ>,
+            }
+        });
         quote! {
-            __relm_phantom_marker: ::std::marker::PhantomData<#ident>,
+            #(#fields)*
         }
     }
     else {

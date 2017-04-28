@@ -28,7 +28,7 @@ use parser::{GtkWidget, RelmWidget, Widget};
 use parser::EventValue::{CurrentWidget, ForeignWidget};
 use parser::EventValueReturn::{CallReturn, Return, WithoutReturn};
 use parser::Widget::{Gtk, Relm};
-use super::get_generic_type;
+use super::get_generic_types;
 
 use self::WidgetType::*;
 
@@ -392,9 +392,15 @@ fn gen_model_param(model_parameters: Option<&Vec<Tokens>>) -> Tokens {
 }
 
 fn gen_phantom_field(typ: &Ty) -> Tokens {
-    if get_generic_type(typ).is_some() {
+    if let Some(types) = get_generic_types(typ) {
+        let fields = types.iter().map(|typ| {
+            let name = Ident::new(format!("__relm_phantom_marker_{}", typ.as_ref().to_lowercase()));
+            quote! {
+                #name: ::std::marker::PhantomData,
+            }
+        });
         quote! {
-            __relm_phantom_marker: ::std::marker::PhantomData,
+            #(#fields)*
         }
     }
     else {

@@ -306,15 +306,18 @@ fn parse_qualified_name(tokens: &[TokenTree]) -> (Path, &[TokenTree]) {
 
 fn try_parse_name(mut tokens: &[TokenTree]) -> Option<(Path, &[TokenTree])> {
     let mut path_string = String::new();
+    let mut angle_level = 0;
     while !tokens.is_empty() {
         match tokens[0] {
-            Token(Gt) | Token(Ident(_)) | Token(Lt) | Token(ModSep) => {
-                let mut toks = Tokens::new();
-                tokens[0].to_tokens(&mut toks);
-                path_string.push_str(&toks.to_string())
-            },
+            Token(Lt) => angle_level += 1,
+            Token(Gt) => angle_level -= 1,
+            Token(Comma) if angle_level == 0 => break,
+            Token(Comma) | Token(Ident(_)) | Token(ModSep) => (),
             _ => break,
         }
+        let mut toks = Tokens::new();
+        tokens[0].to_tokens(&mut toks);
+        path_string.push_str(&toks.to_string());
         tokens = &tokens[1..];
     }
     match tokens[0] {
