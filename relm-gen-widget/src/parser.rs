@@ -240,7 +240,11 @@ fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
                         let (value, new_tts) = parse_value_or_child_properties(tts);
                         tts = new_tts;
                         match value {
-                            ChildProperties(child_properties) => widget.child_properties = child_properties,
+                            ChildProperties(child_properties) => {
+                                for (key, value) in child_properties {
+                                    widget.child_properties.insert(key, value);
+                                }
+                            },
                             Value(value) => { widget.properties.insert(ident, value); },
                         }
                     },
