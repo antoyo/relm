@@ -73,7 +73,7 @@ impl Widget for Button {
 }
 
 #[widget]
-impl Widget for VBox {
+impl Widget for SplitBox {
     fn model() -> () {
         ()
     }
@@ -92,8 +92,7 @@ impl Widget for VBox {
             // Specify where the widgets will be added in this container when the child's data is
             // "center".
             #[container="center"]
-            gtk::Box {
-                orientation: Vertical,
+            gtk::Frame {
             },
             #[container="right"]
             gtk::Box {
@@ -133,7 +132,7 @@ impl Widget for Win {
 
     view! {
         gtk::Window {
-            VBox {
+            SplitBox {
                 gtk::Button {
                     clicked => Increment,
                     label: "+",

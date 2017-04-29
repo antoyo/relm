@@ -30,6 +30,7 @@ extern crate relm_derive;
 
 use gtk::{
     ContainerExt,
+    Frame,
     Inhibit,
     Label,
     WidgetExt,
@@ -110,7 +111,7 @@ impl Widget for Button {
 #[derive(Clone)]
 struct SplitBox {
     hbox1: gtk::Box,
-    hbox2: gtk::Box,
+    hbox2: Frame,
     hbox3: gtk::Box,
     vbox: gtk::Box,
 }
@@ -156,7 +157,7 @@ impl Widget for SplitBox {
         let vbox = gtk::Box::new(Horizontal, 0);
         let hbox1 = gtk::Box::new(Vertical, 0);
         vbox.add(&hbox1);
-        let hbox2 = gtk::Box::new(Vertical, 0);
+        let hbox2 = Frame::new(None);
         vbox.add(&hbox2);
         let hbox3 = gtk::Box::new(Vertical, 0);
         vbox.add(&hbox3);

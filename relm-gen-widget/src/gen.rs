@@ -430,11 +430,7 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
         for &(_, ref typ) in generator.container_names.values() {
             match container_type {
                 None => container_type = Some(typ),
-                Some(container_type) =>
-                    if container_type != typ {
-                        // TODO: does that make sense? Why not taking the default container type?
-                        panic!("Cannot use different container widget types for the #[container] attribute");
-                    },
+                _ => (),
             }
         }
         let typ = container_type.expect("container type");
