@@ -109,10 +109,47 @@ impl Widget for Button {
 }
 
 #[derive(Clone)]
+struct MyFrame {
+    frame: Frame,
+}
+
+impl Widget for MyFrame {
+    type Model = ();
+    type ModelParam = ();
+    type Msg = ();
+    type Root = Frame;
+
+    fn model(_: ()) -> () {
+    }
+
+    fn root(&self) -> &Self::Root {
+        &self.frame
+    }
+
+    fn update(&mut self, _msg: (), _model: &mut ()) {
+    }
+
+    fn view(_relm: &RemoteRelm<Self>, _model: &()) -> Self {
+        let frame = Frame::new(None);
+        MyFrame {
+            frame,
+        }
+    }
+}
+
+impl Container for MyFrame {
+    type Container = Frame;
+
+    fn container(&self) -> &Self::Container {
+        &self.frame
+    }
+}
+
+#[derive(Clone)]
 struct SplitBox {
     hbox1: gtk::Box,
     hbox2: Frame,
-    hbox3: gtk::Box,
+    hbox3: Component<MyFrame>,
     vbox: gtk::Box,
 }
 
@@ -153,14 +190,13 @@ impl Widget for SplitBox {
     fn update(&mut self, _event: (), _model: &mut ()) {
     }
 
-    fn view(_relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
         let vbox = gtk::Box::new(Horizontal, 0);
         let hbox1 = gtk::Box::new(Vertical, 0);
         vbox.add(&hbox1);
         let hbox2 = Frame::new(None);
         vbox.add(&hbox2);
-        let hbox3 = gtk::Box::new(Vertical, 0);
-        vbox.add(&hbox3);
+        let hbox3 = vbox.add_widget::<MyFrame, _>(relm, ());
         SplitBox {
             hbox1,
             hbox2,

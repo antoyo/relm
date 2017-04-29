@@ -372,17 +372,29 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
     if container_names.len() > 1 {
         let mut default_container = Tokens::new();
         let mut other_containers = Tokens::new();
-        for (data, &(ref name, _)) in container_names {
+        for (data, &(ref name, ref typ)) in container_names {
+            let first_type_part = &typ.segments.first().expect("first segment").ident;
+            let container_trait =
+                if first_type_part == "gtk" {
+                    quote! {
+                        ::gtk::ContainerExt
+                    }
+                }
+                else {
+                    quote! {
+                        ::relm::RelmContainer
+                    }
+                };
             if data.is_none() {
                 default_container = quote! {
-                    ::gtk::ContainerExt::add(&self.#name, widget.root());
+                    #container_trait::add(&self.#name, widget.root());
                 };
             }
             else {
                 if other_containers.as_str().is_empty() {
                     other_containers = quote! {
                         if WIDGET::data() == Some(#data) {
-                            ::gtk::ContainerExt::add(&self.#name, widget.root());
+                            #container_trait::add(&self.#name, widget.root());
                         }
                     };
                 }
@@ -390,7 +402,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                     other_containers = quote! {
                         #other_containers
                         else if WIDGET::data() == Some(#data) {
-                            ::gtk::ContainerExt::add(&self.#name, widget.root());
+                            #container_trait::add(&self.#name, widget.root());
                         }
                     };
                 }
@@ -427,10 +439,9 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
     }
     else {
         let mut container_type = None;
-        for &(_, ref typ) in generator.container_names.values() {
-            match container_type {
-                None => container_type = Some(typ),
-                _ => (),
+        for (ident, &(_, ref typ)) in &generator.container_names {
+            if ident.is_none() {
+                container_type = Some(typ);
             }
         }
         let typ = container_type.expect("container type");

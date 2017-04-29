@@ -41,6 +41,21 @@ use relm_attributes::widget;
 use self::Msg::*;
 
 #[widget]
+impl Widget for MyFrame {
+    fn model(_: ()) -> () {
+    }
+
+    fn update(&mut self, _msg: (), _model: &mut ()) {
+    }
+
+    view! {
+        #[container]
+        gtk::Frame {
+        }
+    }
+}
+
+#[widget]
 impl Widget for CenterButton {
     fn model() -> () {
     }
@@ -95,8 +110,7 @@ impl Widget for SplitBox {
             gtk::Frame {
             },
             #[container="right"]
-            gtk::Box {
-                orientation: Vertical,
+            MyFrame {
             }
         }
     }
