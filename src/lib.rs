@@ -40,6 +40,7 @@
 #![warn(missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces, unused_qualifications, unused_results)]
 
 /*
+ * TODO: look at how Elm works with the <canvas> element.
  * TODO: support msg variant with multiple values?
    TODO: after switching to futures-glib, remove the unnecessary Arc, Mutex and Clone.
  * FIXME: the widget-list example can trigger (and is broken) the following after removing widgets, adding new

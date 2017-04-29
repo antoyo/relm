@@ -268,3 +268,8 @@ fn update(&mut self, event: Msg, model: &mut Model) {
 ====
 
 For more information about how you can use relm, you can take a look at the https://github.com/antoyo/relm/tree/master/examples[examples].
+
+== Projects using `relm`
+
+ * https://github.com/sanpii/yellow-pitaya[Yellow Pitaya]
+ * https://github.com/juchiast/gameoflife[Game of Life]
