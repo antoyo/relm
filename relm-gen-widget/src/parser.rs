@@ -92,10 +92,31 @@ pub enum Widget {
 }
 
 impl Widget {
+    pub fn children(&self) -> &[Widget] {
+        match *self {
+            Gtk(ref widget) => &widget.children,
+            Relm(ref widget) => &widget.children,
+        }
+    }
+
+    pub fn data(&self) -> Option<&String> {
+        match *self {
+            Gtk(ref widget) => widget.data.as_ref(),
+            Relm(ref widget) => widget.data.as_ref(),
+        }
+    }
+
     pub fn name(&self) -> &syn::Ident {
         match *self {
             Gtk(ref widget) => &widget.name,
             Relm(ref widget) => &widget.name,
+        }
+    }
+
+    pub fn set_data(&mut self, data: Option<String>) {
+        match *self {
+            Gtk(ref mut widget) => widget.data = data,
+            Relm(ref mut widget) => widget.data = data,
         }
     }
 
@@ -111,10 +132,11 @@ impl Widget {
 pub struct GtkWidget {
     pub child_properties: HashMap<String, Tokens>,
     pub children: Vec<Widget>,
+    pub container_type: Option<Option<String>>,
+    pub data: Option<String>,
     pub events: HashMap<String, Event>,
     pub gtk_type: Path,
     pub init_parameters: Vec<Tokens>,
-    pub is_container: bool,
     pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
     pub relm_name: Option<Ty>,
@@ -127,10 +149,11 @@ impl GtkWidget {
         GtkWidget {
             child_properties: HashMap::new(),
             children: vec![],
+            container_type: None,
+            data: None,
             events: HashMap::new(),
             gtk_type: gtk_type,
             init_parameters: vec![],
-            is_container: false,
             name: name,
             properties: HashMap::new(),
             relm_name: None,
@@ -142,8 +165,9 @@ impl GtkWidget {
 #[derive(Debug)]
 pub struct RelmWidget {
     pub children: Vec<Widget>,
+    pub container_type: Option<Option<String>>,
+    pub data: Option<String>,
     pub events: HashMap<String, Vec<Event>>,
-    pub is_container: bool,
     pub model_parameters: Option<Vec<Tokens>>,
     pub name: syn::Ident,
     pub properties: HashMap<String, Tokens>,
@@ -159,8 +183,9 @@ impl RelmWidget {
         name.insert(0, '_');
         RelmWidget {
             children: vec![],
+            container_type: None,
+            data: None,
             events: HashMap::new(),
-            is_container: false,
             model_parameters: None,
             name: syn::Ident::new(name),
             properties: HashMap::new(),
@@ -204,7 +229,8 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
         else {
             tokens.to_vec()
         };
-    let (widget, _) = parse_child(&tokens);
+    let (mut widget, _, data) = parse_child(&tokens);
+    widget.set_data(data);
     widget
 }
 
@@ -226,7 +252,7 @@ fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
         let mut tts = &tts[..];
         while !tts.is_empty() {
             if tts[0] == Token(Pound) || try_parse_name(tts).is_some() {
-                let (child, new_tts) = parse_child(tts);
+                let (child, new_tts, _) = parse_child(tts);
                 tts = new_tts;
                 widget.children.push(child);
             }
@@ -268,9 +294,10 @@ fn parse_widget(tokens: &[TokenTree]) -> (GtkWidget, &[TokenTree]) {
     (widget, &tokens[1..])
 }
 
-fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
-    let (attributes, new_tokens) = parse_attributes(tokens);
-    let is_container = attributes.contains_key("container");
+fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree], Option<String>) {
+    let (mut attributes, new_tokens) = parse_attributes(tokens);
+    let container_type = attributes.remove("container")
+        .map(|typ| typ.map(str::to_string));
     let name = attributes.get("name").and_then(|name| *name);
     tokens = new_tokens;
     // GTK+ widget.
@@ -280,8 +307,9 @@ fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
             child.save = true;
             child.name = syn::Ident::new(name);
         }
-        child.is_container = is_container;
-        (Gtk(child), new_tokens)
+        child.container_type = container_type;
+        let data = attributes.get("data").and_then(|opt_str| opt_str.map(str::to_string));
+        (Gtk(child), new_tokens, data)
     }
     // Relm widget.
     else {
@@ -289,8 +317,8 @@ fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
         if let Some(name) = name {
             child.name = syn::Ident::new(name);
         }
-        child.is_container = is_container;
-        (Relm(child), new_tokens)
+        child.container_type = container_type;
+        (Relm(child), new_tokens, None)
     }
 }
 
@@ -555,7 +583,7 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (RelmWidget, &[TokenTree]) {
                     false
                 };
             if tts[0] == Token(Pound) || is_child {
-                let (child, new_tts) = parse_child(tts);
+                let (child, new_tts, _) = parse_child(tts);
                 tts = new_tts;
                 widget.children.push(child);
             }

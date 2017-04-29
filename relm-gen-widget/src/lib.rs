@@ -70,10 +70,10 @@ use walker::ModelVariableVisitor;
 
 type PropertyModelMap = HashMap<Ident, HashSet<Property>>;
 
-// TODO: create a struct for this module instead of having to carry around a State.
 #[derive(Debug)]
-struct State {
-    generic_types: Generics,
+pub struct Driver {
+    data_method: Option<ImplItem>,
+    generic_types: Option<Generics>,
     model_type: Option<ImplItem>,
     model_param_type: Option<ImplItem>,
     msg_type: Option<ImplItem>,
@@ -85,6 +85,7 @@ struct State {
     root_widget_type: Option<Tokens>,
     update_method: Option<ImplItem>,
     view_macro: Option<Mac>,
+    widget_data: Option<String>,
     widget_model_type: Option<Ty>,
     widget_msg_type: Option<Ty>,
     widgets: HashMap<Ident, Tokens>, // Map widget ident to widget type.
@@ -98,10 +99,11 @@ struct View {
     widget: Widget,
 }
 
-impl State {
-    fn new(generics: Generics) -> Self {
-        State {
-            generic_types: generics,
+impl Driver {
+    fn new() -> Self {
+        Driver {
+            data_method: None,
+            generic_types: None,
             root_method: None,
             root_type: None,
             model_type: None,
@@ -113,80 +115,244 @@ impl State {
             root_widget_type: None,
             update_method: None,
             view_macro: None,
+            widget_data: None,
             widget_model_type: None,
             widget_msg_type: None,
             widgets: HashMap::new(),
         }
     }
+
+    fn add_widgets(&mut self, widget: &Widget, map: &PropertyModelMap) {
+        // Only add widgets that are needed by the update() function.
+        let mut to_add = false;
+        for values in map.values() {
+            for value in values {
+                if value.widget_name == widget.name() {
+                    to_add = true;
+                }
+            }
+        }
+        if to_add {
+            let widget_type = widget.typ();
+            let typ = quote! {
+                #widget_type
+            };
+            self.widgets.insert(widget.name().clone(), typ);
+        }
+        for child in widget.children() {
+            self.add_widgets(child, map);
+        }
+    }
+
+    fn create_struct(&self, typ: &Ty, relm_widgets: &HashMap<Ident, Path>) -> Tokens {
+        let widgets = self.widgets.iter().filter(|&(ident, _)| !relm_widgets.contains_key(ident));
+        let (idents, types): (Vec<_>, Vec<_>) = widgets.unzip();
+        let relm_idents = relm_widgets.keys();
+        let relm_types = relm_widgets.values();
+        let phantom_field = get_phantom_field(typ);
+        quote! {
+            #[allow(dead_code)]
+            #[derive(ManualClone)]
+            pub struct #typ {
+                #(#idents: #types,)*
+                #(#relm_idents: #relm_types,)*
+                #phantom_field
+            }
+        }
+    }
+
+    fn gen_widget(&mut self, input: Tokens) -> Tokens {
+        let source = input.to_string();
+        let mut ast = parse_item(&source).expect("parse_item() in gen_widget()");
+        if let Impl(unsafety, polarity, generics, path, typ, items) = ast.node {
+            self.generic_types = Some(generics.clone());
+            let name = get_name(&typ);
+            let mut new_items = vec![];
+            for item in items {
+                let mut i = item.clone();
+                match item.node {
+                    Const(_, _) => panic!("Unexpected const item"),
+                    Macro(mac) => self.view_macro = Some(mac),
+                    Method(sig, _) => {
+                        match item.ident.to_string().as_ref() {
+                            "data" => self.data_method = Some(i),
+                            "root" => self.root_method = Some(i),
+                            "model" => {
+                                self.widget_model_type = Some(get_return_type(sig));
+                                add_model_param(&mut i, &mut self.model_param_type);
+                                new_items.push(i);
+                            },
+                            "init_view" | "subscriptions" | "update_command" => new_items.push(i),
+                            "update" => {
+                                self.widget_msg_type = Some(get_second_param_type(&sig));
+                                self.update_method = Some(i)
+                            },
+                            method_name => panic!("Unexpected method {}", method_name),
+                        }
+                    },
+                    Type(_) => {
+                        match item.ident.to_string().as_ref() {
+                            "Root" => self.root_type = Some(i),
+                            "Model" => self.model_type = Some(i),
+                            "ModelParam" => self.model_param_type = Some(i),
+                            "Msg" => self.msg_type = Some(i),
+                            _ => panic!("Unexpected type item {:?}", item.ident),
+                        }
+                    },
+                }
+            }
+            let view = self.get_view(&name, &typ);
+            if let Some(on_add) = gen_set_child_prop_calls(&view.widget) {
+                new_items.push(on_add);
+            }
+            self.properties_model_map = Some(view.properties_model_map);
+            new_items.push(view.item);
+            self.widgets.insert(self.root_widget.clone().expect("root widget"),
+            self.root_widget_type.clone().expect("root widget type"));
+            new_items.push(self.get_msg_type());
+            new_items.push(self.get_model_type());
+            new_items.push(self.get_model_param_type());
+            new_items.push(self.get_root_type());
+            if let Some(data_method) = self.get_data_method() {
+                new_items.push(data_method);
+            }
+            new_items.push(self.get_update());
+            new_items.push(self.get_root());
+            let widget_struct = self.create_struct(&typ, &view.relm_widgets);
+            let item = Impl(unsafety, polarity, generics, path, typ, new_items);
+            ast.node = item;
+            let container_impl = view.container_impl;
+            quote! {
+                #widget_struct
+                #ast
+                #container_impl
+            }
+        }
+        else {
+            panic!("Expected impl");
+        }
+    }
+
+    fn get_data_method(&mut self) -> Option<ImplItem> {
+        self.data_method.take().or_else(|| {
+            if let Some(ref data) = self.widget_data {
+                Some(block_to_impl_item(quote! {
+                    fn data() -> Option<&'static str> {
+                        Some(#data)
+                    }
+                }))
+            }
+            else {
+                None
+            }
+        })
+    }
+
+    fn get_model_param_type(&mut self) -> ImplItem {
+        self.model_param_type.take().unwrap_or_else(|| {
+            block_to_impl_item(quote! {
+                type ModelParam = ();
+            })
+        })
+    }
+
+    fn get_model_type(&mut self) -> ImplItem {
+        self.model_type.take().unwrap_or_else(|| {
+            let widget_model_type = self.widget_model_type.take().expect("missing model method");
+            block_to_impl_item(quote! {
+                type Model = #widget_model_type;
+            })
+        })
+    }
+
+    fn get_msg_type(&mut self) -> ImplItem {
+        self.msg_type.take().unwrap_or_else(|| {
+            let widget_msg_type = self.widget_msg_type.take().expect("missing update method");
+            block_to_impl_item(quote! {
+                type Msg = #widget_msg_type;
+            })
+        })
+    }
+
+    fn get_root(&mut self) -> ImplItem {
+        self.root_method.take().unwrap_or_else(|| {
+            let root_widget_expr = self.root_widget_expr.take().expect("root widget expr");
+            block_to_impl_item(quote! {
+                fn root(&self) -> &Self::Root {
+                    &self.#root_widget_expr
+                }
+            })
+        })
+    }
+
+    fn get_root_type(&mut self) -> ImplItem {
+        self.root_type.take().unwrap_or_else(|| {
+            let root_widget_type = self.root_widget_type.take().expect("root widget type");
+            block_to_impl_item(quote! {
+                type Root = #root_widget_type;
+            })
+        })
+    }
+
+    /*
+     * TODO: Create a control flow graph for each variable of the model.
+     * Add the set_property() calls in every leaf of every graphs.
+     */
+    fn get_update(&mut self) -> ImplItem {
+        let mut func = self.update_method.take().expect("update method");
+        if let Method(_, ref mut block) = func.node {
+            let mut adder = Adder::new(self.properties_model_map.as_ref().expect("update method"));
+            *block = adder.fold_block(block.clone());
+        }
+        // TODO: consider gtk::main_quit() as return.
+        func
+    }
+
+    fn get_view(&mut self, name: &Ident, typ: &Ty) -> View {
+        {
+            let segments = &self.view_macro.as_ref().expect("view! macro missing").path.segments;
+            if segments.len() != 1 || segments[0].ident != "view" {
+                panic!("Unexpected macro item")
+            }
+        }
+        self.impl_view(name, typ)
+    }
+
+    fn impl_view(&mut self, name: &Ident, typ: &Ty) -> View {
+        let tokens = &self.view_macro.take().expect("view_macro in impl_view()").tts;
+        if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
+            let mut widget = parse(tts);
+            if let Gtk(ref mut widget) = widget {
+                widget.relm_name = Some(typ.clone());
+            }
+            self.widget_data = widget.data().map(Clone::clone);
+            let mut properties_model_map = HashMap::new();
+            get_properties_model_map(&widget, &mut properties_model_map);
+            self.add_widgets(&widget, &properties_model_map);
+            let (view, relm_widgets, container_impl) = gen(name, typ, &widget, self);
+            let item = block_to_impl_item(quote! {
+                #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
+                fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
+                    #view
+                }
+            });
+            View {
+                container_impl: container_impl,
+                item: item,
+                properties_model_map: properties_model_map,
+                relm_widgets: relm_widgets,
+                widget: widget,
+            }
+        }
+        else {
+            panic!("Expected `{{` but found `{:?}` in view! macro", tokens[0]);
+        }
+    }
 }
 
 pub fn gen_widget(input: Tokens) -> Tokens {
-    let source = input.to_string();
-    let mut ast = parse_item(&source).expect("parse_item() in gen_widget()");
-    if let Impl(unsafety, polarity, generics, path, typ, items) = ast.node {
-        let name = get_name(&typ);
-        let mut new_items = vec![];
-        let mut state = State::new(generics.clone());
-        for item in items {
-            let mut i = item.clone();
-            match item.node {
-                Const(_, _) => panic!("Unexpected const item"),
-                Macro(mac) => state.view_macro = Some(mac),
-                Method(sig, _) => {
-                    match item.ident.to_string().as_ref() {
-                        "root" => state.root_method = Some(i),
-                        "model" => {
-                            state.widget_model_type = Some(get_return_type(sig));
-                            add_model_param(&mut i, &mut state.model_param_type);
-                            new_items.push(i);
-                        },
-                        "init_view" | "subscriptions" | "update_command" => new_items.push(i),
-                        "update" => {
-                            state.widget_msg_type = Some(get_second_param_type(&sig));
-                            state.update_method = Some(i)
-                        },
-                        method_name => panic!("Unexpected method {}", method_name),
-                    }
-                },
-                Type(_) => {
-                    match item.ident.to_string().as_ref() {
-                        "Root" => state.root_type = Some(i),
-                        "Model" => state.model_type = Some(i),
-                        "ModelParam" => state.model_param_type = Some(i),
-                        "Msg" => state.msg_type = Some(i),
-                        _ => panic!("Unexpected type item {:?}", item.ident),
-                    }
-                },
-            }
-        }
-        let view = get_view(&name, &typ, &mut state);
-        if let Some(on_add) = gen_set_child_prop_calls(&view.widget) {
-            new_items.push(on_add);
-        }
-        state.properties_model_map = Some(view.properties_model_map);
-        new_items.push(view.item);
-        state.widgets.insert(state.root_widget.clone().expect("root widget"),
-            state.root_widget_type.clone().expect("root widget type"));
-        new_items.push(get_msg_type(state.msg_type, state.widget_msg_type));
-        new_items.push(get_model_type(state.model_type, state.widget_model_type));
-        new_items.push(get_model_param_type(state.model_param_type));
-        new_items.push(get_root_type(state.root_type, state.root_widget_type));
-        new_items.push(get_update(state.update_method.expect("update method"),
-            &state.properties_model_map.expect("properties model map")));
-        new_items.push(get_root(state.root_method, state.root_widget_expr));
-        let widget_struct = create_struct(&typ, &state.widgets, &view.relm_widgets);
-        let item = Impl(unsafety, polarity, generics, path, typ, new_items);
-        ast.node = item;
-        let container_impl = view.container_impl;
-        quote! {
-            #widget_struct
-            #ast
-            #container_impl
-        }
-    }
-    else {
-        panic!("Expected impl");
-    }
+    let mut driver = Driver::new();
+    driver.gen_widget(input)
 }
 
 fn add_model_param(model_fn: &mut ImplItem, model_param_type: &mut Option<ImplItem>) {
@@ -204,37 +370,6 @@ fn add_model_param(model_fn: &mut ImplItem, model_param_type: &mut Option<ImplIt
     }
 }
 
-fn add_widgets(widget: &Widget, widgets: &mut HashMap<Ident, Tokens>, map: &PropertyModelMap) {
-    // Only add widgets that are needed by the update() function.
-    let mut to_add = false;
-    for values in map.values() {
-        for value in values {
-            if value.widget_name == widget.name() {
-                to_add = true;
-            }
-        }
-    }
-    if to_add {
-        let widget_type = widget.typ();
-        let typ = quote! {
-            #widget_type
-        };
-        widgets.insert(widget.name().clone(), typ);
-    }
-    match *widget {
-        Gtk(ref widget) =>  {
-            for child in &widget.children {
-                add_widgets(child, widgets, map);
-            }
-        },
-        Relm(ref widget) =>  {
-            for child in &widget.children {
-                add_widgets(child, widgets, map);
-            }
-        },
-    }
-}
-
 fn block_to_impl_item(tokens: Tokens) -> ImplItem {
     let implementation = quote! {
         impl Test {
@@ -246,49 +381,6 @@ fn block_to_impl_item(tokens: Tokens) -> ImplItem {
         Impl(_, _, _, _, _, items) => items[0].clone(),
         _ => unreachable!(),
     }
-}
-
-fn create_struct(typ: &Ty, widgets: &HashMap<Ident, Tokens>, relm_widgets: &HashMap<Ident, Path>) -> Tokens {
-    let widgets = widgets.iter().filter(|&(ident, _)| !relm_widgets.contains_key(ident));
-    let (idents, types): (Vec<_>, Vec<_>) = widgets.unzip();
-    let relm_idents = relm_widgets.keys();
-    let relm_types = relm_widgets.values();
-    let phantom_field = get_phantom_field(typ);
-    quote! {
-        #[allow(dead_code)]
-        #[derive(ManualClone)]
-        pub struct #typ {
-            #(#idents: #types,)*
-            #(#relm_idents: #relm_types,)*
-            #phantom_field
-        }
-    }
-}
-
-fn get_model_type(model_type: Option<ImplItem>, widget_model_type: Option<Ty>) -> ImplItem {
-    model_type.unwrap_or_else(|| {
-        let widget_model_type = widget_model_type.expect("missing model method");
-        block_to_impl_item(quote! {
-            type Model = #widget_model_type;
-        })
-    })
-}
-
-fn get_model_param_type(model_param_type: Option<ImplItem>) -> ImplItem {
-    model_param_type.unwrap_or_else(|| {
-        block_to_impl_item(quote! {
-            type ModelParam = ();
-        })
-    })
-}
-
-fn get_msg_type(msg_type: Option<ImplItem>, widget_msg_type: Option<Ty>) -> ImplItem {
-    msg_type.unwrap_or_else(|| {
-        let widget_msg_type = widget_msg_type.expect("missing update method");
-        block_to_impl_item(quote! {
-            type Msg = #widget_msg_type;
-        })
-    })
 }
 
 fn get_name(typ: &Ty) -> Ident {
@@ -390,88 +482,12 @@ fn get_return_type(sig: MethodSig) -> Ty {
     }
 }
 
-fn get_root(root_method: Option<ImplItem>, root_widget_expr: Option<Tokens>) -> ImplItem {
-    root_method.unwrap_or_else(|| {
-        let root_widget_expr = root_widget_expr.expect("root widget expr");
-        block_to_impl_item(quote! {
-            fn root(&self) -> &Self::Root {
-                &self.#root_widget_expr
-            }
-        })
-    })
-}
-
-fn get_root_type(root_type: Option<ImplItem>, root_widget_type: Option<Tokens>) -> ImplItem {
-    root_type.unwrap_or_else(|| {
-        let root_widget_type = root_widget_type.expect("root widget type");
-        block_to_impl_item(quote! {
-            type Root = #root_widget_type;
-        })
-    })
-}
-
 fn get_second_param_type(sig: &MethodSig) -> Ty {
     if let Captured(_, ref path) = sig.decl.inputs[1] {
         path.clone()
     }
     else {
         panic!("Unexpected `{:?}`, expecting Captured Ty", sig.decl.inputs[1]);
-    }
-}
-
-/*
- * TODO: Create a control flow graph for each variable of the model.
- * Add the set_property() calls in every leaf of every graphs.
- */
-fn get_update(mut func: ImplItem, map: &PropertyModelMap) -> ImplItem {
-    if let Method(_, ref mut block) = func.node {
-        let mut adder = Adder::new(map);
-        *block = adder.fold_block(block.clone());
-    }
-    // TODO: consider gtk::main_quit() as return.
-    func
-}
-
-fn get_view(name: &Ident, typ: &Ty, state: &mut State) -> View {
-    {
-        let segments = &state.view_macro.as_ref().expect("view! macro missing").path.segments;
-        if segments.len() != 1 || segments[0].ident != "view" {
-            panic!("Unexpected macro item")
-        }
-    }
-    impl_view(name, typ, state)
-}
-
-fn impl_view(name: &Ident, typ: &Ty, state: &mut State) -> View {
-    let tokens = &state.view_macro.as_ref().expect("view_macro in impl_view()").tts;
-    if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
-        let mut widget = parse(tts);
-        if let Gtk(ref mut widget) = widget {
-            widget.relm_name = Some(typ.clone());
-        }
-        let mut properties_model_map = HashMap::new();
-        get_properties_model_map(&widget, &mut properties_model_map);
-        add_widgets(&widget, &mut state.widgets, &properties_model_map);
-        let idents: Vec<_> = state.widgets.keys().collect();
-        let (view, relm_widgets, container_impl) =
-            gen(name, typ, &widget, &mut state.root_widget, &mut state.root_widget_expr,
-                &mut state.root_widget_type, &idents, &state.generic_types);
-        let item = block_to_impl_item(quote! {
-            #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
-            fn view(relm: &::relm::RemoteRelm<Self>, model: &Self::Model) -> Self {
-                #view
-            }
-        });
-        View {
-            container_impl: container_impl,
-            item: item,
-            properties_model_map: properties_model_map,
-            relm_widgets: relm_widgets,
-            widget: widget,
-        }
-    }
-    else {
-        panic!("Expected `{{` but found `{:?}` in view! macro", tokens[0]);
     }
 }
 

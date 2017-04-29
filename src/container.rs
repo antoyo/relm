@@ -29,10 +29,20 @@ use widget::Widget;
 /// Trait to implement relm container widget.
 pub trait Container: Widget {
     /// The type of the containing widget, i.e. where the child widgets will be added.
-    type Container;
+    type Container: IsA<gtk::Container> + IsA<Object>;
 
     /// Get the containing widget, i.e. the widget where the children will be added.
     fn container(&self) -> &Self::Container;
+
+    /// Add a GTK+ widget to this container.
+    fn add<W: IsA<gtk::Widget>>(&self, widget: &W) {
+        self.container().add(widget);
+    }
+
+    /// Add a relm widget to this container.
+    fn add_widget<WIDGET: Widget>(&self, widget: &WIDGET) {
+        self.container().add(widget.root());
+    }
 }
 
 /// Extension trait for GTK+ containers to add and remove relm `Widget`s.
@@ -103,8 +113,7 @@ impl<WIDGET> RelmContainer for Component<WIDGET>
           WIDGET::Model: Clone,
 {
     fn add<W: IsA<gtk::Widget>>(&self, widget: &W) {
-        let container = self.widget().container();
-        container.add(widget);
+        self.widget().add(widget);
     }
 
     fn add_widget<CHILDWIDGET, PARENTWIDGET>(&self, relm: &RemoteRelm<PARENTWIDGET>,
@@ -116,7 +125,7 @@ impl<WIDGET> RelmContainer for Component<WIDGET>
     {
         let component = create_widget::<CHILDWIDGET>(&relm.remote, model_param);
         let container = self.widget().container();
-        container.add(component.widget.root());
+        self.widget().add_widget(&component.widget);
         component.widget.on_add(container.clone());
         init_component::<CHILDWIDGET>(&component, &relm.remote);
         Component::new(component)

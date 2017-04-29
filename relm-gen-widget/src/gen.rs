@@ -28,7 +28,7 @@ use parser::{GtkWidget, RelmWidget, Widget};
 use parser::EventValue::{CurrentWidget, ForeignWidget};
 use parser::EventValueReturn::{CallReturn, Return, WithoutReturn};
 use parser::Widget::{Gtk, Relm};
-use super::get_generic_types;
+use super::{Driver, get_generic_types};
 
 use self::WidgetType::*;
 
@@ -55,13 +55,19 @@ macro_rules! gen_set_prop_calls {
 
 macro_rules! set_container {
     ($_self:expr, $widget:expr, $widget_name:expr, $widget_type:expr) => {
-        if $widget.is_container {
-            if $_self.container_name.is_some() {
-                panic!("Cannot use the #[container] attribute twice in the same widget");
+        if let Some(ref container_type) = $widget.container_type {
+            if $_self.container_names.contains_key(container_type) {
+                let attribute =
+                    if let Some(ref typ) = *container_type {
+                        format!("#[container=\"{}\"]", typ)
+                    }
+                    else {
+                        "#[container]".to_string()
+                    };
+                panic!("Cannot use the {} attribute twice in the same widget", attribute);
             }
             $_self.relm_widgets.insert($widget_name.clone(), $widget_type.clone());
-            $_self.container_name = Some($widget_name.clone());
-            $_self.container_type = Some($widget_type.clone());
+            $_self.container_names.insert(container_type.clone(), ($widget_name.clone(), $widget_type.clone()));
         }
     };
 }
@@ -72,13 +78,13 @@ enum WidgetType {
     IsRelm,
 }
 
-pub fn gen(name: &Ident, typ: &Ty, widget: &Widget, root_widget: &mut Option<Ident>,
-           root_widget_expr: &mut Option<Tokens>, root_widget_type: &mut Option<Tokens>, idents: &[&Ident],
-           generics: &Generics) -> (Tokens, HashMap<Ident, Path>, Tokens)
+pub fn gen(name: &Ident, typ: &Ty, widget: &Widget, driver: &mut Driver) -> (Tokens, HashMap<Ident, Path>, Tokens)
 {
-    let mut generator = Generator::new(root_widget, root_widget_expr, root_widget_type);
+    let mut generator = Generator::new(driver);
     let widget_tokens = generator.widget(widget, None, IsGtk);
-    let root_widget_name = &generator.root_widget.as_ref().expect("root_widget is None");
+    let driver = generator.driver.take().expect("driver");
+    let idents: Vec<_> = driver.widgets.keys().collect();
+    let root_widget_name = &driver.root_widget.as_ref().expect("root_widget is None");
     let widget_names1: Vec<_> = generator.widget_names.iter()
         .filter(|ident| (idents.contains(ident) || generator.relm_widgets.contains_key(ident)) && ident != root_widget_name)
         .collect();
@@ -97,31 +103,25 @@ pub fn gen(name: &Ident, typ: &Ty, widget: &Widget, root_widget: &mut Option<Ide
             #phantom_field
         }
     };
-    let container_impl = gen_container_impl(&generator, widget, generics);
+    let container_impl = gen_container_impl(&generator, widget, driver.generic_types.as_ref().expect("generic types"));
     (code, generator.relm_widgets, container_impl)
 }
 
 struct Generator<'a> {
-    container_name: Option<Ident>,
-    container_type: Option<Path>,
+    container_names: HashMap<Option<String>, (Ident, Path)>,
+    driver: Option<&'a mut Driver>,
     events: Vec<Tokens>,
     relm_widgets: HashMap<Ident, Path>,
-    root_widget: &'a mut Option<Ident>,
-    root_widget_expr: &'a mut Option<Tokens>,
-    root_widget_type: &'a mut Option<Tokens>,
     widget_names: Vec<Ident>,
 }
 
 impl<'a> Generator<'a> {
-    fn new(root_widget: &'a mut Option<Ident>, root_widget_expr: &'a mut Option<Tokens>, root_widget_type: &'a mut Option<Tokens>) -> Self {
+    fn new(driver: &'a mut Driver) -> Self {
         Generator {
-            container_name: None,
-            container_type: None,
+            container_names: HashMap::new(),
+            driver: Some(driver),
             events: vec![],
             relm_widgets: HashMap::new(),
-            root_widget: root_widget,
-            root_widget_expr: root_widget_expr,
-            root_widget_type: root_widget_type,
             widget_names: vec![],
         }
     }
@@ -142,11 +142,12 @@ impl<'a> Generator<'a> {
         }
         else {
             let struct_name = &widget.gtk_type;
-            *self.root_widget_type = Some(quote! {
+            let driver = self.driver.as_mut().expect("driver");
+            driver.root_widget_type = Some(quote! {
                 #struct_name
             });
-            *self.root_widget = Some(widget_name.clone());
-            *self.root_widget_expr = Some(quote! {
+            driver.root_widget = Some(widget_name.clone());
+            driver.root_widget_expr = Some(quote! {
                 #widget_name
             });
             quote! {
@@ -177,11 +178,12 @@ impl<'a> Generator<'a> {
             }
         }
         else {
-            *self.root_widget_type = Some(quote! {
+            let driver = self.driver.as_mut().expect("driver");
+            driver.root_widget_type = Some(quote! {
                 <#widget_type_ident as ::relm::Widget>::Root
             });
-            *self.root_widget = Some(widget_name.clone());
-            *self.root_widget_expr = Some(quote! {
+            driver.root_widget = Some(widget_name.clone());
+            driver.root_widget_expr = Some(quote! {
                 #widget_name.widget().root()
             });
             quote! {
@@ -349,35 +351,107 @@ fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
     }
 }
 
-fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Generics) -> Tokens {
-    let widget_type =
-        match *widget {
-            Gtk(ref gtk_widget) => {
-                let ident = gtk_widget.relm_name.as_ref().unwrap();
-                quote! {
-                    #ident
-                }
-            },
-            Relm(ref relm_widget) => {
-                let path = &relm_widget.relm_type;
-                quote! {
-                    #path
-                }
-            },
-        };
-    match (&generator.container_name, &generator.container_type) {
-        (&Some(ref name), &Some(ref typ)) => {
+fn gen_widget_type(widget: &Widget) -> Tokens {
+    match *widget {
+        Gtk(ref gtk_widget) => {
+            let ident = gtk_widget.relm_name.as_ref().unwrap();
             quote! {
-                impl #generic_types ::relm::Container for #widget_type {
-                    type Container = #typ;
-
-                    fn container(&self) -> &Self::Container {
-                        &self.#name
-                    }
-                }
+                #ident
             }
         },
-        _ => quote! {},
+        Relm(ref relm_widget) => {
+            let path = &relm_widget.relm_type;
+            quote! {
+                #path
+            }
+        },
+    }
+}
+
+fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)>) -> Tokens {
+    if container_names.len() > 1 {
+        let mut default_container = Tokens::new();
+        let mut other_containers = Tokens::new();
+        for (data, &(ref name, _)) in container_names {
+            if data.is_none() {
+                default_container = quote! {
+                    ::gtk::ContainerExt::add(&self.#name, widget.root());
+                };
+            }
+            else {
+                if other_containers.as_str().is_empty() {
+                    other_containers = quote! {
+                        if WIDGET::data() == Some(#data) {
+                            ::gtk::ContainerExt::add(&self.#name, widget.root());
+                        }
+                    };
+                }
+                else {
+                    other_containers = quote! {
+                        #other_containers
+                        else if WIDGET::data() == Some(#data) {
+                            ::gtk::ContainerExt::add(&self.#name, widget.root());
+                        }
+                    };
+                }
+            }
+        }
+        if !other_containers.as_str().is_empty() {
+            default_container = quote! {
+                else {
+                    #default_container
+                }
+            };
+        }
+        quote! {
+            fn add_widget<WIDGET: Widget>(&self, widget: &WIDGET) {
+                #other_containers
+                #default_container
+            }
+        }
+    }
+    else {
+        quote! {
+        }
+    }
+}
+
+fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Generics) -> Tokens {
+    let widget_type = gen_widget_type(widget);
+    if generator.container_names.is_empty() {
+        quote! {
+        }
+    }
+    else if !generator.container_names.contains_key(&None) {
+        panic!("Use of #[container=\"name\"] attribute without the default #[container].");
+    }
+    else {
+        let mut container_type = None;
+        for &(_, ref typ) in generator.container_names.values() {
+            match container_type {
+                None => container_type = Some(typ),
+                Some(container_type) =>
+                    if container_type != typ {
+                        // TODO: does that make sense? Why not taking the default container type?
+                        panic!("Cannot use different container widget types for the #[container] attribute");
+                    },
+            }
+        }
+        let typ = container_type.expect("container type");
+        let &(ref name, _) = generator.container_names.get(&None).expect("default container");
+        let add_widget_method = gen_add_widget_method(&generator.container_names);
+
+        quote! {
+            impl #generic_types ::relm::Container for #widget_type {
+                type Container = #typ;
+
+                fn container(&self) -> &Self::Container {
+                    &self.#name
+                }
+
+                #add_widget_method
+            }
+        }
     }
 }
 

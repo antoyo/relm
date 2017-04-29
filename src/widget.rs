@@ -38,6 +38,14 @@ pub trait Widget
     /// The type of the root widget.
     type Root;
 
+    /// Get some string data.
+    /// This is useful for custom Container implementation: when you implement the
+    /// [`Container::add_widget()`](trait.Container.html#tymethod.add_widget), you might want to
+    /// insert widgets elsewhere depending of this data.
+    fn data() -> Option<&'static str> {
+        None
+    }
+
     /// Update the view after it is initially created.
     /// This method is only useful when using the `#[widget]` attribute, because when not using it,
     /// you can use the [`view()`](trait.Widget.html#tymethod.view) method instead.
@@ -50,6 +58,9 @@ pub trait Widget
     /// Method called when the widget is added to its parent.
     fn on_add<W: IsA<gtk::Widget> + IsA<Object>>(&self, _parent: W) {
     }
+
+    // TODO: ajouter une méthode param() pour déterminer des paramètres qui seront pris en compte à
+    // l’ajout du widget.
 
     /// Get the root widget of the view.e. the root widget of the view.
     fn root(&self) -> &Self::Root;
