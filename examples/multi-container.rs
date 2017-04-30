@@ -38,7 +38,7 @@ use gtk::{
 };
 use gtk::Orientation::{Horizontal, Vertical};
 use gtk::WindowType::Toplevel;
-use relm::{Component, Container, ContainerWidget, RelmContainer, RemoteRelm, Widget};
+use relm::{Cast, Component, Container, ContainerWidget, RelmContainer, RemoteRelm, Widget};
 
 use self::Msg::*;
 
@@ -160,15 +160,18 @@ impl Container for SplitBox {
         &self.hbox1
     }
 
-    fn add_widget<WIDGET: Widget>(&self, widget: &WIDGET) {
+    fn add_widget<WIDGET: Widget>(&self, widget: &WIDGET) -> gtk::Container {
         if WIDGET::data() == Some("right") {
             self.hbox3.add(widget.root());
+            self.hbox3.widget().root().clone().upcast()
         }
         else if WIDGET::data() == Some("center") {
             self.hbox2.add(widget.root());
+            self.hbox2.clone().upcast()
         }
         else {
             self.hbox1.add(widget.root());
+            self.hbox1.clone().upcast()
         }
     }
 }

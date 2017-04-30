@@ -386,20 +386,25 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
         let mut other_containers = Tokens::new();
         for (data, &(ref name, ref typ)) in container_names {
             let first_type_part = &typ.segments.first().expect("first segment").ident;
-            let container_trait =
+            let (container_trait, upcast_container) =
                 if first_type_part == "gtk" {
-                    quote! {
+                    (quote! {
                         ::gtk::ContainerExt
-                    }
+                    }, quote! {
+                        ::relm::Cast::upcast(self.#name.clone())
+                    })
                 }
                 else {
-                    quote! {
+                    (quote! {
                         ::relm::RelmContainer
-                    }
+                    }, quote! {
+                        ::relm::Cast::upcast(self.#name.widget().root().clone())
+                    })
                 };
             if data.is_none() {
                 default_container = quote! {
                     #container_trait::add(&self.#name, widget.root());
+                    #upcast_container
                 };
             }
             else {
@@ -407,6 +412,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                     other_containers = quote! {
                         if WIDGET::data() == Some(#data) {
                             #container_trait::add(&self.#name, widget.root());
+                            #upcast_container
                         }
                     };
                 }
@@ -415,6 +421,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                         #other_containers
                         else if WIDGET::data() == Some(#data) {
                             #container_trait::add(&self.#name, widget.root());
+                            #upcast_container
                         }
                     };
                 }
@@ -428,7 +435,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
             };
         }
         quote! {
-            fn add_widget<WIDGET: Widget>(&self, widget: &WIDGET) {
+            fn add_widget<WIDGET: Widget>(&self, widget: &WIDGET) -> ::gtk::Container {
                 #other_containers
                 #default_container
             }

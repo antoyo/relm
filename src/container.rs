@@ -19,6 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use glib::Cast;
 use gtk;
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 
@@ -29,7 +30,7 @@ use widget::Widget;
 /// Trait to implement relm container widget.
 pub trait Container: Widget {
     /// The type of the containing widget, i.e. where the child widgets will be added.
-    type Container: IsA<gtk::Container> + IsA<Object>;
+    type Container: Clone + IsA<gtk::Container> + IsA<Object>;
 
     /// Get the containing widget, i.e. the widget where the children will be added.
     fn container(&self) -> &Self::Container;
@@ -40,8 +41,10 @@ pub trait Container: Widget {
     }
 
     /// Add a relm widget to this container.
-    fn add_widget<WIDGET: Widget>(&self, widget: &WIDGET) {
-        self.container().add(widget.root());
+    fn add_widget<WIDGET: Widget>(&self, widget: &WIDGET) -> gtk::Container {
+        let container = self.container();
+        container.add(widget.root());
+        container.clone().upcast()
     }
 }
 
@@ -124,8 +127,7 @@ impl<WIDGET> RelmContainer for Component<WIDGET>
               PARENTWIDGET: Widget
     {
         let component = create_widget::<CHILDWIDGET>(&relm.remote, model_param);
-        let container = self.widget().container();
-        self.widget().add_widget(&component.widget);
+        let container = self.widget().add_widget(&component.widget);
         component.widget.on_add(container.clone());
         init_component::<CHILDWIDGET>(&component, &relm.remote);
         Component::new(component)

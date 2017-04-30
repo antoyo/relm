@@ -103,6 +103,8 @@ use std::time::SystemTime;
 use futures::{Future, Stream};
 use glib::Continue;
 #[doc(hidden)]
+pub use glib::Cast;
+#[doc(hidden)]
 pub use glib::object::Downcast;
 #[doc(hidden)]
 pub use glib::translate::{FromGlibPtrNone, ToGlib};
