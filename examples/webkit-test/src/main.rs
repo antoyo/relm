@@ -50,7 +50,7 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
-    fn init_view(&self) {
+    fn init_view(&self, _model: &mut Model) {
         self.webview.load_uri("https://crates.io/");
     }
 

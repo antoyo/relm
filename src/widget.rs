@@ -41,7 +41,7 @@ pub trait Widget
     /// Update the view after it is initially created.
     /// This method is only useful when using the `#[widget]` attribute, because when not using it,
     /// you can use the [`view()`](trait.Widget.html#tymethod.view) method instead.
-    fn init_view(&self) {
+    fn init_view(&self, _model: &mut Self::Model) {
     }
 
     /// Create the initial model.

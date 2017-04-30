@@ -42,6 +42,8 @@
 
 /*
  * TODO: look at how Elm works with the <canvas> element.
+ * TODO: allow adding arbitrary methods in the impl for the #[widget] to allow updating the models
+ * in method external to the trait.
  * TODO: support msg variant with multiple values?
    TODO: after switching to futures-glib, remove the unnecessary Arc, Mutex and Clone.
  * FIXME: the widget-list example can trigger (and is broken) the following after removing widgets, adding new
@@ -190,10 +192,11 @@ macro_rules! use_impl_self_type {
 }
 
 // TODO: remove this hack.
-/// A small type to avoid running the destructor of `T`
+#[doc(hidden)]
 pub struct ManuallyDrop<T> { inner: Option<T> }
 
 impl<T> ManuallyDrop<T> {
+    #[doc(hidden)]
     pub fn new(t: T) -> ManuallyDrop<T> {
         ManuallyDrop { inner: Some(t) }
     }
@@ -400,7 +403,10 @@ fn create_widget<WIDGET>(remote: &Remote, model_param: WIDGET::ModelParam) -> Co
         };
         (view, relm.model)
     };
-    widget.init_view();
+    {
+        let mut model_guard = model.lock().unwrap();
+        widget.init_view(&mut *model_guard);
+    }
 
     {
         let mut widget = widget.clone();

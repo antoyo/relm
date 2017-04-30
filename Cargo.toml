@@ -6,7 +6,7 @@ documentation = "https://docs.rs/relm/"
 license = "MIT"
 name = "relm"
 repository = "https://github.com/antoyo/relm"
-version = "0.9.4"
+version = "0.9.5"
 
 [badges]
 travis-ci = { repository = "antoyo/relm" }
