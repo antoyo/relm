@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use quote::Tokens;
 use syn::{Generics, Ident, Path, Ty, parse_path};
 
-use parser::{GtkWidget, RelmWidget, Widget};
+use parser::{GtkWidget, RelmWidget, Widget, RELM_WIDGET_CLONE_IDENT, RELM_WIDGET_SELF_IDENT};
 use parser::EventValue::{CurrentWidget, ForeignWidget};
 use parser::EventValueReturn::{CallReturn, Return, WithoutReturn};
 use parser::EitherWidget::{Gtk, Relm};
@@ -93,8 +93,15 @@ pub fn gen(name: &Ident, typ: &Ty, widget: &Widget, driver: &mut Driver) -> (Tok
     let widget_names2 = widget_names1;
     let events = &generator.events;
     let phantom_field = gen_phantom_field(typ);
+    let self_ident = Ident::new(RELM_WIDGET_SELF_IDENT);
     let code = quote! {
         #widget_tokens
+
+        let #self_ident: ::relm::ManuallyDrop<Self> = ::relm::ManuallyDrop::new(#name {
+            #root_widget_name: #root_widget_name.clone(),
+            #(#widget_names1: #widget_names2.clone(),)*
+            #phantom_field
+        });
 
         #(#events)*
 
@@ -212,20 +219,39 @@ impl<'a> Generator<'a> {
                     quote! {
                     }
                 };
+            let clone_ident = Ident::new(RELM_WIDGET_CLONE_IDENT);
+            let self_ident = Ident::new(RELM_WIDGET_SELF_IDENT);
+            let (self_ident, clone) =
+                if gtk_widget.save {
+                    (quote! {
+                        #self_ident .
+                    }, quote! {
+                        let #clone_ident = ::relm::ManuallyDrop::new(#self_ident.clone());
+                    })
+                }
+                else {
+                    (quote! {
+                    }, quote! {
+                    })
+                };
             let connect =
                 match event.value {
                     CurrentWidget(WithoutReturn(ref event_value)) => quote! {
-                        connect!(relm, #widget_name, #event_ident(#(#event_params),*), #event_value);
+                        #clone
+                        connect!(relm, #self_ident #widget_name, #event_ident(#(#event_params),*), #event_value);
                     },
                     ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {
-                        connect!(#widget_name, #event_ident(#(#event_params),*), #foreign_widget_name, #event_value);
+                        #clone
+                        connect!(#self_ident #widget_name, #event_ident(#(#event_params),*), #foreign_widget_name, #event_value);
                     },
                     CurrentWidget(Return(ref event_value, ref return_value)) => quote! {
-                        connect!(relm, #widget_name, #event_ident(#(#event_params),*) (#event_value, #return_value));
+                        #clone
+                        connect!(relm, #self_ident #widget_name, #event_ident(#(#event_params),*) (#event_value, #return_value));
                     },
                     ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
                     CurrentWidget(CallReturn(ref func)) => quote! {
-                        connect!(relm, #widget_name, #event_ident(#(#event_params),*) #event_model_ident #func);
+                        #clone
+                        connect!(relm, #self_ident #widget_name, #event_ident(#(#event_params),*) #event_model_ident #func);
                     },
 
                 };

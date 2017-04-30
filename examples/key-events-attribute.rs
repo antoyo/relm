@@ -74,13 +74,13 @@ impl Widget for Win {
         gtk::Window {
             key_press_event(_, key) => (Press, Inhibit(false)),
             key_release_event(_, key) => (Release, Inhibit(false)),
-            delete_event(_, _) with model => return Self::quit(model),
+            delete_event(_, _) with model => return self.quit(model),
         }
     }
 }
 
 impl Win {
-    fn quit(model: &mut Model) -> (Option<Msg>, Inhibit) {
+    fn quit(&self, model: &mut Model) -> (Option<Msg>, Inhibit) {
         if model.press_count > 3 {
             (None, Inhibit(true))
         }

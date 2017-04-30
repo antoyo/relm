@@ -39,6 +39,9 @@ use self::EventValue::*;
 use self::EventValueReturn::*;
 use self::EitherWidget::*;
 
+pub const RELM_WIDGET_CLONE_IDENT: &str = "__relm_widget_self_clone";
+pub const RELM_WIDGET_SELF_IDENT: &str = "__relm_widget_self";
+
 lazy_static! {
     static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
 }
@@ -202,7 +205,7 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
         else {
             tokens.to_vec()
         };
-    let (mut widget, _, parent_id) = parse_child(&tokens);
+    let (mut widget, _, parent_id) = parse_child(&tokens, true);
     widget.parent_id = parent_id;
     widget
 }
@@ -224,7 +227,7 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
         let mut tts = &tts[..];
         while !tts.is_empty() {
             if tts[0] == Token(Pound) || try_parse_name(tts).is_some() {
-                let (child, new_tts, _) = parse_child(tts);
+                let (child, new_tts, _) = parse_child(tts, false);
                 tts = new_tts;
                 children.push(child);
             }
@@ -257,7 +260,7 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
     (widget, &tokens[1..])
 }
 
-fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree], Option<String>) {
+fn parse_child(mut tokens: &[TokenTree], root: bool) -> (Widget, &[TokenTree], Option<String>) {
     let (mut attributes, new_tokens) = parse_attributes(tokens);
     let container_type = attributes.remove("container")
         .map(|typ| typ.map(str::to_string));
@@ -265,7 +268,7 @@ fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree], Option<String
     let name = attributes.get("name").and_then(|name| *name);
     let (mut widget, new_tokens) =
         if tokens.get(1) == Some(&Token(ModSep)) {
-            parse_widget(tokens, name.is_some())
+            parse_widget(tokens, name.is_some() || root)
         }
         else {
             parse_relm_widget(tokens)
@@ -442,6 +445,8 @@ fn parse_value(tokens: &[TokenTree]) -> (Tokens, &[TokenTree]) {
     let mut i = 0;
     while i < tokens.len() {
         match tokens[i] {
+            Token(Ident(ref ident)) if *ident == syn::Ident::new("self") =>
+                Token(Ident(syn::Ident::new(RELM_WIDGET_CLONE_IDENT))).to_tokens(&mut current_param),
             Token(Comma) => break,
             ref token => token.to_tokens(&mut current_param),
         }
@@ -549,7 +554,7 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
                     false
                 };
             if tts[0] == Token(Pound) || is_child {
-                let (child, new_tts, _) = parse_child(tts);
+                let (child, new_tts, _) = parse_child(tts, false);
                 tts = new_tts;
                 children.push(child);
             }

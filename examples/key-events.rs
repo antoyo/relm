@@ -86,10 +86,14 @@ impl Widget for Win {
 
         window.show_all();
 
+        let win = Win {
+            window: window.clone(),
+        };
+
         connect!(relm, window, connect_key_press_event(_, _) (Press, Inhibit(false)));
         connect!(relm, window, connect_key_release_event(_, _) (Release, Inhibit(false)));
         connect!(relm, window, connect_delete_event(_, _) with model
-            Self::quit(model));
+            win.quit(model));
 
         Win {
             window: window,
@@ -98,7 +102,7 @@ impl Widget for Win {
 }
 
 impl Win {
-    fn quit(model: &mut Model) -> (Option<Msg>, Inhibit) {
+    fn quit(&self, model: &mut Model) -> (Option<Msg>, Inhibit) {
         if model.press_count > 3 {
             (None, Inhibit(true))
         }

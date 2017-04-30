@@ -97,6 +97,7 @@ mod macros;
 mod stream;
 mod widget;
 
+use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
@@ -186,6 +187,30 @@ macro_rules! use_impl_self_type {
     (impl Widget for $self_type:ident { $($tts:tt)* }) => {
         pub use __relm_gen_private::$self_type;
     };
+}
+
+// TODO: remove this hack.
+/// A small type to avoid running the destructor of `T`
+pub struct ManuallyDrop<T> { inner: Option<T> }
+
+impl<T> ManuallyDrop<T> {
+    pub fn new(t: T) -> ManuallyDrop<T> {
+        ManuallyDrop { inner: Some(t) }
+    }
+}
+
+impl<T> Deref for ManuallyDrop<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        self.inner.as_ref().unwrap()
+    }
+}
+
+impl<T> Drop for ManuallyDrop<T> {
+    fn drop(&mut self) {
+        std::mem::forget(self.inner.take())
+    }
 }
 
 /// Handle connection of futures to send messages to the [`update()`](trait.Widget.html#tymethod.update) and
