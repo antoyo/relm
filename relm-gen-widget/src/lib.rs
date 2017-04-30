@@ -40,7 +40,7 @@ use std::collections::{HashMap, HashSet};
 
 use adder::{Adder, Property};
 use gen::gen;
-use parser::Widget::{Gtk, Relm};
+use parser::EitherWidget::{Gtk, Relm};
 use parser::{Widget, parse};
 use quote::Tokens;
 use syn::{
@@ -127,19 +127,19 @@ impl Driver {
         let mut to_add = false;
         for values in map.values() {
             for value in values {
-                if value.widget_name == widget.name() {
+                if value.widget_name == widget.name {
                     to_add = true;
                 }
             }
         }
         if to_add {
-            let widget_type = widget.typ();
+            let widget_type = &widget.typ;
             let typ = quote! {
                 #widget_type
             };
-            self.widgets.insert(widget.name().clone(), typ);
+            self.widgets.insert(widget.name.clone(), typ);
         }
-        for child in widget.children() {
+        for child in &widget.children {
             self.add_widgets(child, map);
         }
     }
@@ -322,10 +322,10 @@ impl Driver {
         let tokens = &self.view_macro.take().expect("view_macro in impl_view()").tts;
         if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
             let mut widget = parse(tts);
-            if let Gtk(ref mut widget) = widget {
+            if let Gtk(ref mut widget) = widget.widget {
                 widget.relm_name = Some(typ.clone());
             }
-            self.widget_data = widget.data().map(Clone::clone);
+            self.widget_data = widget.data.clone();
             let mut properties_model_map = HashMap::new();
             get_properties_model_map(&widget, &mut properties_model_map);
             self.add_widgets(&widget, &properties_model_map);
@@ -442,7 +442,7 @@ fn get_phantom_field(typ: &Ty) -> Tokens {
 macro_rules! get_map {
     ($widget:expr, $map:expr, $is_relm:expr) => {{
         for (name, value) in &$widget.properties {
-            let string = value.parse::<String>().expect("parse::<String>() in get_map!");
+            let string: String = value.parse().expect("parse::<String>() in get_map!");
             let expr = parse_expr(&string).expect("parse_expr in get_map!");
             let mut visitor = ModelVariableVisitor::new();
             visitor.visit_expr(&expr);
@@ -467,9 +467,9 @@ macro_rules! get_map {
  * The map maps model variable name to a vector of tuples (widget name, property name).
  */
 fn get_properties_model_map(widget: &Widget, map: &mut PropertyModelMap) {
-    match *widget {
-        Gtk(ref widget) => get_map!(widget, map, false),
-        Relm(ref widget) => get_map!(widget, map, true),
+    match widget.widget {
+        Gtk(_) => get_map!(widget, map, false),
+        Relm(_) => get_map!(widget, map, true),
     }
 }
 
@@ -492,10 +492,6 @@ fn get_second_param_type(sig: &MethodSig) -> Ty {
 }
 
 fn gen_set_child_prop_calls(widget: &Widget) -> Option<ImplItem> {
-    let widget = match *widget {
-        Gtk(ref gtk_widget) => gtk_widget,
-        Relm(_) => return None,
-    };
     let mut tokens = Tokens::new();
     let widget_name = &widget.name;
     for (key, value) in &widget.child_properties {

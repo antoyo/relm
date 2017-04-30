@@ -37,7 +37,8 @@
 //! More info can be found in the [readme](https://github.com/antoyo/relm#relm).
 
 #![cfg_attr(feature = "use_impl_trait", feature(conservative_impl_trait))]
-#![warn(missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces, unused_qualifications, unused_results)]
+#![warn(missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces,
+        unused_qualifications, unused_results)]
 
 /*
  * TODO: look at how Elm works with the <canvas> element.
@@ -74,7 +75,8 @@
  * returned from the update() function and these futures will then be added to the tokio loop (that
  * probably requires boxing the futures, which we want to avoid).
  * TODO: should have a free function to delete the stream in connect_recv.
- * TODO: automatically create the update_command() function from the events present in the view (or by splitting the update() fucntion).
+ * TODO: automatically create the update_command() function from the events present in the view
+ * (or by splitting the update() fucntion).
  * TODO: try tk-easyloop in another branch.
  */
 
@@ -184,7 +186,8 @@ macro_rules! use_impl_self_type {
     };
 }
 
-/// Handle connection of futures to send messages to the [`update()`](trait.Widget.html#tymethod.update) and [`update_command()`](trait.Widget.html#method.update_command) methods.
+/// Handle connection of futures to send messages to the [`update()`](trait.Widget.html#tymethod.update) and
+/// [`update_command()`](trait.Widget.html#method.update_command) methods.
 pub struct Relm<MSG: Clone + DisplayVariant> {
     handle: Handle,
     stream: EventStream<MSG>,
@@ -192,7 +195,8 @@ pub struct Relm<MSG: Clone + DisplayVariant> {
 
 impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
     #[cfg(feature = "use_impl_trait")]
-    pub fn connect<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK, failure_callback: FAILCALLBACK) -> impl Future<Item=(), Error=()>
+    pub fn connect<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM,
+            success_callback: CALLBACK, failure_callback: FAILCALLBACK) -> impl Future<Item=(), Error=()>
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               FAILCALLBACK: Fn(STREAM::Error) -> MSG + 'static,
               STREAM: Stream + 'static,
@@ -207,13 +211,15 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
     ///
     /// ## Note
     /// This function does not spawn the future.
-    /// You'll usually want to use [`Relm::connect_exec()`](struct.Relm.html#method.connect_exec) to both connect and spawn the future.
+    /// You'll usually want to use [`Relm::connect_exec()`](struct.Relm.html#method.connect_exec) to both connect and
+    /// spawn the future.
     ///
     /// ## Warning
     /// This function **must** be executed of the tokio thread, i.e. in the
     /// [`subscriptions()`](trait.Widget.html#method.subscriptions) or
     /// [`update_command()`](trait.Widget.html#method.update_command) methods.
-    pub fn connect<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK, failure_callback: FAILCALLBACK) -> Box<Future<Item=(), Error=()>>
+    pub fn connect<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK,
+            failure_callback: FAILCALLBACK) -> Box<Future<Item=(), Error=()>>
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               FAILCALLBACK: Fn(STREAM::Error) -> MSG + 'static,
               STREAM: Stream + 'static,
@@ -224,7 +230,8 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
     }
 
     #[cfg(feature = "use_impl_trait")]
-    pub fn connect_ignore_err<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK) -> impl Future<Item=(), Error=()>
+    pub fn connect_ignore_err<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK)
+            -> impl Future<Item=(), Error=()>
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               STREAM: Stream + 'static,
               TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
@@ -240,7 +247,8 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
     /// This function **must** be executed of the tokio thread, i.e. in the
     /// [`subscriptions()`](trait.Widget.html#method.subscriptions) or
     /// [`update_command()`](trait.Widget.html#method.update_command) methods.
-    pub fn connect_ignore_err<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK) -> Box<Future<Item=(), Error=()>>
+    pub fn connect_ignore_err<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK) ->
+            Box<Future<Item=(), Error=()>>
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               STREAM: Stream + 'static,
               TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
@@ -254,7 +262,8 @@ impl<MSG: Clone + DisplayVariant + Send + 'static> Relm<MSG> {
     /// This function **must** be executed of the tokio thread, i.e. in the
     /// [`subscriptions()`](trait.Widget.html#method.subscriptions) or
     /// [`update_command()`](trait.Widget.html#method.update_command) methods.
-    pub fn connect_exec<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK, failure_callback: FAILCALLBACK)
+    pub fn connect_exec<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, callback: CALLBACK,
+            failure_callback: FAILCALLBACK)
         where CALLBACK: Fn(STREAM::Item) -> MSG + 'static,
               FAILCALLBACK: Fn(STREAM::Error) -> MSG + 'static,
               STREAM: Stream + 'static,

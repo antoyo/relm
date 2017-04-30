@@ -36,6 +36,7 @@ use gtk::{
 };
 use gtk::Orientation::{Horizontal, Vertical};
 use relm::Widget;
+use relm::gtk_ext::BoxExtManual;
 use relm_attributes::widget;
 
 use self::Msg::*;
@@ -111,6 +112,9 @@ impl Widget for SplitBox {
             },
             #[container="right"]
             MyFrame {
+                packing: {
+                    padding: 10,
+                },
             }
         }
     }

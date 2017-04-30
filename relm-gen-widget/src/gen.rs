@@ -27,7 +27,7 @@ use syn::{Generics, Ident, Path, Ty, parse_path};
 use parser::{GtkWidget, RelmWidget, Widget};
 use parser::EventValue::{CurrentWidget, ForeignWidget};
 use parser::EventValueReturn::{CallReturn, Return, WithoutReturn};
-use parser::Widget::{Gtk, Relm};
+use parser::EitherWidget::{Gtk, Relm};
 use super::{Driver, get_generic_types};
 
 use self::WidgetType::*;
@@ -86,7 +86,8 @@ pub fn gen(name: &Ident, typ: &Ty, widget: &Widget, driver: &mut Driver) -> (Tok
     let idents: Vec<_> = driver.widgets.keys().collect();
     let root_widget_name = &driver.root_widget.as_ref().expect("root_widget is None");
     let widget_names1: Vec<_> = generator.widget_names.iter()
-        .filter(|ident| (idents.contains(ident) || generator.relm_widgets.contains_key(ident)) && ident != root_widget_name)
+        .filter(|ident| (idents.contains(ident) || generator.relm_widgets.contains_key(ident))
+                && ident != root_widget_name)
         .collect();
     let widget_names1 = &widget_names1;
     let widget_names2 = widget_names1;
@@ -126,7 +127,9 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn add_child_or_show_all(&mut self, widget: &GtkWidget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Tokens {
+    fn add_child_or_show_all(&mut self, widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType)
+        -> Tokens
+    {
         let widget_name = &widget.name;
         if let Some(name) = parent {
             if parent_widget_type == IsGtk {
@@ -141,7 +144,7 @@ impl<'a> Generator<'a> {
             }
         }
         else {
-            let struct_name = &widget.gtk_type;
+            let struct_name = &widget.typ;
             let driver = self.driver.as_mut().expect("driver");
             driver.root_widget_type = Some(quote! {
                 #struct_name
@@ -156,15 +159,15 @@ impl<'a> Generator<'a> {
     }
 
     fn add_or_create_widget(&mut self, parent: Option<&Ident>, parent_widget_type: WidgetType, widget_name: &Ident,
-        widget_type_ident: &Path, model_parameters: Option<&Vec<Tokens>>) -> Tokens
+        widget_type_ident: &Path, init_parameters: &[Tokens]) -> Tokens
     {
-        let model_parameters = gen_model_param(model_parameters);
+        let init_parameters = gen_model_param(init_parameters);
         if let Some(parent) = parent {
             if parent_widget_type == IsGtk {
                 quote! {
                     let #widget_name = {
                         ::relm::ContainerWidget::add_widget::<#widget_type_ident, _>(&#parent, &relm,
-                            #model_parameters)
+                            #init_parameters)
                     };
                 }
             }
@@ -172,7 +175,7 @@ impl<'a> Generator<'a> {
                 quote! {
                     let #widget_name = {
                         ::relm::RelmContainer::add_widget::<#widget_type_ident, _>(&#parent, &relm,
-                            #model_parameters)
+                            #init_parameters)
                     };
                 }
             }
@@ -188,15 +191,15 @@ impl<'a> Generator<'a> {
             });
             quote! {
                 let #widget_name = {
-                    ::relm::create_component::<#widget_type_ident, _>(&relm, #model_parameters)
+                    ::relm::create_component::<#widget_type_ident, _>(&relm, #init_parameters)
                 };
             }
         }
     }
 
-    fn collect_events(&mut self, widget: &GtkWidget) {
+    fn collect_events(&mut self, widget: &Widget, gtk_widget: &GtkWidget) {
         let widget_name = &widget.name;
-        for (name, event) in &widget.events {
+        for (name, event) in &gtk_widget.events {
             let event_ident = Ident::new(format!("connect_{}", name));
             let event_params: Vec<_> = event.params.iter().map(|ident| Ident::new(ident.as_ref())).collect();
             let event_model_ident =
@@ -230,9 +233,9 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn collect_relm_events(&mut self, widget: &RelmWidget) {
+    fn collect_relm_events(&mut self, widget: &Widget, relm_widget: &RelmWidget) {
         let widget_name = &widget.name;
-        for (name, widget_events) in &widget.events {
+        for (name, widget_events) in &relm_widget.events {
             let event_ident = Ident::new(name.as_ref());
             for event in widget_events {
                 let params =
@@ -240,7 +243,9 @@ impl<'a> Generator<'a> {
                         quote! {}
                     }
                     else {
-                        let event_params: Vec<_> = event.params.iter().map(|ident| Ident::new(ident.as_ref())).collect();
+                        let event_params: Vec<_> = event.params.iter()
+                            .map(|ident| Ident::new(ident.as_ref()))
+                            .collect();
                         quote! {
                             (#(#event_params),*)
                         }
@@ -253,25 +258,28 @@ impl<'a> Generator<'a> {
                         ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {
                             connect!(#widget_name@#event_ident #params, #foreign_widget_name, #event_value);
                         },
-                        CurrentWidget(Return(_, _)) | CurrentWidget(CallReturn(_)) | ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
+                        CurrentWidget(Return(_, _)) | CurrentWidget(CallReturn(_)) | ForeignWidget(_, Return(_, _)) |
+                            ForeignWidget(_, CallReturn(_)) => unreachable!(),
                     };
                 self.events.push(connect);
             }
         }
     }
 
-    fn gtk_widget(&mut self, widget: &GtkWidget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Tokens {
-        let struct_name = &widget.gtk_type;
+    fn gtk_widget(&mut self, widget: &Widget, gtk_widget: &GtkWidget, parent: Option<&Ident>,
+        parent_widget_type: WidgetType) -> Tokens
+    {
+        let struct_name = &widget.typ;
         let widget_name = &widget.name;
         set_container!(self, widget, widget_name, struct_name);
         self.widget_names.push(widget_name.clone());
 
-        if widget.save {
+        if gtk_widget.save {
             self.relm_widgets.insert(widget_name.clone(), struct_name.clone());
         }
 
         let construct_widget = gen_construct_widget(widget);
-        self.collect_events(widget);
+        self.collect_events(widget, gtk_widget);
 
         let children: Vec<_> = widget.children.iter()
             .map(|child| self.widget(child, Some(widget_name), IsGtk))
@@ -280,7 +288,7 @@ impl<'a> Generator<'a> {
         let add_child_or_show_all = self.add_child_or_show_all(widget, parent, parent_widget_type);
         let ident = quote! { #widget_name };
         let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
-        let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type);
+        let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type, IsGtk);
 
         quote! {
             let #widget_name: #struct_name = #construct_widget;
@@ -293,15 +301,17 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn relm_widget(&mut self, widget: &RelmWidget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Tokens {
+    fn relm_widget(&mut self, widget: &Widget, relm_widget: &RelmWidget, parent: Option<&Ident>,
+        parent_widget_type: WidgetType) -> Tokens
+    {
         self.widget_names.push(widget.name.clone());
         let widget_name = &widget.name;
-        let widget_type_ident = &widget.relm_type;
+        let widget_type_ident = &widget.typ;
         set_container!(self, widget, widget_name, widget_type_ident);
-        let relm_component_type = gen_relm_component_type(&widget.relm_type);
+        let relm_component_type = gen_relm_component_type(widget_type_ident);
         self.relm_widgets.insert(widget.name.clone(), relm_component_type);
 
-        self.collect_relm_events(widget);
+        self.collect_relm_events(widget, relm_widget);
 
         let children: Vec<_> = widget.children.iter()
             .map(|child| self.widget(child, Some(widget_name), IsRelm))
@@ -310,26 +320,28 @@ impl<'a> Generator<'a> {
         let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
 
         let add_or_create_widget = self.add_or_create_widget(
-            parent, parent_widget_type, widget_name, widget_type_ident, widget.model_parameters.as_ref());
+            parent, parent_widget_type, widget_name, widget_type_ident, &widget.init_parameters);
+        let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type, IsRelm);
 
         quote! {
             #add_or_create_widget
             #(#properties)*
             #(#visible_properties)*
             #(#children)*
+            #(#child_properties)*
         }
     }
 
     fn widget(&mut self, widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Tokens {
-        match *widget {
-            Gtk(ref gtk_widget) => self.gtk_widget(gtk_widget, parent, parent_widget_type),
-            Relm(ref relm_widget) => self.relm_widget(relm_widget, parent, parent_widget_type),
+        match widget.widget {
+            Gtk(ref gtk_widget) => self.gtk_widget(widget, gtk_widget, parent, parent_widget_type),
+            Relm(ref relm_widget) => self.relm_widget(widget, relm_widget, parent, parent_widget_type),
         }
     }
 }
 
-fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
-    let struct_name = &widget.gtk_type;
+fn gen_construct_widget(widget: &Widget) -> Tokens {
+    let struct_name = &widget.typ;
 
     let params = &widget.init_parameters;
 
@@ -352,15 +364,15 @@ fn gen_construct_widget(widget: &GtkWidget) -> Tokens {
 }
 
 fn gen_widget_type(widget: &Widget) -> Tokens {
-    match *widget {
+    match widget.widget {
         Gtk(ref gtk_widget) => {
             let ident = gtk_widget.relm_name.as_ref().unwrap();
             quote! {
                 #ident
             }
         },
-        Relm(ref relm_widget) => {
-            let path = &relm_widget.relm_type;
+        Relm(_) => {
+            let path = &widget.typ;
             quote! {
                 #path
             }
@@ -462,16 +474,9 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
     }
 }
 
-fn gen_model_param(model_parameters: Option<&Vec<Tokens>>) -> Tokens {
-    if let Some(model_parameters) = model_parameters {
-        quote! {
-            (#(#model_parameters),*)
-        }
-    }
-    else {
-        quote! {
-            ()
-        }
+fn gen_model_param(init_parameters: &[Tokens]) -> Tokens {
+    quote! {
+        (#(#init_parameters),*)
     }
 }
 
@@ -500,7 +505,9 @@ fn gen_relm_component_type(name: &Path) -> Path {
     parse_path(tokens.as_str()).expect("gen_relm_component_type is a Path")
 }
 
-fn gen_set_child_prop_calls(widget: &GtkWidget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Vec<Tokens> {
+fn gen_set_child_prop_calls(widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType,
+    widget_type: WidgetType) -> Vec<Tokens>
+{
     let widget_name = &widget.name;
     let mut child_properties = vec![];
     if let Some(parent) = parent {
@@ -517,9 +524,18 @@ fn gen_set_child_prop_calls(widget: &GtkWidget, parent: Option<&Ident>, parent_w
                         ::relm::Container::container(#parent.widget())
                     }
                 };
-            child_properties.push(quote! {
-                #parent.#property_func(&#widget_name, #value);
-            });
+            let call =
+                if widget_type == IsGtk {
+                    quote! {
+                        #parent.#property_func(&#widget_name, #value);
+                    }
+                }
+                else {
+                    quote! {
+                        #parent.#property_func(#widget_name.widget().root(), #value);
+                    }
+                };
+            child_properties.push(call);
         }
     }
     child_properties
