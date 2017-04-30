@@ -384,7 +384,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
     if container_names.len() > 1 {
         let mut default_container = Tokens::new();
         let mut other_containers = Tokens::new();
-        for (data, &(ref name, ref typ)) in container_names {
+        for (parent_id, &(ref name, ref typ)) in container_names {
             let first_type_part = &typ.segments.first().expect("first segment").ident;
             let (container_trait, upcast_container) =
                 if first_type_part == "gtk" {
@@ -401,7 +401,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                         ::relm::Cast::upcast(self.#name.widget().root().clone())
                     })
                 };
-            if data.is_none() {
+            if parent_id.is_none() {
                 default_container = quote! {
                     #container_trait::add(&self.#name, widget.root());
                     #upcast_container
@@ -410,7 +410,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
             else {
                 if other_containers.as_str().is_empty() {
                     other_containers = quote! {
-                        if WIDGET::data() == Some(#data) {
+                        if WIDGET::parent_id() == Some(#parent_id) {
                             #container_trait::add(&self.#name, widget.root());
                             #upcast_container
                         }
@@ -419,7 +419,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                 else {
                     other_containers = quote! {
                         #other_containers
-                        else if WIDGET::data() == Some(#data) {
+                        else if WIDGET::parent_id() == Some(#parent_id) {
                             #container_trait::add(&self.#name, widget.root());
                             #upcast_container
                         }

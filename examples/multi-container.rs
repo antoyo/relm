@@ -53,11 +53,11 @@ impl Widget for CenterButton {
     type Msg = ();
     type Root = gtk::Button;
 
-    fn data() -> Option<&'static str> {
-        Some("center")
+    fn model(_: ()) -> () {
     }
 
-    fn model(_: ()) -> () {
+    fn parent_id() -> Option<&'static str> {
+        Some("center")
     }
 
     fn root(&self) -> &Self::Root {
@@ -86,11 +86,11 @@ impl Widget for Button {
     type Msg = ();
     type Root = gtk::Button;
 
-    fn data() -> Option<&'static str> {
-        Some("right")
+    fn model(_: ()) -> () {
     }
 
-    fn model(_: ()) -> () {
+    fn parent_id() -> Option<&'static str> {
+        Some("right")
     }
 
     fn root(&self) -> &Self::Root {
@@ -161,11 +161,11 @@ impl Container for SplitBox {
     }
 
     fn add_widget<WIDGET: Widget>(&self, widget: &WIDGET) -> gtk::Container {
-        if WIDGET::data() == Some("right") {
+        if WIDGET::parent_id() == Some("right") {
             self.hbox3.add(widget.root());
             self.hbox3.widget().root().clone().upcast()
         }
-        else if WIDGET::data() == Some("center") {
+        else if WIDGET::parent_id() == Some("center") {
             self.hbox2.add(widget.root());
             self.hbox2.clone().upcast()
         }

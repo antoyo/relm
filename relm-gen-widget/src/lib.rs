@@ -85,9 +85,9 @@ pub struct Driver {
     root_widget_type: Option<Tokens>,
     update_method: Option<ImplItem>,
     view_macro: Option<Mac>,
-    widget_data: Option<String>,
     widget_model_type: Option<Ty>,
     widget_msg_type: Option<Ty>,
+    widget_parent_id: Option<String>,
     widgets: HashMap<Ident, Tokens>, // Map widget ident to widget type.
 }
 
@@ -115,9 +115,9 @@ impl Driver {
             root_widget_type: None,
             update_method: None,
             view_macro: None,
-            widget_data: None,
             widget_model_type: None,
             widget_msg_type: None,
+            widget_parent_id: None,
             widgets: HashMap::new(),
         }
     }
@@ -175,7 +175,7 @@ impl Driver {
                     Macro(mac) => self.view_macro = Some(mac),
                     Method(sig, _) => {
                         match item.ident.to_string().as_ref() {
-                            "data" => self.data_method = Some(i),
+                            "parent_id" => self.data_method = Some(i),
                             "root" => self.root_method = Some(i),
                             "model" => {
                                 self.widget_model_type = Some(get_return_type(sig));
@@ -235,10 +235,10 @@ impl Driver {
 
     fn get_data_method(&mut self) -> Option<ImplItem> {
         self.data_method.take().or_else(|| {
-            if let Some(ref data) = self.widget_data {
+            if let Some(ref parent_id) = self.widget_parent_id {
                 Some(block_to_impl_item(quote! {
-                    fn data() -> Option<&'static str> {
-                        Some(#data)
+                    fn parent_id() -> Option<&'static str> {
+                        Some(#parent_id)
                     }
                 }))
             }
@@ -325,7 +325,7 @@ impl Driver {
             if let Gtk(ref mut widget) = widget.widget {
                 widget.relm_name = Some(typ.clone());
             }
-            self.widget_data = widget.data.clone();
+            self.widget_parent_id = widget.parent_id.clone();
             let mut properties_model_map = HashMap::new();
             get_properties_model_map(&widget, &mut properties_model_map);
             self.add_widgets(&widget, &properties_model_map);

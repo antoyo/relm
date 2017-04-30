@@ -65,7 +65,7 @@ impl Widget for CenterButton {
     }
 
     view! {
-        #[data="center"]
+        #[parent="center"]
         gtk::Button {
             label: "-",
         },
@@ -81,7 +81,7 @@ impl Widget for Button {
     }
 
     view! {
-        #[data="right"]
+        #[parent="right"]
         gtk::Button {
             label: "+",
         },
@@ -105,7 +105,7 @@ impl Widget for SplitBox {
             gtk::Box {
                 orientation: Vertical,
             },
-            // Specify where the widgets will be added in this container when the child's data is
+            // Specify where the widgets will be added in this container when the child's parent id is
             // "center".
             #[container="center"]
             gtk::Frame {

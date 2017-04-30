@@ -83,9 +83,9 @@ pub struct Widget {
     pub child_properties: HashMap<String, Tokens>,
     pub children: Vec<Widget>,
     pub container_type: Option<Option<String>>,
-    pub data: Option<String>,
     pub init_parameters: Vec<Tokens>,
     pub name: syn::Ident,
+    pub parent_id: Option<String>,
     pub properties: HashMap<String, Tokens>,
     pub typ: Path,
     pub widget: EitherWidget,
@@ -100,9 +100,9 @@ impl Widget {
             child_properties,
             children,
             container_type: None,
-            data: None,
             init_parameters,
             name: syn::Ident::new(name),
+            parent_id: None,
             properties,
             typ,
             widget: Gtk(widget),
@@ -121,9 +121,9 @@ impl Widget {
             child_properties,
             children,
             container_type: None,
-            data: None,
             init_parameters,
             name: syn::Ident::new(name),
+            parent_id: None,
             properties,
             typ,
             widget: Relm(widget),
@@ -202,8 +202,8 @@ pub fn parse(tokens: &[TokenTree]) -> Widget {
         else {
             tokens.to_vec()
         };
-    let (mut widget, _, data) = parse_child(&tokens);
-    widget.data = data;
+    let (mut widget, _, parent_id) = parse_child(&tokens);
+    widget.parent_id = parent_id;
     widget
 }
 
@@ -274,8 +274,8 @@ fn parse_child(mut tokens: &[TokenTree]) -> (Widget, &[TokenTree], Option<String
         widget.name = syn::Ident::new(name);
     }
     widget.container_type = container_type;
-    let data = attributes.get("data").and_then(|opt_str| opt_str.map(str::to_string));
-    (widget, new_tokens, data)
+    let parent_id = attributes.get("parent").and_then(|opt_str| opt_str.map(str::to_string));
+    (widget, new_tokens, parent_id)
 }
 
 fn parse_ident(tokens: &[TokenTree]) -> (String, &[TokenTree]) {
