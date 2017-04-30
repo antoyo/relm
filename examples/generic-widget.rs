@@ -46,12 +46,17 @@ use self::Msg::*;
 
 trait IncDec {
     fn dec(&mut self);
+    fn identity() -> Self;
     fn inc(&mut self);
 }
 
 impl IncDec for i32 {
     fn dec(&mut self) {
         *self -= 1;
+    }
+
+    fn identity() -> Self {
+        1
     }
 
     fn inc(&mut self) {
@@ -65,9 +70,9 @@ struct Model<T> {
 }
 
 #[derive(Msg)]
-enum CounterMsg {
+enum CounterMsg<T> {
     Decrement,
-    Increment,
+    Increment(T),
 }
 
 #[derive(Clone)]
@@ -77,10 +82,10 @@ struct Counter<T> {
     _phantom: PhantomData<T>,
 }
 
-impl<T: Clone + IncDec + Display> Widget for Counter<T> {
+impl<T: Clone + IncDec + Display + 'static> Widget for Counter<T> {
     type Model = Model<T>;
     type ModelParam = T;
-    type Msg = CounterMsg;
+    type Msg = CounterMsg<T>;
     type Root = gtk::Box;
 
     fn model(value: T) -> Self::Model {
@@ -93,7 +98,7 @@ impl<T: Clone + IncDec + Display> Widget for Counter<T> {
         &self.vbox
     }
 
-    fn update(&mut self, event: CounterMsg, model: &mut Self::Model) {
+    fn update(&mut self, event: CounterMsg<T>, model: &mut Self::Model) {
         let label = &self.counter_label;
 
         match event {
@@ -101,7 +106,7 @@ impl<T: Clone + IncDec + Display> Widget for Counter<T> {
                 model.counter.dec();
                 label.set_text(&model.counter.to_string());
             },
-            Increment => {
+            Increment(_) => {
                 model.counter.inc();
                 label.set_text(&model.counter.to_string());
             },
@@ -120,7 +125,7 @@ impl<T: Clone + IncDec + Display> Widget for Counter<T> {
         let minus_button = Button::new_with_label("-");
         vbox.add(&minus_button);
 
-        connect!(relm, plus_button, connect_clicked(_), Increment);
+        connect!(relm, plus_button, connect_clicked(_), Increment(T::identity()));
         connect!(relm, minus_button, connect_clicked(_), Decrement);
 
         Counter {

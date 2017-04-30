@@ -21,14 +21,18 @@ use syn::{
     Ident,
     Item,
     MacroInput,
+    PolyTraitRef,
+    TraitBoundModifier,
     Variant,
     VariantData,
     parse_item,
     parse_macro_input,
+    parse_path,
 };
 use syn::ItemKind::Struct;
 use syn::TokenTree::Delimited;
 use syn::Ty::Mac;
+use syn::TyParamBound::Trait;
 
 #[proc_macro_derive(SimpleMsg)]
 pub fn simple_msg(input: TokenStream) -> TokenStream {
@@ -107,13 +111,13 @@ fn derive_clone(ast: &MacroInput) -> Tokens {
     };
 
     match ast.body {
-        Body::Enum(ref variants) => derive_clone_enum(name, typ, generics, variants),
-        Body::Struct(VariantData::Struct(ref fields)) => derive_clone_struct(name, typ, generics, fields),
+        Body::Enum(ref variants) => derive_clone_enum(name, typ, ast.generics.clone(), variants),
+        Body::Struct(VariantData::Struct(ref fields)) => derive_clone_struct(name, typ, &ast.generics, fields),
         _ => panic!("Expected enum or struct"),
     }
 }
 
-fn derive_clone_enum(name: &Ident, typ: Tokens, generics: &Generics, variants: &[Variant]) -> Tokens {
+fn derive_clone_enum(name: &Ident, typ: Tokens, mut generics: Generics, variants: &[Variant]) -> Tokens {
     let variant_idents_values: Vec<_> = variants.iter().map(|variant| {
         let has_value =
             if let VariantData::Tuple(_) = variant.data {
@@ -149,6 +153,19 @@ fn derive_clone_enum(name: &Ident, typ: Tokens, generics: &Generics, variants: &
         }
     });
 
+    let path = quote! {
+        Clone
+    };
+    let path = parse_path(path.as_str()).expect("Clone is a path");
+    if let Some(param) = generics.ty_params.get_mut(0) {
+        param.bounds = vec![
+            Trait(PolyTraitRef {
+                bound_lifetimes: vec![],
+                trait_ref: path,
+            }, TraitBoundModifier::None)
+        ];
+    }
+
     quote! {
         impl #generics Clone for #typ {
             fn clone(&self) -> Self {
@@ -176,7 +193,11 @@ fn derive_clone_struct(name: &Ident, typ: Tokens, generics: &Generics, fields: &
 }
 
 fn derive_display_variant(ast: &MacroInput) -> Tokens {
+    let generics = &ast.generics;
     let name = &ast.ident;
+    let typ = quote! {
+        #name #generics
+    };
 
     if let Body::Enum(ref variants) = ast.body {
         let variant_idents_values: Vec<_> = variants.iter().map(|variant| {
@@ -206,7 +227,7 @@ fn derive_display_variant(ast: &MacroInput) -> Tokens {
         });
 
         quote! {
-            impl ::relm::DisplayVariant for #name {
+            impl #generics ::relm::DisplayVariant for #typ {
                 fn display_variant(&self) -> &'static str {
                     match *self {
                         #(#variant_patterns => #variant_names,)*
