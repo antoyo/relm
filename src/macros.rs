@@ -92,6 +92,24 @@ macro_rules! connect {
     }};
 
     // Connect to a message reception.
+    // This variant also give you a model so that you can call a function that will use and mutate
+    // it.
+    ($relm:expr, $src_component:ident @ $message:pat, $dst_component:ident, with $model:ident $msg:expr) => {
+        let $model = $relm.model().clone();
+        let stream = $dst_component.stream().clone();
+        $src_component.stream().observe(move |msg| {
+            #[allow(unreachable_patterns)]
+            match msg {
+                $message =>  {
+                    let $model = &mut *$model.borrow_mut();
+                    stream.emit($msg);
+                },
+                _ => (),
+            }
+        });
+    };
+
+    // Connect to a message reception.
     // TODO: create another macro rule accepting multiple patterns.
     ($src_component:ident @ $message:pat, $dst_component:ident, $msg:expr) => {
         let stream = $dst_component.stream().clone();

@@ -170,7 +170,7 @@ impl Widget for Win {
                 Counter,
                 Text {
                     Change(_) => counter1@self.inc(),
-                    Change(text) => self.text_change(text),
+                    Change(text) with model => self.text_change(text, model),
                 },
                 gtk::Label {
                     text: &model.counter.to_string(),
@@ -186,7 +186,7 @@ impl Win {
         Increment
     }
 
-    fn text_change(&self, input: String) -> Msg {
+    fn text_change(&self, input: String, _model: &mut Model) -> Msg {
         TextChange(input)
     }
 }

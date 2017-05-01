@@ -246,7 +246,7 @@ impl Widget for Win {
         };
 
         connect!(text@Change(text), relm, TextChange(text));
-        connect!(text@Change(_), counter1, win.inc());
+        connect!(relm, text@Change(_), counter1, with model win.inc(model));
         connect!(counter1@Increment, counter2, Decrement);
         connect!(button, connect_clicked(_), counter1, Decrement);
 
@@ -267,7 +267,7 @@ impl Widget for Win {
 }
 
 impl Win {
-    fn inc(&self) -> CounterMsg {
+    fn inc(&self, _model: &mut Model) -> CounterMsg {
         Increment
     }
 }
