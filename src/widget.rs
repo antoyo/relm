@@ -68,9 +68,8 @@ pub trait Widget
     /// Create the window from this widget and start the main loop.
     fn run(model_param: Self::ModelParam) -> Result<(), ()>
         where Self: 'static,
-              Self::Model: Clone + Send,
+              Self::Model: Clone,
               Self::ModelParam: Default,
-              Self::Msg: Send,
     {
         run::<Self>(model_param)
     }

@@ -219,21 +219,7 @@ impl<'a> Generator<'a> {
                     quote! {
                     }
                 };
-            let clone_ident = Ident::new(RELM_WIDGET_CLONE_IDENT);
-            let self_ident = Ident::new(RELM_WIDGET_SELF_IDENT);
-            let (self_ident, clone) =
-                if gtk_widget.save {
-                    (quote! {
-                        #self_ident .
-                    }, quote! {
-                        let #clone_ident = ::relm::ManuallyDrop::new(#self_ident.clone());
-                    })
-                }
-                else {
-                    (quote! {
-                    }, quote! {
-                    })
-                };
+            let (self_ident, clone) = gen_self_and_clone(gtk_widget.save);
             let connect =
                 match event.value {
                     CurrentWidget(WithoutReturn(ref event_value)) => quote! {
@@ -276,12 +262,15 @@ impl<'a> Generator<'a> {
                             (#(#event_params),*)
                         }
                     };
+                let (_, clone) = gen_self_and_clone(true);
                 let connect =
                     match event.value {
                         CurrentWidget(WithoutReturn(ref event_value)) => quote! {
+                            #clone
                             connect!(#widget_name@#event_ident #params, relm, #event_value);
                         },
                         ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {
+                            #clone
                             connect!(#widget_name@#event_ident #params, #foreign_widget_name, #event_value);
                         },
                         CurrentWidget(Return(_, _)) | CurrentWidget(CallReturn(_)) | ForeignWidget(_, Return(_, _)) |
@@ -386,6 +375,23 @@ fn gen_construct_widget(widget: &Widget) -> Tokens {
         quote! {
             #struct_name::new(#(#params),*)
         }
+    }
+}
+
+fn gen_self_and_clone(save: bool) -> (Tokens, Tokens) {
+    let clone_ident = Ident::new(RELM_WIDGET_CLONE_IDENT);
+    let self_ident = Ident::new(RELM_WIDGET_SELF_IDENT);
+    if save {
+        (quote! {
+            #self_ident .
+        }, quote! {
+            let #clone_ident = ::relm::ManuallyDrop::new(#self_ident.clone());
+        })
+    }
+    else {
+        (quote! {
+        }, quote! {
+        })
     }
 }
 

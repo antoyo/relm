@@ -169,8 +169,8 @@ impl Widget for Win {
                 #[name="counter2"]
                 Counter,
                 Text {
-                    Change(_) => counter1@Increment,
-                    Change(text) => TextChange(text),
+                    Change(_) => counter1@self.inc(),
+                    Change(text) => self.text_change(text),
                 },
                 gtk::Label {
                     text: &model.counter.to_string(),
@@ -178,6 +178,16 @@ impl Widget for Win {
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
         }
+    }
+}
+
+impl Win {
+    fn inc(&self) -> CounterMsg {
+        Increment
+    }
+
+    fn text_change(&self, input: String) -> Msg {
+        TextChange(input)
     }
 }
 

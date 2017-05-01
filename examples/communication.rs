@@ -230,16 +230,25 @@ impl Widget for Win {
         let button = Button::new_with_label("Decrement");
         hbox.add(&button);
 
+        let label = Label::new(None);
+
         let counter1 = hbox.add_widget::<Counter, _>(&relm, ());
         let counter2 = hbox.add_widget::<Counter, _>(&relm, ());
         let text = hbox.add_widget::<Text, _>(&relm, ());
+        hbox.add(&label);
+
+        let win = Win {
+            _counter1: counter1.clone(),
+            _counter2: counter2.clone(),
+            label: label.clone(),
+            _text: text.clone(),
+            window: window.clone(),
+        };
+
         connect!(text@Change(text), relm, TextChange(text));
-        connect!(text@Change(_), counter1, Increment);
+        connect!(text@Change(_), counter1, win.inc());
         connect!(counter1@Increment, counter2, Decrement);
         connect!(button, connect_clicked(_), counter1, Decrement);
-
-        let label = Label::new(None);
-        hbox.add(&label);
 
         window.add(&hbox);
 
@@ -254,6 +263,12 @@ impl Widget for Win {
             _text: text,
             window: window,
         }
+    }
+}
+
+impl Win {
+    fn inc(&self) -> CounterMsg {
+        Increment
     }
 }
 
