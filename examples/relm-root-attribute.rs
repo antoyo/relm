@@ -45,7 +45,7 @@ impl Widget for Button {
     fn model() -> () {
     }
 
-    fn update(&mut self, _msg: (), _model: &mut ()) {
+    fn update(&mut self, _msg: ()) {
     }
 
     view! {
@@ -61,7 +61,7 @@ impl Widget for VBox {
         ()
     }
 
-    fn update(&mut self, _event: Msg, _model: &mut ()) {
+    fn update(&mut self, _event: Msg) {
     }
 
     view! {
@@ -79,7 +79,7 @@ impl Widget for MyVBox {
     fn model() -> () {
     }
 
-    fn update(&mut self, _event: (), _model: &mut ()) {
+    fn update(&mut self, _event: ()) {
     }
 
     view! {
@@ -109,7 +109,7 @@ impl Widget for Win {
     fn model() -> () {
     }
 
-    fn update(&mut self, event: Msg, _model: &mut ()) {
+    fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }

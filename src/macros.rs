@@ -60,12 +60,11 @@ macro_rules! connect {
     // Option<MSG> can be None if no message needs to be emitted.
     // This variant also give you a model so that you can call a function that will use and mutate
     // it.
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*) with $model:ident $msg:expr) => {{
-        let $model = $relm.model().clone();
-
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*) with $widget_clone:ident $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
-            let $model = &mut *$model.lock().unwrap();
+            let $widget_clone = $widget_clone.upgrade().expect("upgrade should always work");
+            let $widget_clone = $widget_clone.borrow();
             let (msg, return_value) = $msg;
             let msg: Option<_> = msg.into();
             if let Some(msg) = msg {
@@ -94,14 +93,14 @@ macro_rules! connect {
     // Connect to a message reception.
     // This variant also give you a model so that you can call a function that will use and mutate
     // it.
-    ($relm:expr, $src_component:ident @ $message:pat, $dst_component:ident, with $model:ident $msg:expr) => {
-        let $model = $relm.model().clone();
+    ($src_component:ident @ $message:pat, $dst_component:ident, with $widget:ident $msg:expr) => {
         let stream = $dst_component.stream().clone();
         $src_component.stream().observe(move |msg| {
             #[allow(unreachable_patterns)]
             match msg {
                 $message =>  {
-                    let $model = &mut *$model.borrow_mut();
+                    let $widget = $widget.upgrade().expect("upgrade should always work");
+                    let $widget = $widget.borrow();
                     stream.emit($msg);
                 },
                 _ => (),

@@ -62,10 +62,10 @@ impl Widget for Win {
         }
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Decrement => model.counter -= 1,
-            Increment => model.counter += 1,
+            Decrement => self.model.counter -= 1,
+            Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
         }
     }
@@ -81,7 +81,7 @@ impl Widget for Win {
                 },
                 #[name="label"]
                 gtk::Label {
-                    text: &model.counter.to_string(),
+                    text: &self.model.counter.to_string(),
                 },
                 #[name="dec_button"]
                 gtk::Button {
@@ -104,18 +104,19 @@ mod tests {
     #[test]
     fn label_change() {
         let component = relm::init_test::<Win>(()).unwrap();
-        let widgets = component.widget();
+        let inc_button = component.widget().inc_button.clone();
+        let dec_button = component.widget().dec_button.clone();
 
-        assert_text!(widgets.label, 0);
-        click(&widgets.inc_button);
-        assert_text!(widgets.label, 1);
-        click(&widgets.inc_button);
-        assert_text!(widgets.label, 2);
-        click(&widgets.dec_button);
-        assert_text!(widgets.label, 1);
-        click(&widgets.dec_button);
-        assert_text!(widgets.label, 0);
-        click(&widgets.dec_button);
-        assert_text!(widgets.label, -1);
+        assert_text!(component.widget().label, 0);
+        click(&inc_button);
+        assert_text!(component.widget().label, 1);
+        click(&inc_button);
+        assert_text!(component.widget().label, 2);
+        click(&dec_button);
+        assert_text!(component.widget().label, 1);
+        click(&dec_button);
+        assert_text!(component.widget().label, 0);
+        click(&dec_button);
+        assert_text!(component.widget().label, -1);
     }
 }

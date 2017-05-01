@@ -53,12 +53,12 @@ impl Widget for Button {
         }
     }
 
-    fn update(&mut self, _event: Msg, _model: &mut ButtonModel) {
+    fn update(&mut self, _event: Msg) {
     }
 
     view! {
         gtk::Button {
-            label: &model.text,
+            label: &self.model.text,
         },
     }
 }
@@ -87,10 +87,10 @@ impl Widget for Win {
     }
 
     // Update the model according to the message received.
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Decrement => model.counter -= 1,
-            Increment => model.counter += 1,
+            Decrement => self.model.counter -= 1,
+            Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
         }
     }
@@ -109,7 +109,7 @@ impl Widget for Win {
                 },
                 gtk::Label {
                     // Bind the text property of the label to the counter attribute of the model.
-                    text: &model.counter.to_string(),
+                    text: &self.model.counter.to_string(),
                 },
                 gtk::Button {
                     clicked => Decrement,

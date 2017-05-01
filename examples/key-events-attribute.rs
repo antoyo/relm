@@ -57,10 +57,10 @@ impl Widget for Win {
         }
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
             Press => {
-                model.press_count += 1;
+                self.model.press_count += 1;
                 println!("Press");
             },
             Release => {
@@ -74,14 +74,14 @@ impl Widget for Win {
         gtk::Window {
             key_press_event(_, key) => (Press, Inhibit(false)),
             key_release_event(_, key) => (Release, Inhibit(false)),
-            delete_event(_, _) with model => return self.quit(model),
+            delete_event(_, _) => return self.quit(),
         }
     }
 }
 
 impl Win {
-    fn quit(&self, model: &mut Model) -> (Option<Msg>, Inhibit) {
-        if model.press_count > 3 {
+    fn quit(&self) -> (Option<Msg>, Inhibit) {
+        if self.model.press_count > 3 {
             (None, Inhibit(true))
         }
         else {

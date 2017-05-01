@@ -19,23 +19,10 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::rc::Rc;
 
 use super::{EventStream, Widget};
-
-#[derive(Clone)]
-pub struct Comp<WIDGET: Widget> {
-    pub model: Rc<RefCell<WIDGET::Model>>,
-    pub stream: EventStream<WIDGET::Msg>,
-    pub widget: WIDGET,
-}
-
-impl<WIDGET: Widget> Drop for Comp<WIDGET> {
-    fn drop(&mut self) {
-        let _ = self.stream.close();
-    }
-}
 
 /// Widget that was added by the `ContainerWidget::add_widget()` method.
 ///
@@ -47,29 +34,40 @@ impl<WIDGET: Widget> Drop for Comp<WIDGET> {
 /// [communication-attribute example](https://github.com/antoyo/relm/blob/master/examples/communication-attribute.rs)).
 #[must_use]
 #[derive(Clone)]
-pub struct Component<WIDGET: Widget>(Comp<WIDGET>)
-    where WIDGET::Model: Clone;
+pub struct Component<WIDGET: Widget> {
+    stream: EventStream<WIDGET::Msg>,
+    widget: Rc<RefCell<WIDGET>>,
+}
 
-impl<WIDGET: Widget> Component<WIDGET>
-    where WIDGET::Model: Clone
-{
-    #[doc(hidden)]
-    pub fn new(component: Comp<WIDGET>) -> Self {
-        Component(component)
+impl<WIDGET: Widget> Drop for Component<WIDGET> {
+    fn drop(&mut self) {
+        let _ = self.stream.close();
     }
 }
 
-impl<WIDGET: Widget> Component<WIDGET>
-    where WIDGET::Model: Clone
-{
+impl<WIDGET: Widget> Component<WIDGET> {
+    #[doc(hidden)]
+    pub fn new(stream: EventStream<WIDGET::Msg>, widget: Rc<RefCell<WIDGET>>) -> Self {
+        Component {
+            stream,
+            widget,
+        }
+    }
+
     /// Get the event stream of the widget.
     /// This is used internally by the library.
     pub fn stream(&self) -> &EventStream<WIDGET::Msg> {
-        &self.0.stream
+        &self.stream
     }
 
     /// Get the widget of this component.
-    pub fn widget(&self) -> &WIDGET {
-        &self.0.widget
+    pub fn widget(&self) -> Ref<WIDGET> {
+        // TODO: check if we can do better than returning the result of borrow.
+        self.widget.borrow()
+    }
+
+    /// Get the ref-counted widget of this component.
+    pub fn widget_rc(&self) -> &Rc<RefCell<WIDGET>> {
+        &self.widget
     }
 }

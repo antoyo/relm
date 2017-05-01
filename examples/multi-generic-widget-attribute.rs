@@ -89,13 +89,13 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
         }
     }
 
-    fn update(&mut self, event: CounterMsg, model: &mut Self::Model) {
+    fn update(&mut self, event: CounterMsg) {
         match event {
             Decrement => {
-                model.counter1 = model.counter1.dec();
+                self.model.counter1 = self.model.counter1.dec();
             },
             Increment => {
-                model.counter1 = model.counter1.inc();
+                self.model.counter1 = self.model.counter1.inc();
             },
         }
     }
@@ -108,7 +108,7 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
                 clicked => Increment,
             },
             gtk::Label {
-                text: &model.counter1.to_string(),
+                text: &self.model.counter1.to_string(),
             },
             gtk::Button {
                 label: "-",
@@ -129,7 +129,7 @@ impl Widget for Win {
         ()
     }
 
-    fn update(&mut self, event: Msg, _model: &mut ()) {
+    fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }

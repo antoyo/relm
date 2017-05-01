@@ -29,6 +29,8 @@ extern crate relm_derive;
 extern crate simplelog;
 extern crate tokio_core;
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::Duration;
 
 use chrono::Local;
@@ -77,8 +79,8 @@ impl Widget for Win {
         ()
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn subscriptions(relm: &Relm<Msg>) {
@@ -86,7 +88,7 @@ impl Widget for Win {
         relm.connect_exec_ignore_err(stream, Tick);
     }
 
-    fn update(&mut self, event: Msg, _model: &mut ()) {
+    fn update(&mut self, event: Msg) {
         match event {
             Open(num) => {
                 self.num_label.set_text(&num.to_string());
@@ -99,7 +101,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
         let button = Button::new_with_label("Open");
         let label = Label::new(None);
         let num_label = Label::new(None);
@@ -129,8 +131,8 @@ impl Widget for Win {
             num_label: num_label,
             window: window,
         };
-        win.update(Tick(()), &mut ());
-        win
+        win.update(Tick(()));
+        Rc::new(RefCell::new(win))
     }
 }
 

@@ -27,6 +27,8 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::Duration;
 
 use chrono::Local;
@@ -58,8 +60,8 @@ impl Widget for Win {
         ()
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn subscriptions(relm: &Relm<Msg>) {
@@ -67,7 +69,7 @@ impl Widget for Win {
         relm.connect_exec_ignore_err(stream, Tick);
     }
 
-    fn update(&mut self, event: Msg, _model: &mut ()) {
+    fn update(&mut self, event: Msg) {
         match event {
             Tick(()) => {
                 let time = Local::now();
@@ -77,7 +79,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
         let label = Label::new(None);
 
         let window = Window::new(WindowType::Toplevel);
@@ -93,8 +95,8 @@ impl Widget for Win {
             window: window,
         };
 
-        win.update(Tick(()), &mut ());
-        win
+        win.update(Tick(()));
+        Rc::new(RefCell::new(win))
     }
 }
 

@@ -27,6 +27,9 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::{
     BoxExt,
     Cast,
@@ -61,8 +64,8 @@ impl Widget for Button {
     fn model(_: ()) -> () {
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.button
+    fn root(&self) -> Self::Root {
+        self.button.clone()
     }
 
     fn on_add<W: IsA<gtk::Widget> + IsA<Object>>(&self, parent: W) {
@@ -77,15 +80,15 @@ impl Widget for Button {
         parent.set_child_position(&self.button, 0);
     }
 
-    fn update(&mut self, _msg: ButtonMsg, _model: &mut ()) {
+    fn update(&mut self, _msg: ButtonMsg) {
     }
 
-    fn view(_relm: Relm<ButtonMsg>, _model: &Self::Model) -> Self {
+    fn view(_relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
         let button = gtk::Button::new_with_label("+");
 
-        Button {
+        Rc::new(RefCell::new(Button {
             button: button,
-        }
+        }))
     }
 }
 
@@ -109,17 +112,17 @@ impl Widget for Win {
     fn model(_: ()) -> () {
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
-    fn update(&mut self, event: Msg, _model: &mut ()) {
+    fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
         let window = gtk::Window::new(Toplevel);
         let vbox = gtk::Box::new(Vertical, 0);
         window.add(&vbox);
@@ -131,10 +134,10 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _) (Some(Msg::Quit), Inhibit(false)));
         window.show_all();
 
-        Win {
+        Rc::new(RefCell::new(Win {
             button: relm_button,
             window: window,
-        }
+        }))
     }
 }
 

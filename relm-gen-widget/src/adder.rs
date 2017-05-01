@@ -23,7 +23,7 @@ use std::boxed;
 
 use quote::Tokens;
 use syn;
-use syn::{Expr, ExprKind, Ident, Stmt, parse_expr};
+use syn::{Expr, ExprKind, Ident, Path, Stmt, parse_expr};
 use syn::ExprKind::{Assign, AssignOp, Block, Field};
 use syn::fold::{Folder, noop_fold_expr};
 use syn::Stmt::Semi;
@@ -87,7 +87,7 @@ impl<'a> Folder for Adder<'a> {
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Property {
-    pub expr: String,
+    pub expr: Expr,
     pub is_relm_widget: bool,
     pub name: String,
     pub widget_name: Ident,
@@ -100,7 +100,7 @@ fn create_stmts(ident: &Ident, map: &PropertyModelMap) -> Vec<Stmt> {
             let widget_name = &property.widget_name;
             let prop_name = Ident::new(format!("set_{}", property.name));
             let mut tokens = Tokens::new();
-            tokens.append(&property.expr);
+            tokens.append_all(&[&property.expr]);
             let stmt =
                 if property.is_relm_widget {
                     quote! {
@@ -122,9 +122,11 @@ fn create_stmts(ident: &Ident, map: &PropertyModelMap) -> Vec<Stmt> {
     stmts
 }
 
-fn is_model_path(expr: &syn::Expr) -> bool {
-    if let ExprKind::Path(_, ref path) = expr.node {
-        return path.segments.len() == 1 && path.segments[0].ident == Ident::new("model");
+fn is_model_path(expr: &Expr) -> bool {
+    if let Field(ref expr, ref ident) = expr.node {
+        if let Expr { node: ExprKind::Path(None, Path { ref segments, .. }), .. } = **expr {
+            return segments.len() == 1 && segments[0].ident == Ident::new("self") && *ident == Ident::new("model");
+        }
     }
     false
 }

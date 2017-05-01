@@ -25,6 +25,9 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::{
     ContainerExt,
     EditableSignals,
@@ -56,6 +59,7 @@ enum Msg {
 struct Win {
     input: Entry,
     label: Label,
+    model: Model,
     window: Window,
 }
 
@@ -71,21 +75,21 @@ impl Widget for Win {
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
             Change => {
-                model.content = self.input.get_text().unwrap().chars().rev().collect();
-                self.label.set_text(&model.content);
+                self.model.content = self.input.get_text().unwrap().chars().rev().collect();
+                self.label.set_text(&self.model.content);
             },
             Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>> {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -103,11 +107,12 @@ impl Widget for Win {
         connect!(relm, input, connect_changed(_), Change);
         connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
 
-        Win {
-            input: input,
-            label: label,
-            window: window,
-        }
+        Rc::new(RefCell::new(Win {
+            input,
+            label,
+            model,
+            window,
+        }))
     }
 }
 

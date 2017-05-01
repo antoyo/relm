@@ -19,6 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use syn;
 use syn::{Expr, Ident};
 use syn::ExprKind::{Field, Path};
 use syn::visit::{Visitor, walk_expr};
@@ -38,9 +39,13 @@ impl ModelVariableVisitor {
 impl Visitor for ModelVariableVisitor {
     fn visit_expr(&mut self, expr: &Expr) {
         if let Field(ref obj, ref field) = expr.node {
-            if let Path(_, ref path) = obj.node {
-                if path.segments[0].ident == Ident::new("model") {
-                    self.idents.push(field.clone());
+            if let Field(ref expr, ref model_ident) = obj.node {
+                if let Expr { node: Path(None, syn::Path { ref segments, .. }), .. } = **expr {
+                    if *model_ident == Ident::new("model") &&
+                        segments.get(0).map(|segment| &segment.ident) == Some(&Ident::new("self"))
+                    {
+                        self.idents.push(field.clone());
+                    }
                 }
             }
         }

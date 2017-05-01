@@ -25,7 +25,7 @@ use std::io::Read;
 use std::sync::Mutex;
 
 use quote::{Tokens, ToTokens};
-use syn::{self, Path, Ty, parse_item, parse_path};
+use syn::{self, Expr, Path, Ty, parse_expr, parse_item, parse_path};
 use syn::Delimited;
 use syn::DelimToken::{Brace, Bracket, Paren};
 use syn::ItemKind::Mac;
@@ -38,6 +38,7 @@ use self::DefaultParam::*;
 use self::EventValue::*;
 use self::EventValueReturn::*;
 use self::EitherWidget::*;
+use self::IsEventOrNot::*;
 
 pub const RELM_WIDGET_CLONE_IDENT: &str = "__relm_widget_self_clone";
 pub const RELM_WIDGET_SELF_IDENT: &str = "__relm_widget_self";
@@ -67,36 +68,42 @@ pub enum EventValue {
 
 #[derive(Debug)]
 pub struct Event {
-    pub model_ident: Option<syn::Ident>,
     pub params: Vec<syn::Ident>,
+    pub use_self: bool,
     pub value: EventValue,
 }
 
 impl Event {
     fn new() -> Self {
         Event {
-            model_ident: None,
             params: vec![syn::Ident::new("_")],
+            use_self: false,
             value: CurrentWidget(WithoutReturn(Tokens::new())),
         }
     }
 }
 
+#[derive(PartialEq)]
+enum IsEventOrNot {
+    IsEvent,
+    NotEvent,
+}
+
 pub struct Widget {
-    pub child_properties: HashMap<String, Tokens>,
+    pub child_properties: HashMap<String, Expr>,
     pub children: Vec<Widget>,
     pub container_type: Option<Option<String>>,
     pub init_parameters: Vec<Tokens>,
     pub name: syn::Ident,
     pub parent_id: Option<String>,
-    pub properties: HashMap<String, Tokens>,
+    pub properties: HashMap<String, Expr>,
     pub typ: Path,
     pub widget: EitherWidget,
 }
 
 impl Widget {
     fn new_gtk(widget: GtkWidget, typ: Path, init_parameters: Vec<Tokens>, children: Vec<Widget>,
-        properties: HashMap<String, Tokens>, child_properties: HashMap<String, Tokens>) -> Self
+        properties: HashMap<String, Expr>, child_properties: HashMap<String, Expr>) -> Self
     {
         let name = gen_widget_name(&typ);
         Widget {
@@ -113,7 +120,7 @@ impl Widget {
     }
 
     fn new_relm(widget: RelmWidget, typ: Path, init_parameters: Vec<Tokens>, children: Vec<Widget>,
-        properties: HashMap<String, Tokens>, child_properties: HashMap<String, Tokens>) -> Self
+        properties: HashMap<String, Expr>, child_properties: HashMap<String, Expr>) -> Self
     {
         let mut name = gen_widget_name(&typ);
         // Relm widgets are not used in the update() method; they are only saved to avoid dropping
@@ -366,19 +373,6 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
         event.params = parse_comma_ident_list(tts);
         tokens = &tokens[1..];
     }
-    event.model_ident =
-        if tokens[0] == Token(Ident(syn::Ident::new("with"))) {
-            if let Token(Ident(ref ident)) = tokens[1] {
-                tokens = &tokens[2..];
-                Some(ident.clone())
-            }
-            else {
-                panic!("Expecting ident after `with`, but found `{:?}` in view! macro", tokens[1]);
-            }
-        }
-        else {
-            None
-        };
     if tokens[0] != Token(FatArrow) {
         panic!("Expected `=>` but found `{:?}` in view! macro", tokens[0]);
     }
@@ -386,7 +380,8 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
     event.value =
         // Message sent to another widget.
         if tokens.len() >= 2 && tokens[1] == Token(At) {
-            let (event_value, new_tokens) = parse_event_value(&tokens[2..]);
+            let (event_value, new_tokens, use_self) = parse_event_value(&tokens[2..]);
+            event.use_self = use_self;
             let (ident, _) = parse_ident(tokens);
             tokens = new_tokens;
             let mut ident_tokens = Tokens::new();
@@ -395,64 +390,75 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
         }
         // Message sent to the same widget.
         else {
-            let (event_value, new_tokens) = parse_event_value(tokens);
+            let (event_value, new_tokens, use_self) = parse_event_value(tokens);
+            event.use_self = use_self;
             tokens = new_tokens;
             CurrentWidget(event_value)
         };
     (event, tokens)
 }
 
-fn parse_event_value(tokens: &[TokenTree]) -> (EventValueReturn, &[TokenTree]) {
+fn parse_event_value(tokens: &[TokenTree]) -> (EventValueReturn, &[TokenTree], bool) {
     if Token(Ident(syn::Ident::new("return"))) == tokens[0] {
-        let (value, tokens) = parse_value(&tokens[1..]);
-        (CallReturn(value), tokens)
+        let (value, tokens, use_self) = parse_value(&tokens[1..], IsEvent);
+        (CallReturn(value), tokens, use_self)
     }
     else if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
-        let (value1, new_tts) = parse_value(tts);
+        let (value1, new_tts, use_self1) = parse_value(tts, IsEvent);
         if new_tts[0] != Token(Comma) {
             panic!("Expected `,` but found `{:?}` in view! macro", new_tts[0]);
         }
-        let (value2, _) = parse_value(&new_tts[1..]);
-        (Return(value1, value2), &tokens[1..])
+        let (value2, _, use_self2) = parse_value(&new_tts[1..], IsEvent);
+        (Return(value1, value2), &tokens[1..], use_self1 || use_self2)
     }
     else {
-        let (value, tokens) = parse_value(tokens);
-        (WithoutReturn(value), tokens)
+        let (value, tokens, use_self) = parse_value(tokens, IsEvent);
+        (WithoutReturn(value), tokens, use_self)
     }
 }
 
 fn parse_value_or_child_properties<'a>(tokens: &'a [TokenTree], ident: String,
-    child_properties: &mut HashMap<String, Tokens>, properties: &mut HashMap<String, Tokens>) -> &'a [TokenTree]
+    child_properties: &mut HashMap<String, Expr>, properties: &mut HashMap<String, Expr>) -> &'a [TokenTree]
 {
     match tokens[1] {
         TokenTree::Delimited(Delimited { delim: Brace, tts: ref child_tokens }) => {
             let props = parse_child_properties(child_tokens);
             for (key, value) in props {
-                child_properties.insert(key, value);
+                child_properties.insert(key, tokens_to_expr(value));
             }
             &tokens[2..]
         },
         _ => {
-            let (value, tts) = parse_value(&tokens[1..]);
-            properties.insert(ident, value);
+            let (value, tts, _) = parse_value(&tokens[1..], NotEvent);
+            properties.insert(ident, tokens_to_expr(value));
             tts
         },
     }
 }
 
-fn parse_value(tokens: &[TokenTree]) -> (Tokens, &[TokenTree]) {
+fn parse_value(tokens: &[TokenTree], is_event: IsEventOrNot) -> (Tokens, &[TokenTree], bool) {
     let mut current_param = Tokens::new();
     let mut i = 0;
+    let mut use_self = false;
     while i < tokens.len() {
         match tokens[i] {
-            Token(Ident(ref ident)) if *ident == syn::Ident::new("self") =>
-                Token(Ident(syn::Ident::new(RELM_WIDGET_CLONE_IDENT))).to_tokens(&mut current_param),
+            Token(Ident(ref ident)) if *ident == syn::Ident::new("self") => {
+                use_self = true;
+                let new_ident =
+                    if is_event == IsEvent {
+                        RELM_WIDGET_CLONE_IDENT
+                    }
+                    else {
+                        "self"
+                    };
+                Token(Ident(syn::Ident::new(new_ident))).to_tokens(&mut current_param)
+            },
             Token(Comma) => break,
             ref token => token.to_tokens(&mut current_param),
         }
         i += 1;
     }
-    (current_param, &tokens[i..])
+    (current_param, &tokens[i..], use_self)
 }
 
 fn gen_widget_name(path: &Path) -> String {
@@ -514,7 +520,7 @@ fn parse_child_properties(mut tokens: &[TokenTree]) -> HashMap<String, Tokens> {
         tokens = &tokens[1..];
         if let Token(Colon) = tokens[0] {
             tokens = &tokens[1..];
-            let (value, new_tokens) = parse_value(tokens);
+            let (value, new_tokens, _) = parse_value(tokens, NotEvent);
             tokens = new_tokens;
             properties.insert(ident, value);
         }
@@ -583,4 +589,9 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     }
     let widget = Widget::new_relm(relm_widget, relm_type, init_parameters, children, properties, child_properties);
     (widget, &tokens[1..])
+}
+
+fn tokens_to_expr(tokens: Tokens) -> Expr {
+    let string: String = tokens.parse().expect("parse::<String>() in tokens_to_expr");
+    parse_expr(&string).expect("parse_expr in tokens_to_expr")
 }

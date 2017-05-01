@@ -25,6 +25,9 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::{
     Inhibit,
     WidgetExt,
@@ -49,6 +52,7 @@ pub struct Model {
 
 #[derive(Clone)]
 struct Win {
+    model: Model,
     window: Window,
 }
 
@@ -64,14 +68,14 @@ impl Widget for Win {
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
             Press => {
-                model.press_count += 1;
+                self.model.press_count += 1;
                 println!("Press");
             },
             Release => {
@@ -81,29 +85,32 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: &RemoteRelm<Win>, _model: &Self::Model) -> Self {
+    fn view(relm: &Relm<Win>, model: Self::Model) -> Rc<RefCell<Self>> {
         let window = Window::new(WindowType::Toplevel);
 
         window.show_all();
 
-        let win = Win {
-            window: window.clone(),
-        };
+        let win = Rc::new(RefCell::new(Win {
+            model,
+            window,
+        }));
 
-        connect!(relm, window, connect_key_press_event(_, _) (Press, Inhibit(false)));
-        connect!(relm, window, connect_key_release_event(_, _) (Release, Inhibit(false)));
-        connect!(relm, window, connect_delete_event(_, _) with model
-            win.quit(model));
-
-        Win {
-            window: window,
+        let win_clone = Rc::downgrade(&win);
+        {
+            let Win { ref window, .. } = *win.borrow();
+            connect!(relm, window, connect_key_press_event(_, _) (Press, Inhibit(false)));
+            connect!(relm, window, connect_key_release_event(_, _) (Release, Inhibit(false)));
+            connect!(relm, window, connect_delete_event(_, _) with win_clone
+                     win_clone.quit());
         }
+
+        win
     }
 }
 
 impl Win {
-    fn quit(&self, model: &mut Model) -> (Option<Msg>, Inhibit) {
-        if model.press_count > 3 {
+    fn quit(&self) -> (Option<Msg>, Inhibit) {
+        if self.model.press_count > 3 {
             (None, Inhibit(true))
         }
         else {

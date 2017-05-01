@@ -64,10 +64,10 @@ impl Widget for Win {
     }
 
     // Update the model according to the message received.
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Decrement => model.counter -= 1,
-            Increment => model.counter += 1,
+            Decrement => self.model.counter -= 1,
+            Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
         }
     }

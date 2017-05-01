@@ -19,79 +19,42 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(proc_macro)]
+use syn;
+use syn::{Expr, Ident, parse_path};
+use syn::fold::{Folder, noop_fold_expr};
+use syn::ExprKind::{Field, Path};
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-extern crate relm_attributes;
-#[macro_use]
-extern crate relm_derive;
+use super::MODEL_IDENT;
 
-use gtk::{Inhibit, WidgetExt};
-use relm::Widget;
-use relm_attributes::widget;
-
-use self::Msg::*;
-
-#[derive(Msg)]
-pub enum LabelMsg {
+pub struct Remover {
 }
 
-#[derive(Clone)]
-pub struct LabelModel {
-    counter: i32,
-}
-
-#[widget]
-impl Widget for Label {
-    fn init_view(&self) {
-        self.label.set_text("Test");
-    }
-
-    fn model() -> LabelModel {
-        LabelModel {
-            counter: 0,
-        }
-    }
-
-    fn update(&mut self, _event: LabelMsg) {
-        self.label.set_text("");
-    }
-
-    view! {
-        #[name="label"]
-        gtk::Label {
-            text: &self.model.counter.to_string(),
-            visible: false,
+impl Remover {
+    pub fn new() -> Self {
+        Remover {
         }
     }
 }
 
-#[derive(Msg)]
-pub enum Msg {
-    Quit,
-}
-
-#[widget]
-impl Widget for Win {
-    fn model() -> () {
-    }
-
-    fn update(&mut self, event: Msg) {
-        match event {
-            Quit => gtk::main_quit(),
+impl Folder for Remover {
+    fn fold_expr(&mut self, expr: Expr) -> Expr {
+        if let Field(ref field_expr, ref ident) = expr.node {
+            if *ident == Ident::new("model") {
+                if let Path(None, syn::Path { ref segments, .. }) = field_expr.node {
+                    if segments.get(0).map(|segment| &segment.ident) == Some(&Ident::new("self")) {
+                        let model_ident = Ident::new(MODEL_IDENT);
+                        let tokens = quote! {
+                            #model_ident
+                        };
+                        let path = parse_path(tokens.as_str()).expect("model path");
+                        return Expr {
+                            node: Path(None, path),
+                            attrs: vec![],
+                        };
+                    }
+                }
+            }
         }
+        noop_fold_expr(self, expr)
     }
-
-    view! {
-        gtk::Window {
-            Label,
-            delete_event(_, _) => (Quit, Inhibit(false)),
-        }
-    }
-}
-
-fn main() {
-    Win::run(()).unwrap();
 }

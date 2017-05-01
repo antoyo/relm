@@ -25,8 +25,10 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
+use std::cell::RefCell;
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::rc::Rc;
 
 use gtk::{
     Button,
@@ -84,6 +86,7 @@ enum CounterMsg {
 #[derive(Clone)]
 struct Counter<S, T> {
     counter_label: Label,
+    model: Model<S, T>,
     vbox: gtk::Box,
     _phantom1: PhantomData<S>,
     _phantom2: PhantomData<T>,
@@ -102,26 +105,26 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.vbox
+    fn root(&self) -> Self::Root {
+        self.vbox.clone()
     }
 
-    fn update(&mut self, event: CounterMsg, model: &mut Self::Model) {
+    fn update(&mut self, event: CounterMsg) {
         let label = &self.counter_label;
 
         match event {
             Decrement => {
-                model.counter1.dec();
-                label.set_text(&model.counter1.to_string());
+                self.model.counter1.dec();
+                label.set_text(&self.model.counter1.to_string());
             },
             Increment => {
-                model.counter1.inc();
-                label.set_text(&model.counter1.to_string());
+                self.model.counter1.inc();
+                label.set_text(&self.model.counter1.to_string());
             },
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, model: &Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>> {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -136,12 +139,13 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
         connect!(relm, plus_button, connect_clicked(_), Increment);
         connect!(relm, minus_button, connect_clicked(_), Decrement);
 
-        Counter {
+        Rc::new(RefCell::new(Counter {
             counter_label: counter_label,
+            model,
             vbox: vbox,
             _phantom1: PhantomData,
             _phantom2: PhantomData,
-        }
+        }))
     }
 }
 
@@ -167,17 +171,17 @@ impl Widget for Win {
         ()
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
-    fn update(&mut self, event: Msg, _model: &mut ()) {
+    fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &()) -> Win {
+    fn view(relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Win>> {
         let window = Window::new(WindowType::Toplevel);
 
         let hbox = gtk::Box::new(Horizontal, 0);
@@ -190,11 +194,11 @@ impl Widget for Win {
 
         connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
 
-        Win {
+        Rc::new(RefCell::new(Win {
             _counter1: counter1,
             _counter2: counter2,
             window: window,
-        }
+        }))
     }
 }
 

@@ -26,6 +26,9 @@ extern crate relm;
 extern crate relm_derive;
 extern crate tokio_core;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::{Dialog, DialogExt, Inhibit, WidgetExt, Window, WindowType, DIALOG_MODAL};
 use relm::{Relm, Widget};
 
@@ -51,17 +54,17 @@ impl Widget for Win {
         ()
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
-    fn update(&mut self, event: Msg, _model: &mut ()) {
+    fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
         let window = Window::new(WindowType::Toplevel);
 
         window.show_all();
@@ -75,9 +78,9 @@ impl Widget for Win {
             }
         });
 
-        Win {
+        Rc::new(RefCell::new(Win {
             window: window,
-        }
+        }))
     }
 }
 

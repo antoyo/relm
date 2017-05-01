@@ -74,17 +74,6 @@ fn impl_simple_msg(ast: &MacroInput) -> Tokens {
     }
 }
 
-#[proc_macro_derive(ManualClone)]
-pub fn manual_clone(input: TokenStream) -> TokenStream {
-    let string = input.to_string();
-    let ast = parse_macro_input(&string).unwrap();
-    let clone = derive_clone(&ast);
-    let gen = quote! {
-        #clone
-    };
-    gen.parse().unwrap()
-}
-
 #[proc_macro_derive(Msg)]
 pub fn msg(input: TokenStream) -> TokenStream {
     let string = input.to_string();

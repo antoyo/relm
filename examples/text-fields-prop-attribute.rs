@@ -61,9 +61,9 @@ impl Widget for Text {
         }
     }
 
-    fn update(&mut self, event: TextMsg, model: &mut TextModel) {
+    fn update(&mut self, event: TextMsg) {
         match event {
-            Change(text) => model.content = text.chars().rev().collect(),
+            Change(text) => self.model.content = text.chars().rev().collect(),
         }
     }
 
@@ -75,7 +75,7 @@ impl Widget for Text {
                 changed(entry) => Change(entry.get_text().unwrap()),
             },
             gtk::Label {
-                text: &model.content,
+                text: &self.model.content,
             },
         }
     }
@@ -106,9 +106,9 @@ impl Widget for Win {
         }
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Reset => model.text = String::new(),
+            Reset => self.model.text = String::new(),
             Quit => gtk::main_quit(),
         }
     }
@@ -122,7 +122,7 @@ impl Widget for Win {
                     label: "Reset",
                 }
                 Text {
-                    text: &model.text,
+                    text: &self.model.text,
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),

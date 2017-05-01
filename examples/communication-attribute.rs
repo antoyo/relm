@@ -62,9 +62,9 @@ impl Widget for Text {
         }
     }
 
-    fn update(&mut self, event: TextMsg, model: &mut TextModel) {
+    fn update(&mut self, event: TextMsg) {
         match event {
-            Change(text) => model.content = text.chars().rev().collect(),
+            Change(text) => self.model.content = text.chars().rev().collect(),
         }
     }
 
@@ -75,7 +75,7 @@ impl Widget for Text {
                 changed(entry) => Change(entry.get_text().unwrap()),
             },
             gtk::Label {
-                text: &model.content,
+                text: &self.model.content,
             },
         }
     }
@@ -100,10 +100,10 @@ impl Widget for Counter {
         }
     }
 
-    fn update(&mut self, event: CounterMsg, model: &mut CounterModel) {
+    fn update(&mut self, event: CounterMsg) {
         match event {
-            Decrement => model.counter -= 1,
-            Increment => model.counter += 1,
+            Decrement => self.model.counter -= 1,
+            Increment => self.model.counter += 1,
         }
     }
 
@@ -115,7 +115,7 @@ impl Widget for Counter {
                 clicked => Increment,
             },
             gtk::Label {
-                text: &model.counter.to_string(),
+                text: &self.model.counter.to_string(),
             },
             gtk::Button {
                 label: "-",
@@ -144,11 +144,11 @@ impl Widget for Win {
         }
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
             TextChange(text) => {
                 println!("{}", text);
-                model.counter += 1
+                self.model.counter += 1
             },
             Quit => gtk::main_quit(),
         }
@@ -170,10 +170,10 @@ impl Widget for Win {
                 Counter,
                 Text {
                     Change(_) => counter1@self.inc(),
-                    Change(text) with model => self.text_change(text, model),
+                    Change(text) => self.text_change(text),
                 },
                 gtk::Label {
-                    text: &model.counter.to_string(),
+                    text: &self.model.counter.to_string(),
                 }
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
@@ -186,7 +186,7 @@ impl Win {
         Increment
     }
 
-    fn text_change(&self, input: String, _model: &mut Model) -> Msg {
+    fn text_change(&self, input: String) -> Msg {
         TextChange(input)
     }
 }

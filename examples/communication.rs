@@ -25,6 +25,9 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::{
     Button,
     ButtonExt,
@@ -58,6 +61,7 @@ enum TextMsg {
 #[derive(Clone)]
 struct Text {
     label: Label,
+    model: TextModel,
     vbox: gtk::Box,
 }
 
@@ -73,20 +77,20 @@ impl Widget for Text {
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.vbox
+    fn root(&self) -> Self::Root {
+        self.vbox.clone()
     }
 
-    fn update(&mut self, event: TextMsg, model: &mut TextModel) {
+    fn update(&mut self, event: TextMsg) {
         match event {
             Change(text) => {
-                model.content = text.chars().rev().collect();
-                self.label.set_text(&model.content);
+                self.model.content = text.chars().rev().collect();
+                self.label.set_text(&self.model.content);
             },
         }
     }
 
-    fn view(relm: Relm<TextMsg>, _model: &TextModel) -> Self {
+    fn view(relm: &Relm<Self>, model: TextModel) -> Rc<RefCell<Self>> {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -98,10 +102,11 @@ impl Widget for Text {
         let input2 = input.clone();
         connect!(relm, input, connect_changed(_), Change(input2.get_text().unwrap()));
 
-        Text {
+        Rc::new(RefCell::new(Text {
             label: label,
+            model,
             vbox: vbox,
-        }
+        }))
     }
 }
 
@@ -119,6 +124,7 @@ enum CounterMsg {
 #[derive(Clone)]
 struct Counter {
     counter_label: Label,
+    model: CounterModel,
     vbox: gtk::Box,
 }
 
@@ -134,26 +140,26 @@ impl Widget for Counter {
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.vbox
+    fn root(&self) -> Self::Root {
+        self.vbox.clone()
     }
 
-    fn update(&mut self, event: CounterMsg, model: &mut CounterModel) {
+    fn update(&mut self, event: CounterMsg) {
         let label = &self.counter_label;
 
         match event {
             Decrement => {
-                model.counter -= 1;
-                label.set_text(&model.counter.to_string());
+                self.model.counter -= 1;
+                label.set_text(&self.model.counter.to_string());
             },
             Increment => {
-                model.counter += 1;
-                label.set_text(&model.counter.to_string());
+                self.model.counter += 1;
+                label.set_text(&self.model.counter.to_string());
             },
         }
     }
 
-    fn view(relm: Relm<CounterMsg>, _model: &CounterModel) -> Self {
+    fn view(relm: &Relm<Self>, model: CounterModel) -> Rc<RefCell<Self>> {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -168,10 +174,11 @@ impl Widget for Counter {
         connect!(relm, plus_button, connect_clicked(_), Increment);
         connect!(relm, minus_button, connect_clicked(_), Decrement);
 
-        Counter {
+        Rc::new(RefCell::new(Counter {
             counter_label: counter_label,
+            model,
             vbox: vbox,
-        }
+        }))
     }
 }
 
@@ -188,10 +195,11 @@ enum Msg {
 
 #[derive(Clone)]
 struct Win {
-    _counter1: Component<Counter>,
-    _counter2: Component<Counter>,
+    counter1: Component<Counter>,
+    counter2: Component<Counter>,
     label: Label,
-    _text: Component<Text>,
+    model: Model,
+    text: Component<Text>,
     window: Window,
 }
 
@@ -207,22 +215,22 @@ impl Widget for Win {
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
             TextChange(text) => {
                 println!("{}", text);
-                model.counter += 1;
-                self.label.set_text(&model.counter.to_string());
+                self.model.counter += 1;
+                self.label.set_text(&self.model.counter.to_string());
             },
             Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: Relm<Msg>, _model: &Model) -> Self {
+    fn view(relm: &Relm<Self>, model: Model) -> Rc<RefCell<Self>> {
         let window = Window::new(WindowType::Toplevel);
 
         let hbox = gtk::Box::new(Horizontal, 0);
@@ -237,37 +245,36 @@ impl Widget for Win {
         let text = hbox.add_widget::<Text, _>(&relm, ());
         hbox.add(&label);
 
-        let win = Win {
-            _counter1: counter1.clone(),
-            _counter2: counter2.clone(),
-            label: label.clone(),
-            _text: text.clone(),
-            window: window.clone(),
-        };
-
-        connect!(text@Change(text), relm, TextChange(text));
-        connect!(relm, text@Change(_), counter1, with model win.inc(model));
-        connect!(counter1@Increment, counter2, Decrement);
-        connect!(button, connect_clicked(_), counter1, Decrement);
-
-        window.add(&hbox);
-
-        window.show_all();
-
-        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
-
-        Win {
-            _counter1: counter1,
-            _counter2: counter2,
+        let win = Rc::new(RefCell::new(Win {
+            counter1,
+            counter2,
             label: label,
-            _text: text,
+            model,
+            text,
             window: window,
+        }));
+
+        {
+            let win_clone = Rc::downgrade(&win);
+            let Win { ref counter1, ref counter2, ref text, ref window, .. } = *win.borrow();
+            connect!(text@Change(text), relm, TextChange(text));
+            connect!(text@Change(_), counter1, with win_clone win_clone.inc());
+            connect!(counter1@Increment, counter2, Increment);
+            connect!(button, connect_clicked(_), counter1, Decrement);
+
+            window.add(&hbox);
+
+            window.show_all();
+
+            connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
         }
+
+        win
     }
 }
 
 impl Win {
-    fn inc(&self, _model: &mut Model) -> CounterMsg {
+    fn inc(&self) -> CounterMsg {
         Increment
     }
 }

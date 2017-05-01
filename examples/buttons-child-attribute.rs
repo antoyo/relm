@@ -63,10 +63,10 @@ impl Widget for Win {
         }
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Decrement => model.counter -= 1,
-            Increment => model.counter += 1,
+            Decrement => self.model.counter -= 1,
+            Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
         }
     }
@@ -76,7 +76,7 @@ impl Widget for Win {
             gtk::Box {
                 orientation: Vertical,
                 gtk::Label {
-                    text: &model.counter.to_string(),
+                    text: &self.model.counter.to_string(),
                 },
                 gtk::Button {
                     clicked => Decrement,

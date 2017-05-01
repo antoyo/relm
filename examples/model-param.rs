@@ -25,6 +25,9 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::{
     Button,
     ButtonExt,
@@ -54,6 +57,7 @@ enum Msg {
 #[derive(Clone)]
 struct Win {
     counter_label: Label,
+    model: Model,
     window: Window,
 }
 
@@ -74,28 +78,28 @@ impl Widget for Win {
     }
 
     // Return the root widget.
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         let label = &self.counter_label;
 
         match event {
             Msg::Decrement => {
-                model.counter -= 1;
+                self.model.counter -= 1;
                 // Manually update the view.
-                label.set_text(&model.counter.to_string());
+                label.set_text(&self.model.counter.to_string());
             },
             Msg::Increment => {
-                model.counter += 1;
-                label.set_text(&model.counter.to_string());
+                self.model.counter += 1;
+                label.set_text(&self.model.counter.to_string());
             },
             Msg::Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, model: &Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>> {
         // Create the view using the normal GTK+ method calls.
         let vbox = gtk::Box::new(Vertical, 0);
 
@@ -119,10 +123,11 @@ impl Widget for Win {
         connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
         connect!(relm, window, connect_delete_event(_, _) (Some(Msg::Quit), Inhibit(false)));
 
-        Win {
-            counter_label: counter_label,
-            window: window,
-        }
+        Rc::new(RefCell::new(Win {
+            counter_label,
+            model,
+            window,
+        }))
     }
 }
 

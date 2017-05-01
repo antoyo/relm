@@ -60,9 +60,9 @@ impl Widget for Win {
         }
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Change(text) => model.content = text,
+            Change(text) => self.model.content = text,
             Quit => gtk::main_quit(),
         }
     }
@@ -79,7 +79,7 @@ impl Widget for Win {
                     placeholder_text: "Text to reverse",
                 },
                 gtk::Label {
-                    text: &model.content,
+                    text: &self.model.content,
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),

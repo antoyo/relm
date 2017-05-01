@@ -25,6 +25,9 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::{
     Button,
     ButtonExt,
@@ -59,6 +62,7 @@ enum TextMsg {
 struct Text {
     input: Entry,
     label: Label,
+    model: TextModel,
     vbox: gtk::Box,
 }
 
@@ -74,20 +78,20 @@ impl Widget for Text {
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.vbox
+    fn root(&self) -> Self::Root {
+        self.vbox.clone()
     }
 
-    fn update(&mut self, event: TextMsg, model: &mut TextModel) {
+    fn update(&mut self, event: TextMsg) {
         match event {
             Change => {
-                model.content = self.input.get_text().unwrap().chars().rev().collect();
-                self.label.set_text(&model.content);
+                self.model.content = self.input.get_text().unwrap().chars().rev().collect();
+                self.label.set_text(&self.model.content);
             },
         }
     }
 
-    fn view(relm: Relm<TextMsg>, _model: &TextModel) -> Self {
+    fn view(relm: &Relm<Self>, model: TextModel) -> Rc<RefCell<Self>> {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -98,11 +102,12 @@ impl Widget for Text {
 
         connect!(relm, input, connect_changed(_), Change);
 
-        Text {
-            input: input,
-            label: label,
-            vbox: vbox,
-        }
+        Rc::new(RefCell::new(Text {
+            input,
+            label,
+            model,
+            vbox,
+        }))
     }
 }
 
@@ -120,6 +125,7 @@ enum CounterMsg {
 #[derive(Clone)]
 struct Counter {
     counter_label: Label,
+    model: Model,
     vbox: gtk::Box,
 }
 
@@ -135,26 +141,26 @@ impl Widget for Counter {
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.vbox
+    fn root(&self) -> Self::Root {
+        self.vbox.clone()
     }
 
-    fn update(&mut self, event: CounterMsg, model: &mut Model) {
+    fn update(&mut self, event: CounterMsg) {
         let label = &self.counter_label;
 
         match event {
             Decrement => {
-                model.counter -= 1;
-                label.set_text(&model.counter.to_string());
+                self.model.counter -= 1;
+                label.set_text(&self.model.counter.to_string());
             },
             Increment => {
-                model.counter += 1;
-                label.set_text(&model.counter.to_string());
+                self.model.counter += 1;
+                label.set_text(&self.model.counter.to_string());
             },
         }
     }
 
-    fn view(relm: Relm<CounterMsg>, _model: &Model) -> Self {
+    fn view(relm: &Relm<Self>, model: Model) -> Rc<RefCell<Self>> {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -169,10 +175,11 @@ impl Widget for Counter {
         connect!(relm, plus_button, connect_clicked(_), Increment);
         connect!(relm, minus_button, connect_clicked(_), Decrement);
 
-        Counter {
-            counter_label: counter_label,
-            vbox: vbox,
-        }
+        Rc::new(RefCell::new(Counter {
+            counter_label,
+            model,
+            vbox,
+        }))
     }
 }
 
@@ -199,17 +206,17 @@ impl Widget for Win {
         ()
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
-    fn update(&mut self, event: Msg, _model: &mut ()) {
+    fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: Relm<Msg>, _model: &()) -> Win {
+    fn view(relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Win>> {
         let window = Window::new(WindowType::Toplevel);
 
         let hbox = gtk::Box::new(Horizontal, 0);
@@ -223,12 +230,12 @@ impl Widget for Win {
 
         connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
 
-        Win {
+        Rc::new(RefCell::new(Win {
             _counter1: counter1,
             _counter2: counter2,
             _text: text,
             window: window,
-        }
+        }))
     }
 }
 

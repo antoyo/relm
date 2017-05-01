@@ -19,13 +19,16 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::{self, IsA, Object};
 
 use super::{DisplayVariant, Relm};
 
 /// Trait to implement to manage widget's events.
 pub trait Widget
-    where Self: Clone,
+    where Self: Sized,
           Self::Root: Clone + IsA<gtk::Widget>,
           Self::Msg: Clone + DisplayVariant,
 {
@@ -41,7 +44,7 @@ pub trait Widget
     /// Update the view after it is initially created.
     /// This method is only useful when using the `#[widget]` attribute, because when not using it,
     /// you can use the [`view()`](trait.Widget.html#tymethod.view) method instead.
-    fn init_view(&self, _model: &mut Self::Model) {
+    fn init_view(&self) {
     }
 
     /// Create the initial model.
@@ -63,12 +66,11 @@ pub trait Widget
     // l’ajout du widget.
 
     /// Get the root widget of the view.e. the root widget of the view.
-    fn root(&self) -> &Self::Root;
+    fn root(&self) -> Self::Root;
 
     /// Create the window from this widget and start the main loop.
     fn run(model_param: Self::ModelParam) -> Result<(), ()>
         where Self: 'static,
-              Self::Model: Clone,
               Self::ModelParam: Default,
     {
         run::<Self>(model_param)
@@ -80,8 +82,8 @@ pub trait Widget
     }
 
     /// Method called when a message is received from an event.
-    fn update(&mut self, event: Self::Msg, model: &mut Self::Model);
+    fn update(&mut self, event: Self::Msg);
 
     /// Create the initial view.
-    fn view(relm: Relm<Self::Msg>, model: &Self::Model) -> Self;
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>>;
 }

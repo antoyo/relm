@@ -67,9 +67,9 @@ impl Widget for Win {
         relm.connect_exec_ignore_err(stream, Tick);
     }
 
-    fn update(&mut self, event: Msg, model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
-            Tick => model.time = Local::now(),
+            Tick => self.model.time = Local::now(),
             Quit => gtk::main_quit(),
         }
     }
@@ -77,7 +77,7 @@ impl Widget for Win {
     view! {
         gtk::Window {
             gtk::Label {
-                text: &model.time.format("%H:%M:%S").to_string(),
+                text: &self.model.time.format("%H:%M:%S").to_string(),
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
         }

@@ -28,6 +28,9 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use gtk::{
     ContainerExt,
     Frame,
@@ -60,18 +63,18 @@ impl Widget for CenterButton {
         Some("center")
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.button
+    fn root(&self) -> Self::Root {
+        self.button.clone()
     }
 
-    fn update(&mut self, _msg: (), _model: &mut ()) {
+    fn update(&mut self, _msg: ()) {
     }
 
-    fn view(_relm: &RemoteRelm<Self>, _model: &()) -> Self {
+    fn view(_relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {
         let button = gtk::Button::new_with_label("-");
-        CenterButton {
+        Rc::new(RefCell::new(CenterButton {
             button: button,
-        }
+        }))
     }
 }
 
@@ -93,18 +96,18 @@ impl Widget for Button {
         Some("right")
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.button
+    fn root(&self) -> Self::Root {
+        self.button.clone()
     }
 
-    fn update(&mut self, _msg: (), _model: &mut ()) {
+    fn update(&mut self, _msg: ()) {
     }
 
-    fn view(_relm: &RemoteRelm<Self>, _model: &()) -> Self {
+    fn view(_relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {
         let button = gtk::Button::new_with_label("+");
-        Button {
+        Rc::new(RefCell::new(Button {
             button: button,
-        }
+        }))
     }
 }
 
@@ -122,18 +125,18 @@ impl Widget for MyFrame {
     fn model(_: ()) -> () {
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.frame
+    fn root(&self) -> Self::Root {
+        self.frame.clone()
     }
 
-    fn update(&mut self, _msg: (), _model: &mut ()) {
+    fn update(&mut self, _msg: ()) {
     }
 
-    fn view(_relm: &RemoteRelm<Self>, _model: &()) -> Self {
+    fn view(_relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {
         let frame = Frame::new(None);
-        MyFrame {
+        Rc::new(RefCell::new(MyFrame {
             frame,
-        }
+        }))
     }
 }
 
@@ -162,15 +165,15 @@ impl Container for SplitBox {
 
     fn add_widget<WIDGET: Widget>(&self, widget: &WIDGET) -> gtk::Container {
         if WIDGET::parent_id() == Some("right") {
-            self.hbox3.add(widget.root());
+            self.hbox3.add(&widget.root());
             self.hbox3.widget().root().clone().upcast()
         }
         else if WIDGET::parent_id() == Some("center") {
-            self.hbox2.add(widget.root());
+            self.hbox2.add(&widget.root());
             self.hbox2.clone().upcast()
         }
         else {
-            self.hbox1.add(widget.root());
+            self.hbox1.add(&widget.root());
             self.hbox1.clone().upcast()
         }
     }
@@ -186,26 +189,26 @@ impl Widget for SplitBox {
         ()
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.vbox
+    fn root(&self) -> Self::Root {
+        self.vbox.clone()
     }
 
-    fn update(&mut self, _event: (), _model: &mut ()) {
+    fn update(&mut self, _event: ()) {
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
         let vbox = gtk::Box::new(Horizontal, 0);
         let hbox1 = gtk::Box::new(Vertical, 0);
         vbox.add(&hbox1);
         let hbox2 = Frame::new(None);
         vbox.add(&hbox2);
         let hbox3 = vbox.add_widget::<MyFrame, _>(relm, ());
-        SplitBox {
+        Rc::new(RefCell::new(SplitBox {
             hbox1,
             hbox2,
             hbox3,
             vbox,
-        }
+        }))
     }
 }
 
@@ -231,17 +234,17 @@ impl Widget for Win {
     fn model(_: ()) -> () {
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
-    fn update(&mut self, event: Msg, _model: &mut ()) {
+    fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &()) -> Self {
+    fn view(relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {
         let window = Window::new(Toplevel);
         let vbox = window.add_widget::<SplitBox, _>(&relm, ());
         let plus_button = gtk::Button::new_with_label("+");
@@ -254,12 +257,12 @@ impl Widget for Win {
         vbox.add(&minus_button);
         connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
         window.show_all();
-        Win {
+        Rc::new(RefCell::new(Win {
             button: button,
             center_button,
             vbox: vbox,
             window: window,
-        }
+        }))
     }
 }
 

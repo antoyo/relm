@@ -11,7 +11,7 @@ view! {
             },
             gtk::Label {
                 // Bind the text property of the label to the counter attribute of the model.
-                text: &model.counter.to_string(),
+                text: &self.model.counter.to_string(),
             },
             gtk::Button {
                 clicked => Decrement,
