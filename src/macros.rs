@@ -62,9 +62,10 @@ macro_rules! connect {
     // it.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*) with $widget_clone:ident $msg:expr) => {{
         let stream = $relm.stream().clone();
+        #[allow(unused_mut)]
         $widget.$event(move |$($args),*| {
             let $widget_clone = $widget_clone.upgrade().expect("upgrade should always work");
-            let $widget_clone = $widget_clone.borrow();
+            let mut $widget_clone = $widget_clone.borrow_mut();
             let (msg, return_value) = $msg;
             let msg: Option<_> = msg.into();
             if let Some(msg) = msg {
@@ -96,11 +97,11 @@ macro_rules! connect {
     ($src_component:ident @ $message:pat, $dst_component:ident, with $widget:ident $msg:expr) => {
         let stream = $dst_component.stream().clone();
         $src_component.stream().observe(move |msg| {
-            #[allow(unreachable_patterns)]
+            #[allow(unreachable_patterns, unused_mut)]
             match msg {
                 $message =>  {
                     let $widget = $widget.upgrade().expect("upgrade should always work");
-                    let $widget = $widget.borrow();
+                    let mut $widget = $widget.borrow_mut();
                     stream.emit($msg);
                 },
                 _ => (),

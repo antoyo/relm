@@ -80,7 +80,7 @@ impl Widget for Win {
 }
 
 impl Win {
-    fn quit(&self) -> (Option<Msg>, Inhibit) {
+    fn quit(&mut self) -> (Option<Msg>, Inhibit) {
         if self.model.press_count > 3 {
             (None, Inhibit(true))
         }
