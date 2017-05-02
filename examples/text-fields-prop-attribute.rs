@@ -82,7 +82,7 @@ impl Widget for Text {
 }
 
 impl Text {
-    fn set_text(&self, text: &str) {
+    fn set_text(&mut self, text: &str) {
         self.text_entry.set_text(text);
     }
 }

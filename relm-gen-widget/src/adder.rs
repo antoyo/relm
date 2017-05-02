@@ -104,7 +104,7 @@ fn create_stmts(ident: &Ident, map: &PropertyModelMap) -> Vec<Stmt> {
             let stmt =
                 if property.is_relm_widget {
                     quote! {
-                        { self.#widget_name.widget().#prop_name(#tokens); }
+                        { self.#widget_name.widget_mut().#prop_name(#tokens); }
                     }
                 }
                 else {

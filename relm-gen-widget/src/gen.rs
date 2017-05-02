@@ -337,7 +337,7 @@ impl<'a> Generator<'a> {
         let children: Vec<_> = widget.children.iter()
             .map(|child| self.widget(child, Some(widget_name), IsRelm))
             .collect();
-        let ident = quote! { #widget_name.widget() };
+        let ident = quote! { #widget_name.widget_mut() };
         let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
 
         let add_or_create_widget = self.add_or_create_widget(

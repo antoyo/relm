@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::cell::{Ref, RefCell};
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
 use super::{EventStream, Widget};
@@ -64,6 +64,12 @@ impl<WIDGET: Widget> Component<WIDGET> {
     pub fn widget(&self) -> Ref<WIDGET> {
         // TODO: check if we can do better than returning the result of borrow.
         self.widget.borrow()
+    }
+
+    /// Get the widget of this component.
+    pub fn widget_mut(&self) -> RefMut<WIDGET> {
+        // TODO: check if we can do better than returning the result of borrow.
+        self.widget.borrow_mut()
     }
 
     /// Get the ref-counted widget of this component.
