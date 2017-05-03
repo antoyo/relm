@@ -103,7 +103,7 @@ impl Widget for Counter {
     fn update(&mut self, event: CounterMsg) {
         match event {
             Decrement => self.model.counter -= 1,
-            Increment => self.model.counter += 1,
+            Increment => self.increment(),
         }
     }
 
@@ -122,6 +122,10 @@ impl Widget for Counter {
                 clicked => Decrement,
             },
         }
+    }
+
+    fn increment(&mut self) {
+        self.model.counter += 1;
     }
 }
 

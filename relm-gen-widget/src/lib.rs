@@ -76,6 +76,7 @@ pub struct Driver {
     model_type: Option<ImplItem>,
     model_param_type: Option<ImplItem>,
     msg_type: Option<ImplItem>,
+    other_methods: Vec<ImplItem>,
     properties_model_map: Option<PropertyModelMap>,
     root_method: Option<ImplItem>,
     root_type: Option<ImplItem>,
@@ -103,12 +104,13 @@ impl Driver {
         Driver {
             data_method: None,
             generic_types: None,
-            root_method: None,
-            root_type: None,
             model_type: None,
             model_param_type: None,
             msg_type: None,
+            other_methods: vec![],
             properties_model_map: None,
+            root_method: None,
+            root_type: None,
             root_widget: None,
             root_widget_expr: None,
             root_widget_type: None,
@@ -118,6 +120,13 @@ impl Driver {
             widget_msg_type: None,
             widget_parent_id: None,
             widgets: HashMap::new(),
+        }
+    }
+
+    fn add_set_property_to_method(&self, func: &mut ImplItem) {
+        if let Method(_, ref mut block) = func.node {
+            let mut adder = Adder::new(self.properties_model_map.as_ref().expect("update method"));
+            *block = adder.fold_block(block.clone());
         }
     }
 
@@ -186,7 +195,7 @@ impl Driver {
                                 self.widget_msg_type = Some(get_second_param_type(&sig));
                                 self.update_method = Some(i)
                             },
-                            method_name => panic!("Unexpected method {}", method_name),
+                            _ => self.other_methods.push(i),
                         }
                     },
                     Type(_) => {
@@ -218,6 +227,7 @@ impl Driver {
             }
             new_items.push(self.get_update());
             new_items.push(self.get_root());
+            let other_methods = self.get_other_methods(&typ);
             let item = Impl(unsafety, polarity, generics, path, typ, new_items);
             ast.node = item;
             let container_impl = view.container_impl;
@@ -225,6 +235,8 @@ impl Driver {
                 #widget_struct
                 #ast
                 #container_impl
+
+                #other_methods
             }
         }
         else {
@@ -273,6 +285,18 @@ impl Driver {
         })
     }
 
+    fn get_other_methods(&mut self, typ: &Ty) -> Tokens {
+        let mut other_methods: Vec<_> = self.other_methods.drain(..).collect();
+        for method in &mut other_methods {
+            self.add_set_property_to_method(method);
+        }
+        quote! {
+            impl #typ {
+                #(#other_methods)*
+            }
+        }
+    }
+
     fn get_root(&mut self) -> ImplItem {
         self.root_method.take().unwrap_or_else(|| {
             let root_widget_expr = self.root_widget_expr.take().expect("root widget expr");
@@ -299,10 +323,7 @@ impl Driver {
      */
     fn get_update(&mut self) -> ImplItem {
         let mut func = self.update_method.take().expect("update method");
-        if let Method(_, ref mut block) = func.node {
-            let mut adder = Adder::new(self.properties_model_map.as_ref().expect("update method"));
-            *block = adder.fold_block(block.clone());
-        }
+        self.add_set_property_to_method(&mut func);
         // TODO: consider gtk::main_quit() as return.
         func
     }
