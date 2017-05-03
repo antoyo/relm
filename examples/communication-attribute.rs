@@ -182,8 +182,8 @@ impl Widget for Win {
 }
 
 impl Win {
-    fn inc(&self) -> CounterMsg {
-        Increment
+    fn inc(&self) -> Option<CounterMsg> {
+        Some(Increment)
     }
 
     fn text_change(&self, input: String) -> Msg {

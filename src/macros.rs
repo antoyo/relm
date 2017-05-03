@@ -42,16 +42,22 @@ macro_rules! connect {
     ($widget:expr, $event:ident($($args:pat),*), $other_component:expr, $msg:expr) => {
         let stream = $other_component.stream().clone();
         $widget.$event(move |$($args),*| {
-            stream.emit($msg);
-        })
+            let msg: Option<_> = $msg.into();
+            if let Some(msg) = msg {
+                stream.emit(msg);
+            }
+        });
     };
 
     // Connect to a GTK+ widget event.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
-            stream.emit($msg);
-        })
+            let msg: Option<_> = $msg.into();
+            if let Some(msg) = msg {
+                stream.emit(msg);
+            }
+        });
     }};
 
     // Connect to a GTK+ widget event.
@@ -102,7 +108,10 @@ macro_rules! connect {
                 $message =>  {
                     let $widget = $widget.upgrade().expect("upgrade should always work");
                     let mut $widget = $widget.borrow_mut();
-                    stream.emit($msg);
+                    let msg: Option<_> = $msg.into();
+                    if let Some(msg) = msg {
+                        stream.emit(msg);
+                    }
                 },
                 _ => (),
             }
@@ -117,7 +126,10 @@ macro_rules! connect {
             #[allow(unreachable_patterns)]
             match msg {
                 $message =>  {
-                    stream.emit($msg);
+                    let msg: Option<_> = $msg.into();
+                    if let Some(msg) = msg {
+                        stream.emit(msg);
+                    }
                 },
                 _ => (),
             }
