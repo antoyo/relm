@@ -182,7 +182,7 @@ impl Driver {
                                 add_model_param(&mut i, &mut self.model_param_type);
                                 new_items.push(i);
                             },
-                            "init_view" | "subscriptions" | "update_command" => new_items.push(i),
+                            "init_view" | "on_add" | "subscriptions" | "update_command" => new_items.push(i),
                             "update" => {
                                 self.widget_msg_type = Some(get_second_param_type(&sig));
                                 self.update_method = Some(i)

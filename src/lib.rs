@@ -41,6 +41,7 @@
         unused_qualifications, unused_results)]
 
 /*
+ * TODO: add a Deref<Widget> for Component?
  * TODO: look at how Elm works with the <canvas> element.
  * TODO: the widget names should start with __relm_field_.
  *
