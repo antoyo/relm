@@ -227,7 +227,7 @@ impl Driver {
             }
             new_items.push(self.get_update());
             new_items.push(self.get_root());
-            let other_methods = self.get_other_methods(&typ);
+            let other_methods = self.get_other_methods(&typ, &generics);
             let item = Impl(unsafety, polarity, generics, path, typ, new_items);
             ast.node = item;
             let container_impl = view.container_impl;
@@ -285,13 +285,13 @@ impl Driver {
         })
     }
 
-    fn get_other_methods(&mut self, typ: &Ty) -> Tokens {
+    fn get_other_methods(&mut self, typ: &Ty, generics: &Generics) -> Tokens {
         let mut other_methods: Vec<_> = self.other_methods.drain(..).collect();
         for method in &mut other_methods {
             self.add_set_property_to_method(method);
         }
         quote! {
-            impl #typ {
+            impl #generics #typ {
                 #(#other_methods)*
             }
         }
