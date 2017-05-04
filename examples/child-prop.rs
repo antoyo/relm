@@ -97,7 +97,7 @@ pub enum Msg {
 }
 
 struct Win {
-    button: Component<Button>,
+    _button: Component<Button>,
     window: gtk::Window,
 }
 
@@ -133,7 +133,7 @@ impl Widget for Win {
         window.show_all();
 
         Rc::new(RefCell::new(Win {
-            button: relm_button,
+            _button: relm_button,
             window: window,
         }))
     }

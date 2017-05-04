@@ -120,8 +120,8 @@ pub enum Msg {
 }
 
 struct Win {
-    button: Component<Button>,
-    vbox: Component<VBox>,
+    _button: Component<Button>,
+    _vbox: Component<VBox>,
     window: Window,
 }
 
@@ -157,8 +157,8 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
         window.show_all();
         Rc::new(RefCell::new(Win {
-            button: button,
-            vbox: vbox,
+            _button: button,
+            _vbox: vbox,
             window: window,
         }))
     }

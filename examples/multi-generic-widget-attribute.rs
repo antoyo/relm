@@ -70,7 +70,7 @@ impl IncDec for i64 {
 
 pub struct Model<S, T> {
     counter1: S,
-    counter2: T,
+    _counter2: T,
 }
 
 #[derive(Msg)]
@@ -84,7 +84,7 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
     fn model((value1, value2): (S, T)) -> Model<S, T> {
         Model {
             counter1: value1,
-            counter2: value2,
+            _counter2: value2,
         }
     }
 

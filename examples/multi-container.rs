@@ -214,9 +214,9 @@ pub enum Msg {
 }
 
 struct Win {
-    button: Component<Button>,
-    center_button: Component<CenterButton>,
-    vbox: Component<SplitBox>,
+    _button: Component<Button>,
+    _center_button: Component<CenterButton>,
+    _vbox: Component<SplitBox>,
     window: Window,
 }
 
@@ -253,9 +253,9 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
         window.show_all();
         Rc::new(RefCell::new(Win {
-            button: button,
-            center_button,
-            vbox: vbox,
+            _button: button,
+            _center_button: center_button,
+            _vbox: vbox,
             window: window,
         }))
     }

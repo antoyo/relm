@@ -116,7 +116,7 @@ impl Widget for VBox {
 
 struct MyVBox {
     vbox: Component<VBox>,
-    widget: Component<Button>,
+    _widget: Component<Button>,
 }
 
 impl Widget for MyVBox {
@@ -151,7 +151,7 @@ impl Widget for MyVBox {
 
         Rc::new(RefCell::new(MyVBox {
             vbox: vbox,
-            widget: widget,
+            _widget: widget,
         }))
     }
 }
@@ -162,7 +162,7 @@ pub enum Msg {
 }
 
 struct Win {
-    vbox: Component<MyVBox>,
+    _vbox: Component<MyVBox>,
     window: Window,
 }
 
@@ -193,7 +193,7 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _) (Some(Msg::Quit), Inhibit(false)));
 
         Rc::new(RefCell::new(Win {
-            vbox: vbox,
+            _vbox: vbox,
             window: window,
         }))
     }
