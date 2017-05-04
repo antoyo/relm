@@ -40,7 +40,6 @@ use relm_attributes::widget;
 
 use self::Msg::*;
 
-#[derive(Clone)]
 pub struct ButtonModel {
     text: String,
 }
@@ -64,7 +63,6 @@ impl Widget for Button {
 }
 
 // Define the structure of the model.
-#[derive(Clone)]
 pub struct Model {
     counter: i32,
 }

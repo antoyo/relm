@@ -45,7 +45,6 @@ use relm::{Cast, Component, Container, ContainerWidget, RelmContainer, RemoteRel
 
 use self::Msg::*;
 
-#[derive(Clone)]
 struct CenterButton {
     button: gtk::Button,
 }
@@ -78,7 +77,6 @@ impl Widget for CenterButton {
     }
 }
 
-#[derive(Clone)]
 struct Button {
     button: gtk::Button,
 }
@@ -111,7 +109,6 @@ impl Widget for Button {
     }
 }
 
-#[derive(Clone)]
 struct MyFrame {
     frame: Frame,
 }
@@ -148,7 +145,6 @@ impl Container for MyFrame {
     }
 }
 
-#[derive(Clone)]
 struct SplitBox {
     hbox1: gtk::Box,
     hbox2: Frame,
@@ -217,7 +213,6 @@ pub enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
 struct Win {
     button: Component<Button>,
     center_button: Component<CenterButton>,

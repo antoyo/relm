@@ -72,7 +72,6 @@ use self::Msg::*;
 
 type WSService = ClientService<TcpStream, WebSocketProtocol>;
 
-#[derive(Clone)]
 struct Model {
     service: Option<WSService>,
     text: String,
@@ -86,7 +85,6 @@ enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
 struct Win {
     entry: Entry,
     label: Label,

@@ -48,7 +48,6 @@ use self::CounterMsg::*;
 use self::Msg::*;
 use self::TextMsg::*;
 
-#[derive(Clone)]
 struct TextModel {
     content: String,
 }
@@ -58,7 +57,6 @@ enum TextMsg {
     Change,
 }
 
-#[derive(Clone)]
 struct Text {
     input: Entry,
     label: Label,
@@ -111,7 +109,6 @@ impl Widget for Text {
     }
 }
 
-#[derive(Clone)]
 struct Model {
     counter: i32,
 }
@@ -122,7 +119,6 @@ enum CounterMsg {
     Increment,
 }
 
-#[derive(Clone)]
 struct Counter {
     counter_label: Label,
     model: Model,
@@ -188,7 +184,6 @@ enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
 struct Win {
     _counter1: Component<Counter>,
     _counter2: Component<Counter>,

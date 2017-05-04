@@ -44,7 +44,6 @@ use relm::{Component, ContainerWidget, Relm, Widget};
 use self::CounterMsg::*;
 use self::Msg::*;
 
-#[derive(Clone)]
 struct Model {
     counter: i32,
 }
@@ -55,7 +54,6 @@ enum CounterMsg {
     Increment,
 }
 
-#[derive(Clone)]
 struct Counter {
     counter_label: Label,
     model: Model,
@@ -125,7 +123,6 @@ enum Msg {
     Remove,
 }
 
-#[derive(Clone)]
 struct Win {
     counters: Vec<Component<Counter>>,
     hbox: gtk::Box,

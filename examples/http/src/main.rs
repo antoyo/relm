@@ -60,7 +60,9 @@ use simplelog::LogLevelFilter::Warn;
 
 use self::Msg::*;
 
-#[derive(Clone)]
+const RED: &GdkRGBA = &GdkRGBA { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 };
+
+>>>>>>> de8ea84... Remove #[derive(Clone)] for the model
 struct Model {
     gif_url: String,
     topic: String,
@@ -76,7 +78,6 @@ enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
 struct Win {
     button: Button,
     image: Image,

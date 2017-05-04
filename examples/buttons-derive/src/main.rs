@@ -34,7 +34,6 @@ use gtk::{
 use gtk::Orientation::Vertical;
 use relm::Widget;
 
-#[derive(Clone)]
 pub struct Model {
     counter: i32,
 }

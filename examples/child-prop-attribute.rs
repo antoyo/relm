@@ -68,7 +68,6 @@ impl Widget for Button {
     }
 }
 
-#[derive(Clone)]
 pub struct Model {
     counter: i32,
 }

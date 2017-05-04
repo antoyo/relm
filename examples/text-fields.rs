@@ -44,7 +44,6 @@ use relm::{Relm, Widget};
 
 use self::Msg::*;
 
-#[derive(Clone)]
 struct Model {
     content: String,
 }
@@ -55,7 +54,6 @@ enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
 struct Win {
     input: Entry,
     label: Label,

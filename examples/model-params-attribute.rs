@@ -41,7 +41,6 @@ use relm_attributes::widget;
 use self::Msg::*;
 
 // Define the structure of the model.
-#[derive(Clone)]
 pub struct Model {
     counter: i32,
 }

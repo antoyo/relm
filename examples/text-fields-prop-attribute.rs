@@ -43,7 +43,6 @@ use relm_attributes::widget;
 use Msg::*;
 use TextMsg::*;
 
-#[derive(Clone)]
 pub struct TextModel {
     content: String,
 }
@@ -87,7 +86,6 @@ impl Text {
     }
 }
 
-#[derive(Clone)]
 pub struct Model {
     text: String,
 }

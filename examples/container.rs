@@ -45,7 +45,6 @@ use relm::{Component, Container, ContainerWidget, Relm, RelmContainer, Widget};
 
 use self::Msg::*;
 
-#[derive(Clone)]
 struct Button {
     button: gtk::Button,
 }
@@ -74,7 +73,6 @@ impl Widget for Button {
     }
 }
 
-#[derive(Clone)]
 struct VBox {
     event_box: EventBox,
     vbox: gtk::Box,
@@ -121,7 +119,6 @@ pub enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
 struct Win {
     button: Component<Button>,
     vbox: Component<VBox>,

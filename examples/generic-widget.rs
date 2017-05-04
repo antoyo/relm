@@ -66,7 +66,6 @@ impl IncDec for i32 {
     }
 }
 
-#[derive(Clone)]
 struct Model<T> {
     counter: T,
 }
@@ -77,7 +76,6 @@ enum CounterMsg<T> {
     Increment(T),
 }
 
-#[derive(Clone)]
 struct Counter<T> {
     counter_label: Label,
     model: Model<T>,
@@ -143,7 +141,6 @@ enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
 struct Win {
     _counter1: Component<Counter<i32>>,
     _counter2: Component<Counter<i32>>,

@@ -38,7 +38,6 @@ use self::Msg::*;
 pub enum LabelMsg {
 }
 
-#[derive(Clone)]
 pub struct LabelModel {
     counter: i32,
 }

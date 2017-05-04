@@ -58,7 +58,6 @@ impl IncDec for i32 {
     }
 }
 
-#[derive(Clone)]
 pub struct Model<T> {
     counter: T,
 }
@@ -70,7 +69,7 @@ pub enum CounterMsg {
 }
 
 #[widget]
-impl<T: Clone + IncDec + Display> Widget for Counter<T> {
+impl<T: IncDec + Display> Widget for Counter<T> {
     fn model(value: T) -> Model<T> {
         Model {
             counter: value,

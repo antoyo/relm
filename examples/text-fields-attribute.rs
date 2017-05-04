@@ -41,7 +41,6 @@ use relm_attributes::widget;
 
 use self::Msg::*;
 
-#[derive(Clone)]
 pub struct Model {
     content: String,
 }

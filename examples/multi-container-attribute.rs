@@ -120,7 +120,6 @@ impl Widget for SplitBox {
     }
 }
 
-#[derive(Clone)]
 pub struct Model {
     counter: i32,
 }

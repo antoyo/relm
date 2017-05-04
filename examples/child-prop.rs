@@ -50,7 +50,6 @@ use self::Msg::*;
 pub enum ButtonMsg {
 }
 
-#[derive(Clone)]
 struct Button {
     button: gtk::Button,
 }
@@ -97,7 +96,6 @@ pub enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
 struct Win {
     button: Component<Button>,
     window: gtk::Window,

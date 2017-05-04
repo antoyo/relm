@@ -68,7 +68,6 @@ impl IncDec for i64 {
     }
 }
 
-#[derive(Clone)]
 pub struct Model<S, T> {
     counter1: S,
     counter2: T,

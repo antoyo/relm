@@ -44,7 +44,6 @@ pub enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
 pub struct Model {
     press_count: i32,
 }

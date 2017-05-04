@@ -39,7 +39,6 @@ enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
 struct Win {
     window: Window,
 }

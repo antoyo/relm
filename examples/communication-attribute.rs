@@ -44,7 +44,6 @@ use self::CounterMsg::*;
 use self::Msg::*;
 use self::TextMsg::*;
 
-#[derive(Clone)]
 pub struct TextModel {
     content: String,
 }
@@ -81,7 +80,6 @@ impl Widget for Text {
     }
 }
 
-#[derive(Clone)]
 pub struct CounterModel {
     counter: i32,
 }
@@ -129,7 +127,6 @@ impl Widget for Counter {
     }
 }
 
-#[derive(Clone)]
 pub struct Model {
     counter: i32,
 }

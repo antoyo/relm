@@ -160,7 +160,6 @@ impl Driver {
         let widget_model_type = self.widget_model_type.as_ref().expect("missing model method");
         quote! {
             #[allow(dead_code)]
-            #[derive(Clone)]
             pub struct #typ {
                 #(#idents: #types,)*
                 #(#relm_idents: #relm_types,)*
