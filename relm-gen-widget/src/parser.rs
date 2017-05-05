@@ -32,7 +32,7 @@ use syn::ItemKind::Mac;
 use syn::Lit::Str;
 use syn::StrStyle::Cooked;
 use syn::TokenTree::{self, Token};
-use syn::Token::{At, Colon, Comma, Eq, FatArrow, Gt, Ident, Literal, Lt, ModSep, Pound};
+use syn::Token::{At, Colon, Comma, Dot, Eq, FatArrow, Gt, Ident, Literal, Lt, ModSep, Pound};
 
 use self::DefaultParam::*;
 use self::EventValue::*;
@@ -149,6 +149,7 @@ pub enum EitherWidget {
 
 #[derive(Debug)]
 pub struct GtkWidget {
+    pub child_events: HashMap<(String, String), Event>,
     pub events: HashMap<String, Event>,
     pub relm_name: Option<Ty>,
     pub save: bool,
@@ -157,6 +158,7 @@ pub struct GtkWidget {
 impl GtkWidget {
     fn new() -> Self {
         GtkWidget {
+            child_events: HashMap::new(),
             events: HashMap::new(),
             relm_name: None,
             save: false,
@@ -245,6 +247,13 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
                 match tts[0] {
                     Token(Colon) => {
                         tts = parse_value_or_child_properties(tts, ident, &mut child_properties, &mut properties);
+                    },
+                    Token(Dot) => {
+                        let child_name = ident;
+                        let (ident, new_tts) = parse_ident(&tts[1..]);
+                        let (event, new_tts) = parse_event(new_tts, DefaultOneParam);
+                        gtk_widget.child_events.insert((child_name, ident), event);
+                        tts = new_tts;
                     },
                     TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
                         let (event, new_tts) = parse_event(tts, DefaultOneParam);

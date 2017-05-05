@@ -217,35 +217,43 @@ impl<'a> Generator<'a> {
         }
     }
 
+    fn collect_event(&mut self, widget_name: &Ident, save: bool, name: &str, event: &Event) {
+        let event_ident = Ident::new(format!("connect_{}", name));
+        let event_params: Vec<_> = event.params.iter().map(|ident| Ident::new(ident.as_ref())).collect();
+        let event_model_ident = gen_model_ident(event);
+        let clone = gen_clone(save);
+        let connect =
+            match event.value {
+                CurrentWidget(WithoutReturn(ref event_value)) => quote! {{
+                    #clone
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #event_value);
+                }},
+                ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {{
+                    #clone
+                    connect!(#widget_name, #event_ident(#(#event_params),*), #foreign_widget_name, #event_value);
+                }},
+                CurrentWidget(Return(ref event_value, ref return_value)) => quote! {{
+                    #clone
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*) (#event_value, #return_value));
+                }},
+                ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
+                CurrentWidget(CallReturn(ref func)) => quote! {{
+                    #clone
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*) #event_model_ident #func);
+                }},
+
+            };
+        self.events.push(connect);
+    }
+
     fn collect_events(&mut self, widget: &Widget, gtk_widget: &GtkWidget) {
         let widget_name = &widget.name;
         for (name, event) in &gtk_widget.events {
-            let event_ident = Ident::new(format!("connect_{}", name));
-            let event_params: Vec<_> = event.params.iter().map(|ident| Ident::new(ident.as_ref())).collect();
-            let event_model_ident = gen_model_ident(event);
-            let clone = gen_clone(gtk_widget.save);
-            let connect =
-                match event.value {
-                    CurrentWidget(WithoutReturn(ref event_value)) => quote! {{
-                        #clone
-                        connect!(relm, #widget_name, #event_ident(#(#event_params),*), #event_value);
-                    }},
-                    ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {{
-                        #clone
-                        connect!(#widget_name, #event_ident(#(#event_params),*), #foreign_widget_name, #event_value);
-                    }},
-                    CurrentWidget(Return(ref event_value, ref return_value)) => quote! {{
-                        #clone
-                        connect!(relm, #widget_name, #event_ident(#(#event_params),*) (#event_value, #return_value));
-                    }},
-                    ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
-                    CurrentWidget(CallReturn(ref func)) => quote! {{
-                        #clone
-                        connect!(relm, #widget_name, #event_ident(#(#event_params),*) #event_model_ident #func);
-                    }},
-
-                };
-            self.events.push(connect);
+            self.collect_event(widget_name, gtk_widget.save, name, event);
+        }
+        for (&(ref child_name, ref name), event) in &gtk_widget.child_events {
+            let widget_name = Ident::new(format!("{}.get_{}()", widget_name, child_name));
+            self.collect_event(&widget_name, false, &name, event);
         }
     }
 
