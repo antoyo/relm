@@ -31,10 +31,8 @@ extern crate relm_derive;
 use gtk::{
     ButtonExt,
     Inhibit,
-    OrientableExt,
     WidgetExt,
 };
-use gtk::Orientation::Vertical;
 use relm::Widget;
 use relm_attributes::widget;
 
@@ -51,7 +49,7 @@ impl Widget for Win {
         ()
     }
 
-    fn update(&mut self, event: Msg, model: &mut ()) {
+    fn update(&mut self, event: Msg, _model: &mut ()) {
         match event {
             Quit => gtk::main_quit(),
         }
