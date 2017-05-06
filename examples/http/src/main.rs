@@ -22,8 +22,8 @@
 #![feature(conservative_impl_trait, fn_traits, unboxed_closures)]
 
 extern crate futures;
+extern crate gdk;
 extern crate gdk_pixbuf;
-extern crate gdk_sys;
 extern crate gtk;
 extern crate hyper;
 extern crate hyper_tls;
@@ -37,8 +37,8 @@ extern crate simplelog;
 use std::str::FromStr;
 
 use futures::{Future, Stream};
+use gdk::RGBA;
 use gdk_pixbuf::PixbufLoader;
-use gdk_sys::GdkRGBA;
 use gtk::{
     Button,
     ButtonExt,
@@ -51,7 +51,6 @@ use gtk::{
     WindowType,
     STATE_FLAG_NORMAL,
 };
-use gtk::prelude::WidgetExtManual;
 use hyper::{Client, Error};
 use hyper_tls::HttpsConnector;
 use gtk::Orientation::Vertical;
@@ -60,8 +59,6 @@ use simplelog::{Config, TermLogger};
 use simplelog::LogLevelFilter::Warn;
 
 use self::Msg::*;
-
-const RED: &GdkRGBA = &GdkRGBA { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 };
 
 #[derive(Clone)]
 struct Model {
@@ -123,7 +120,7 @@ impl Widget for Win {
             HttpError(error) => {
                 self.button.set_sensitive(true);
                 self.label.set_text(&format!("HTTP error: {}", error));
-                self.label.override_color(STATE_FLAG_NORMAL, RED);
+                self.label.override_color(STATE_FLAG_NORMAL, &RGBA::red());
             },
             ImageChunk(chunk) => {
                 self.loader.loader_write(&chunk).unwrap();
