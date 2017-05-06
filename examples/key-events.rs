@@ -41,6 +41,7 @@ use self::Msg::*;
 #[derive(Msg)]
 pub enum Msg {
     Press,
+    ReallyQuit,
     Release,
     Quit,
 }
@@ -76,10 +77,11 @@ impl Widget for Win {
                 self.model.press_count += 1;
                 println!("Press");
             },
+            ReallyQuit => gtk::main_quit(),
             Release => {
                 println!("Release");
             },
-            Quit => gtk::main_quit(),
+            Quit => (),
         }
     }
 
@@ -100,6 +102,7 @@ impl Widget for Win {
             connect!(relm, window, connect_key_release_event(_, _) (Release, Inhibit(false)));
             connect!(relm, window, connect_delete_event(_, _) with win_clone
                      win_clone.quit());
+            connect!(relm@Quit, relm, ReallyQuit);
         }
 
         win

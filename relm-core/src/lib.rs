@@ -44,7 +44,7 @@ impl<MSG> Drop for Lock<MSG> {
 struct _EventStream<MSG> {
     events: VecDeque<MSG>,
     locked: bool,
-    observers: Vec<Box<Fn(MSG)>>,
+    observers: Vec<Rc<Fn(MSG)>>,
     task: Option<Task>,
     terminated: bool,
 }
@@ -87,16 +87,17 @@ impl<MSG> EventStream<MSG> {
         where MSG: Clone
     {
         if !self.stream.borrow().locked {
-            let mut stream = self.stream.borrow_mut();
-            if let Some(ref task) = stream.task {
+            if let Some(ref task) = self.stream.borrow().task {
                 task.unpark();
             }
 
-            for observer in &stream.observers {
+            let len = self.stream.borrow().observers.len();
+            for i in 0..len {
+                let observer = self.stream.borrow().observers[i].clone();
                 observer(event.clone());
             }
 
-            stream.events.push_back(event);
+            self.stream.borrow_mut().events.push_back(event);
         }
     }
 
@@ -117,7 +118,7 @@ impl<MSG> EventStream<MSG> {
     }
 
     pub fn observe<CALLBACK: Fn(MSG) + 'static>(&self, callback: CALLBACK) {
-        self.stream.borrow_mut().observers.push(Box::new(callback));
+        self.stream.borrow_mut().observers.push(Rc::new(callback));
     }
 }
 
