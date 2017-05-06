@@ -31,10 +31,8 @@ extern crate relm_derive;
 use gtk::{
     ButtonExt,
     Inhibit,
-    OrientableExt,
     WidgetExt,
 };
-use gtk::Orientation::Vertical;
 use relm::Widget;
 use relm_attributes::widget;
 
