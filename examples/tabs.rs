@@ -62,7 +62,7 @@ impl Widget for Win {
             gtk::Notebook {
                 gtk::Button {
                     tab: {
-                        tab_label: "First Button",
+                        tab_label: Some("First Button"),
                     },
                     label: "+",
                 },
