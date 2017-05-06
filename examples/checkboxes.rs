@@ -82,6 +82,9 @@ impl Widget for CheckButton {
         match event {
             Check => {
                 self.model.check = true;
+                // Lock the stream so that the call to set_active does not emit a Toggle message
+                // because that would cause an infinite recursion
+                // The Toggle message is emitted because the button connect signal is handled.
                 let _lock = self.relm.stream().lock();
                 self.button.set_active(true);
             },
