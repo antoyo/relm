@@ -30,24 +30,6 @@ use std::rc::Rc;
 use futures::{Async, Poll, Stream};
 use futures::task::{self, Task};
 
-#[macro_export]
-#[doc(hidden)]
-macro_rules! check_recursion {
-    ($widget:expr) => {
-        if $widget.try_borrow_mut().is_err() {
-            panic!("An event to the same widget was emitted in the update() method, which would cause an infinite \
-                   recursion.\nThis can be caused by calling a gtk+ function that is connected to send a message \
-                   to the same widget.\nInspect the stack trace to determine which call it is.\nThen you can either \
-                   refactor your code to avoid a cyclic event dependency or block events from being emitted by doing \
-                   the following:\n{\n    let _lock = self.model.relm.stream().lock();\n    // Your panicking call.\n}\
-                   \nSee this example:\
-                   https://github.com/antoyo/relm/blob/feature/futures-glib/examples/checkboxes.rs#L88\n
-                   This issue can also happen when emitting a signal to the same widget, in which case you need to\
-                   refactor your code to avoid this cyclic event dependency.");
-        }
-    };
-}
-
 #[must_use]
 pub struct Lock<MSG> {
     stream: Rc<RefCell<_EventStream<MSG>>>,
@@ -104,7 +86,6 @@ impl<MSG> EventStream<MSG> {
     pub fn emit(&self, event: MSG)
         where MSG: Clone
     {
-        check_recursion!(self.stream);
         if !self.stream.borrow().locked {
             let mut stream = self.stream.borrow_mut();
             if let Some(ref task) = stream.task {
