@@ -41,6 +41,7 @@ use std::collections::{HashMap, HashSet};
 
 use adder::{Adder, Property};
 use gen::gen;
+pub use gen::gen_where_clause;
 use parser::EitherWidget::{Gtk, Relm};
 use parser::{Widget, parse};
 use quote::Tokens;
@@ -153,7 +154,8 @@ impl Driver {
         }
     }
 
-    fn create_struct(&self, typ: &Ty, relm_widgets: &HashMap<Ident, Path>) -> Tokens {
+    fn create_struct(&self, typ: &Ty, relm_widgets: &HashMap<Ident, Path>, generics: &Generics) -> Tokens {
+        let where_clause = gen_where_clause(generics);
         let widgets = self.widgets.iter().filter(|&(ident, _)| !relm_widgets.contains_key(ident));
         let (idents, types): (Vec<_>, Vec<_>) = widgets.unzip();
         let relm_idents = relm_widgets.keys();
@@ -161,7 +163,7 @@ impl Driver {
         let widget_model_type = self.widget_model_type.as_ref().expect("missing model method");
         quote! {
             #[allow(dead_code)]
-            pub struct #typ {
+            pub struct #typ #where_clause {
                 #(#idents: #types,)*
                 #(#relm_idents: #relm_types,)*
                 model: #widget_model_type,
@@ -217,7 +219,7 @@ impl Driver {
             new_items.push(view.item);
             self.widgets.insert(self.root_widget.clone().expect("root widget"),
             self.root_widget_type.clone().expect("root widget type"));
-            let widget_struct = self.create_struct(&typ, &view.relm_widgets);
+            let widget_struct = self.create_struct(&typ, &view.relm_widgets, &generics);
             new_items.push(self.get_msg_type());
             new_items.push(self.get_model_type());
             new_items.push(self.get_model_param_type());
@@ -287,11 +289,12 @@ impl Driver {
 
     fn get_other_methods(&mut self, typ: &Ty, generics: &Generics) -> Tokens {
         let mut other_methods: Vec<_> = self.other_methods.drain(..).collect();
+        let where_clause = gen_where_clause(generics);
         for method in &mut other_methods {
             self.add_set_property_to_method(method);
         }
         quote! {
-            impl #generics #typ {
+            impl #generics #typ #where_clause {
                 #(#other_methods)*
             }
         }

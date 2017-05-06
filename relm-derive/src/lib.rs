@@ -13,7 +13,7 @@ extern crate syn;
 use proc_macro::TokenStream;
 
 use quote::Tokens;
-use relm_gen_widget::gen_widget;
+use relm_gen_widget::{gen_widget, gen_where_clause};
 use syn::{
     Body,
     Field,
@@ -95,8 +95,9 @@ fn impl_msg(ast: &MacroInput) -> Tokens {
 fn derive_clone(ast: &MacroInput) -> Tokens {
     let generics = &ast.generics;
     let name = &ast.ident;
+    let generics_without_bound = remove_generic_bounds(generics);
     let typ = quote! {
-        #name #generics
+        #name #generics_without_bound
     };
 
     match ast.body {
@@ -154,9 +155,10 @@ fn derive_clone_enum(name: &Ident, typ: Tokens, mut generics: Generics, variants
             }, TraitBoundModifier::None)
         ];
     }
+    let where_clause = gen_where_clause(&generics);
 
     quote! {
-        impl #generics Clone for #typ {
+        impl #generics Clone for #typ #where_clause {
             fn clone(&self) -> Self {
                 match *self {
                     #(#variant_patterns => #variant_values,)*
@@ -170,8 +172,9 @@ fn derive_clone_struct(name: &Ident, typ: Tokens, generics: &Generics, fields: &
     let idents: Vec<_> = fields.iter().map(|field| field.ident.clone().unwrap()).collect();
     let idents1 = &idents;
     let idents2 = &idents;
+    let where_clause = gen_where_clause(generics);
     quote! {
-        impl #generics Clone for #typ {
+        impl #generics Clone for #typ #where_clause {
             fn clone(&self) -> Self {
                 #name {
                     #(#idents1: self.#idents2.clone(),)*
@@ -184,8 +187,9 @@ fn derive_clone_struct(name: &Ident, typ: Tokens, generics: &Generics, fields: &
 fn derive_display_variant(ast: &MacroInput) -> Tokens {
     let generics = &ast.generics;
     let name = &ast.ident;
+    let generics_without_bound = remove_generic_bounds(generics);
     let typ = quote! {
-        #name #generics
+        #name #generics_without_bound
     };
 
     if let Body::Enum(ref variants) = ast.body {
@@ -214,9 +218,10 @@ fn derive_display_variant(ast: &MacroInput) -> Tokens {
         let variant_names = variant_idents_values.iter().map(|&(ref ident, _)| {
             ident.to_string()
         });
+        let where_clause = gen_where_clause(generics);
 
         quote! {
-            impl #generics ::relm::DisplayVariant for #typ {
+            impl #generics ::relm::DisplayVariant for #typ #where_clause {
                 fn display_variant(&self) -> &'static str {
                     match *self {
                         #(#variant_patterns => #variant_names,)*
@@ -254,4 +259,12 @@ fn impl_widget(ast: &Item) -> Tokens {
     }
 
     panic!("Expecting `widget` field.");
+}
+
+fn remove_generic_bounds(generics: &Generics) -> Generics {
+    let mut generics = generics.clone();
+    for param in &mut generics.ty_params {
+        param.bounds = vec![];
+    }
+    generics.clone()
 }

@@ -503,6 +503,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
 }
 
 fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Generics) -> Tokens {
+    let where_clause = gen_where_clause(generic_types);
     let widget_type = gen_widget_type(widget);
     if generator.container_names.is_empty() {
         quote! {
@@ -523,7 +524,7 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
         let add_widget_method = gen_add_widget_method(&generator.container_names);
 
         quote! {
-            impl #generic_types ::relm::Container for #widget_type {
+            impl #generic_types ::relm::Container for #widget_type #where_clause {
                 type Container = #typ;
 
                 fn container(&self) -> &Self::Container {
@@ -583,4 +584,17 @@ fn gen_set_child_prop_calls(widget: &Widget, parent: Option<&Ident>, parent_widg
         }
     }
     child_properties
+}
+
+pub fn gen_where_clause(generics: &Generics) -> Tokens {
+    if generics.where_clause.predicates.is_empty() {
+        quote! {
+        }
+    }
+    else {
+        let where_clause = &generics.where_clause;
+        quote! {
+            #where_clause
+        }
+    }
 }
