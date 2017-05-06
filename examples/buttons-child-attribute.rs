@@ -29,6 +29,7 @@ extern crate relm_attributes;
 extern crate relm_derive;
 
 use gtk::{
+    BoxExt,
     ButtonExt,
     Inhibit,
     OrientableExt,
@@ -38,7 +39,6 @@ use gtk::{
 use gtk::Orientation::Vertical;
 use gtk::WindowType::Popup;
 use relm::Widget;
-use relm::gtk_ext::BoxExtManual;
 use relm_attributes::widget;
 
 use self::Msg::*;

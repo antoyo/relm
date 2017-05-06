@@ -28,6 +28,7 @@ extern crate relm;
 extern crate relm_derive;
 
 use gtk::{
+    BoxExt,
     Cast,
     ContainerExt,
     Inhibit,
@@ -39,7 +40,6 @@ use gtk::{
 use gtk::Orientation::Vertical;
 use gtk::WindowType::Toplevel;
 use relm::{Component, ContainerWidget, RemoteRelm, Widget};
-use relm::gtk_ext::BoxExtManual;
 
 use self::Msg::*;
 

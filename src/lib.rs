@@ -94,7 +94,6 @@ extern crate relm_core;
 
 mod component;
 mod container;
-pub mod gtk_ext;
 mod macros;
 mod stream;
 mod widget;
