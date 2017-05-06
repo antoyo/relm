@@ -79,8 +79,8 @@ macro_rules! connect {
     // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
     // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
     // Option<MSG> can be None if no message needs to be emitted.
-    // This variant also give you a model so that you can call a function that will use and mutate
-    // it.
+    // This variant also give you a widget so that you can call a function that will use and mutate
+    // its model.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*) with $widget_clone:ident $msg:expr) => {{
         let stream = $relm.stream().clone();
         #[allow(unused_mut)]
@@ -114,8 +114,8 @@ macro_rules! connect {
     }};
 
     // Connect to a message reception.
-    // This variant also give you a model so that you can call a function that will use and mutate
-    // it.
+    // This variant also give you a widget so that you can call a function that will use and mutate
+    // its model.
     ($src_component:ident @ $message:pat, $dst_component:ident, with $widget:ident $msg:expr) => {
         let stream = $dst_component.stream().clone();
         $src_component.stream().observe(move |msg| {
