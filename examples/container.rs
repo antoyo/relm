@@ -55,7 +55,7 @@ impl Widget for Button {
     type Msg = ();
     type Root = gtk::Button;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
     }
 
     fn root(&self) -> Self::Root {
@@ -92,7 +92,7 @@ impl Widget for VBox {
     type Msg = ();
     type Root = EventBox;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
         ()
     }
 
@@ -131,7 +131,7 @@ impl Widget for Win {
     type Msg = Msg;
     type Root = Window;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
     }
 
     fn root(&self) -> Self::Root {

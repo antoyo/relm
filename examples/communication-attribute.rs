@@ -183,11 +183,11 @@ impl Widget for Win {
 }
 
 impl Win {
-    fn inc(&self) -> Option<CounterMsg> {
+    fn inc(&mut self) -> Option<CounterMsg> {
         Some(Increment)
     }
 
-    fn text_change(&self, input: String) -> Msg {
+    fn text_change(&mut self, input: String) -> Msg {
         TextChange(input)
     }
 }

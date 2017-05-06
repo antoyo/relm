@@ -55,6 +55,7 @@ use syn::{
     Path,
     TokenTree,
     parse_item,
+    parse_type,
 };
 use syn::FnArg::Captured;
 use syn::fold::Folder;
@@ -377,15 +378,21 @@ pub fn gen_widget(input: Tokens) -> Tokens {
 
 fn add_model_param(model_fn: &mut ImplItem, model_param_type: &mut Option<ImplItem>) {
     if let Method(ref mut method_sig, _) = model_fn.node {
-        if method_sig.decl.inputs.is_empty() {
-            method_sig.decl.inputs.push(Captured(Wild, Tup(vec![])));
-        }
-        else {
-            if let Captured(_, ref path) = method_sig.decl.inputs[0] {
-                *model_param_type = Some(block_to_impl_item(quote! {
-                    type ModelParam = #path;
-                }));
+        let len = method_sig.decl.inputs.len();
+        if len == 0 || len == 1 {
+            let type_tokens = quote! {
+                &::relm::Relm<Self>
+            };
+            let typ = parse_type(type_tokens.as_str()).expect("Relm type");
+            method_sig.decl.inputs.insert(0, Captured(Wild, typ));
+            if len == 0 {
+                method_sig.decl.inputs.push(Captured(Wild, Tup(vec![])));
             }
+        }
+        if let Some(&Captured(_, ref path)) = method_sig.decl.inputs.get(1) {
+            *model_param_type = Some(block_to_impl_item(quote! {
+                type ModelParam = #path;
+            }));
         }
     }
 }

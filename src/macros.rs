@@ -19,6 +19,21 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#[macro_export]
+#[doc(hidden)]
+macro_rules! check_recursion {
+    ($widget:ident) => {
+        if $widget.try_borrow_mut().is_err() {
+            panic!("An event to the same widget was emitted in the update() method, which would cause an infinite \
+                   recursion.\nThis can be caused by calling a gtk+ function that is connected to send a message \
+                   to the same widget.\nInspect the stack trace to determine which call it is.\nThen you can either \
+                   refactor your code to avoid a cyclic event dependency or block events from being emitted by doing \
+                   the following:\n{\n    let _lock = self.model.relm.stream().lock();\n    // Your panicking call.\n}\
+                   \n");
+        }
+    };
+}
+
 /// Connect events to sending a message.
 ///
 /// Rule #1:
@@ -71,6 +86,7 @@ macro_rules! connect {
         #[allow(unused_mut)]
         $widget.$event(move |$($args),*| {
             let $widget_clone = $widget_clone.upgrade().expect("upgrade should always work");
+            check_recursion!($widget_clone);
             let mut $widget_clone = $widget_clone.borrow_mut();
             let (msg, return_value) = $msg;
             let msg: Option<_> = msg.into();
@@ -107,6 +123,7 @@ macro_rules! connect {
             match msg {
                 $message =>  {
                     let $widget = $widget.upgrade().expect("upgrade should always work");
+                    check_recursion!($widget);
                     let mut $widget = $widget.borrow_mut();
                     let msg: Option<_> = $msg.into();
                     if let Some(msg) = msg {

@@ -69,7 +69,7 @@ impl Widget for Win {
     // Specify the type of the root widget.
     type Root = Window;
 
-    fn model(_: ()) -> Model {
+    fn model(_: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
         }

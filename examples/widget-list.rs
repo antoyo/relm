@@ -66,7 +66,7 @@ impl Widget for Counter {
     type ModelParam = ();
     type Msg = CounterMsg;
 
-    fn model(_: ()) -> Model {
+    fn model(_: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
         }
@@ -136,7 +136,7 @@ impl Widget for Win {
     type Msg = Msg;
     type Root = Window;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
         ()
     }
 

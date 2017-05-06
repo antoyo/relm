@@ -74,7 +74,7 @@ impl Widget for Win {
     type Msg = Msg;
     type Root = Window;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
         ()
     }
 

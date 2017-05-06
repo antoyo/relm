@@ -69,7 +69,7 @@ impl Widget for Text {
     type Msg = TextMsg;
     type Root = gtk::Box;
 
-    fn model(_: ()) -> TextModel {
+    fn model(_: &Relm<Self>, _: ()) -> TextModel {
         TextModel {
             content: String::new(),
         }
@@ -130,7 +130,7 @@ impl Widget for Counter {
     type Msg = CounterMsg;
     type Root = gtk::Box;
 
-    fn model(_: ()) -> CounterModel {
+    fn model(_: &Relm<Self>, _: ()) -> CounterModel {
         CounterModel {
             counter: 0,
         }
@@ -203,7 +203,7 @@ impl Widget for Win {
     type Msg = Msg;
     type Root = Window;
 
-    fn model(_: ()) -> Model {
+    fn model(_: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
         }
@@ -253,7 +253,7 @@ impl Widget for Win {
             let Win { ref counter1, ref counter2, ref text, ref window, .. } = *win.borrow();
             connect!(text@Change(text), relm, TextChange(text));
             connect!(text@Change(_), counter1, with win_clone win_clone.inc());
-            connect!(counter1@Increment, counter2, Increment);
+            connect!(counter1@Increment, counter2, Decrement);
             connect!(button, connect_clicked(_), counter1, Decrement);
 
             window.add(&hbox);
@@ -268,7 +268,7 @@ impl Widget for Win {
 }
 
 impl Win {
-    fn inc(&self) -> CounterMsg {
+    fn inc(&mut self) -> CounterMsg {
         Increment
     }
 }

@@ -124,7 +124,7 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
-    fn model(_: ()) -> () {
+    fn model() -> () {
         ()
     }
 

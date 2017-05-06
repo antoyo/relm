@@ -43,7 +43,7 @@ use self::Msg::*;
 
 #[widget]
 impl Widget for MyFrame {
-    fn model(_: ()) -> () {
+    fn model() -> () {
     }
 
     fn update(&mut self, _msg: ()) {

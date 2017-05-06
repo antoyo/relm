@@ -96,7 +96,7 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
     type Msg = CounterMsg;
     type Root = gtk::Box;
 
-    fn model((value1, value2): (S, T)) -> Self::Model {
+    fn model(_: &Relm<Self>, (value1, value2): (S, T)) -> Self::Model {
         Model {
             counter1: value1,
             _counter2: value2,
@@ -164,7 +164,7 @@ impl Widget for Win {
     type Msg = Msg;
     type Root = Window;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
         ()
     }
 

@@ -70,7 +70,7 @@ impl Widget for Text {
     type Msg = TextMsg;
     type Root = gtk::Box;
 
-    fn model(_: ()) -> TextModel {
+    fn model(_: &Relm<Self>, _: ()) -> TextModel {
         TextModel {
             content: String::new(),
         }
@@ -131,7 +131,7 @@ impl Widget for Counter {
     type Msg = CounterMsg;
     type Root = gtk::Box;
 
-    fn model(_: ()) -> Model {
+    fn model(_: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
         }
@@ -197,7 +197,7 @@ impl Widget for Win {
     type Msg = Msg;
     type Root = Window;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
         ()
     }
 

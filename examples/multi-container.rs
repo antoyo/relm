@@ -55,7 +55,7 @@ impl Widget for CenterButton {
     type Msg = ();
     type Root = gtk::Button;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
     }
 
     fn parent_id() -> Option<&'static str> {
@@ -87,7 +87,7 @@ impl Widget for Button {
     type Msg = ();
     type Root = gtk::Button;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
     }
 
     fn parent_id() -> Option<&'static str> {
@@ -119,7 +119,7 @@ impl Widget for MyFrame {
     type Msg = ();
     type Root = Frame;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
     }
 
     fn root(&self) -> Self::Root {
@@ -181,7 +181,7 @@ impl Widget for SplitBox {
     type Msg = ();
     type Root = gtk::Box;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
         ()
     }
 
@@ -226,7 +226,7 @@ impl Widget for Win {
     type Msg = Msg;
     type Root = Window;
 
-    fn model(_: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) -> () {
     }
 
     fn root(&self) -> Self::Root {

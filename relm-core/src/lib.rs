@@ -30,8 +30,20 @@ use std::rc::Rc;
 use futures::{Async, Poll, Stream};
 use futures::task::{self, Task};
 
+#[must_use]
+pub struct Lock<MSG> {
+    stream: Rc<RefCell<_EventStream<MSG>>>,
+}
+
+impl<MSG> Drop for Lock<MSG> {
+    fn drop(&mut self) {
+        self.stream.borrow_mut().locked = false;
+    }
+}
+
 struct _EventStream<MSG> {
     events: VecDeque<MSG>,
+    locked: bool,
     observers: Vec<Box<Fn(MSG)>>,
     task: Option<Task>,
     terminated: bool,
@@ -54,6 +66,7 @@ impl<MSG> EventStream<MSG> {
         EventStream {
             stream: Rc::new(RefCell::new(_EventStream {
                 events: VecDeque::new(),
+                locked: false,
                 observers: vec![],
                 task: None,
                 terminated: false,
@@ -73,20 +86,29 @@ impl<MSG> EventStream<MSG> {
     pub fn emit(&self, event: MSG)
         where MSG: Clone
     {
-        let mut stream = self.stream.borrow_mut();
-        if let Some(ref task) = stream.task {
-            task.unpark();
-        }
+        if !self.stream.borrow().locked {
+            let mut stream = self.stream.borrow_mut();
+            if let Some(ref task) = stream.task {
+                task.unpark();
+            }
 
-        for observer in &stream.observers {
-            observer(event.clone());
-        }
+            for observer in &stream.observers {
+                observer(event.clone());
+            }
 
-        stream.events.push_back(event);
+            stream.events.push_back(event);
+        }
     }
 
     fn get_event(&self) -> Option<MSG> {
         self.stream.borrow_mut().events.pop_front()
+    }
+
+    pub fn lock(&self) -> Lock<MSG> {
+        self.stream.borrow_mut().locked = true;
+        Lock {
+            stream: self.stream.clone(),
+        }
     }
 
     fn is_terminated(&self) -> bool {

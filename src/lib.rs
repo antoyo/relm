@@ -301,11 +301,11 @@ fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> (
 {
     let stream = EventStream::new();
 
-    let model = WIDGET::model(model_param);
     let relm = Relm {
         cx: cx.clone(),
         stream: stream.clone(),
     };
+    let model = WIDGET::model(&relm, model_param);
     let widget = WIDGET::view(&relm, model);
     widget.borrow().init_view();
 
