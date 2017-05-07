@@ -162,7 +162,7 @@ impl Driver {
         let relm_types = relm_widgets.values();
         let widget_model_type = self.widget_model_type.as_ref().expect("missing model method");
         quote! {
-            #[allow(dead_code)]
+            #[allow(dead_code, missing_docs)]
             pub struct #typ #where_clause {
                 #(#idents: #types,)*
                 #(#relm_idents: #relm_types,)*
