@@ -56,6 +56,6 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
         #ast
     };
     let expanded = gen_widget(tokens);
-    error!("{}", expanded.parse::<String>().unwrap());
+    warn!("{}", expanded.parse::<String>().unwrap());
     expanded.parse().unwrap()
 }
