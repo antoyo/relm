@@ -391,6 +391,7 @@ pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WI
     where WIDGET: Widget + 'static,
           WIDGET::Msg: Clone + DisplayVariant + 'static
 {
+    futures_glib::init();
     init_gtk();
 
     let cx = MainContext::default(|cx| cx.clone());

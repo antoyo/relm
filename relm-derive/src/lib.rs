@@ -48,25 +48,32 @@ fn impl_simple_msg(ast: &MacroInput) -> Tokens {
     let clone = derive_clone(ast);
     let display = derive_display_variant(ast);
 
+    let generics = &ast.generics;
+    let generics_without_bound = remove_generic_bounds(generics);
+    let typ = quote! {
+        #name #generics_without_bound
+    };
+    let where_clause = gen_where_clause(&generics);
+
     quote! {
         #clone
         #display
 
-        impl FnOnce<((),)> for #name {
-            type Output = #name;
+        impl #generics FnOnce<((),)> for #typ #where_clause {
+            type Output = #typ;
 
             extern "rust-call" fn call_once(self, args: ((),)) -> Self::Output {
                 self.call(args)
             }
         }
 
-        impl FnMut<((),)> for #name {
+        impl #generics FnMut<((),)> for #typ #where_clause {
             extern "rust-call" fn call_mut(&mut self, args: ((),)) -> Self::Output {
                 self.call(args)
             }
         }
 
-        impl Fn<((),)> for #name {
+        impl #generics Fn<((),)> for #typ #where_clause {
             extern "rust-call" fn call(&self, _: ((),)) -> Self::Output {
                 self.clone()
             }
