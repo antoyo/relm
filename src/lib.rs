@@ -308,7 +308,7 @@ fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> (
     };
     let model = WIDGET::model(&relm, model_param);
     let widget = WIDGET::view(&relm, model);
-    widget.borrow().init_view();
+    widget.borrow_mut().init_view();
 
     (Component::new(stream, widget), relm)
 }

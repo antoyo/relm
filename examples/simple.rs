@@ -44,7 +44,7 @@ pub struct LabelModel {
 
 #[widget]
 impl Widget for Label {
-    fn init_view(&self) {
+    fn init_view(&mut self) {
         self.label.set_text("Test");
     }
 

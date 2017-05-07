@@ -52,7 +52,7 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
-    fn init_view(&self) {
+    fn init_view(&mut self) {
         let columns = vec![Type::String];
         let model = ListStore::new(&columns);
         let row = model.append();
