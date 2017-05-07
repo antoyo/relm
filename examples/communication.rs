@@ -234,9 +234,9 @@ impl Widget for Win {
 
         let label = Label::new(None);
 
-        let counter1 = hbox.add_widget::<Counter, _>(&relm, ());
-        let counter2 = hbox.add_widget::<Counter, _>(&relm, ());
-        let text = hbox.add_widget::<Text, _>(&relm, ());
+        let counter1 = hbox.add_widget::<Counter, _>(relm, ());
+        let counter2 = hbox.add_widget::<Counter, _>(relm, ());
+        let text = hbox.add_widget::<Text, _>(relm, ());
         hbox.add(&label);
 
         let win = Rc::new(RefCell::new(Win {

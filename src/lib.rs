@@ -41,6 +41,7 @@
         unused_qualifications, unused_results)]
 
 /*
+ * TODO: warn in the attribute when an event cycle is found.
  * TODO: add a Deref<Widget> for Component?
  * TODO: look at how Elm works with the <canvas> element.
  * TODO: the widget names should start with __relm_field_.
@@ -278,7 +279,7 @@ fn create_widget_test<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam)
           WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
     let (component, relm) = create_widget(cx, model_param);
-    init_component::<WIDGET>(&component, &cx, relm);
+    init_component::<WIDGET>(&component, cx, &relm);
     component
 }
 
@@ -291,7 +292,7 @@ pub fn create_component<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: C
           WIDGET: Widget,
 {
     let (component, child_relm) = create_widget::<CHILDWIDGET>(&relm.cx, model_param);
-    init_component::<CHILDWIDGET>(&component, &relm.cx, child_relm);
+    init_component::<CHILDWIDGET>(&component, &relm.cx, &child_relm);
     component
 }
 
@@ -312,12 +313,12 @@ fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> (
     (Component::new(stream, widget), relm)
 }
 
-fn init_component<WIDGET>(component: &Component<WIDGET>, cx: &MainContext, relm: Relm<WIDGET>)
+fn init_component<WIDGET>(component: &Component<WIDGET>, cx: &MainContext, relm: &Relm<WIDGET>)
     where WIDGET: Widget + 'static,
           WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
     let stream = component.stream().clone();
-    WIDGET::subscriptions(&relm);
+    WIDGET::subscriptions(relm);
     let widget = component.widget_rc().clone();
     let event_future = stream.for_each(move |event| {
         let mut widget = widget.borrow_mut();
@@ -406,7 +407,7 @@ fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()
 
     let cx = MainContext::default(|cx| cx.clone());
     let (component, relm) = create_widget::<WIDGET>(&cx, model_param);
-    init_component::<WIDGET>(&component, &cx, relm);
+    init_component::<WIDGET>(&component, &cx, &relm);
     Ok(component)
 }
 

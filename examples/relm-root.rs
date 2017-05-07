@@ -136,7 +136,7 @@ impl Widget for MyVBox {
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
-        let vbox = create_component::<VBox, _>(&relm, ());
+        let vbox = create_component::<VBox, _>(relm, ());
 
         let plus_button = gtk::Button::new_with_label("+");
         vbox.add(&plus_button);
@@ -144,7 +144,7 @@ impl Widget for MyVBox {
         let counter_label = Label::new("0");
         vbox.add(&counter_label);
 
-        let widget = vbox.add_widget::<Button, _>(&relm, ());
+        let widget = vbox.add_widget::<Button, _>(relm, ());
 
         let minus_button = gtk::Button::new_with_label("-");
         vbox.add(&minus_button);
@@ -187,7 +187,7 @@ impl Widget for Win {
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
         let window = Window::new(WindowType::Toplevel);
-        let vbox = window.add_widget::<MyVBox, _>(&relm, ());
+        let vbox = window.add_widget::<MyVBox, _>(relm, ());
         window.show_all();
 
         connect!(relm, window, connect_delete_event(_, _) (Some(Msg::Quit), Inhibit(false)));

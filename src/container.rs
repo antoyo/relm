@@ -82,7 +82,7 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
             self.add(&widget.root());
             widget.on_add(self.clone());
         }
-        init_component::<CHILDWIDGET>(&component, &relm.cx, child_relm);
+        init_component::<CHILDWIDGET>(&component, &relm.cx, &child_relm);
         component
     }
 
@@ -127,7 +127,7 @@ impl<WIDGET> RelmContainer for Component<WIDGET>
             let container = self.widget().add_widget(&*widget);
             widget.on_add(container.clone());
         }
-        init_component::<CHILDWIDGET>(&component, &relm.cx, child_relm);
+        init_component::<CHILDWIDGET>(&component, &relm.cx, &child_relm);
         component
     }
 }

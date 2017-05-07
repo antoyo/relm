@@ -48,7 +48,7 @@ pub trait Widget
     }
 
     /// Create the initial model.
-    fn model<'a>(relm: &'a Relm<Self>, param: Self::ModelParam) -> Self::Model;
+    fn model(relm: &Relm<Self>, param: Self::ModelParam) -> Self::Model;
 
     /// Method called when the widget is added to its parent.
     fn on_add<W: IsA<gtk::Widget> + IsA<Object>>(&self, _parent: W) {
