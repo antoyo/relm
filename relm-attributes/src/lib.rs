@@ -21,23 +21,41 @@
 
 #![feature(proc_macro)]
 
+extern crate env_logger;
+#[macro_use]
+extern crate log;
 extern crate proc_macro;
 #[macro_use]
 extern crate quote;
 extern crate relm_gen_widget;
 extern crate syn;
 
+use std::env;
+
+use env_logger::LogBuilder;
+use log::LogRecord;
 use proc_macro::TokenStream;
 use relm_gen_widget::gen_widget;
 use syn::parse_item;
 
 #[proc_macro_attribute]
 pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
+    let format = |record: &LogRecord| {
+        record.args().to_string()
+    };
+    let mut builder = LogBuilder::new();
+    builder.format(format);
+    if let Ok(rust_log) = env::var("RUST_LOG") {
+        builder.parse(&rust_log);
+    }
+    builder.init().ok();
+
     let source = input.to_string();
     let ast = parse_item(&source).unwrap();
     let tokens = quote! {
         #ast
     };
     let expanded = gen_widget(tokens);
+    error!("{}", expanded.parse::<String>().unwrap());
     expanded.parse().unwrap()
 }
