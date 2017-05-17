@@ -307,7 +307,7 @@ impl<'a> Generator<'a> {
             self.relm_widgets.insert(widget_name.clone(), struct_name.clone());
         }
 
-        let construct_widget = gen_construct_widget(widget);
+        let construct_widget = gen_construct_widget(widget, gtk_widget);
         self.collect_events(widget, gtk_widget);
 
         let children: Vec<_> = widget.children.iter()
@@ -369,23 +369,55 @@ impl<'a> Generator<'a> {
     }
 }
 
-fn gen_construct_widget(widget: &Widget) -> Tokens {
+fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
     let struct_name = &widget.typ;
 
-    let params = &widget.init_parameters;
+    let properties_count = gtk_widget.construct_properties.len() as u32;
+    let mut parameters = vec![];
+    for (key, value) in gtk_widget.construct_properties.iter() {
+        let key = key.to_string();
+        parameters.push(quote! {
+            ::relm::GParameter {
+                name: ::relm::ToGlibPtr::to_glib_full(#key),
+                value: ::std::ptr::read(::relm::ToGlibPtr::to_glib_none(&::gtk::ToValue::to_value(&#value)).0),
+            }
+        });
+    }
+    // TODO: use this new code when g_object_new_with_properties() is released.
+    /*let mut names = vec![];
+    let mut values = vec![];
+    for (key, value) in gtk_widget.construct_properties.iter() {
+        let key = key.to_string();
+        names.push(quote! {
+            #key
+        });
+        values.push(quote! {
+            &#value
+        });
+    }*/
 
     if widget.init_parameters.is_empty() {
         quote! {
             unsafe {
                 use gtk::StaticType;
-                use relm::{Downcast, FromGlibPtrNone, ToGlib};
-                ::gtk::Widget::from_glib_none(::relm::g_object_new(#struct_name::static_type().to_glib(),
-                #(#params,)* ::std::ptr::null() as *const _) as *mut _)
-                .downcast_unchecked()
+                use relm::{Downcast, FromGlibPtrNone};
+                let mut parameters = [#(#parameters),*];
+                ::gtk::Widget::from_glib_none(::relm::g_object_newv(
+                    ::relm::ToGlib::to_glib(&#struct_name::static_type()),
+                    #properties_count, parameters.as_mut_ptr()) as *mut _)
+                    .downcast_unchecked()
+                // TODO: use this new code when g_object_new_with_properties() is released.
+                /*let names: &[&str] = &[#(#names),*];
+                let values: &[&::gtk::ToValue] = &[#(#values),*];
+                ::gtk::Widget::from_glib_none(::relm::g_object_new_with_properties(#struct_name::static_type().to_glib(),
+                    #properties_count, ::relm::ToGlibPtr::to_glib_full(&names),
+                    ::relm::ToGlibPtr::to_glib_full(&values) as *mut _) as *mut _)
+                .downcast_unchecked()*/
             }
         }
     }
     else {
+        let params = &widget.init_parameters;
         quote! {
             #struct_name::new(#(#params),*)
         }

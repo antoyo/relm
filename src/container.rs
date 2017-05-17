@@ -19,9 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use glib::Cast;
 use gtk;
-use gtk::{ContainerExt, IsA, Object, WidgetExt};
+use gtk::{Cast, ContainerExt, IsA, Object, WidgetExt};
 
 use component::Component;
 use super::{DisplayVariant, Relm, create_widget, init_component};

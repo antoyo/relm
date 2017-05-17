@@ -22,6 +22,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
+use std::mem;
 use std::sync::Mutex;
 
 use quote::{Tokens, ToTokens};
@@ -150,6 +151,7 @@ pub enum EitherWidget {
 #[derive(Debug)]
 pub struct GtkWidget {
     pub child_events: HashMap<(String, String), Event>,
+    pub construct_properties: HashMap<syn::Ident, Tokens>,
     pub events: HashMap<String, Event>,
     pub relm_name: Option<Ty>,
     pub save: bool,
@@ -159,6 +161,7 @@ impl GtkWidget {
     fn new() -> Self {
         GtkWidget {
             child_events: HashMap::new(),
+            construct_properties: HashMap::new(),
             events: HashMap::new(),
             relm_name: None,
             save: false,
@@ -228,8 +231,12 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
     let mut child_properties = HashMap::new();
     gtk_widget.save = save;
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
-        let parameters = parse_comma_list(tts);
-        init_parameters = parameters;
+        if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tts[0] {
+            gtk_widget.construct_properties = parse_hash(tts);
+        }
+        else {
+            init_parameters = parse_comma_list(tts);
+        }
         tokens = &tokens[1..];
     }
     if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tokens[0] {
@@ -357,6 +364,56 @@ fn parse_comma_ident_list(tokens: &[TokenTree]) -> Vec<syn::Ident> {
     params
 }
 
+enum HashState {
+    InName,
+    AfterName,
+    InValue,
+}
+
+use self::HashState::*;
+
+fn parse_hash(tokens: &[TokenTree]) -> HashMap<syn::Ident, Tokens> {
+    let mut params = HashMap::new();
+    let mut current_param = Tokens::new();
+    let mut state = InName;
+    let mut name = syn::Ident::new("");
+    for token in tokens {
+        match state {
+            InName => {
+                // FIXME: support ident with dash (-).
+                if let Token(Ident(ref ident)) = *token {
+                    name = ident.clone();
+                    state = AfterName;
+                }
+                else {
+                    panic!("Expected ident, but found `{:?}` in view! macro", token);
+                }
+            },
+            AfterName => {
+                if *token == Token(Colon) {
+                    state = InValue;
+                }
+                else {
+                    panic!("Expected colon, but found `{:?}` in view! macro", token);
+                }
+            },
+            InValue => {
+                if *token == Token(Comma) {
+                    let ident = mem::replace(&mut name, syn::Ident::new(""));
+                    params.insert(ident, current_param);
+                    current_param = Tokens::new();
+                }
+                else {
+                    token.to_tokens(&mut current_param);
+                }
+            },
+        }
+    }
+    // FIXME: could be an empty hash.
+    params.insert(name, current_param);
+    params
+}
+
 fn parse_comma_list(tokens: &[TokenTree]) -> Vec<Tokens> {
     let mut params = vec![];
     let mut current_param = Tokens::new();
@@ -369,6 +426,7 @@ fn parse_comma_list(tokens: &[TokenTree]) -> Vec<Tokens> {
             token.to_tokens(&mut current_param);
         }
     }
+    // FIXME: could be an empty list.
     params.push(current_param);
     params
 }

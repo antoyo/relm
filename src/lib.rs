@@ -74,9 +74,11 @@
 extern crate futures;
 extern crate futures_glib;
 extern crate glib;
+extern crate glib_sys;
 extern crate gobject_sys;
 extern crate gtk;
 extern crate gtk_sys;
+extern crate libc;
 #[macro_use]
 extern crate log;
 extern crate relm_core;
@@ -97,9 +99,12 @@ pub use glib::Cast;
 #[doc(hidden)]
 pub use glib::object::Downcast;
 #[doc(hidden)]
-pub use glib::translate::{FromGlibPtrNone, ToGlib};
+pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
+use glib_sys::GType;
 #[doc(hidden)]
-pub use gobject_sys::g_object_new;
+pub use gobject_sys::{GParameter, g_object_newv};
+use gobject_sys::{GObject, GValue};
+use libc::{c_char, c_uint};
 #[doc(hidden)]
 pub use relm_core::EventStream;
 
@@ -107,6 +112,11 @@ pub use container::{Container, ContainerWidget, RelmContainer};
 pub use component::Component;
 use stream::ToStream;
 pub use widget::Widget;
+
+extern "C" {
+    pub fn g_object_new_with_properties(object_type: GType, n_properties: c_uint, names: *mut *const c_char,
+                                        values: *mut *const GValue) -> *mut GObject;
+}
 
 /// Dummy macro to be used with `#[derive(Widget)]`.
 ///
