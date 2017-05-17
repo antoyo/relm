@@ -77,7 +77,7 @@ impl Widget for Win {
                 // Set the orientation property of the Box.
                 orientation: Vertical,
                 // Create a Button inside the Box.
-                gtk::Button({ label: "+" }) {
+                gtk::Button({ label: "_inc", use_underline: true }) {
                     // Send the message Increment when the button is clicked.
                     clicked => Increment,
                 },

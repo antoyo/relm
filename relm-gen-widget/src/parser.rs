@@ -382,7 +382,7 @@ fn parse_hash(tokens: &[TokenTree]) -> HashMap<syn::Ident, Tokens> {
             InName => {
                 // FIXME: support ident with dash (-).
                 if let Token(Ident(ref ident)) = *token {
-                    name = ident.clone();
+                    name = syn::Ident::new(ident.as_ref().replace('_', "-"));
                     state = AfterName;
                 }
                 else {
@@ -402,6 +402,7 @@ fn parse_hash(tokens: &[TokenTree]) -> HashMap<syn::Ident, Tokens> {
                     let ident = mem::replace(&mut name, syn::Ident::new(""));
                     params.insert(ident, current_param);
                     current_param = Tokens::new();
+                    state = InName;
                 }
                 else {
                     token.to_tokens(&mut current_param);
