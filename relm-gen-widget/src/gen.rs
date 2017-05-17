@@ -375,6 +375,8 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
     let properties_count = gtk_widget.construct_properties.len() as u32;
     let mut parameters = vec![];
     for (key, value) in gtk_widget.construct_properties.iter() {
+        let mut remover = Remover::new();
+        let value = remover.fold_expr(value.clone());
         let key = key.to_string();
         parameters.push(quote! {
             ::relm::GParameter {

@@ -19,6 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+// TODO: rename to Transformer.
+
 use syn;
 use syn::{Expr, Ident, parse_path};
 use syn::fold::{Folder, noop_fold_expr};

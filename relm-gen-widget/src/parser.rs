@@ -151,7 +151,7 @@ pub enum EitherWidget {
 #[derive(Debug)]
 pub struct GtkWidget {
     pub child_events: HashMap<(String, String), Event>,
-    pub construct_properties: HashMap<syn::Ident, Tokens>,
+    pub construct_properties: HashMap<syn::Ident, Expr>,
     pub events: HashMap<String, Event>,
     pub relm_name: Option<Ty>,
     pub save: bool,
@@ -372,7 +372,7 @@ enum HashState {
 
 use self::HashState::*;
 
-fn parse_hash(tokens: &[TokenTree]) -> HashMap<syn::Ident, Tokens> {
+fn parse_hash(tokens: &[TokenTree]) -> HashMap<syn::Ident, Expr> {
     let mut params = HashMap::new();
     let mut current_param = Tokens::new();
     let mut state = InName;
@@ -400,7 +400,7 @@ fn parse_hash(tokens: &[TokenTree]) -> HashMap<syn::Ident, Tokens> {
             InValue => {
                 if *token == Token(Comma) {
                     let ident = mem::replace(&mut name, syn::Ident::new(""));
-                    params.insert(ident, current_param);
+                    params.insert(ident, tokens_to_expr(current_param));
                     current_param = Tokens::new();
                     state = InName;
                 }
@@ -411,7 +411,7 @@ fn parse_hash(tokens: &[TokenTree]) -> HashMap<syn::Ident, Tokens> {
         }
     }
     // FIXME: could be an empty hash.
-    params.insert(name, current_param);
+    params.insert(name, tokens_to_expr(current_param));
     params
 }
 
