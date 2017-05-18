@@ -22,7 +22,7 @@
 use std::collections::HashMap;
 
 use quote::Tokens;
-use syn::{Generics, Ident, Path, parse_path};
+use syn::{Expr, Generics, Ident, Path, parse_path};
 use syn::fold::Folder;
 
 use parser::{
@@ -179,7 +179,7 @@ impl<'a> Generator<'a> {
     }
 
     fn add_or_create_widget(&mut self, parent: Option<&Ident>, parent_widget_type: WidgetType, widget_name: &Ident,
-        widget_type_ident: &Path, init_parameters: &[Tokens]) -> Tokens
+        widget_type_ident: &Path, init_parameters: &[Expr]) -> Tokens
     {
         let init_parameters = gen_model_param(init_parameters);
         if let Some(parent) = parent {
@@ -419,9 +419,9 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
         }
     }
     else {
-        let params = &widget.init_parameters;
+        let params = gen_model_param(&widget.init_parameters);
         quote! {
-            #struct_name::new(#(#params),*)
+            #struct_name::new(#params)
         }
     }
 }
@@ -571,9 +571,15 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
     }
 }
 
-fn gen_model_param(init_parameters: &[Tokens]) -> Tokens {
+fn gen_model_param(init_parameters: &[Expr]) -> Tokens {
+    let mut params = vec![];
+    for param in init_parameters {
+        let mut remover = Remover::new();
+        let value = remover.fold_expr(param.clone());
+        params.push(value);
+    }
     quote! {
-        (#(#init_parameters),*)
+        (#(#params),*)
     }
 }
 

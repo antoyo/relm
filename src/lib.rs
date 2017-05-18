@@ -41,6 +41,9 @@
         unused_qualifications, unused_results)]
 
 /*
+ * TODO: add construct-only properties for relm widget (to replace initial parameters) to allow
+ * setting them by name (or with default value).
+ * TODO: find a way to do two-step initialization (to avoid using unitialized in model()).
  * TODO: warn in the attribute when an event cycle is found.
  * TODO: add a Deref<Widget> for Component?
  * TODO: look at how Elm works with the <canvas> element.

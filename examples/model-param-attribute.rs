@@ -40,9 +40,32 @@ use relm_attributes::widget;
 
 use self::Msg::*;
 
+pub struct ButtonModel {
+    text: String,
+}
+
+#[widget]
+impl Widget for Button {
+    fn model(text: &'static str) -> ButtonModel {
+        ButtonModel {
+            text: text.to_string(),
+        }
+    }
+
+    fn update(&mut self, _event: ()) {
+    }
+
+    view! {
+        gtk::Button {
+            label: &self.model.text,
+        }
+    }
+}
+
 // Define the structure of the model.
 pub struct Model {
     counter: i32,
+    initial_text: &'static str,
 }
 
 // The messages that can be sent to the update function.
@@ -59,6 +82,7 @@ impl Widget for Win {
     fn model(counter: i32) -> Model {
         Model {
             counter: counter,
+            initial_text: "+",
         }
     }
 
@@ -76,13 +100,7 @@ impl Widget for Win {
             gtk::Box {
                 // Set the orientation property of the Box.
                 orientation: Vertical,
-                // Create a Button inside the Box.
-                gtk::Button {
-                    // Send the message Increment when the button is clicked.
-                    clicked => Increment,
-                    // TODO: check if using two events of the same name work.
-                    label: "+",
-                },
+                Button(self.model.initial_text),
                 gtk::Label {
                     // Bind the text property of the label to the counter attribute of the model.
                     text: &self.model.counter.to_string(),

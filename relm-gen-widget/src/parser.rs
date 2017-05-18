@@ -94,7 +94,7 @@ pub struct Widget {
     pub child_properties: HashMap<String, Expr>,
     pub children: Vec<Widget>,
     pub container_type: Option<Option<String>>,
-    pub init_parameters: Vec<Tokens>,
+    pub init_parameters: Vec<Expr>,
     pub name: syn::Ident,
     pub parent_id: Option<String>,
     pub properties: HashMap<String, Expr>,
@@ -103,7 +103,7 @@ pub struct Widget {
 }
 
 impl Widget {
-    fn new_gtk(widget: GtkWidget, typ: Path, init_parameters: Vec<Tokens>, children: Vec<Widget>,
+    fn new_gtk(widget: GtkWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
         properties: HashMap<String, Expr>, child_properties: HashMap<String, Expr>) -> Self
     {
         let name = gen_widget_name(&typ);
@@ -120,7 +120,7 @@ impl Widget {
         }
     }
 
-    fn new_relm(widget: RelmWidget, typ: Path, init_parameters: Vec<Tokens>, children: Vec<Widget>,
+    fn new_relm(widget: RelmWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
         properties: HashMap<String, Expr>, child_properties: HashMap<String, Expr>) -> Self
     {
         let mut name = gen_widget_name(&typ);
@@ -415,12 +415,12 @@ fn parse_hash(tokens: &[TokenTree]) -> HashMap<syn::Ident, Expr> {
     params
 }
 
-fn parse_comma_list(tokens: &[TokenTree]) -> Vec<Tokens> {
+fn parse_comma_list(tokens: &[TokenTree]) -> Vec<Expr> {
     let mut params = vec![];
     let mut current_param = Tokens::new();
     for token in tokens {
         if *token == Token(Comma) {
-            params.push(current_param);
+            params.push(tokens_to_expr(current_param));
             current_param = Tokens::new();
         }
         else {
@@ -428,7 +428,7 @@ fn parse_comma_list(tokens: &[TokenTree]) -> Vec<Tokens> {
         }
     }
     // FIXME: could be an empty list.
-    params.push(current_param);
+    params.push(tokens_to_expr(current_param));
     params
 }
 
