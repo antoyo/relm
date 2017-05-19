@@ -226,7 +226,7 @@ impl<'a> Generator<'a> {
             match event.value {
                 CurrentWidget(WithoutReturn(ref event_value)) => quote! {{
                     #clone
-                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #event_value);
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #event_model_ident #event_value);
                 }},
                 ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {{
                     #clone
@@ -234,12 +234,12 @@ impl<'a> Generator<'a> {
                 }},
                 CurrentWidget(Return(ref event_value, ref return_value)) => quote! {{
                     #clone
-                    connect!(relm, #widget_name, #event_ident(#(#event_params),*) (#event_value, #return_value));
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), return (#event_value, #return_value));
                 }},
                 ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
                 CurrentWidget(CallReturn(ref func)) => quote! {{
                     #clone
-                    connect!(relm, #widget_name, #event_ident(#(#event_params),*) #event_model_ident #func);
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #event_model_ident #func);
                 }},
 
             };
@@ -292,6 +292,10 @@ impl<'a> Generator<'a> {
                     };
                 self.events.push(connect);
             }
+        }
+        for (name, event) in &relm_widget.gtk_events {
+            let ident = Ident::new(format!("{}.widget().root()", widget_name));
+            self.collect_event(&ident, true, name, event);
         }
     }
 
@@ -433,10 +437,19 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
 }
 
 fn gen_model_ident(event: &Event) -> Tokens {
+    let ret =
+        if let CurrentWidget(CallReturn(_)) = event.value {
+            quote! {
+                return
+            }
+        }
+        else {
+            quote! {}
+        };
     let clone_ident = Ident::new(RELM_WIDGET_CLONE_IDENT);
     if event.use_self {
         quote! {
-            with #clone_ident
+            with #ret #clone_ident
         }
     }
     else {

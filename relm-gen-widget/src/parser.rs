@@ -172,12 +172,14 @@ impl GtkWidget {
 #[derive(Debug)]
 pub struct RelmWidget {
     pub events: HashMap<String, Vec<Event>>,
+    pub gtk_events: HashMap<String, Event>,
 }
 
 impl RelmWidget {
     fn new() -> Self {
         RelmWidget {
             events: HashMap::new(),
+            gtk_events: HashMap::new(),
         }
     }
 }
@@ -641,10 +643,19 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
                         tts = parse_value_or_child_properties(tts, ident, &mut child_properties, &mut properties);
                     },
                     TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
-                        let (event, new_tts) = parse_event(&tts[0..], DefaultNoParam);
-                        let mut entry = relm_widget.events.entry(ident).or_insert_with(Vec::new);
-                        entry.push(event);
-                        tts = new_tts;
+                        if ident.chars().next().map(|char| char.is_lowercase()) == Some(false) {
+                            // Uppercase is a msg.
+                            let (event, new_tts) = parse_event(&tts[0..], DefaultNoParam);
+                            let mut entry = relm_widget.events.entry(ident).or_insert_with(Vec::new);
+                            entry.push(event);
+                            tts = new_tts;
+                        }
+                        else {
+                            // Lowercase is a gtk event.
+                            let (event, new_tts) = parse_event(tts, DefaultOneParam);
+                            relm_widget.gtk_events.insert(ident, event);
+                            tts = new_tts;
+                        }
                     },
                     _ => panic!("Expected `:`, `=>` or `(` but found `{:?}` in view! macro", tts[0]),
                 }

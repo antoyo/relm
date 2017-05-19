@@ -250,7 +250,7 @@ impl Widget for Win {
         let center_button = vbox.add_widget::<CenterButton, _>(relm, ());
         let minus_button = gtk::Button::new_with_label("-");
         vbox.add(&minus_button);
-        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
         window.show_all();
         Rc::new(RefCell::new(Win {
             _button: button,

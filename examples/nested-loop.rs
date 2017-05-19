@@ -123,7 +123,7 @@ impl Widget for Win {
                 Open(num)
             });
         }
-        connect!(relm, window, connect_delete_event(_, _) (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         let mut win = Win {
             label: label,

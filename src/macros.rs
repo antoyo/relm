@@ -68,13 +68,18 @@ macro_rules! connect {
     };
 
     // Connect to a GTK+ widget event.
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
+    // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
+    // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
+    // Option<MSG> can be None if no message needs to be emitted.
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), return $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
-            let msg: Option<_> = $msg.into();
+            let (msg, return_value) = $msg;
+            let msg: Option<_> = msg.into();
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
+            return_value
         });
     }};
 
@@ -84,7 +89,7 @@ macro_rules! connect {
     // Option<MSG> can be None if no message needs to be emitted.
     // This variant also give you a widget so that you can call a function that will use and mutate
     // its model.
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*) with $widget_clone:ident $msg:expr) => {{
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), with return $widget_clone:ident $msg:expr) => {{
         let stream = $relm.stream().clone();
         #[allow(unused_mut)]
         $widget.$event(move |$($args),*| {
@@ -101,19 +106,22 @@ macro_rules! connect {
     }};
 
     // Connect to a GTK+ widget event.
-    // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
-    // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
+    // This variant allows to call a method that will return the message
     // Option<MSG> can be None if no message needs to be emitted.
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*) $msg:expr) => {{
+    // This variant also give you a widget so that you can call a function that will use and mutate
+    // its model.
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), with $widget_clone:ident $msg:expr) => {{
         let stream = $relm.stream().clone();
+        #[allow(unused_mut)]
         $widget.$event(move |$($args),*| {
-            let (msg, return_value) = $msg;
-            let msg: Option<_> = msg.into();
+            let $widget_clone = $widget_clone.upgrade().expect("upgrade should always work");
+            check_recursion!($widget_clone);
+            let mut $widget_clone = $widget_clone.borrow_mut();
+            let msg: Option<_> = $msg.into();
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
-            return_value
-        })
+        });
     }};
 
     // Connect to a message reception.
@@ -137,6 +145,17 @@ macro_rules! connect {
             }
         });
     };
+
+    // Connect to a GTK+ widget event.
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
+        let stream = $relm.stream().clone();
+        $widget.$event(move |$($args),*| {
+            let msg: Option<_> = $msg.into();
+            if let Some(msg) = msg {
+                stream.emit(msg);
+            }
+        });
+    }};
 
     // Connect to a message reception.
     // TODO: create another macro rule accepting multiple patterns.

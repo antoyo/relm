@@ -44,14 +44,12 @@
  * TODO: add construct-only properties for relm widget (to replace initial parameters) to allow
  * setting them by name (or with default value).
  * TODO: find a way to do two-step initialization (to avoid using unitialized in model()).
+ *
+ * TODO: show a warning when components are destroyed after the end of call to Widget::view().
  * TODO: warn in the attribute when an event cycle is found.
  * TODO: add a Deref<Widget> for Component?
  * TODO: look at how Elm works with the <canvas> element.
  * TODO: the widget names should start with __relm_field_.
- *
- * TODO: for the #[widget] attribute allow pattern matching by creating a function update(&mut
- * self, Quit: Msg, model: &mut Model) so that we can separate the update function in multiple
- * functions.
  *
  * TODO: reset widget name counters when creating new widget?
  *
@@ -60,8 +58,6 @@
  * TODO: chat client/server example.
  *
  * TODO: err if trying to use the SimpleMsg custom derive on stable.
- *
- * TODO: add Cargo travis/appveyor badges.
  *
  * TODO: add default type of () for Model in Widget when it is stable.
  * TODO: optionnaly multi-threaded.

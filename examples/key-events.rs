@@ -98,9 +98,9 @@ impl Widget for Win {
         let win_clone = Rc::downgrade(&win);
         {
             let Win { ref window, .. } = *win.borrow();
-            connect!(relm, window, connect_key_press_event(_, _) (Press, Inhibit(false)));
-            connect!(relm, window, connect_key_release_event(_, _) (Release, Inhibit(false)));
-            connect!(relm, window, connect_delete_event(_, _) with win_clone
+            connect!(relm, window, connect_key_press_event(_, _), return (Press, Inhibit(false)));
+            connect!(relm, window, connect_key_release_event(_, _), return (Release, Inhibit(false)));
+            connect!(relm, window, connect_delete_event(_, _), with return win_clone
                      win_clone.quit());
             connect!(relm@Quit, relm, ReallyQuit);
         }

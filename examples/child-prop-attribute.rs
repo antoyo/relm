@@ -106,10 +106,19 @@ impl Widget for Win {
                     clicked => Decrement,
                     label: "-",
                 },
-                Button,
+                Button {
+                    clicked => self.inc(),
+                    //clicked => Increment,
+                },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
         }
+    }
+}
+
+impl Win {
+    fn inc(&mut self) -> Msg {
+        Increment
     }
 }
 
