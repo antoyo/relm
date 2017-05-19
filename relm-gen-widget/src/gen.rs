@@ -373,15 +373,20 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
     let struct_name = &widget.typ;
 
     let properties_count = gtk_widget.construct_properties.len() as u32;
+    let mut values = vec![];
     let mut parameters = vec![];
     for (key, value) in gtk_widget.construct_properties.iter() {
         let mut remover = Remover::new();
         let value = remover.fold_expr(value.clone());
         let key = key.to_string();
+        values.push(quote! {
+            ::gtk::ToValue::to_value(&#value)
+        });
+        let index = parameters.len();
         parameters.push(quote! {
             ::relm::GParameter {
                 name: ::relm::ToGlibPtr::to_glib_full(#key),
-                value: ::std::ptr::read(::relm::ToGlibPtr::to_glib_none(&::gtk::ToValue::to_value(&#value)).0),
+                value: ::std::ptr::read(::relm::ToGlibPtr::to_glib_none(&values[#index]).0),
             }
         });
     }
@@ -403,6 +408,7 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
             unsafe {
                 use gtk::StaticType;
                 use relm::{Downcast, FromGlibPtrNone};
+                let values: &[::gtk::Value] = &[#(#values),*];
                 let mut parameters = [#(#parameters),*];
                 ::gtk::Widget::from_glib_none(::relm::g_object_newv(
                     ::relm::ToGlib::to_glib(&#struct_name::static_type()),
