@@ -31,6 +31,8 @@ extern crate relm_gen_widget;
 extern crate syn;
 
 use std::env;
+use std::io::Write;
+use std::process::{Command, Stdio};
 
 use env_logger::LogBuilder;
 use log::LogRecord;
@@ -56,6 +58,25 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
         #ast
     };
     let expanded = gen_widget(tokens);
-    warn!("{}", expanded.parse::<String>().unwrap());
+    log_formatted(expanded.parse::<String>().unwrap());
     expanded.parse().unwrap()
+}
+
+fn log_formatted(code: String) {
+    let command = Command::new("rustfmt")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn();
+    warn!("{}", code);
+    if let Ok(mut child) = command {
+        warn!("*************************");
+        {
+            let stdin = child.stdin.as_mut().expect("failed to get stdin");
+            write!(stdin, "{}", code).expect("failed to write to stdin");
+        }
+        let result = String::from_utf8(child.wait_with_output().expect("failed to wait on child").stdout)
+            .expect("failed to decode rustfmt output");
+        warn!("{}", result);
+    }
 }
