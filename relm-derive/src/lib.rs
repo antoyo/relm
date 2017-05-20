@@ -119,20 +119,12 @@ fn derive_clone(ast: &MacroInput) -> Tokens {
 }
 
 fn derive_clone_enum(name: &Ident, typ: Tokens, mut generics: Generics, variants: &[Variant]) -> Tokens {
-    let variant_idents_values: Vec<_> = variants.iter().map(|variant| {
-        let has_value =
-            if let VariantData::Tuple(_) = variant.data {
-                true
-            }
-            else {
-                false
-            };
-        (&variant.ident, has_value)
-    }).collect();
-    let variant_patterns = variant_idents_values.iter().map(|&(ref ident, has_value)| {
-        if has_value {
+    let variant_idents_values = gen_idents_count(variants);
+    let variant_patterns = variant_idents_values.iter().map(|&(ref ident, value_count)| {
+        if value_count > 0 {
+            let value_idents = gen_idents(value_count);
             quote! {
-                #name::#ident(ref value)
+                #name::#ident(#(ref #value_idents),*)
             }
         }
         else {
@@ -141,10 +133,11 @@ fn derive_clone_enum(name: &Ident, typ: Tokens, mut generics: Generics, variants
             }
         }
     });
-    let variant_values = variant_idents_values.iter().map(|&(ref ident, has_value)| {
-        if has_value {
+    let variant_values = variant_idents_values.iter().map(|&(ref ident, value_count)| {
+        if value_count > 0 {
+            let value_idents = gen_idents(value_count);
             quote! {
-                #name::#ident(value.clone())
+                #name::#ident(#(#value_idents.clone()),*)
             }
         }
         else {
@@ -222,20 +215,12 @@ fn derive_display_variant(ast: &MacroInput) -> Tokens {
     };
 
     if let Body::Enum(ref variants) = ast.body {
-        let variant_idents_values: Vec<_> = variants.iter().map(|variant| {
-            let has_value =
-                if let VariantData::Tuple(_) = variant.data {
-                    true
-                }
-                else {
-                    false
-                };
-            (&variant.ident, has_value)
-        }).collect();
-        let variant_patterns = variant_idents_values.iter().map(|&(ref ident, has_value)| {
-            if has_value {
+        let variant_idents_values = gen_idents_count(variants);
+        let variant_patterns = variant_idents_values.iter().map(|&(ref ident, value_count)| {
+            let value_idents = gen_ignored_idents(value_count);
+            if value_count > 0 {
                 quote! {
-                    #name::#ident(_)
+                    #name::#ident(#(#value_idents),*)
                 }
             }
             else {
@@ -296,4 +281,29 @@ fn remove_generic_bounds(generics: &Generics) -> Generics {
         param.bounds = vec![];
     }
     generics.clone()
+}
+
+fn gen_ignored_idents(count: usize) -> Vec<Ident> {
+    (0..count)
+        .map(|count| Ident::new("_"))
+        .collect()
+}
+
+fn gen_idents(count: usize) -> Vec<Ident> {
+    (0..count)
+        .map(|count| Ident::new(format!("value{}", count)))
+        .collect()
+}
+
+fn gen_idents_count(variants: &[Variant]) -> Vec<(&Ident, usize)> {
+    variants.iter().map(|variant| {
+        let value_count =
+            if let VariantData::Tuple(ref tuple) = variant.data {
+                tuple.len()
+            }
+            else {
+                0
+            };
+        (&variant.ident, value_count)
+    }).collect()
 }

@@ -47,7 +47,7 @@ pub struct Model {
 
 #[derive(Msg)]
 pub enum Msg {
-    Change(String),
+    Change(String, usize),
     Quit,
 }
 
@@ -61,7 +61,10 @@ impl Widget for Win {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Change(text) => self.model.content = text,
+            Change(text, len) => {
+                self.model.content = text.chars().rev().collect();
+                self.model.content += &format!(" ({})", len);
+            },
             Quit => gtk::main_quit(),
         }
     }
@@ -71,10 +74,11 @@ impl Widget for Win {
             gtk::Box {
                 orientation: Vertical,
                 gtk::Entry {
-                    changed(entry) => Change(
-                        entry.get_text().unwrap()
-                            .chars().rev().collect()
-                    ),
+                    changed(entry) => {
+                        let text = entry.get_text().unwrap();
+                        let len = text.len();
+                        Change(text, len)
+                    },
                     placeholder_text: "Text to reverse",
                 },
                 gtk::Label {
