@@ -19,8 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use gtk::Inhibit;
-
 #[doc(hidden)]
 pub trait IntoOption<T> {
     #[doc(hidden)]
@@ -45,8 +43,8 @@ pub trait IntoPair<A, B> {
     fn into_pair(self) -> (A, B);
 }
 
-impl<A> IntoPair<Option<A>, Inhibit> for Inhibit {
-    fn into_pair(self) -> (Option<A>, Inhibit) {
+impl<A, B> IntoPair<Option<A>, B> for B {
+    fn into_pair(self) -> (Option<A>, B) {
         (None, self)
     }
 }
