@@ -44,6 +44,39 @@ use relm_attributes::widget;
 
 use self::Msg::*;
 
+#[widget]
+impl Widget for TreeView {
+    fn init_view(&mut self) {
+        let columns = vec![Type::String];
+        let model = ListStore::new(&columns);
+        let row = model.append();
+        model.set_value(&row, 0, &"String".to_value());
+        let row = model.append();
+        model.set_value(&row, 0, &"Text".to_value());
+
+        let view_column = TreeViewColumn::new();
+        let cell = CellRendererText::new();
+        view_column.pack_start(&cell, true);
+        view_column.add_attribute(&cell, "text", 0);
+        self.tree_view.append_column(&view_column);
+
+        self.tree_view.set_model(Some(&model));
+    }
+
+    fn model() -> () {
+    }
+
+    fn update(&mut self, event: Msg) {
+    }
+
+    view! {
+        #[name="tree_view"]
+        gtk::TreeView {
+            selection.changed(selection) => SelectionChanged(selection.clone()),
+        }
+    }
+}
+
 #[derive(Msg)]
 pub enum Msg {
     SelectionChanged(TreeSelection),
@@ -84,6 +117,9 @@ impl Widget for Win {
             gtk::Box {
                 #[name="tree_view"]
                 gtk::TreeView {
+                    selection.changed(selection) => SelectionChanged(selection.clone()),
+                },
+                TreeView {
                     selection.changed(selection) => SelectionChanged(selection.clone()),
                 },
             },

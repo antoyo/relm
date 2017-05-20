@@ -251,7 +251,7 @@ impl<'a> Generator<'a> {
         for (name, event) in &gtk_widget.events {
             self.collect_event(widget_name, gtk_widget.save, name, event);
         }
-        for (&(ref child_name, ref name), event) in &gtk_widget.child_events {
+        for (&(ref child_name, ref name), event) in &widget.child_events {
             let widget_name = Ident::new(format!("{}.get_{}()", widget_name, child_name));
             self.collect_event(&widget_name, false, &name, event);
         }
@@ -293,9 +293,13 @@ impl<'a> Generator<'a> {
                 self.events.push(connect);
             }
         }
+        let ident = Ident::new(format!("{}.widget().root()", widget_name));
         for (name, event) in &relm_widget.gtk_events {
-            let ident = Ident::new(format!("{}.widget().root()", widget_name));
             self.collect_event(&ident, true, name, event);
+        }
+        for (&(ref child_name, ref name), event) in &widget.child_events {
+            let ident = Ident::new(format!("{}.get_{}()", ident, child_name));
+            self.collect_event(&ident, false, &name, event);
         }
     }
 

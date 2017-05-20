@@ -48,6 +48,8 @@ lazy_static! {
     static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
 }
 
+type ChildEvents = HashMap<(String, String), Event>;
+
 #[derive(Clone, Copy, PartialEq)]
 enum DefaultParam {
     DefaultNoParam,
@@ -91,6 +93,7 @@ enum IsEventOrNot {
 }
 
 pub struct Widget {
+    pub child_events: ChildEvents,
     pub child_properties: HashMap<String, Expr>,
     pub children: Vec<Widget>,
     pub container_type: Option<Option<String>>,
@@ -104,10 +107,11 @@ pub struct Widget {
 
 impl Widget {
     fn new_gtk(widget: GtkWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
-        properties: HashMap<String, Expr>, child_properties: HashMap<String, Expr>) -> Self
+        properties: HashMap<String, Expr>, child_properties: HashMap<String, Expr>, child_events: ChildEvents) -> Self
     {
         let name = gen_widget_name(&typ);
         Widget {
+            child_events,
             child_properties,
             children,
             container_type: None,
@@ -121,7 +125,7 @@ impl Widget {
     }
 
     fn new_relm(widget: RelmWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
-        properties: HashMap<String, Expr>, child_properties: HashMap<String, Expr>) -> Self
+        properties: HashMap<String, Expr>, child_properties: HashMap<String, Expr>, child_events: ChildEvents) -> Self
     {
         let mut name = gen_widget_name(&typ);
         // Relm widgets are not used in the update() method; they are only saved to avoid dropping
@@ -129,6 +133,7 @@ impl Widget {
         // So prepend an underscore to hide a warning.
         name.insert(0, '_');
         Widget {
+            child_events,
             child_properties,
             children,
             container_type: None,
@@ -150,7 +155,6 @@ pub enum EitherWidget {
 
 #[derive(Debug)]
 pub struct GtkWidget {
-    pub child_events: HashMap<(String, String), Event>,
     pub construct_properties: HashMap<syn::Ident, Expr>,
     pub events: HashMap<String, Event>,
     pub relm_name: Option<Ty>,
@@ -160,7 +164,6 @@ pub struct GtkWidget {
 impl GtkWidget {
     fn new() -> Self {
         GtkWidget {
-            child_events: HashMap::new(),
             construct_properties: HashMap::new(),
             events: HashMap::new(),
             relm_name: None,
@@ -231,6 +234,7 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
     let mut children = vec![];
     let mut properties = HashMap::new();
     let mut child_properties = HashMap::new();
+    let mut child_events = HashMap::new();
     gtk_widget.save = save;
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
         if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tts[0] {
@@ -261,7 +265,7 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
                         let child_name = ident;
                         let (ident, new_tts) = parse_ident(&tts[1..]);
                         let (event, new_tts) = parse_event(new_tts, DefaultOneParam);
-                        gtk_widget.child_events.insert((child_name, ident), event);
+                        child_events.insert((child_name, ident), event);
                         tts = new_tts;
                     },
                     TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
@@ -281,7 +285,8 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
     else {
         panic!("Expected {{ but found `{:?}` in view! macro", tokens[0]);
     }
-    let widget = Widget::new_gtk(gtk_widget, gtk_type, init_parameters, children, properties, child_properties);
+    let widget = Widget::new_gtk(gtk_widget, gtk_type, init_parameters, children, properties, child_properties,
+                                 child_events);
     (widget, &tokens[1..])
 }
 
@@ -609,6 +614,7 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     let mut children = vec![];
     let mut properties = HashMap::new();
     let mut child_properties = HashMap::new();
+    let mut child_events = HashMap::new();
     if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
         let parameters = parse_comma_list(tts);
         init_parameters = parameters;
@@ -642,6 +648,13 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
                     Token(Colon) => {
                         tts = parse_value_or_child_properties(tts, ident, &mut child_properties, &mut properties);
                     },
+                    Token(Dot) => {
+                        let child_name = ident;
+                        let (ident, new_tts) = parse_ident(&tts[1..]);
+                        let (event, new_tts) = parse_event(new_tts, DefaultOneParam);
+                        child_events.insert((child_name, ident), event);
+                        tts = new_tts;
+                    },
                     TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
                         if ident.chars().next().map(|char| char.is_lowercase()) == Some(false) {
                             // Uppercase is a msg.
@@ -666,7 +679,8 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
             }
         }
     }
-    let widget = Widget::new_relm(relm_widget, relm_type, init_parameters, children, properties, child_properties);
+    let widget = Widget::new_relm(relm_widget, relm_type, init_parameters, children, properties, child_properties,
+                                  child_events);
     (widget, &tokens[1..])
 }
 
