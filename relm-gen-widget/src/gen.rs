@@ -293,12 +293,12 @@ impl<'a> Generator<'a> {
                 self.events.push(connect);
             }
         }
-        let ident = Ident::new(format!("{}.widget().root()", widget_name));
         for (name, event) in &relm_widget.gtk_events {
+            let ident = Ident::new(format!("{}.widget().root()", widget_name));
             self.collect_event(&ident, true, name, event);
         }
         for (&(ref child_name, ref name), event) in &widget.child_events {
-            let ident = Ident::new(format!("{}.get_{}()", ident, child_name));
+            let ident = Ident::new(format!("{}.widget().get_{}()", widget_name, child_name));
             self.collect_event(&ident, false, &name, event);
         }
     }

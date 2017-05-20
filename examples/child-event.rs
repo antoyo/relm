@@ -77,6 +77,12 @@ impl Widget for TreeView {
     }
 }
 
+impl TreeView {
+    fn get_selection(&self) -> TreeSelection {
+        self.tree_view.get_selection()
+    }
+}
+
 #[derive(Msg)]
 pub enum Msg {
     SelectionChanged(TreeSelection),
