@@ -42,12 +42,12 @@ use super::{Driver, MODEL_IDENT};
 use self::WidgetType::*;
 
 macro_rules! gen_set_prop_calls {
-    ($widget:expr, $ident:expr) => {{
+    ($widget:expr, $ident:expr, $model_ident:expr) => {{
         let ident = $ident;
         let mut properties = vec![];
         let mut visible_properties = vec![];
         for (key, value) in &$widget.properties {
-            let mut remover = Remover::new();
+            let mut remover = Remover::new($model_ident);
             let new_value = remover.fold_expr(value.clone());
             let property_func = Ident::new(format!("set_{}", key));
             let property = quote! {
@@ -104,6 +104,7 @@ pub fn gen(name: &Ident, widget: &Widget, driver: &mut Driver) -> (Tokens, HashM
     let widget_names2 = widget_names1;
     let widget_names3 = widget_names1;
     let events = &generator.events;
+    let properties = &generator.properties;
     let self_ident = Ident::new(RELM_WIDGET_SELF_IDENT);
     let clone_ident = Ident::new(RELM_WIDGET_CLONE_IDENT);
     let model_ident = Ident::new(MODEL_IDENT);
@@ -118,8 +119,9 @@ pub fn gen(name: &Ident, widget: &Widget, driver: &mut Driver) -> (Tokens, HashM
 
         {
             let #clone_ident = ::std::rc::Rc::downgrade(&#self_ident);
-            let #name { ref #root_widget_name, #(ref #widget_names3,)* .. } = *#self_ident.borrow();
+            let #name { ref #root_widget_name, #(ref #widget_names3,)* ref model, .. } = *#self_ident.borrow();
             #(#events)*
+            #(#properties)*
         }
 
         #self_ident
@@ -132,6 +134,7 @@ struct Generator<'a> {
     container_names: HashMap<Option<String>, (Ident, Path)>,
     driver: Option<&'a mut Driver>,
     events: Vec<Tokens>,
+    properties: Vec<Tokens>,
     relm_widgets: HashMap<Ident, Path>,
     widget_names: Vec<Ident>,
 }
@@ -142,6 +145,7 @@ impl<'a> Generator<'a> {
             container_names: HashMap::new(),
             driver: Some(driver),
             events: vec![],
+            properties: vec![],
             relm_widgets: HashMap::new(),
             widget_names: vec![],
         }
@@ -324,7 +328,7 @@ impl<'a> Generator<'a> {
 
         let add_child_or_show_all = self.add_child_or_show_all(widget, parent, parent_widget_type);
         let ident = quote! { #widget_name };
-        let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
+        let (properties, visible_properties) = gen_set_prop_calls!(widget, ident, MODEL_IDENT);
         let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type, IsGtk);
 
         quote! {
@@ -354,7 +358,9 @@ impl<'a> Generator<'a> {
             .map(|child| self.widget(child, Some(widget_name), IsRelm))
             .collect();
         let ident = quote! { #widget_name.widget_mut() };
-        let (properties, visible_properties) = gen_set_prop_calls!(widget, ident);
+        let (mut properties, mut visible_properties) = gen_set_prop_calls!(widget, ident, "model");
+        self.properties.append(&mut properties);
+        self.properties.append(&mut visible_properties);
 
         let add_or_create_widget = self.add_or_create_widget(
             parent, parent_widget_type, widget_name, widget_type_ident, &widget.init_parameters);
@@ -362,8 +368,6 @@ impl<'a> Generator<'a> {
 
         quote! {
             #add_or_create_widget
-            #(#properties)*
-            #(#visible_properties)*
             #(#children)*
             #(#child_properties)*
         }
@@ -384,7 +388,7 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
     let mut values = vec![];
     let mut parameters = vec![];
     for (key, value) in gtk_widget.construct_properties.iter() {
-        let mut remover = Remover::new();
+        let mut remover = Remover::new(MODEL_IDENT);
         let value = remover.fold_expr(value.clone());
         let key = key.to_string();
         values.push(quote! {
@@ -597,7 +601,7 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
 fn gen_model_param(init_parameters: &[Expr]) -> Tokens {
     let mut params = vec![];
     for param in init_parameters {
-        let mut remover = Remover::new();
+        let mut remover = Remover::new(MODEL_IDENT);
         let value = remover.fold_expr(param.clone());
         params.push(value);
     }

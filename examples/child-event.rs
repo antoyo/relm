@@ -69,6 +69,10 @@ impl Widget for TreeView {
     fn update(&mut self, _event: Msg) {
     }
 
+    fn set_visible(&self, visible: bool) {
+        self.tree_view.set_visible(visible);
+    }
+
     view! {
         #[name="tree_view"]
         gtk::TreeView {
@@ -81,6 +85,10 @@ impl TreeView {
     fn get_selection(&self) -> TreeSelection {
         self.tree_view.get_selection()
     }
+}
+
+pub struct Model {
+    visible: bool,
 }
 
 #[derive(Msg)]
@@ -108,7 +116,10 @@ impl Widget for Win {
         self.tree_view.set_model(Some(&model));
     }
 
-    fn model() -> () {
+    fn model() -> Model {
+        Model {
+            visible: true,
+        }
     }
 
     fn update(&mut self, event: Msg) {
@@ -127,6 +138,7 @@ impl Widget for Win {
                 },
                 TreeView {
                     selection.changed(selection) => SelectionChanged(selection.clone()),
+                    visible: self.model.visible,
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),

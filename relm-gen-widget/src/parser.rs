@@ -33,7 +33,8 @@ use syn::ItemKind::Mac;
 use syn::Lit::Str;
 use syn::StrStyle::Cooked;
 use syn::TokenTree::{self, Token};
-use syn::Token::{At, Colon, Comma, Dot, Eq, FatArrow, Gt, Ident, Literal, Lt, ModSep, Pound};
+use syn::Token::{At, BinOp, Colon, Comma, Dot, Eq, FatArrow, Gt, Ident, Literal, Lt, ModSep, Pound};
+use syn::BinOpToken::Or;
 
 use self::DefaultParam::*;
 use self::EventValue::*;
@@ -514,13 +515,15 @@ fn parse_value_or_child_properties<'a>(tokens: &'a [TokenTree], ident: String,
 fn parse_value(tokens: &[TokenTree], is_event: IsEventOrNot) -> (Tokens, &[TokenTree], bool) {
     let mut current_param = Tokens::new();
     let mut i = 0;
+    let mut in_closure = false;
+    let mut in_closure_value = false;
     let mut use_self = false;
     while i < tokens.len() {
         match tokens[i] {
             Token(Ident(ref ident)) if *ident == syn::Ident::new("self") => {
                 use_self = true;
                 let new_ident =
-                    if is_event == IsEvent {
+                    if is_event == IsEvent || in_closure_value {
                         RELM_WIDGET_CLONE_IDENT
                     }
                     else {
@@ -528,7 +531,14 @@ fn parse_value(tokens: &[TokenTree], is_event: IsEventOrNot) -> (Tokens, &[Token
                     };
                 Token(Ident(syn::Ident::new(new_ident))).to_tokens(&mut current_param)
             },
-            Token(Comma) => break,
+            Token(Comma) if !in_closure => break,
+            ref token@Token(BinOp(Or)) => {
+                if in_closure {
+                    in_closure_value = true;
+                }
+                in_closure = !in_closure;
+                token.to_tokens(&mut current_param);
+            },
             ref token => token.to_tokens(&mut current_param),
         }
         i += 1;

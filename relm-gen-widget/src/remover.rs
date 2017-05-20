@@ -26,14 +26,14 @@ use syn::{Expr, Ident, parse_path};
 use syn::fold::{Folder, noop_fold_expr};
 use syn::ExprKind::{Field, Path};
 
-use super::MODEL_IDENT;
-
 pub struct Remover {
+    model_ident: String,
 }
 
 impl Remover {
-    pub fn new() -> Self {
+    pub fn new(model_ident: &str) -> Self {
         Remover {
+            model_ident: model_ident.to_string(),
         }
     }
 }
@@ -44,7 +44,7 @@ impl Folder for Remover {
             if *ident == Ident::new("model") {
                 if let Path(None, syn::Path { ref segments, .. }) = field_expr.node {
                     if segments.get(0).map(|segment| &segment.ident) == Some(&Ident::new("self")) {
-                        let model_ident = Ident::new(MODEL_IDENT);
+                        let model_ident = Ident::new(self.model_ident.as_str());
                         let tokens = quote! {
                             #model_ident
                         };
