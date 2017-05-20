@@ -74,7 +74,7 @@ macro_rules! connect {
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), return $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
-            let (msg, return_value) = $msg;
+            let (msg, return_value) = ::relm::IntoPair::into_pair($msg);
             let msg: Option<_> = ::relm::IntoOption::into_option(msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
@@ -96,7 +96,7 @@ macro_rules! connect {
             let $widget_clone = $widget_clone.upgrade().expect("upgrade should always work");
             check_recursion!($widget_clone);
             let mut $widget_clone = $widget_clone.borrow_mut();
-            let (msg, return_value) = $msg;
+            let (msg, return_value) = ::relm::IntoPair::into_pair($msg);
             let msg: Option<_> = ::relm::IntoOption::into_option(msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
