@@ -285,7 +285,7 @@ fn remove_generic_bounds(generics: &Generics) -> Generics {
 
 fn gen_ignored_idents(count: usize) -> Vec<Ident> {
     (0..count)
-        .map(|count| Ident::new("_"))
+        .map(|_| Ident::new("_"))
         .collect()
 }
 

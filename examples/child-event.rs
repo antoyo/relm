@@ -66,7 +66,7 @@ impl Widget for TreeView {
     fn model() -> () {
     }
 
-    fn update(&mut self, event: Msg) {
+    fn update(&mut self, _event: Msg) {
     }
 
     view! {
