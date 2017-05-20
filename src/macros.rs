@@ -29,8 +29,8 @@ macro_rules! check_recursion {
                    to the same widget.\nInspect the stack trace to determine which call it is.\nThen you can either \
                    refactor your code to avoid a cyclic event dependency or block events from being emitted by doing \
                    the following:\n{\n    let _lock = self.model.relm.stream().lock();\n    // Your panicking call.\n}\
-                   \nSee this example:\
-                   https://github.com/antoyo/relm/blob/feature/futures-glib/examples/checkboxes.rs#L88\n
+                   \nSee this example: \
+                   https://github.com/antoyo/relm/blob/feature/futures-glib/examples/checkboxes.rs#L88\
                    This issue can also happen when emitting a signal to the same widget, in which case you need to\
                    refactor your code to avoid this cyclic event dependency.");
         }
@@ -60,7 +60,7 @@ macro_rules! connect {
     ($widget:expr, $event:ident($($args:pat),*), $other_component:expr, $msg:expr) => {
         let stream = $other_component.stream().clone();
         $widget.$event(move |$($args),*| {
-            let msg: Option<_> = $msg.into();
+            let msg: Option<_> = ::relm::IntoOption::into_option($msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -75,7 +75,7 @@ macro_rules! connect {
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
             let (msg, return_value) = $msg;
-            let msg: Option<_> = msg.into();
+            let msg: Option<_> = ::relm::IntoOption::into_option(msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -97,7 +97,7 @@ macro_rules! connect {
             check_recursion!($widget_clone);
             let mut $widget_clone = $widget_clone.borrow_mut();
             let (msg, return_value) = $msg;
-            let msg: Option<_> = msg.into();
+            let msg: Option<_> = ::relm::IntoOption::into_option(msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -117,7 +117,7 @@ macro_rules! connect {
             let $widget_clone = $widget_clone.upgrade().expect("upgrade should always work");
             check_recursion!($widget_clone);
             let mut $widget_clone = $widget_clone.borrow_mut();
-            let msg: Option<_> = $msg.into();
+            let msg: Option<_> = ::relm::IntoOption::into_option($msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -136,7 +136,7 @@ macro_rules! connect {
                     let $widget = $widget.upgrade().expect("upgrade should always work");
                     check_recursion!($widget);
                     let mut $widget = $widget.borrow_mut();
-                    let msg: Option<_> = $msg.into();
+                    let msg: Option<_> = ::relm::IntoOption::into_option($msg);
                     if let Some(msg) = msg {
                         stream.emit(msg);
                     }
@@ -150,7 +150,7 @@ macro_rules! connect {
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
-            let msg: Option<_> = $msg.into();
+            let msg: Option<_> = ::relm::IntoOption::into_option($msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -165,7 +165,7 @@ macro_rules! connect {
             #[allow(unreachable_patterns)]
             match msg {
                 $message =>  {
-                    let msg: Option<_> = $msg.into();
+                    let msg: Option<_> = ::relm::IntoOption::into_option($msg);
                     if let Some(msg) = msg {
                         stream.emit(msg);
                     }

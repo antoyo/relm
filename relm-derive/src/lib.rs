@@ -47,6 +47,7 @@ fn impl_simple_msg(ast: &MacroInput) -> Tokens {
 
     let clone = derive_clone(ast);
     let display = derive_display_variant(ast);
+    let into_option = derive_into_option(ast);
 
     let generics = &ast.generics;
     let generics_without_bound = remove_generic_bounds(generics);
@@ -58,6 +59,7 @@ fn impl_simple_msg(ast: &MacroInput) -> Tokens {
     quote! {
         #clone
         #display
+        #into_option
 
         impl #generics FnOnce<((),)> for #typ #where_clause {
             type Output = #typ;
@@ -92,10 +94,12 @@ pub fn msg(input: TokenStream) -> TokenStream {
 fn impl_msg(ast: &MacroInput) -> Tokens {
     let clone = derive_clone(ast);
     let display = derive_display_variant(ast);
+    let into_option = derive_into_option(ast);
 
     quote! {
         #clone
         #display
+        #into_option
     }
 }
 
@@ -170,6 +174,24 @@ fn derive_clone_enum(name: &Ident, typ: Tokens, mut generics: Generics, variants
                 match *self {
                     #(#variant_patterns => #variant_values,)*
                 }
+            }
+        }
+    }
+}
+
+fn derive_into_option(ast: &MacroInput) -> Tokens {
+    let generics = &ast.generics;
+    let name = &ast.ident;
+    let generics_without_bound = remove_generic_bounds(generics);
+    let typ = quote! {
+        #name #generics_without_bound
+    };
+    let where_clause = gen_where_clause(&generics);
+
+    quote! {
+        impl #generics ::relm::IntoOption<#typ> for #typ #where_clause {
+            fn into_option(self) -> Option<#typ> {
+                Some(self)
             }
         }
     }

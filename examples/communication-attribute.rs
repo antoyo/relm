@@ -166,6 +166,7 @@ impl Widget for Win {
                 #[name="counter1"]
                 Counter {
                     Increment => counter2@Decrement,
+                    Increment => log_increment(),
                 },
                 #[name="counter2"]
                 Counter,
@@ -181,6 +182,11 @@ impl Widget for Win {
         }
     }
 }
+
+fn log_increment() {
+    println!("Increment");
+}
+
 
 impl Win {
     fn inc(&mut self) -> Option<CounterMsg> {
