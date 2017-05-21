@@ -72,6 +72,7 @@ pub enum EventValue {
 
 #[derive(Debug)]
 pub struct Event {
+    pub async: bool,
     pub params: Vec<syn::Ident>,
     pub use_self: bool,
     pub value: EventValue,
@@ -80,6 +81,7 @@ pub struct Event {
 impl Event {
     fn new() -> Self {
         Event {
+            async: false,
             params: vec![syn::Ident::new("_")],
             use_self: false,
             value: CurrentWidget(WithoutReturn(Tokens::new())),
@@ -256,8 +258,15 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
             }
             else {
                 // Property or event.
-                let (ident, _) = parse_ident(tts);
+                let (mut ident, _) = parse_ident(tts);
                 tts = &tts[1..];
+                let mut async = false;
+                if ident == "async" {
+                    async = true;
+                    let (new_ident, _) = parse_ident(tts);
+                    ident = new_ident;
+                    tts = &tts[1..];
+                }
                 match tts[0] {
                     Token(Colon) => {
                         tts = parse_value_or_child_properties(tts, ident, &mut child_properties, &mut properties);
@@ -270,7 +279,8 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
                         tts = new_tts;
                     },
                     TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
-                        let (event, new_tts) = parse_event(tts, DefaultOneParam);
+                        let (mut event, new_tts) = parse_event(tts, DefaultOneParam);
+                        event.async = async;
                         gtk_widget.events.insert(ident, event);
                         tts = new_tts;
                     },

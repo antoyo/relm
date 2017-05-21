@@ -92,9 +92,7 @@ impl Widget for Win {
                 // Manually update the view.
                 label.set_text(&self.model.counter.to_string());
             },
-            Delete(resolver) => {
-                resolver.resolve(Inhibit(false));
-            },
+            Delete(resolver) => resolver.resolve(Inhibit(false)),
             Increment => {
                 self.model.counter += 1;
                 label.set_text(&self.model.counter.to_string());

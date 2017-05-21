@@ -224,13 +224,13 @@ impl<'a> Generator<'a> {
     fn collect_event(&mut self, widget_name: &Ident, save: bool, name: &str, event: &Event) {
         let event_ident = Ident::new(format!("connect_{}", name));
         let event_params: Vec<_> = event.params.iter().map(|ident| Ident::new(ident.as_ref())).collect();
-        let event_model_ident = gen_model_ident(event);
+        let event_metadata = gen_event_metadata(event);
         let clone = gen_clone(save);
         let connect =
             match event.value {
                 CurrentWidget(WithoutReturn(ref event_value)) => quote! {{
                     #clone
-                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #event_model_ident #event_value);
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #event_metadata #event_value);
                 }},
                 ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {{
                     #clone
@@ -243,7 +243,7 @@ impl<'a> Generator<'a> {
                 ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
                 CurrentWidget(CallReturn(ref func)) => quote! {{
                     #clone
-                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #event_model_ident #func);
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #event_metadata #func);
                 }},
 
             };
@@ -278,18 +278,18 @@ impl<'a> Generator<'a> {
                             (#(#event_params),*)
                         }
                     };
-                let event_model_ident = gen_model_ident(event);
+                let event_metadata = gen_event_metadata(event);
                 let clone = gen_clone(true);
                 let connect =
                     match event.value {
                         CurrentWidget(WithoutReturn(ref event_value)) => quote! {{
                             #clone
-                            connect!(#widget_name@#event_ident #params, relm, #event_model_ident #event_value);
+                            connect!(#widget_name@#event_ident #params, relm, #event_metadata #event_value);
                         }},
                         ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {{
                             #clone
                             connect!(#widget_name@#event_ident #params, #foreign_widget_name,
-                                     #event_model_ident #event_value);
+                                     #event_metadata #event_value);
                         }},
                         CurrentWidget(Return(_, _)) | CurrentWidget(CallReturn(_)) | ForeignWidget(_, Return(_, _)) |
                             ForeignWidget(_, CallReturn(_)) => unreachable!(),
@@ -444,7 +444,12 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
     }
 }
 
-fn gen_model_ident(event: &Event) -> Tokens {
+fn gen_event_metadata(event: &Event) -> Tokens {
+    if event.async {
+        return quote! {
+            async
+        };
+    }
     let ret =
         if let CurrentWidget(CallReturn(_)) = event.value {
             quote! {
