@@ -36,7 +36,7 @@ use parser::{
 use parser::EventValue::{CurrentWidget, ForeignWidget};
 use parser::EventValueReturn::{CallReturn, Return, WithoutReturn};
 use parser::EitherWidget::{Gtk, Relm};
-use remover::Remover;
+use transformer::Transformer;
 use super::{Driver, MODEL_IDENT};
 
 use self::WidgetType::*;
@@ -47,7 +47,7 @@ macro_rules! gen_set_prop_calls {
         let mut properties = vec![];
         let mut visible_properties = vec![];
         for (key, value) in &$widget.properties {
-            let mut remover = Remover::new($model_ident);
+            let mut remover = Transformer::new($model_ident);
             let new_value = remover.fold_expr(value.clone());
             let property_func = Ident::new(format!("set_{}", key));
             let property = quote! {
@@ -388,7 +388,7 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
     let mut values = vec![];
     let mut parameters = vec![];
     for (key, value) in gtk_widget.construct_properties.iter() {
-        let mut remover = Remover::new(MODEL_IDENT);
+        let mut remover = Transformer::new(MODEL_IDENT);
         let value = remover.fold_expr(value.clone());
         let key = key.to_string();
         values.push(quote! {
@@ -601,7 +601,7 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
 fn gen_model_param(init_parameters: &[Expr]) -> Tokens {
     let mut params = vec![];
     for param in init_parameters {
-        let mut remover = Remover::new(MODEL_IDENT);
+        let mut remover = Transformer::new(MODEL_IDENT);
         let value = remover.fold_expr(param.clone());
         params.push(value);
     }

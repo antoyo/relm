@@ -36,7 +36,7 @@ extern crate syn;
 mod adder;
 mod gen;
 mod parser;
-mod remover;
+mod transformer;
 mod walker;
 
 use std::collections::{HashMap, HashSet};

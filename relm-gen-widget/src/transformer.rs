@@ -19,26 +19,26 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-// TODO: rename to Transformer.
+//! Transformer to transform the self.model by the actual model identifier.
 
 use syn;
 use syn::{Expr, Ident, parse_path};
 use syn::fold::{Folder, noop_fold_expr};
 use syn::ExprKind::{Field, Path};
 
-pub struct Remover {
+pub struct Transformer {
     model_ident: String,
 }
 
-impl Remover {
+impl Transformer {
     pub fn new(model_ident: &str) -> Self {
-        Remover {
+        Transformer {
             model_ident: model_ident.to_string(),
         }
     }
 }
 
-impl Folder for Remover {
+impl Folder for Transformer {
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         if let Field(ref field_expr, ref ident) = expr.node {
             if *ident == Ident::new("model") {

@@ -19,6 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+//! Visitor to get all the model attribute used in an expression.
+
 use syn;
 use syn::{Expr, Ident};
 use syn::ExprKind::{Field, Path};
