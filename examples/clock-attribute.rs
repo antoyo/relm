@@ -61,7 +61,7 @@ impl Widget for Win {
         }
     }
 
-    fn subscriptions(relm: &Relm<Msg>) {
+    fn subscriptions(&mut self, relm: &Relm<Self>) {
         let stream = Interval::new(Duration::from_secs(1));
         relm.connect_exec_ignore_err(stream, Tick);
     }

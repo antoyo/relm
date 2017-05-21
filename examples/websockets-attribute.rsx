@@ -96,7 +96,7 @@ impl Widget for Win {
         }
     }
 
-    fn subscriptions(relm: &Relm<Msg>) {
+    fn subscriptions(&mut self, relm: &Relm<Self>) {
         // Connect to the websocket server.
         let handshake_future = ws_handshake(relm.handle());
         let future = relm.connect_ignore_err(handshake_future, Connected);

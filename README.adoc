@@ -130,7 +130,7 @@ impl Widget for Win {
 
     // Futures and streams can be connected when the `Widget` is created in the
     // `subscriptions()` method.
-    // fn subscriptions(relm: &Relm<Msg>) {
+    // fn subscriptions(&mut self, relm: &Relm<Self>) {
     //     let stream = Interval::new(Duration::from_secs(1), relm.handle()).unwrap();
     //     relm.connect_exec_ignore_err(stream, Tick);
     // }

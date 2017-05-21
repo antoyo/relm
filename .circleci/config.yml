@@ -1,0 +1,11 @@
+version: 2
+jobs:
+    build:
+        working_directory: ~/source
+        docker:
+            - image: scorpil/rust:nightly
+        steps:
+            - checkout
+            - run: apt-get update
+            - run: apt-get install -y libgtk-3-dev
+            - run: cargo test

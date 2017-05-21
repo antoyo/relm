@@ -194,8 +194,7 @@ pub trait Update
 
     /// Connect the subscriptions.
     /// Subscriptions are `Future`/`Stream` that are spawn when the object is created.
-    // TODO: add &mut self here?
-    fn subscriptions(_relm: &Relm<Self>) {
+    fn subscriptions(&mut self, _relm: &Relm<Self>) {
     }
 
     /// Method called when a message is received from an event.

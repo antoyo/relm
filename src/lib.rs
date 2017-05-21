@@ -201,7 +201,7 @@ fn init_component<WIDGET>(component: &Component<WIDGET>, cx: &MainContext, relm:
           WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
     let stream = component.stream().clone();
-    WIDGET::subscriptions(relm);
+    component.widget_mut().subscriptions(relm);
     let widget = component.widget_rc().clone();
     let event_future = stream.for_each(move |event| {
         let mut widget = widget.borrow_mut();

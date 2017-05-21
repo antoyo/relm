@@ -108,7 +108,7 @@ impl Widget for Win {
         &self.window
     }
 
-    fn subscriptions(relm: &Relm<Msg>) {
+    fn subscriptions(&mut self, relm: &Relm<Self>) {
         let handshake_future = ws_handshake(relm.handle());
         let future = relm.connect_ignore_err(handshake_future, Connected);
         relm.exec(future);
