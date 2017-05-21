@@ -146,6 +146,21 @@ macro_rules! connect {
         });
     };
 
+    // Connect to a GTK+ widget event where the return value is retrieved asynchronously.
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), async $msg:expr) => {{
+        let stream = $relm.stream().clone();
+        $widget.$event(move |$($args),*| {
+            let (resolver, rx) = ::relm::Resolver::channel();
+            let msg: Option<_> = ::relm::IntoOption::into_option($msg(resolver));
+            if let Some(msg) = msg {
+                stream.emit(msg);
+            }
+            ::gtk::main();
+            // TODO: remove unwrap().
+            ::futures::Stream::wait(rx).next().unwrap().unwrap()
+        });
+    }};
+
     // Connect to a GTK+ widget event.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
         let stream = $relm.stream().clone();
