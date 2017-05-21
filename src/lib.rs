@@ -41,6 +41,8 @@
         unused_qualifications, unused_results)]
 
 /*
+ * TODO: add a PrivateMsg type and an update_private() method to the Update trait to allow internal
+ * messages to be send without requiring Clone.
  * TODO: add construct-only properties for relm widget (to replace initial parameters) to allow
  * setting them by name (or with default value).
  * TODO: find a way to do two-step initialization (to avoid using unitialized in model()).
@@ -92,6 +94,8 @@ mod into;
 mod macros;
 mod widget;
 
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::SystemTime;
 
 use futures::Stream;
@@ -169,6 +173,24 @@ fn create_widget_test<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam)
     component
 }
 
+/// Create a bare component, i.e. a component only implementing the Update trait, not the Widget
+/// trait.
+pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> Component<UPDATE>
+    where UPDATE: Update + 'static
+{
+    let cx = MainContext::default(|cx| cx.clone());
+    let stream = EventStream::new();
+
+    let relm = Relm::new(cx.clone(), stream.clone());
+    let model = UPDATE::model(&relm, model_param);
+    let update = UPDATE::new(&relm, model)
+        .expect("Update::new() was called for a component that has not implemented this method");
+
+    let component = Component::new(stream, Rc::new(RefCell::new(update)));
+    init_component::<UPDATE>(&component, &cx, &relm);
+    component
+}
+
 /// Create a new relm widget without adding it to an existing widget.
 /// This is useful when a relm widget is at the root of another relm widget.
 pub fn create_component<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: CHILDWIDGET::ModelParam)
@@ -197,7 +219,7 @@ fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> (
 }
 
 fn init_component<WIDGET>(component: &Component<WIDGET>, cx: &MainContext, relm: &Relm<WIDGET>)
-    where WIDGET: Widget + 'static,
+    where WIDGET: Update + 'static,
           WIDGET::Msg: Clone + DisplayVariant + 'static,
 {
     let stream = component.stream().clone();
@@ -355,7 +377,7 @@ pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>
 }
 
 fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg)
-    where WIDGET: Widget,
+    where WIDGET: Update,
 {
     if cfg!(debug_assertions) {
         let time = SystemTime::now();

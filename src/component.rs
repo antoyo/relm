@@ -22,7 +22,7 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 
-use super::{EventStream, Widget};
+use super::{EventStream, Update};
 
 /// Widget that was added by the `ContainerWidget::add_widget()` method.
 ///
@@ -34,18 +34,18 @@ use super::{EventStream, Widget};
 /// [communication-attribute example](https://github.com/antoyo/relm/blob/master/examples/communication-attribute.rs)).
 #[must_use]
 #[derive(Clone)]
-pub struct Component<WIDGET: Widget> {
+pub struct Component<WIDGET: Update> {
     stream: EventStream<WIDGET::Msg>,
     widget: Rc<RefCell<WIDGET>>,
 }
 
-impl<WIDGET: Widget> Drop for Component<WIDGET> {
+impl<WIDGET: Update> Drop for Component<WIDGET> {
     fn drop(&mut self) {
         let _ = self.stream.close();
     }
 }
 
-impl<WIDGET: Widget> Component<WIDGET> {
+impl<WIDGET: Update> Component<WIDGET> {
     #[doc(hidden)]
     pub fn new(stream: EventStream<WIDGET::Msg>, widget: Rc<RefCell<WIDGET>>) -> Self {
         Component {

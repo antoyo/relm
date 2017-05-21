@@ -192,6 +192,11 @@ pub trait Update
     /// Create the initial model.
     fn model(relm: &Relm<Self>, param: Self::ModelParam) -> Self::Model;
 
+    /// Create a new component.
+    fn new(_relm: &Relm<Self>, _model: Self::Model) -> Option<Self> {
+        None
+    }
+
     /// Connect the subscriptions.
     /// Subscriptions are `Future`/`Stream` that are spawn when the object is created.
     fn subscriptions(&mut self, _relm: &Relm<Self>) {
