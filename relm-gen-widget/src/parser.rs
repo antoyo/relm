@@ -251,22 +251,17 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
     if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tokens[0] {
         let mut tts = &tts[..];
         while !tts.is_empty() {
-            if tts[0] == Token(Pound) || try_parse_name(tts).is_some() {
+            let (async, new_tts) = try_parse_async(tts);
+            tts = new_tts;
+            if !async && (tts[0] == Token(Pound) || try_parse_name(tts).is_some()) {
                 let (child, new_tts, _) = parse_child(tts, false);
                 tts = new_tts;
                 children.push(child);
             }
             else {
                 // Property or event.
-                let (mut ident, _) = parse_ident(tts);
+                let (ident, _) = parse_ident(tts);
                 tts = &tts[1..];
-                let mut async = false;
-                if ident == "async" {
-                    async = true;
-                    let (new_ident, _) = parse_ident(tts);
-                    ident = new_ident;
-                    tts = &tts[1..];
-                }
                 match tts[0] {
                     Token(Colon) => {
                         tts = parse_value_or_child_properties(tts, ident, &mut child_properties, &mut properties);
@@ -702,6 +697,17 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     let widget = Widget::new_relm(relm_widget, relm_type, init_parameters, children, properties, child_properties,
                                   child_events);
     (widget, &tokens[1..])
+}
+
+fn try_parse_async(tokens: &[TokenTree]) -> (bool, &[TokenTree]) {
+    if let Token(Pound) = tokens[0] {
+        if let TokenTree::Delimited(Delimited { delim: Bracket, ref tts }) = tokens[1] {
+            if tts[0] == Token(Ident(syn::Ident::new("async"))) {
+                return (true, &tokens[2..]);
+            }
+        }
+    }
+    (false, tokens)
 }
 
 fn tokens_to_expr(tokens: Tokens) -> Expr {

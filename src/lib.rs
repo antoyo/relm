@@ -45,8 +45,7 @@
  * setting them by name (or with default value).
  * TODO: find a way to do two-step initialization (to avoid using unitialized in model()).
  * TODO: consider using GBinding instead of manually adding calls to set_property().
- * TODO: consider using a nested event loop to transform synchronous callback into asynchronous
- * (allowing to set Inhibit(true) in the update() method).
+ * TODO: remove the closure transformer code.
  *
  * TODO: show a warning when components are destroyed after the end of call to Widget::view().
  * TODO: warn in the attribute when an event cycle is found.

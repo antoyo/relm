@@ -92,7 +92,7 @@ impl Widget for Win {
                     label: "-",
                 },
             },
-            async delete_event(_, _) => Delete,
+            #[async] delete_event(_, _) => Delete,
         }
     }
 }
