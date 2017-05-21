@@ -40,7 +40,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Resolver, Widget};
+use relm::{Relm, Resolver, Update, Widget};
 
 use Msg::*;
 
@@ -62,25 +62,18 @@ struct Win {
     window: Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     // Specify the model used for this widget.
     type Model = Model;
     // Specify the model parameter used to init the model.
     type ModelParam = ();
     // Specify the type of the messages sent to the update function.
     type Msg = Msg;
-    // Specify the type of the root widget.
-    type Root = Window;
 
     fn model(_: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
         }
-    }
-
-    // Return the root widget.
-    fn root(&self) -> Self::Root {
-        self.window.clone()
     }
 
     fn update(&mut self, event: Msg) {
@@ -98,6 +91,16 @@ impl Widget for Win {
                 label.set_text(&self.model.counter.to_string());
             },
         }
+    }
+}
+
+impl Widget for Win {
+    // Specify the type of the root widget.
+    type Root = Window;
+
+    // Return the root widget.
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>> {

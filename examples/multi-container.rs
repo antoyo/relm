@@ -41,7 +41,7 @@ use gtk::{
 };
 use gtk::Orientation::{Horizontal, Vertical};
 use gtk::WindowType::Toplevel;
-use relm::{Cast, Component, Container, ContainerWidget, RelmContainer, RemoteRelm, Widget};
+use relm::{Cast, Component, Container, ContainerWidget, Relm, RelmContainer, Update, Widget};
 
 use self::Msg::*;
 
@@ -49,14 +49,20 @@ struct CenterButton {
     button: gtk::Button,
 }
 
-impl Widget for CenterButton {
+impl Update for CenterButton {
     type Model = ();
     type ModelParam = ();
     type Msg = ();
-    type Root = gtk::Button;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
     }
+
+    fn update(&mut self, _msg: ()) {
+    }
+}
+
+impl Widget for CenterButton {
+    type Root = gtk::Button;
 
     fn parent_id() -> Option<&'static str> {
         Some("center")
@@ -64,9 +70,6 @@ impl Widget for CenterButton {
 
     fn root(&self) -> Self::Root {
         self.button.clone()
-    }
-
-    fn update(&mut self, _msg: ()) {
     }
 
     fn view(_relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {
@@ -81,14 +84,20 @@ struct Button {
     button: gtk::Button,
 }
 
-impl Widget for Button {
+impl Update for Button {
     type Model = ();
     type ModelParam = ();
     type Msg = ();
-    type Root = gtk::Button;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
     }
+
+    fn update(&mut self, _msg: ()) {
+    }
+}
+
+impl Widget for Button {
+    type Root = gtk::Button;
 
     fn parent_id() -> Option<&'static str> {
         Some("right")
@@ -96,9 +105,6 @@ impl Widget for Button {
 
     fn root(&self) -> Self::Root {
         self.button.clone()
-    }
-
-    fn update(&mut self, _msg: ()) {
     }
 
     fn view(_relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {
@@ -113,20 +119,23 @@ struct MyFrame {
     frame: Frame,
 }
 
-impl Widget for MyFrame {
+impl Update for MyFrame {
     type Model = ();
     type ModelParam = ();
     type Msg = ();
-    type Root = Frame;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
     }
 
+    fn update(&mut self, _msg: ()) {
+    }
+}
+
+impl Widget for MyFrame {
+    type Root = Frame;
+
     fn root(&self) -> Self::Root {
         self.frame.clone()
-    }
-
-    fn update(&mut self, _msg: ()) {
     }
 
     fn view(_relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {
@@ -175,21 +184,24 @@ impl Container for SplitBox {
     }
 }
 
-impl Widget for SplitBox {
+impl Update for SplitBox {
     type Model = ();
     type ModelParam = ();
     type Msg = ();
-    type Root = gtk::Box;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
         ()
     }
 
+    fn update(&mut self, _event: ()) {
+    }
+}
+
+impl Widget for SplitBox {
+    type Root = gtk::Box;
+
     fn root(&self) -> Self::Root {
         self.vbox.clone()
-    }
-
-    fn update(&mut self, _event: ()) {
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
@@ -220,23 +232,26 @@ struct Win {
     window: Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     type Model = ();
     type ModelParam = ();
     type Msg = Msg;
-    type Root = Window;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
-    }
-
-    fn root(&self) -> Self::Root {
-        self.window.clone()
     }
 
     fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
+    }
+}
+
+impl Widget for Win {
+    type Root = Window;
+
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {

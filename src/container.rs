@@ -75,13 +75,13 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
               CHILDWIDGET::Msg: Clone + DisplayVariant + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
     {
-        let (component, child_relm) = create_widget::<CHILDWIDGET>(&relm.cx, model_param);
+        let (component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
         {
             let widget = component.widget();
             self.add(&widget.root());
             widget.on_add(self.clone());
         }
-        init_component::<CHILDWIDGET>(&component, &relm.cx, &child_relm);
+        init_component::<CHILDWIDGET>(&component, relm.context(), &child_relm);
         component
     }
 
@@ -120,13 +120,13 @@ impl<WIDGET> RelmContainer for Component<WIDGET>
         where CHILDWIDGET: Widget + 'static,
               PARENTWIDGET: Widget
     {
-        let (component, child_relm) = create_widget::<CHILDWIDGET>(&relm.cx, model_param);
+        let (component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
         {
             let widget = component.widget();
             let container = self.widget().add_widget(&*widget);
             widget.on_add(container.clone());
         }
-        init_component::<CHILDWIDGET>(&component, &relm.cx, &child_relm);
+        init_component::<CHILDWIDGET>(&component, relm.context(), &child_relm);
         component
     }
 }

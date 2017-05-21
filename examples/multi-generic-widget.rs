@@ -41,7 +41,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, RemoteRelm, Widget};
+use relm::{Component, ContainerWidget, Relm, Update, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -90,21 +90,16 @@ struct Counter<S, T> {
     _phantom2: PhantomData<T>,
 }
 
-impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counter<S, T> {
+impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Update for Counter<S, T> {
     type Model = Model<S, T>;
     type ModelParam = (S, T);
     type Msg = CounterMsg;
-    type Root = gtk::Box;
 
     fn model(_: &Relm<Self>, (value1, value2): (S, T)) -> Self::Model {
         Model {
             counter1: value1,
             _counter2: value2,
         }
-    }
-
-    fn root(&self) -> Self::Root {
-        self.vbox.clone()
     }
 
     fn update(&mut self, event: CounterMsg) {
@@ -120,6 +115,14 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
                 label.set_text(&self.model.counter1.to_string());
             },
         }
+    }
+}
+
+impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counter<S, T> {
+    type Root = gtk::Box;
+
+    fn root(&self) -> Self::Root {
+        self.vbox.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>> {
@@ -158,24 +161,27 @@ struct Win {
     window: Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     type Model = ();
     type ModelParam = ();
     type Msg = Msg;
-    type Root = Window;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
         ()
-    }
-
-    fn root(&self) -> Self::Root {
-        self.window.clone()
     }
 
     fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
+    }
+}
+
+impl Widget for Win {
+    type Root = Window;
+
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Win>> {

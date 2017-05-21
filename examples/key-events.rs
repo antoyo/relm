@@ -34,7 +34,7 @@ use gtk::{
     Window,
     WindowType,
 };
-use relm::{RemoteRelm, Widget};
+use relm::{Relm, Update, Widget};
 
 use self::Msg::*;
 
@@ -55,20 +55,15 @@ struct Win {
     window: Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     type Model = Model;
     type ModelParam = ();
     type Msg = Msg;
-    type Root = Window;
 
     fn model(_: &Relm<Self>, _: ()) -> Model {
         Model {
             press_count: 0,
         }
-    }
-
-    fn root(&self) -> Self::Root {
-        self.window.clone()
     }
 
     fn update(&mut self, event: Msg) {
@@ -83,6 +78,14 @@ impl Widget for Win {
             },
             Quit => (),
         }
+    }
+}
+
+impl Widget for Win {
+    type Root = Window;
+
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Win>, model: Self::Model) -> Rc<RefCell<Self>> {

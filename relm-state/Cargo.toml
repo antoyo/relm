@@ -1,0 +1,17 @@
+[package]
+name = "relm-state"
+version = "0.1.0"
+authors = ["Antoni Boucher <bouanto@zoho.com>"]
+
+[dependencies]
+
+[dependencies.futures]
+branch = "spawn-trait"
+git = "https://github.com/alexcrichton/futures-rs"
+
+[dependencies.futures-glib]
+git = "https://github.com/antoyo/futures-glib-rs"
+
+[dependencies.relm-core]
+path = "../relm-core"
+version = "^0.1.1"

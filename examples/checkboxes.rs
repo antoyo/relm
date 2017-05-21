@@ -38,7 +38,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{Component, ContainerWidget, Relm, Widget};
+use relm::{Component, ContainerWidget, Relm, Update, Widget};
 
 use self::CheckMsg::*;
 use self::Msg::*;
@@ -61,21 +61,16 @@ struct CheckButton {
     relm: Relm<CheckButton>,
 }
 
-impl Widget for CheckButton {
+impl Update for CheckButton {
     type Model = CheckModel;
     type ModelParam = &'static str;
     type Msg = CheckMsg;
-    type Root = gtk::CheckButton;
 
     fn model(_: &Relm<Self>, label: &'static str) -> CheckModel {
         CheckModel {
             check: false,
             label,
         }
-    }
-
-    fn root(&self) -> Self::Root {
-        self.button.clone()
     }
 
     fn update(&mut self, event: CheckMsg) {
@@ -98,6 +93,14 @@ impl Widget for CheckButton {
                 self.button.set_active(false);
             },
         }
+    }
+}
+
+impl Widget for CheckButton {
+    type Root = gtk::CheckButton;
+
+    fn root(&self) -> Self::Root {
+        self.button.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>> {
@@ -126,17 +129,12 @@ struct Win {
     window: Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     type Model = ();
     type ModelParam = ();
     type Msg = Msg;
-    type Root = Window;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
-    }
-
-    fn root(&self) -> Self::Root {
-        self.window.clone()
     }
 
     fn update(&mut self, event: Msg) {
@@ -159,6 +157,14 @@ impl Widget for Win {
                 }
             },
         }
+    }
+}
+
+impl Widget for Win {
+    type Root = Window;
+
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {

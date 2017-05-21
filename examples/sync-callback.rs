@@ -30,7 +30,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use gtk::{Dialog, DialogExt, Inhibit, WidgetExt, Window, WindowType, DIALOG_MODAL};
-use relm::{Relm, Widget};
+use relm::{Relm, Update, Widget};
 
 use self::Msg::*;
 
@@ -43,24 +43,27 @@ struct Win {
     window: Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     type Model = ();
     type ModelParam = ();
     type Msg = Msg;
-    type Root = Window;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
         ()
-    }
-
-    fn root(&self) -> Self::Root {
-        self.window.clone()
     }
 
     fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
+    }
+}
+
+impl Widget for Win {
+    type Root = Window;
+
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {

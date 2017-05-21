@@ -42,7 +42,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use gtk::WindowType::Toplevel;
-use relm::{Component, ContainerWidget, Relm, Widget};
+use relm::{Component, ContainerWidget, Relm, Update, Widget};
 
 use self::Msg::*;
 
@@ -54,14 +54,20 @@ struct Button {
     button: gtk::Button,
 }
 
-impl Widget for Button {
+impl Update for Button {
     type Model = ();
     type ModelParam = ();
     type Msg = ButtonMsg;
-    type Root = gtk::Button;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
     }
+
+    fn update(&mut self, _msg: ButtonMsg) {
+    }
+}
+
+impl Widget for Button {
+    type Root = gtk::Button;
 
     fn root(&self) -> Self::Root {
         self.button.clone()
@@ -77,9 +83,6 @@ impl Widget for Button {
         parent.set_child_pack_type(&self.button, PackType::Start);
         parent.set_child_padding(&self.button, 10);
         parent.set_child_position(&self.button, 0);
-    }
-
-    fn update(&mut self, _msg: ButtonMsg) {
     }
 
     fn view(_relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
@@ -101,23 +104,26 @@ struct Win {
     window: gtk::Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     type Model = ();
     type ModelParam = ();
     type Msg = Msg;
-    type Root = gtk::Window;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
-    }
-
-    fn root(&self) -> Self::Root {
-        self.window.clone()
     }
 
     fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
+    }
+}
+
+impl Widget for Win {
+    type Root = gtk::Window;
+
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {

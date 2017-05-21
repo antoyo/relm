@@ -39,6 +39,10 @@ git = "https://github.com/antoyo/futures-glib-rs"
 path = "relm-core"
 version = "^0.1.1"
 
+[dependencies.relm-state]
+path = "relm-state"
+version = "^0.1.0"
+
 [dev-dependencies]
 base64 = "^0.4.0"
 blake2 = "^0.4.0"

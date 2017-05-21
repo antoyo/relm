@@ -49,7 +49,7 @@ use gtk::{
     DIALOG_MODAL,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Widget};
+use relm::{Relm, Update, Widget};
 use simplelog::{Config, TermLogger};
 use simplelog::LogLevelFilter::Warn;
 
@@ -68,21 +68,16 @@ struct Win {
     window: Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     type Model = ();
     type ModelParam = ();
     type Msg = Msg;
-    type Root = Window;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
         ()
     }
 
-    fn root(&self) -> Self::Root {
-        self.window.clone()
-    }
-
-    fn subscriptions(relm: &Relm<Msg>) {
+    fn subscriptions(relm: &Relm<Self>) {
         let stream = Interval::new(Duration::from_secs(1));
         relm.connect_exec_ignore_err(stream, Tick);
     }
@@ -98,6 +93,14 @@ impl Widget for Win {
             },
             Quit => gtk::main_quit(),
         }
+    }
+}
+
+impl Widget for Win {
+    type Root = Window;
+
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {

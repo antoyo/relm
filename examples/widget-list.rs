@@ -39,7 +39,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, Relm, Widget};
+use relm::{Component, ContainerWidget, Relm, Update, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -60,20 +60,15 @@ struct Counter {
     vbox: gtk::Box,
 }
 
-impl Widget for Counter {
-    type Root = gtk::Box;
+impl Update for Counter {
+    type Msg = CounterMsg;
     type Model = Model;
     type ModelParam = ();
-    type Msg = CounterMsg;
 
     fn model(_: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
         }
-    }
-
-    fn root(&self) -> Self::Root {
-        self.vbox.clone()
     }
 
     fn update(&mut self, event: CounterMsg) {
@@ -89,6 +84,14 @@ impl Widget for Counter {
                 label.set_text(&self.model.counter.to_string());
             },
         }
+    }
+}
+
+impl Widget for Counter {
+    type Root = gtk::Box;
+
+    fn root(&self) -> Self::Root {
+        self.vbox.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Model) -> Rc<RefCell<Self>> {
@@ -130,18 +133,13 @@ struct Win {
     window: Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     type Model = ();
     type ModelParam = ();
     type Msg = Msg;
-    type Root = Window;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
         ()
-    }
-
-    fn root(&self) -> Self::Root {
-        self.window.clone()
     }
 
     fn update(&mut self, event: Msg) {
@@ -157,6 +155,14 @@ impl Widget for Win {
                 }
             },
         }
+    }
+}
+
+impl Widget for Win {
+    type Root = Window;
+
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {

@@ -40,7 +40,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Component, Container, ContainerWidget, Relm, RelmContainer, Widget, create_component};
+use relm::{Component, Container, ContainerWidget, Relm, RelmContainer, Update, Widget, create_component};
 
 use self::Msg::*;
 
@@ -48,20 +48,23 @@ struct Button {
     button: gtk::Button,
 }
 
-impl Widget for Button {
+impl Update for Button {
     type Model = ();
     type ModelParam = ();
     type Msg = ();
-    type Root = gtk::Button;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
     }
 
+    fn update(&mut self, _msg: ()) {
+    }
+}
+
+impl Widget for Button {
+    type Root = gtk::Button;
+
     fn root(&self) -> gtk::Button {
         self.button.clone()
-    }
-
-    fn update(&mut self, _msg: ()) {
     }
 
     fn view(_relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
@@ -85,21 +88,24 @@ impl Container for VBox {
     }
 }
 
-impl Widget for VBox {
+impl Update for VBox {
     type Model = ();
     type ModelParam = ();
     type Msg = ();
-    type Root = EventBox;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
         ()
     }
 
+    fn update(&mut self, _event: ()) {
+    }
+}
+
+impl Widget for VBox {
+    type Root = EventBox;
+
     fn root(&self) -> EventBox {
         self.event_box.clone()
-    }
-
-    fn update(&mut self, _event: ()) {
     }
 
     fn view(_relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
@@ -119,20 +125,23 @@ struct MyVBox {
     _widget: Component<Button>,
 }
 
-impl Widget for MyVBox {
+impl Update for MyVBox {
     type Model = ();
     type ModelParam = ();
     type Msg = ();
-    type Root = <VBox as Widget>::Root;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
     }
 
+    fn update(&mut self, _event: ()) {
+    }
+}
+
+impl Widget for MyVBox {
+    type Root = <VBox as Widget>::Root;
+
     fn root(&self) -> EventBox {
         self.vbox.widget().root().clone()
-    }
-
-    fn update(&mut self, _event: ()) {
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
@@ -166,23 +175,26 @@ struct Win {
     window: Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     type Model = ();
     type ModelParam = ();
     type Msg = Msg;
-    type Root = Window;
 
     fn model(_: &Relm<Self>, _: ()) -> () {
-    }
-
-    fn root(&self) -> Window {
-        self.window.clone()
     }
 
     fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
+    }
+}
+
+impl Widget for Win {
+    type Root = Window;
+
+    fn root(&self) -> Window {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {

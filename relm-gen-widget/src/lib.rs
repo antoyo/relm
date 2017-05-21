@@ -180,6 +180,7 @@ impl Driver {
             self.generic_types = Some(generics.clone());
             let name = get_name(&typ);
             let mut new_items = vec![];
+            let mut update_items = vec![];
             for item in items {
                 let mut i = item.clone();
                 match item.node {
@@ -192,9 +193,10 @@ impl Driver {
                             "model" => {
                                 self.widget_model_type = Some(get_return_type(sig));
                                 add_model_param(&mut i, &mut self.model_param_type);
-                                new_items.push(i);
+                                update_items.push(i);
                             },
-                            "init_view" | "subscriptions" => new_items.push(i),
+                            "subscriptions" => update_items.push(i),
+                            "init_view" | "on_add" => new_items.push(i),
                             "update" => {
                                 self.widget_msg_type = Some(get_second_param_type(&sig));
                                 self.update_method = Some(i)
@@ -222,16 +224,13 @@ impl Driver {
             self.widgets.insert(self.root_widget.clone().expect("root widget"),
             self.root_widget_type.clone().expect("root widget type"));
             let widget_struct = self.create_struct(&typ, &view.relm_widgets, &generics);
-            new_items.push(self.get_msg_type());
-            new_items.push(self.get_model_type());
-            new_items.push(self.get_model_param_type());
             new_items.push(self.get_root_type());
             if let Some(data_method) = self.get_data_method() {
                 new_items.push(data_method);
             }
-            new_items.push(self.get_update());
             new_items.push(self.get_root());
             let other_methods = self.get_other_methods(&typ, &generics);
+            let update_impl = self.update_impl(&typ, &generics, update_items);
             let item = Impl(unsafety, polarity, generics, path, typ, new_items);
             ast.node = item;
             let container_impl = view.container_impl;
@@ -239,6 +238,7 @@ impl Driver {
                 #widget_struct
                 #ast
                 #container_impl
+                #update_impl
 
                 #other_methods
             }
@@ -372,6 +372,24 @@ impl Driver {
         }
         else {
             panic!("Expected `{{` but found `{:?}` in view! macro", tokens[0]);
+        }
+    }
+
+    fn update_impl(&mut self, typ: &Ty, generics: &Generics, items: Vec<ImplItem>) -> Tokens {
+        let where_clause = gen_where_clause(generics);
+
+        let msg = self.get_msg_type();
+        let model_param = self.get_model_param_type();
+        let update = self.get_update();
+        let model = self.get_model_type();
+        quote! {
+            impl #generics ::relm::Update for #typ #where_clause {
+                #msg
+                #model
+                #model_param
+                #update
+                #(#items)*
+            }
         }
     }
 }

@@ -24,20 +24,14 @@ use std::rc::Rc;
 
 use gtk::{self, IsA, Object};
 
-use super::{DisplayVariant, Relm};
+use super::{Relm, run};
+use relm_state::Update;
 
 /// Trait to implement to manage widget's events.
 pub trait Widget
-    where Self: Sized,
+    where Self: Update,
           Self::Root: Clone + IsA<gtk::Widget>,
-          Self::Msg: Clone + DisplayVariant,
 {
-    /// The type of the model.
-    type Model;
-    /// The type of the parameter of the model() function used to initialize the model.
-    type ModelParam: Sized;
-    /// The type of the messages sent to the [`update()`](trait.Widget.html#tymethod.update) method.
-    type Msg;
     /// The type of the root widget.
     type Root;
 
@@ -46,9 +40,6 @@ pub trait Widget
     /// you can use the [`view()`](trait.Widget.html#tymethod.view) method instead.
     fn init_view(&mut self) {
     }
-
-    /// Create the initial model.
-    fn model(relm: &Relm<Self>, param: Self::ModelParam) -> Self::Model;
 
     /// Method called when the widget is added to its parent.
     fn on_add<W: IsA<gtk::Widget> + IsA<Object>>(&self, _parent: W) {
@@ -75,14 +66,6 @@ pub trait Widget
     {
         run::<Self>(model_param)
     }
-
-    /// Connect the subscriptions.
-    /// Subscriptions are `Future`/`Stream` that are spawn when the widget is created.
-    fn subscriptions(_relm: &Relm<Self::Msg>) {
-    }
-
-    /// Method called when a message is received from an event.
-    fn update(&mut self, event: Self::Msg);
 
     /// Create the initial view.
     fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>>;

@@ -42,7 +42,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, Relm, Widget};
+use relm::{Component, ContainerWidget, Relm, Update, Widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -63,20 +63,15 @@ struct Text {
     vbox: gtk::Box,
 }
 
-impl Widget for Text {
+impl Update for Text {
     type Model = TextModel;
     type ModelParam = ();
     type Msg = TextMsg;
-    type Root = gtk::Box;
 
     fn model(_: &Relm<Self>, _: ()) -> TextModel {
         TextModel {
             content: String::new(),
         }
-    }
-
-    fn root(&self) -> Self::Root {
-        self.vbox.clone()
     }
 
     fn update(&mut self, event: TextMsg) {
@@ -86,6 +81,14 @@ impl Widget for Text {
                 self.label.set_text(&self.model.content);
             },
         }
+    }
+}
+
+impl Widget for Text {
+    type Root = gtk::Box;
+
+    fn root(&self) -> Self::Root {
+        self.vbox.clone()
     }
 
     fn view(relm: &Relm<Self>, model: TextModel) -> Rc<RefCell<Self>> {
@@ -124,20 +127,15 @@ struct Counter {
     vbox: gtk::Box,
 }
 
-impl Widget for Counter {
+impl Update for Counter {
     type Model = CounterModel;
     type ModelParam = ();
     type Msg = CounterMsg;
-    type Root = gtk::Box;
 
     fn model(_: &Relm<Self>, _: ()) -> CounterModel {
         CounterModel {
             counter: 0,
         }
-    }
-
-    fn root(&self) -> Self::Root {
-        self.vbox.clone()
     }
 
     fn update(&mut self, event: CounterMsg) {
@@ -153,6 +151,14 @@ impl Widget for Counter {
                 label.set_text(&self.model.counter.to_string());
             },
         }
+    }
+}
+
+impl Widget for Counter {
+    type Root = gtk::Box;
+
+    fn root(&self) -> Self::Root {
+        self.vbox.clone()
     }
 
     fn view(relm: &Relm<Self>, model: CounterModel) -> Rc<RefCell<Self>> {
@@ -197,20 +203,15 @@ struct Win {
     window: Window,
 }
 
-impl Widget for Win {
+impl Update for Win {
     type Model = Model;
     type ModelParam = ();
     type Msg = Msg;
-    type Root = Window;
 
     fn model(_: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
         }
-    }
-
-    fn root(&self) -> Self::Root {
-        self.window.clone()
     }
 
     fn update(&mut self, event: Msg) {
@@ -222,6 +223,14 @@ impl Widget for Win {
             },
             Quit => gtk::main_quit(),
         }
+    }
+}
+
+impl Widget for Win {
+    type Root = Window;
+
+    fn root(&self) -> Self::Root {
+        self.window.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Model) -> Rc<RefCell<Self>> {
