@@ -22,7 +22,7 @@
 use gtk;
 use gtk::{Cast, ContainerExt, IsA, Object, WidgetExt};
 
-use component::Component;
+use relm_state::Component;
 use super::{DisplayVariant, Relm, create_widget, init_component};
 use widget::Widget;
 

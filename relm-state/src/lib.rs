@@ -23,12 +23,16 @@ extern crate futures;
 extern crate futures_glib;
 extern crate relm_core;
 
+mod component;
+mod macros;
 mod stream;
 
 use futures::{Future, Stream};
 use futures::future::Spawn;
 use futures_glib::MainContext;
+pub use relm_core::EventStream;
 
+pub use component::Component;
 use stream::ToStream;
 
 macro_rules! relm_connect {
@@ -60,8 +64,6 @@ macro_rules! relm_connect_ignore {
             .map_err(|_| ()))
     }};
 }
-
-pub use relm_core::EventStream;
 
 /// Handle connection of futures to send messages to the [`update()`](trait.Update.html#tymethod.update) method.
 pub struct Relm<UPDATE: Update> {
