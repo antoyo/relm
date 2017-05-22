@@ -104,7 +104,7 @@ use gobject_sys::{GObject, GValue};
 use libc::{c_char, c_uint};
 #[doc(hidden)]
 pub use relm_core::EventStream;
-pub use relm_state::{Component, DisplayVariant, IntoOption, IntoPair, Relm, Update};
+pub use relm_state::{Component, DisplayVariant, IntoOption, IntoPair, Relm, Update, execute};
 use relm_state::init_component;
 
 pub use callback::Resolver;
