@@ -26,6 +26,7 @@ extern crate log;
 extern crate relm_core;
 
 mod component;
+mod into;
 mod macros;
 mod stream;
 
@@ -39,6 +40,7 @@ use futures_glib::MainContext;
 pub use relm_core::EventStream;
 
 pub use component::Component;
+pub use into::{IntoOption, IntoPair};
 use stream::ToStream;
 
 macro_rules! relm_connect {

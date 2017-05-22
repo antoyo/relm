@@ -60,7 +60,7 @@ macro_rules! connect {
     ($widget:expr, $event:ident($($args:pat),*), $other_component:expr, $msg:expr) => {
         let stream = $other_component.stream().clone();
         $widget.$event(move |$($args),*| {
-            let msg: Option<_> = ::relm::IntoOption::into_option($msg);
+            let msg: Option<_> = $crate::IntoOption::into_option($msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -74,8 +74,8 @@ macro_rules! connect {
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), return $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
-            let (msg, return_value) = ::relm::IntoPair::into_pair($msg);
-            let msg: Option<_> = ::relm::IntoOption::into_option(msg);
+            let (msg, return_value) = $crate::IntoPair::into_pair($msg);
+            let msg: Option<_> = $crate::IntoOption::into_option(msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -96,8 +96,8 @@ macro_rules! connect {
             let $widget_clone = $widget_clone.upgrade().expect("upgrade should always work");
             check_recursion!($widget_clone);
             let mut $widget_clone = $widget_clone.borrow_mut();
-            let (msg, return_value) = ::relm::IntoPair::into_pair($msg);
-            let msg: Option<_> = ::relm::IntoOption::into_option(msg);
+            let (msg, return_value) = $crate::IntoPair::into_pair($msg);
+            let msg: Option<_> = $crate::IntoOption::into_option(msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -117,7 +117,7 @@ macro_rules! connect {
             let $widget_clone = $widget_clone.upgrade().expect("upgrade should always work");
             check_recursion!($widget_clone);
             let mut $widget_clone = $widget_clone.borrow_mut();
-            let msg: Option<_> = ::relm::IntoOption::into_option($msg);
+            let msg: Option<_> = $crate::IntoOption::into_option($msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -136,7 +136,7 @@ macro_rules! connect {
                     let $widget = $widget.upgrade().expect("upgrade should always work");
                     check_recursion!($widget);
                     let mut $widget = $widget.borrow_mut();
-                    let msg: Option<_> = ::relm::IntoOption::into_option($msg);
+                    let msg: Option<_> = $crate::IntoOption::into_option($msg);
                     if let Some(msg) = msg {
                         stream.emit(msg);
                     }
@@ -151,7 +151,7 @@ macro_rules! connect {
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
             let (resolver, rx) = ::relm::Resolver::channel();
-            let msg: Option<_> = ::relm::IntoOption::into_option($msg(resolver));
+            let msg: Option<_> = $crate::IntoOption::into_option($msg(resolver));
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -165,7 +165,7 @@ macro_rules! connect {
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
-            let msg: Option<_> = ::relm::IntoOption::into_option($msg);
+            let msg: Option<_> = $crate::IntoOption::into_option($msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
@@ -180,7 +180,7 @@ macro_rules! connect {
             #[allow(unreachable_patterns)]
             match msg {
                 &$message =>  {
-                    let msg: Option<_> = ::relm::IntoOption::into_option($msg);
+                    let msg: Option<_> = $crate::IntoOption::into_option($msg);
                     if let Some(msg) = msg {
                         stream.emit(msg);
                     }

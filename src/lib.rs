@@ -87,7 +87,6 @@ extern crate relm_state;
 
 mod callback;
 mod container;
-mod into;
 mod macros;
 mod widget;
 
@@ -105,12 +104,11 @@ use gobject_sys::{GObject, GValue};
 use libc::{c_char, c_uint};
 #[doc(hidden)]
 pub use relm_core::EventStream;
-pub use relm_state::{Component, DisplayVariant, Relm, Update};
+pub use relm_state::{Component, DisplayVariant, IntoOption, IntoPair, Relm, Update};
 use relm_state::init_component;
 
 pub use callback::Resolver;
 pub use container::{Container, ContainerWidget, RelmContainer};
-pub use into::{IntoOption, IntoPair};
 pub use widget::Widget;
 
 extern "C" {

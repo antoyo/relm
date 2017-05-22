@@ -1,0 +1,14 @@
+[package]
+name = "relm-derive-state"
+version = "0.1.0"
+authors = ["Antoni Boucher <bouanto@zoho.com>"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "^0.11.8"
+
+[dependencies.relm-derive-common]
+path = "../relm-derive-common"
+version = "^0.9.0"
