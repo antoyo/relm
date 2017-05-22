@@ -180,7 +180,7 @@ impl<UPDATE: Update> Relm<UPDATE> {
 
 pub trait Update
     where Self: Sized,
-          Self::Msg: Clone + DisplayVariant,
+          Self::Msg: DisplayVariant,
 {
     /// The type of the model.
     type Model;

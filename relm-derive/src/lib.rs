@@ -16,23 +16,18 @@ use quote::Tokens;
 use relm_gen_widget::{gen_widget, gen_where_clause};
 use syn::{
     Body,
-    Field,
     Generics,
     Ident,
     Item,
     MacroInput,
-    PolyTraitRef,
-    TraitBoundModifier,
     Variant,
     VariantData,
     parse_item,
     parse_macro_input,
-    parse_path,
 };
 use syn::ItemKind::Struct;
 use syn::TokenTree::Delimited;
 use syn::Ty::Mac;
-use syn::TyParamBound::Trait;
 
 #[proc_macro_derive(SimpleMsg)]
 pub fn simple_msg(input: TokenStream) -> TokenStream {
@@ -45,7 +40,6 @@ pub fn simple_msg(input: TokenStream) -> TokenStream {
 fn impl_simple_msg(ast: &MacroInput) -> Tokens {
     let name = &ast.ident;
 
-    let clone = derive_clone(ast);
     let display = derive_display_variant(ast);
     let into_option = derive_into_option(ast);
 
@@ -57,7 +51,6 @@ fn impl_simple_msg(ast: &MacroInput) -> Tokens {
     let where_clause = gen_where_clause(&generics);
 
     quote! {
-        #clone
         #display
         #into_option
 
@@ -92,83 +85,12 @@ pub fn msg(input: TokenStream) -> TokenStream {
 }
 
 fn impl_msg(ast: &MacroInput) -> Tokens {
-    let clone = derive_clone(ast);
     let display = derive_display_variant(ast);
     let into_option = derive_into_option(ast);
 
     quote! {
-        #clone
         #display
         #into_option
-    }
-}
-
-fn derive_clone(ast: &MacroInput) -> Tokens {
-    let generics = &ast.generics;
-    let name = &ast.ident;
-    let generics_without_bound = remove_generic_bounds(generics);
-    let typ = quote! {
-        #name #generics_without_bound
-    };
-
-    match ast.body {
-        Body::Enum(ref variants) => derive_clone_enum(name, typ, ast.generics.clone(), variants),
-        Body::Struct(VariantData::Struct(ref fields)) => derive_clone_struct(name, typ, &ast.generics, fields),
-        _ => panic!("Expected enum or struct"),
-    }
-}
-
-fn derive_clone_enum(name: &Ident, typ: Tokens, mut generics: Generics, variants: &[Variant]) -> Tokens {
-    let variant_idents_values = gen_idents_count(variants);
-    let variant_patterns = variant_idents_values.iter().map(|&(ref ident, value_count)| {
-        if value_count > 0 {
-            let value_idents = gen_idents(value_count);
-            quote! {
-                #name::#ident(#(ref #value_idents),*)
-            }
-        }
-        else {
-            quote! {
-                #name::#ident
-            }
-        }
-    });
-    let variant_values = variant_idents_values.iter().map(|&(ref ident, value_count)| {
-        if value_count > 0 {
-            let value_idents = gen_idents(value_count);
-            quote! {
-                #name::#ident(#(#value_idents.clone()),*)
-            }
-        }
-        else {
-            quote! {
-                #name::#ident
-            }
-        }
-    });
-
-    let path = quote! {
-        Clone
-    };
-    let path = parse_path(path.as_str()).expect("Clone is a path");
-    if let Some(param) = generics.ty_params.get_mut(0) {
-        param.bounds = vec![
-            Trait(PolyTraitRef {
-                bound_lifetimes: vec![],
-                trait_ref: path,
-            }, TraitBoundModifier::None)
-        ];
-    }
-    let where_clause = gen_where_clause(&generics);
-
-    quote! {
-        impl #generics Clone for #typ #where_clause {
-            fn clone(&self) -> Self {
-                match *self {
-                    #(#variant_patterns => #variant_values,)*
-                }
-            }
-        }
     }
 }
 
@@ -185,22 +107,6 @@ fn derive_into_option(ast: &MacroInput) -> Tokens {
         impl #generics ::relm::IntoOption<#typ> for #typ #where_clause {
             fn into_option(self) -> Option<#typ> {
                 Some(self)
-            }
-        }
-    }
-}
-
-fn derive_clone_struct(name: &Ident, typ: Tokens, generics: &Generics, fields: &[Field]) -> Tokens {
-    let idents: Vec<_> = fields.iter().map(|field| field.ident.clone().unwrap()).collect();
-    let idents1 = &idents;
-    let idents2 = &idents;
-    let where_clause = gen_where_clause(generics);
-    quote! {
-        impl #generics Clone for #typ #where_clause {
-            fn clone(&self) -> Self {
-                #name {
-                    #(#idents1: self.#idents2.clone(),)*
-                }
             }
         }
     }
@@ -286,12 +192,6 @@ fn remove_generic_bounds(generics: &Generics) -> Generics {
 fn gen_ignored_idents(count: usize) -> Vec<Ident> {
     (0..count)
         .map(|_| Ident::new("_"))
-        .collect()
-}
-
-fn gen_idents(count: usize) -> Vec<Ident> {
-    (0..count)
-        .map(|count| Ident::new(format!("value{}", count)))
         .collect()
 }
 

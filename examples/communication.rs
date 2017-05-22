@@ -260,7 +260,7 @@ impl Widget for Win {
         {
             let win_clone = Rc::downgrade(&win);
             let Win { ref counter1, ref counter2, ref text, ref window, .. } = *win.borrow();
-            connect!(text@Change(text), relm, TextChange(text));
+            connect!(text@Change(ref text), relm, TextChange(text.clone()));
             connect!(text@Change(_), counter1, with win_clone win_clone.inc());
             connect!(counter1@Increment, counter2, Decrement);
             connect!(button, connect_clicked(_), counter1, Decrement);

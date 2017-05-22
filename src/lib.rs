@@ -166,7 +166,7 @@ macro_rules! use_impl_self_type {
 
 fn create_widget_test<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> Component<WIDGET>
     where WIDGET: Widget + 'static,
-          WIDGET::Msg: Clone + DisplayVariant + 'static,
+          WIDGET::Msg: DisplayVariant + 'static,
 {
     let (component, relm) = create_widget(cx, model_param);
     init_component::<WIDGET>(&component, cx, &relm);
@@ -196,7 +196,7 @@ pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> Component<UPDATE>
 pub fn create_component<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: CHILDWIDGET::ModelParam)
         -> Component<CHILDWIDGET>
     where CHILDWIDGET: Widget + 'static,
-          CHILDWIDGET::Msg: Clone + DisplayVariant + 'static,
+          CHILDWIDGET::Msg: DisplayVariant + 'static,
           WIDGET: Widget,
 {
     let (component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
@@ -206,7 +206,7 @@ pub fn create_component<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: C
 
 fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> (Component<WIDGET>, Relm<WIDGET>)
     where WIDGET: Widget + 'static,
-          WIDGET::Msg: Clone + DisplayVariant + 'static,
+          WIDGET::Msg: DisplayVariant + 'static,
 {
     let stream = EventStream::new();
 
@@ -220,14 +220,14 @@ fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> (
 
 fn init_component<WIDGET>(component: &Component<WIDGET>, cx: &MainContext, relm: &Relm<WIDGET>)
     where WIDGET: Update + 'static,
-          WIDGET::Msg: Clone + DisplayVariant + 'static,
+          WIDGET::Msg: DisplayVariant + 'static,
 {
     let stream = component.stream().clone();
     component.widget_mut().subscriptions(relm);
     let widget = component.widget_rc().clone();
     let event_future = stream.for_each(move |event| {
         let mut widget = widget.borrow_mut();
-        update_widget(&mut *widget, event.clone());
+        update_widget(&mut *widget, event);
         Ok(())
     });
     cx.spawn(event_future);
@@ -294,7 +294,7 @@ fn init_gtk() {
 /// ```
 pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
     where WIDGET: Widget + 'static,
-          WIDGET::Msg: Clone + DisplayVariant + 'static
+          WIDGET::Msg: DisplayVariant + 'static
 {
     futures_glib::init();
     init_gtk();
@@ -306,7 +306,7 @@ pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WI
 
 fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
     where WIDGET: Widget + 'static,
-          WIDGET::Msg: Clone + DisplayVariant + 'static
+          WIDGET::Msg: DisplayVariant + 'static
 {
     futures_glib::init();
     gtk::init()?;

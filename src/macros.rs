@@ -132,7 +132,7 @@ macro_rules! connect {
         $src_component.stream().observe(move |msg| {
             #[allow(unreachable_patterns, unused_mut)]
             match msg {
-                $message =>  {
+                &$message =>  {
                     let $widget = $widget.upgrade().expect("upgrade should always work");
                     check_recursion!($widget);
                     let mut $widget = $widget.borrow_mut();
@@ -179,7 +179,7 @@ macro_rules! connect {
         $src_component.stream().observe(move |msg| {
             #[allow(unreachable_patterns)]
             match msg {
-                $message =>  {
+                &$message =>  {
                     let msg: Option<_> = ::relm::IntoOption::into_option($msg);
                     if let Some(msg) = msg {
                         stream.emit(msg);

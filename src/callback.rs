@@ -72,7 +72,7 @@ impl<T: Default> Resolver<T> {
     }
 
     /// Set the return value of a synchronous callback in an asynchronous fashion.
-    pub fn resolve(self, value: T) {
+    pub fn resolve(&self, value: T) {
         let mut inner = self.inner.borrow_mut();
         send(&mut inner.tx, value);
         inner.send_done = true;

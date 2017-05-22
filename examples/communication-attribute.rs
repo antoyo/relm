@@ -172,7 +172,7 @@ impl Widget for Win {
                 Counter,
                 Text {
                     Change(_) => counter1@self.inc(),
-                    Change(text) => self.text_change(text),
+                    Change(ref text) => self.text_change(text.clone()),
                 },
                 gtk::Label {
                     text: &self.model.counter.to_string(),

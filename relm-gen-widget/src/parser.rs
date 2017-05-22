@@ -362,18 +362,18 @@ fn try_parse_name(mut tokens: &[TokenTree]) -> Option<(Path, &[TokenTree])> {
 
 fn parse_comma_ident_list(tokens: &[TokenTree]) -> Vec<syn::Ident> {
     let mut params = vec![];
+    let mut param = Tokens::new();
     for token in tokens {
-        if *token != Token(Comma) {
-            if let Token(ref token) = *token {
-                let mut tokens = Tokens::new();
-                token.to_tokens(&mut tokens);
-                params.push(syn::Ident::new(tokens.as_str()));
-            }
-            else {
-                panic!("Expecting Token, but found: `{:?}`", token);
-            }
+        match *token {
+            Token(Comma) =>  {
+                params.push(syn::Ident::new(param.as_str()));
+                param = Tokens::new();
+            },
+            Token(ref token) => token.to_tokens(&mut param),
+            _ => panic!("Expecting Token, but found: `{:?}`", token),
         }
     }
+    params.push(syn::Ident::new(param.as_str()));
     params
 }
 

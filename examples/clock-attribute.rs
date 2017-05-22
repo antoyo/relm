@@ -47,10 +47,10 @@ pub struct Model {
     time: DateTime<Local>,
 }
 
-#[derive(SimpleMsg)]
+#[derive(Msg)]
 pub enum Msg {
     Quit,
-    Tick,
+    Tick(()),
 }
 
 #[widget]
@@ -68,7 +68,7 @@ impl Widget for Win {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Tick => self.model.time = Local::now(),
+            Tick(()) => self.model.time = Local::now(),
             Quit => gtk::main_quit(),
         }
     }

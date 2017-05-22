@@ -58,7 +58,7 @@ pub trait ContainerWidget {
     fn add_widget<CHILDWIDGET, WIDGET>(&self, relm: &Relm<WIDGET>, model_param: CHILDWIDGET::ModelParam)
             -> Component<CHILDWIDGET>
         where CHILDWIDGET: Widget + 'static,
-              CHILDWIDGET::Msg: Clone + DisplayVariant + 'static,
+              CHILDWIDGET::Msg: DisplayVariant + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
               WIDGET: Widget;
 
@@ -72,7 +72,7 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
     fn add_widget<CHILDWIDGET, WIDGET>(&self, relm: &Relm<WIDGET>, model_param: CHILDWIDGET::ModelParam)
             -> Component<CHILDWIDGET>
         where CHILDWIDGET: Widget + 'static,
-              CHILDWIDGET::Msg: Clone + DisplayVariant + 'static,
+              CHILDWIDGET::Msg: DisplayVariant + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
     {
         let (component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);

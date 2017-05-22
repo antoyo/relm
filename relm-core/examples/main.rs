@@ -91,7 +91,7 @@ fn main() {
 
     let other_widget_stream = EventStream::new();
     {
-        stream.observe(move |event: Msg| {
+        stream.observe(move |event: &Msg| {
             other_widget_stream.emit(Quit);
             println!("Event: {:?}", event);
         });
