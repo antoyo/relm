@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(fn_traits, proc_macro, unboxed_closures)]
+#![feature(proc_macro, unboxed_closures)]
 
 extern crate chrono;
 extern crate futures_glib;

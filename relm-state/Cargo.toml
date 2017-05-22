@@ -1,9 +1,10 @@
 [package]
+authors = ["Antoni Boucher <bouanto@zoho.com>"]
 name = "relm-state"
 version = "0.1.0"
-authors = ["Antoni Boucher <bouanto@zoho.com>"]
 
 [dependencies]
+log = "^0.3.7"
 
 [dependencies.futures]
 branch = "spawn-trait"

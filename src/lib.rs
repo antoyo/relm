@@ -82,8 +82,6 @@ extern crate gobject_sys;
 extern crate gtk;
 extern crate gtk_sys;
 extern crate libc;
-#[macro_use]
-extern crate log;
 extern crate relm_core;
 extern crate relm_state;
 
@@ -93,12 +91,6 @@ mod into;
 mod macros;
 mod widget;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::time::SystemTime;
-
-use futures::Stream;
-use futures::future::Spawn;
 use futures_glib::MainContext;
 #[doc(hidden)]
 pub use glib::Cast;
@@ -114,6 +106,7 @@ use libc::{c_char, c_uint};
 #[doc(hidden)]
 pub use relm_core::EventStream;
 pub use relm_state::{Component, DisplayVariant, Relm, Update};
+use relm_state::init_component;
 
 pub use callback::Resolver;
 pub use container::{Container, ContainerWidget, RelmContainer};
@@ -171,24 +164,6 @@ fn create_widget_test<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam)
     component
 }
 
-/// Create a bare component, i.e. a component only implementing the Update trait, not the Widget
-/// trait.
-pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> Component<UPDATE>
-    where UPDATE: Update + 'static
-{
-    let cx = MainContext::default(|cx| cx.clone());
-    let stream = EventStream::new();
-
-    let relm = Relm::new(cx.clone(), stream.clone());
-    let model = UPDATE::model(&relm, model_param);
-    let update = UPDATE::new(&relm, model)
-        .expect("Update::new() was called for a component that has not implemented this method");
-
-    let component = Component::new(stream, Rc::new(RefCell::new(update)));
-    init_component::<UPDATE>(&component, &cx, &relm);
-    component
-}
-
 /// Create a new relm widget without adding it to an existing widget.
 /// This is useful when a relm widget is at the root of another relm widget.
 pub fn create_component<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: CHILDWIDGET::ModelParam)
@@ -214,21 +189,6 @@ fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> (
     widget.borrow_mut().init_view();
 
     (Component::new(stream, widget), relm)
-}
-
-fn init_component<WIDGET>(component: &Component<WIDGET>, cx: &MainContext, relm: &Relm<WIDGET>)
-    where WIDGET: Update + 'static,
-          WIDGET::Msg: DisplayVariant + 'static,
-{
-    let stream = component.stream().clone();
-    component.widget_mut().subscriptions(relm);
-    let widget = component.widget_rc().clone();
-    let event_future = stream.for_each(move |event| {
-        let mut widget = widget.borrow_mut();
-        update_widget(&mut *widget, event);
-        Ok(())
-    });
-    cx.spawn(event_future);
 }
 
 // TODO: remove this workaround.
@@ -372,30 +332,4 @@ pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>
     let _component = init::<WIDGET>(model_param)?;
     gtk::main();
     Ok(())
-}
-
-fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg)
-    where WIDGET: Update,
-{
-    if cfg!(debug_assertions) {
-        let time = SystemTime::now();
-        let debug = event.display_variant();
-        let debug =
-            if debug.len() > 100 {
-                format!("{}…", &debug[..100])
-            }
-            else {
-                debug.to_string()
-            };
-        widget.update(event);
-        if let Ok(duration) = time.elapsed() {
-            let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
-            if ms >= 200 {
-                warn!("The update function was slow to execute for message {}: {}ms", debug, ms);
-            }
-        }
-    }
-    else {
-        widget.update(event)
-    }
 }

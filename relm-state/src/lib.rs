@@ -21,11 +21,17 @@
 
 extern crate futures;
 extern crate futures_glib;
+#[macro_use]
+extern crate log;
 extern crate relm_core;
 
 mod component;
 mod macros;
 mod stream;
+
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::time::SystemTime;
 
 use futures::{Future, Stream};
 use futures::future::Spawn;
@@ -222,5 +228,64 @@ pub trait DisplayVariant {
 impl DisplayVariant for () {
     fn display_variant(&self) -> &'static str {
         ""
+    }
+}
+
+/// Create a bare component, i.e. a component only implementing the Update trait, not the Widget
+/// trait.
+pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> Component<UPDATE>
+    where UPDATE: Update + 'static
+{
+    let cx = MainContext::default(|cx| cx.clone());
+    let stream = EventStream::new();
+
+    let relm = Relm::new(cx.clone(), stream.clone());
+    let model = UPDATE::model(&relm, model_param);
+    let update = UPDATE::new(&relm, model)
+        .expect("Update::new() was called for a component that has not implemented this method");
+
+    let component = Component::new(stream, Rc::new(RefCell::new(update)));
+    init_component::<UPDATE>(&component, &cx, &relm);
+    component
+}
+
+pub fn init_component<WIDGET>(component: &Component<WIDGET>, cx: &MainContext, relm: &Relm<WIDGET>)
+    where WIDGET: Update + 'static,
+          WIDGET::Msg: DisplayVariant + 'static,
+{
+    let stream = component.stream().clone();
+    component.widget_mut().subscriptions(relm);
+    let widget = component.widget_rc().clone();
+    let event_future = stream.for_each(move |event| {
+        let mut widget = widget.borrow_mut();
+        update_widget(&mut *widget, event);
+        Ok(())
+    });
+    cx.spawn(event_future);
+}
+
+fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg)
+    where WIDGET: Update,
+{
+    if cfg!(debug_assertions) {
+        let time = SystemTime::now();
+        let debug = event.display_variant();
+        let debug =
+            if debug.len() > 100 {
+                format!("{}…", &debug[..100])
+            }
+            else {
+                debug.to_string()
+            };
+        widget.update(event);
+        if let Ok(duration) = time.elapsed() {
+            let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
+            if ms >= 200 {
+                warn!("The update function was slow to execute for message {}: {}ms", debug, ms);
+            }
+        }
+    }
+    else {
+        widget.update(event)
     }
 }

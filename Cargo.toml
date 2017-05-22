@@ -26,7 +26,6 @@ gobject-sys = "^0.3.3"
 gtk = "^0.1.1"
 gtk-sys = "^0.3.3"
 libc = "^0.2.22"
-log = "^0.3.7"
 
 [dependencies.futures]
 branch = "spawn-trait"
