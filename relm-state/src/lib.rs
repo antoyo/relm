@@ -35,7 +35,7 @@ use std::rc::Rc;
 use std::time::SystemTime;
 
 use futures::{Future, Stream};
-use futures::future::Spawn;
+use futures::future::Executor;
 use futures_glib::MainContext;
 pub use relm_core::EventStream;
 
@@ -178,7 +178,7 @@ impl<UPDATE: Update> Relm<UPDATE> {
 
     /// Spawn a future in the tokio event loop.
     pub fn exec<FUTURE: Future<Item=(), Error=()> + 'static>(&self, future: FUTURE) {
-        self.cx.spawn(future);
+        self.cx.execute(future);
     }
 
     /// Get the event stream of this stream.
@@ -263,7 +263,7 @@ pub fn init_component<WIDGET>(component: &Component<WIDGET>, cx: &MainContext, r
         update_widget(&mut *widget, event);
         Ok(())
     });
-    cx.spawn(event_future);
+    cx.execute(event_future);
 }
 
 fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg)

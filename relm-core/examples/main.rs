@@ -30,7 +30,7 @@ use std::time::Duration;
 
 use chrono::Local;
 use futures::Stream;
-use futures::future::Spawn;
+use futures::future::Executor;
 use futures_glib::{Interval, MainContext};
 use gtk::{
     Button,
