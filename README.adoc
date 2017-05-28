@@ -12,6 +12,7 @@ image:https://img.shields.io/appveyor/ci/antoyo/relm/master.svg[link="https://ci
 image:https://img.shields.io/crates/v/relm.svg[link="https://crates.io/crates/relm"]
 image:https://img.shields.io/badge/rust-documentation-blue.svg[link="https://docs.rs/relm/"]
 image:https://img.shields.io/crates/d/relm.svg[link="https://crates.io/crates/relm"]
+image:https://img.shields.io/gitter/room/relm-rs/Lobby.svg[link="https://gitter.im/relm-rs/Lobby"]
 image:https://img.shields.io/crates/l/relm.svg[link="LICENSE"]
 
 == Requirements
