@@ -1,5 +1,7 @@
 = Relm
 
+image:https://badges.gitter.im/relm-rs/Lobby.svg[link="https://gitter.im/relm-rs/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
+
 Asynchronous, GTK+-based, GUI library, inspired by Elm, written in Rust.
 
 *Relm only works on nightly since it depends on the feature `conservative_impl_trait`.*
