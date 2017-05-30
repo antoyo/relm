@@ -20,7 +20,6 @@ repository = "antoyo/relm"
 
 [dependencies]
 glib = "^0.1.2"
-glib-itc = "^0.1.1"
 glib-sys = "^0.3.4"
 gobject-sys = "^0.3.3"
 gtk = "^0.1.1"
@@ -28,7 +27,6 @@ gtk-sys = "^0.3.3"
 libc = "^0.2.22"
 
 [dependencies.futures]
-branch = "spawn-trait"
 git = "https://github.com/alexcrichton/futures-rs"
 
 [dependencies.futures-glib]
@@ -93,5 +91,4 @@ search = "relm = \"[a-z0-9^\\.-]+\""
 [replace]
 
 [replace."futures:0.1.13"]
-branch = "spawn-trait"
 git = "https://github.com/alexcrichton/futures-rs"

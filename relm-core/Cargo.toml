@@ -9,7 +9,7 @@ repository = "https://github.com/antoyo/relm"
 version = "0.1.4"
 
 [dependencies]
-futures = { git = "https://github.com/alexcrichton/futures-rs", branch = "spawn-trait" }
+futures = { git = "https://github.com/alexcrichton/futures-rs" }
 futures-glib = { git = "https://github.com/antoyo/futures-glib-rs" }
 gtk = "^0.1.1"
 
@@ -18,4 +18,4 @@ chrono = "^0.3.0"
 glib = "^0.1.2"
 
 [replace]
-"futures:0.1.13" = { git = "https://github.com/alexcrichton/futures-rs", branch = "spawn-trait" }
+"futures:0.1.13" = { git = "https://github.com/alexcrichton/futures-rs" }

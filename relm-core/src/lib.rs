@@ -78,7 +78,7 @@ impl<MSG> EventStream<MSG> {
         let mut stream = self.stream.borrow_mut();
         stream.terminated = true;
         if let Some(ref task) = stream.task {
-            task.unpark();
+            task.notify();
         }
         Ok(())
     }
@@ -86,7 +86,7 @@ impl<MSG> EventStream<MSG> {
     pub fn emit(&self, event: MSG) {
         if !self.stream.borrow().locked {
             if let Some(ref task) = self.stream.borrow().task {
-                task.unpark();
+                task.notify();
             }
 
             let len = self.stream.borrow().observers.len();
@@ -137,7 +137,7 @@ impl<MSG: 'static> Stream for EventStream<MSG> {
                 },
                 None => {
                     let mut stream = self.stream.borrow_mut();
-                    stream.task = Some(task::park());
+                    stream.task = Some(task::current());
                     Ok(Async::NotReady)
                 },
             }
