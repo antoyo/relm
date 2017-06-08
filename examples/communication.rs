@@ -25,9 +25,6 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::{
     Button,
     ButtonExt,
@@ -91,7 +88,7 @@ impl Widget for Text {
         self.vbox.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: TextModel) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, model: TextModel) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -103,11 +100,11 @@ impl Widget for Text {
         let input2 = input.clone();
         connect!(relm, input, connect_changed(_), Change(input2.get_text().unwrap()));
 
-        Rc::new(RefCell::new(Text {
+        Text {
             label: label,
             model,
             vbox: vbox,
-        }))
+        }
     }
 }
 
@@ -161,7 +158,7 @@ impl Widget for Counter {
         self.vbox.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: CounterModel) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, model: CounterModel) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -176,11 +173,11 @@ impl Widget for Counter {
         connect!(relm, plus_button, connect_clicked(_), Increment);
         connect!(relm, minus_button, connect_clicked(_), Decrement);
 
-        Rc::new(RefCell::new(Counter {
+        Counter {
             counter_label: counter_label,
             model,
             vbox: vbox,
-        }))
+        }
     }
 }
 
@@ -195,11 +192,11 @@ enum Msg {
 }
 
 struct Win {
-    counter1: Component<Counter>,
-    counter2: Component<Counter>,
+    _counter1: Component<Counter>,
+    _counter2: Component<Counter>,
     label: Label,
     model: Model,
-    text: Component<Text>,
+    _text: Component<Text>,
     window: Window,
 }
 
@@ -233,7 +230,7 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, model: Model) -> Self {
         let window = Window::new(WindowType::Toplevel);
 
         let hbox = gtk::Box::new(Horizontal, 0);
@@ -248,37 +245,25 @@ impl Widget for Win {
         let text = hbox.add_widget::<Text, _>(relm, ());
         hbox.add(&label);
 
-        let win = Rc::new(RefCell::new(Win {
-            counter1,
-            counter2,
+        connect!(text@Change(ref text), relm, TextChange(text.clone()));
+        connect!(text@Change(_), counter1, Increment);
+        connect!(counter1@Increment, counter2, Decrement);
+        connect!(button, connect_clicked(_), counter1, Decrement);
+
+        window.add(&hbox);
+
+        window.show_all();
+
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+
+        Win {
+            _counter1: counter1,
+            _counter2: counter2,
             label: label,
             model,
-            text,
+            _text: text,
             window: window,
-        }));
-
-        {
-            let win_clone = Rc::downgrade(&win);
-            let Win { ref counter1, ref counter2, ref text, ref window, .. } = *win.borrow();
-            connect!(text@Change(ref text), relm, TextChange(text.clone()));
-            connect!(text@Change(_), counter1, with win_clone win_clone.inc());
-            connect!(counter1@Increment, counter2, Decrement);
-            connect!(button, connect_clicked(_), counter1, Decrement);
-
-            window.add(&hbox);
-
-            window.show_all();
-
-            connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
         }
-
-        win
-    }
-}
-
-impl Win {
-    fn inc(&mut self) -> CounterMsg {
-        Increment
     }
 }
 

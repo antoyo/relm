@@ -21,12 +21,9 @@
 
 //! Utility to transform a synchronous callback into an asynchronous one.
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use futures::{Async, AsyncSink, Sink};
 use futures::unsync::mpsc::{Receiver, Sender};
-use gtk;
+use futures_glib::MainLoop;
 
 macro_rules! unexpected_error {
     () => {
@@ -34,59 +31,52 @@ macro_rules! unexpected_error {
     };
 }
 
-#[derive(Clone)]
-struct _Resolver<T: Default> {
+/// Struct use to set the return value of a synchronous callback.
+pub struct Resolver<T: Default> {
+    lp: MainLoop,
     send_done: bool,
     tx: Sender<T>,
 }
 
-/// Struct use to set the return value of a synchronous callback.
-#[derive(Clone)]
-pub struct Resolver<T: Default> {
-    inner: Rc<RefCell<_Resolver<T>>>,
-}
-
-impl<T: Default> Drop for _Resolver<T> {
+impl<T: Default> Drop for Resolver<T> {
     fn drop(&mut self) {
         if !self.send_done {
-            send(&mut self.tx, Default::default());
+            self.send(Default::default());
         }
-        gtk::main_quit();
     }
 }
 
 impl<T: Default> Resolver<T> {
     #[doc(hidden)]
-    pub fn channel() -> (Self, Receiver<T>) {
+    pub fn channel(lp: MainLoop) -> (Self, Receiver<T>) {
         let (tx, rx) = ::futures::unsync::mpsc::channel(1);
-        (Resolver::new(tx), rx)
+        (Resolver::new(lp, tx), rx)
     }
 
-    fn new(tx: Sender<T>) -> Self {
+    fn new(lp: MainLoop, tx: Sender<T>) -> Self {
         Resolver {
-            inner: Rc::new(RefCell::new(_Resolver {
-                send_done: false,
-                tx,
-            }))
+            lp,
+            send_done: false,
+            tx,
         }
     }
 
     /// Set the return value of a synchronous callback in an asynchronous fashion.
-    pub fn resolve(&self, value: T) {
-        let mut inner = self.inner.borrow_mut();
-        send(&mut inner.tx, value);
-        inner.send_done = true;
+    pub fn resolve(&mut self, value: T) {
+        self.send(value);
     }
-}
 
-fn send<T>(tx: &mut Sender<T>, value: T) {
-    match tx.start_send(value) {
-        Ok(AsyncSink::Ready) => {
-            match tx.poll_complete() {
-                Ok(result) => assert_eq!(result, Async::Ready(())),
-                Err(_error) => unexpected_error!(),
-            }
-        },
-        _ => unexpected_error!(),
+    fn send(&mut self, value: T) {
+        match self.tx.start_send(value) {
+            Ok(AsyncSink::Ready) => {
+                match self.tx.poll_complete() {
+                    Ok(result) => assert_eq!(result, Async::Ready(())),
+                    Err(_error) => unexpected_error!(),
+                }
+            },
+            _ => unexpected_error!(),
+        }
+        self.send_done = true;
+        self.lp.quit();
     }
 }

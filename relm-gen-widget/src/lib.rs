@@ -358,16 +358,16 @@ impl Driver {
             let model_ident = Ident::new(MODEL_IDENT);
             let item = block_to_impl_item(quote! {
                 #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
-                fn view(relm: &::relm::Relm<Self>, #model_ident: Self::Model) -> ::std::rc::Rc<::std::cell::RefCell<Self>> {
+                fn view(relm: &::relm::Relm<Self>, #model_ident: Self::Model) -> Self {
                     #view
                 }
             });
             View {
-                container_impl: container_impl,
-                item: item,
-                properties_model_map: properties_model_map,
-                relm_widgets: relm_widgets,
-                widget: widget,
+                container_impl,
+                item,
+                properties_model_map,
+                relm_widgets,
+                widget,
             }
         }
         else {

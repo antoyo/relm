@@ -83,79 +83,18 @@ macro_rules! connect {
         });
     }};
 
-    // Connect to a GTK+ widget event.
-    // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
-    // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
-    // Option<MSG> can be None if no message needs to be emitted.
-    // This variant also give you a widget so that you can call a function that will use and mutate
-    // its model.
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), with return $widget_clone:ident $msg:expr) => {{
-        let stream = $relm.stream().clone();
-        #[allow(unused_mut)]
-        $widget.$event(move |$($args),*| {
-            let $widget_clone = $widget_clone.upgrade().expect("upgrade should always work");
-            check_recursion!($widget_clone);
-            let mut $widget_clone = $widget_clone.borrow_mut();
-            let (msg, return_value) = $crate::IntoPair::into_pair($msg);
-            let msg: Option<_> = $crate::IntoOption::into_option(msg);
-            if let Some(msg) = msg {
-                stream.emit(msg);
-            }
-            return_value
-        });
-    }};
-
-    // Connect to a GTK+ widget event.
-    // This variant allows to call a method that will return the message
-    // Option<MSG> can be None if no message needs to be emitted.
-    // This variant also give you a widget so that you can call a function that will use and mutate
-    // its model.
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), with $widget_clone:ident $msg:expr) => {{
-        let stream = $relm.stream().clone();
-        #[allow(unused_mut)]
-        $widget.$event(move |$($args),*| {
-            let $widget_clone = $widget_clone.upgrade().expect("upgrade should always work");
-            check_recursion!($widget_clone);
-            let mut $widget_clone = $widget_clone.borrow_mut();
-            let msg: Option<_> = $crate::IntoOption::into_option($msg);
-            if let Some(msg) = msg {
-                stream.emit(msg);
-            }
-        });
-    }};
-
-    // Connect to a message reception.
-    // This variant also give you a widget so that you can call a function that will use and mutate
-    // its model.
-    ($src_component:ident @ $message:pat, $dst_component:ident, with $widget:ident $msg:expr) => {
-        let stream = $dst_component.stream().clone();
-        $src_component.stream().observe(move |msg| {
-            #[allow(unreachable_patterns, unused_mut)]
-            match msg {
-                &$message =>  {
-                    let $widget = $widget.upgrade().expect("upgrade should always work");
-                    check_recursion!($widget);
-                    let mut $widget = $widget.borrow_mut();
-                    let msg: Option<_> = $crate::IntoOption::into_option($msg);
-                    if let Some(msg) = msg {
-                        stream.emit(msg);
-                    }
-                },
-                _ => (),
-            }
-        });
-    };
-
     // Connect to a GTK+ widget event where the return value is retrieved asynchronously.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), async $msg:expr) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
-            let (resolver, rx) = ::relm::Resolver::channel();
+            let cx = ::futures_glib::MainContext::default(|cx| cx.clone());
+            let lp = ::relm::MainLoop::new(Some(&cx));
+            let (resolver, rx) = ::relm::Resolver::channel(lp.clone());
             let msg: Option<_> = $crate::IntoOption::into_option($msg(resolver));
             if let Some(msg) = msg {
                 stream.emit(msg);
             }
-            ::gtk::main();
+            lp.run();
             // TODO: remove unwrap().
             ::futures::Stream::wait(rx).next().unwrap().unwrap()
         });

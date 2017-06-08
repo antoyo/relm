@@ -2,8 +2,6 @@
 
 Asynchronous, GTK+-based, GUI library, inspired by Elm, written in Rust.
 
-*Relm only works on nightly since it depends on the feature `conservative_impl_trait`.*
-
 *This library is in alpha stage: it has not been thoroughly tested and its API may change at any time.*
 
 image:https://img.shields.io/travis/antoyo/relm/master.svg[link="https://travis-ci.org/antoyo/relm"]

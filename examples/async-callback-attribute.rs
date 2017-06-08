@@ -19,9 +19,12 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+// TODO: update to be on par with the example async-callback.
+
 #![feature(proc_macro)]
 
 extern crate futures;
+extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
@@ -67,7 +70,7 @@ impl Widget for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Decrement => self.model.counter -= 1,
-            Delete(resolver) => resolver.resolve(Inhibit(false)),
+            Delete(mut resolver) => resolver.resolve(Inhibit(false)),
             Increment => self.model.counter += 1,
         }
     }

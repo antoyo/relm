@@ -19,10 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
-
-use super::{EventStream, Update};
+use super::{EventStream, Widget};
 
 /// Widget that was added by the `ContainerWidget::add_widget()` method.
 ///
@@ -34,46 +31,34 @@ use super::{EventStream, Update};
 /// [communication-attribute example](https://github.com/antoyo/relm/blob/master/examples/communication-attribute.rs)).
 #[must_use]
 #[derive(Clone)]
-pub struct Component<WIDGET: Update> {
+pub struct Component<WIDGET: Widget> {
     stream: EventStream<WIDGET::Msg>,
-    widget: Rc<RefCell<WIDGET>>,
+    widget: WIDGET::Root,
 }
 
-impl<WIDGET: Update> Drop for Component<WIDGET> {
+impl<WIDGET: Widget> Drop for Component<WIDGET> {
     fn drop(&mut self) {
         let _ = self.stream.close();
     }
 }
 
-impl<WIDGET: Update> Component<WIDGET> {
+impl<WIDGET: Widget> Component<WIDGET> {
     #[doc(hidden)]
-    pub fn new(stream: EventStream<WIDGET::Msg>, widget: Rc<RefCell<WIDGET>>) -> Self {
+    pub fn new(stream: EventStream<WIDGET::Msg>, widget: WIDGET::Root) -> Self {
         Component {
             stream,
             widget,
         }
     }
 
-    /// Get the event stream of the widget.
+    /// Get the event stream of the component.
     /// This is used internally by the library.
     pub fn stream(&self) -> &EventStream<WIDGET::Msg> {
         &self.stream
     }
 
-    /// Get the widget of this component.
-    pub fn widget(&self) -> Ref<WIDGET> {
-        // TODO: check if we can do better than returning the result of borrow.
-        self.widget.borrow()
-    }
-
-    /// Get the widget of this component.
-    pub fn widget_mut(&self) -> RefMut<WIDGET> {
-        // TODO: check if we can do better than returning the result of borrow.
-        self.widget.borrow_mut()
-    }
-
-    /// Get the ref-counted widget of this component.
-    pub fn widget_rc(&self) -> &Rc<RefCell<WIDGET>> {
+    /// Get the widget of the component.
+    pub fn widget(&self) -> &WIDGET::Root {
         &self.widget
     }
 }

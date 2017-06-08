@@ -27,8 +27,6 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::time::Duration;
 
 use chrono::Local;
@@ -81,7 +79,7 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
         let label = Label::new(None);
 
         let window = Window::new(WindowType::Toplevel);
@@ -98,7 +96,7 @@ impl Widget for Win {
         };
 
         win.update(Tick(()));
-        Rc::new(RefCell::new(win))
+        win
     }
 }
 

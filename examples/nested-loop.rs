@@ -20,6 +20,7 @@
  */
 
 extern crate chrono;
+extern crate futures;
 extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
@@ -29,8 +30,6 @@ extern crate relm_derive;
 extern crate simplelog;
 extern crate tokio_core;
 
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::time::Duration;
 
 use chrono::Local;
@@ -49,7 +48,7 @@ use gtk::{
     DIALOG_MODAL,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Update, Widget};
+use relm::{Relm, Resolver, Update, Widget};
 use simplelog::{Config, TermLogger};
 use simplelog::LogLevelFilter::Warn;
 
@@ -60,11 +59,13 @@ enum Msg {
     Open(i32),
     Quit,
     Tick(()),
+    TryOpen(Resolver<()>),
 }
 
 struct Win {
     label: Label,
     num_label: Label,
+    relm: Relm<Win>,
     window: Window,
 }
 
@@ -91,6 +92,9 @@ impl Update for Win {
                 let time = Local::now();
                 self.label.set_text(&format!("{}", time.format("%H:%M:%S")));
             },
+            TryOpen(_resolver) => {
+                self.relm.stream().emit(Open(dialog(&self.window)));
+            },
             Quit => gtk::main_quit(),
         }
     }
@@ -103,7 +107,7 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
         let button = Button::new_with_label("Open");
         let label = Label::new(None);
         let num_label = Label::new(None);
@@ -119,31 +123,45 @@ impl Widget for Win {
 
         window.show_all();
 
-        {
-            let window = window.clone();
-            connect!(relm, button, connect_clicked(_), {
-                let num = dialog(&window);
-                Open(num)
-            });
-        }
+        connect!(relm, button, connect_clicked(_), async TryOpen);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         let mut win = Win {
             label: label,
             num_label: num_label,
+            relm: relm.clone(),
             window: window,
         };
         win.update(Tick(()));
-        Rc::new(RefCell::new(win))
+        win
     }
 }
 
 fn dialog(window: &Window) -> i32 {
+    // TODO: clean this function.
+    use std::rc::Rc;
+    use std::sync::atomic::{AtomicIsize, Ordering};
+
     let buttons = &[("Yes", 1), ("No", 2)];
+    let response = Rc::new(AtomicIsize::new(0));
     let dialog = Dialog::new_with_buttons(Some("Dialog"), Some(window), DIALOG_MODAL, buttons);
-    let result = dialog.run();
+    let resp = response.clone();
+    let cx = ::futures_glib::MainContext::default(|cx| cx.clone());
+    let lp = ::relm::MainLoop::new(Some(&cx));
+    let lop = lp.clone();
+    dialog.connect_response(move |_, answer| {
+        resp.store(answer as isize, Ordering::Relaxed);
+        lop.quit();
+        //gtk::main_quit();
+    });
+    dialog.show();
+
+    //let result = dialog.run();
+    //gtk::main();
+    lp.run();
     dialog.destroy();
-    result
+    response.load(Ordering::Relaxed) as i32
+    //result
 }
 
 fn main() {

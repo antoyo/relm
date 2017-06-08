@@ -21,6 +21,8 @@
 
 #![feature(proc_macro)]
 
+extern crate futures;
+extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
@@ -32,13 +34,14 @@ use gtk::{
     Inhibit,
     WidgetExt,
 };
-use relm::Widget;
+use relm::{Relm, Resolver, Widget};
 use relm_attributes::widget;
 
 use self::Msg::*;
 
 #[derive(Msg)]
 pub enum Msg {
+    Delete(Resolver<Inhibit>),
     Press,
     Release,
     Quit,
@@ -46,18 +49,27 @@ pub enum Msg {
 
 pub struct Model {
     press_count: i32,
+    relm: Relm<Win>,
 }
 
 #[widget]
 impl Widget for Win {
-    fn model() -> Model {
+    fn model(relm: &Relm<Self>, _: ()) -> Model {
         Model {
             press_count: 0,
+            relm: relm.clone(),
         }
     }
 
     fn update(&mut self, event: Msg) {
         match event {
+            Delete(mut resolver) => {
+                let inhibit = self.model.press_count > 3;
+                resolver.resolve(Inhibit(inhibit));
+                if !inhibit {
+                    self.model.relm.stream().emit(Quit);
+                }
+            },
             Press => {
                 self.model.press_count += 1;
                 println!("Press");
@@ -73,18 +85,7 @@ impl Widget for Win {
         gtk::Window {
             key_press_event(_, key) => (Press, Inhibit(false)),
             key_release_event(_, key) => (Release, Inhibit(false)),
-            delete_event(_, _) => return self.quit(),
-        }
-    }
-}
-
-impl Win {
-    fn quit(&mut self) -> (Option<Msg>, Inhibit) {
-        if self.model.press_count > 3 {
-            (None, Inhibit(true))
-        }
-        else {
-            (Some(Quit), Inhibit(false))
+            delete_event(_, _) => async Delete,
         }
     }
 }

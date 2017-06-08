@@ -19,25 +19,33 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+// TODO: fix futures-glib to support recursive source.
+
+extern crate chrono;
 extern crate futures;
+extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::time::Duration;
 
+use chrono::Local;
+use futures_glib::Interval;
 use gtk::{
     Button,
     ButtonExt,
     ContainerExt,
+    Dialog,
+    DialogExt,
     Inhibit,
     Label,
     WidgetExt,
     Window,
     WindowType,
+    DIALOG_MODAL,
 };
 use gtk::Orientation::Vertical;
 use relm::{Relm, Resolver, Update, Widget};
@@ -46,18 +54,19 @@ use Msg::*;
 
 struct Model {
     counter: i32,
+    relm: Relm<Win>,
 }
 
 #[derive(Msg)]
 enum Msg {
-    Decrement,
     Delete(Resolver<Inhibit>),
-    Increment,
+    Quit,
+    Tick(()),
 }
 
 // Create the structure that holds the widgets used in the view.
 struct Win {
-    counter_label: Label,
+    label: Label,
     model: Model,
     window: Window,
 }
@@ -70,25 +79,31 @@ impl Update for Win {
     // Specify the type of the messages sent to the update function.
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> Model {
+    fn model(relm: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
+            relm: relm.clone(),
         }
     }
 
-    fn update(&mut self, event: Msg) {
-        let label = &self.counter_label;
+    fn subscriptions(&mut self, relm: &Relm<Self>) {
+        let stream = Interval::new(Duration::from_secs(1));
+        relm.connect_exec_ignore_err(stream, Tick);
+    }
 
+    fn update(&mut self, event: Msg) {
         match event {
-            Decrement => {
-                self.model.counter -= 1;
-                // Manually update the view.
-                label.set_text(&self.model.counter.to_string());
+            Delete(mut resolver) => {
+                let num = dialog(&self.window);
+                match num {
+                    1 => self.model.relm.stream().emit(Quit),
+                    _ => resolver.resolve(Inhibit(true)),
+                }
             },
-            Delete(resolver) => resolver.resolve(Inhibit(false)),
-            Increment => {
-                self.model.counter += 1;
-                label.set_text(&self.model.counter.to_string());
+            Quit => gtk::main_quit(),
+            Tick(()) => {
+                let time = Local::now();
+                self.label.set_text(&format!("{}", time.format("%H:%M:%S")));
             },
         }
     }
@@ -103,36 +118,32 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>> {
-        // Create the view using the normal GTK+ method calls.
-        let vbox = gtk::Box::new(Vertical, 0);
-
-        let plus_button = Button::new_with_label("+");
-        vbox.add(&plus_button);
-
-        let counter_label = Label::new("0");
-        vbox.add(&counter_label);
-
-        let minus_button = Button::new_with_label("-");
-        vbox.add(&minus_button);
-
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let window = Window::new(WindowType::Toplevel);
 
-        window.add(&vbox);
+        let label = Label::new(None);
+        window.add(&label);
 
         window.show_all();
 
-        // Send the message Increment when the button is clicked.
-        connect!(relm, plus_button, connect_clicked(_), Increment);
-        connect!(relm, minus_button, connect_clicked(_), Decrement);
         connect!(relm, window, connect_delete_event(_, _), async Delete);
 
-        Rc::new(RefCell::new(Win {
-            counter_label: counter_label,
+        let mut win = Win {
+            label,
             model,
             window: window,
-        }))
+        };
+        win.update(Tick(()));
+        win
     }
+}
+
+fn dialog(window: &Window) -> i32 {
+    let buttons = &[("Yes", 1), ("No", 2)];
+    let dialog = Dialog::new_with_buttons(Some("Quit?"), Some(window), DIALOG_MODAL, buttons);
+    let result = dialog.run();
+    dialog.destroy();
+    result
 }
 
 fn main() {

@@ -19,14 +19,13 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+extern crate futures;
+extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-
-use std::cell::RefCell;
-use std::rc::Rc;
 
 use gtk::{
     Inhibit,
@@ -34,20 +33,21 @@ use gtk::{
     Window,
     WindowType,
 };
-use relm::{Relm, Update, Widget};
+use relm::{Relm, Resolver, Update, Widget};
 
 use self::Msg::*;
 
 #[derive(Msg)]
 pub enum Msg {
+    Delete(Resolver<Inhibit>),
     Press,
-    ReallyQuit,
     Release,
     Quit,
 }
 
 pub struct Model {
     press_count: i32,
+    relm: Relm<Win>,
 }
 
 struct Win {
@@ -60,23 +60,30 @@ impl Update for Win {
     type ModelParam = ();
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> Model {
+    fn model(relm: &Relm<Self>, _: ()) -> Model {
         Model {
             press_count: 0,
+            relm: relm.clone(),
         }
     }
 
     fn update(&mut self, event: Msg) {
         match event {
+            Delete(mut resolver) => {
+                let inhibit = self.model.press_count > 3;
+                resolver.resolve(Inhibit(inhibit));
+                if !inhibit {
+                    self.model.relm.stream().emit(Quit);
+                }
+            },
             Press => {
                 self.model.press_count += 1;
                 println!("Press");
             },
-            ReallyQuit => gtk::main_quit(),
             Release => {
                 println!("Release");
             },
-            Quit => (),
+            Quit => gtk::main_quit(),
         }
     }
 }
@@ -88,37 +95,18 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Win>, model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Win>, model: Self::Model) -> Self {
         let window = Window::new(WindowType::Toplevel);
 
         window.show_all();
 
-        let win = Rc::new(RefCell::new(Win {
+        connect!(relm, window, connect_key_press_event(_, _), return (Press, Inhibit(false)));
+        connect!(relm, window, connect_key_release_event(_, _), return (Release, Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), async Delete);
+
+        Win {
             model,
             window,
-        }));
-
-        let win_clone = Rc::downgrade(&win);
-        {
-            let Win { ref window, .. } = *win.borrow();
-            connect!(relm, window, connect_key_press_event(_, _), return (Press, Inhibit(false)));
-            connect!(relm, window, connect_key_release_event(_, _), return (Release, Inhibit(false)));
-            connect!(relm, window, connect_delete_event(_, _), with return win_clone
-                     win_clone.quit());
-            connect!(relm@Quit, relm, ReallyQuit);
-        }
-
-        win
-    }
-}
-
-impl Win {
-    fn quit(&self) -> (Option<Msg>, Inhibit) {
-        if self.model.press_count > 3 {
-            (None, Inhibit(true))
-        }
-        else {
-            (Some(Quit), Inhibit(false))
         }
     }
 }

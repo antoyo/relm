@@ -50,6 +50,7 @@ pub struct TextModel {
 #[derive(Msg)]
 pub enum TextMsg {
     Change(String),
+    SetText(String),
 }
 
 #[widget]
@@ -63,6 +64,7 @@ impl Widget for Text {
     fn update(&mut self, event: TextMsg) {
         match event {
             Change(text) => self.model.content = text.chars().rev().collect(),
+            SetText(text) => self.text_entry.set_text(&text),
         }
     }
 
@@ -77,12 +79,6 @@ impl Widget for Text {
                 text: &self.model.content,
             },
         }
-    }
-}
-
-impl Text {
-    fn set_text(&mut self, text: &str) {
-        self.text_entry.set_text(text);
     }
 }
 
@@ -120,7 +116,9 @@ impl Widget for Win {
                     label: "Reset",
                 }
                 Text {
-                    text: &self.model.text,
+                    // TODO: set the property by sending a message.
+                    //self.text.stream().emit(SetText(self.model.text.clone()));
+                    //SetText: self.model.text.clone(),
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),

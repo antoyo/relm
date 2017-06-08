@@ -171,8 +171,8 @@ impl Widget for Win {
                 #[name="counter2"]
                 Counter,
                 Text {
-                    Change(_) => counter1@self.inc(),
-                    Change(ref text) => self.text_change(text.clone()),
+                    Change(_) => counter1@Increment,
+                    Change(ref text) => TextChange(text.clone()),
                 },
                 gtk::Label {
                     text: &self.model.counter.to_string(),
@@ -185,17 +185,6 @@ impl Widget for Win {
 
 fn log_increment() {
     println!("Increment");
-}
-
-
-impl Win {
-    fn inc(&mut self) -> Option<CounterMsg> {
-        Some(Increment)
-    }
-
-    fn text_change(&mut self, input: String) -> Msg {
-        TextChange(input)
-    }
 }
 
 fn main() {

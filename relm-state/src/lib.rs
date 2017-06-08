@@ -25,13 +25,10 @@ extern crate futures_glib;
 extern crate log;
 extern crate relm_core;
 
-mod component;
 mod into;
 mod macros;
 mod stream;
 
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::time::SystemTime;
 
 use futures::{Future, Stream};
@@ -39,7 +36,6 @@ use futures::future::Executor;
 use futures_glib::MainContext;
 pub use relm_core::EventStream;
 
-pub use component::Component;
 pub use into::{IntoOption, IntoPair};
 use stream::ToStream;
 
@@ -235,7 +231,7 @@ impl DisplayVariant for () {
 
 /// Create a bare component, i.e. a component only implementing the Update trait, not the Widget
 /// trait.
-pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> Component<UPDATE>
+pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> EventStream<UPDATE::Msg>
     where UPDATE: Update + 'static
 {
     let cx = MainContext::default(|cx| cx.clone());
@@ -243,31 +239,29 @@ pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> Component<UPDATE>
 
     let relm = Relm::new(cx.clone(), stream.clone());
     let model = UPDATE::model(&relm, model_param);
-    let update = UPDATE::new(&relm, model)
+    let component = UPDATE::new(&relm, model)
         .expect("Update::new() was called for a component that has not implemented this method");
 
-    let component = Component::new(stream, Rc::new(RefCell::new(update)));
-    init_component::<UPDATE>(&component, &cx, &relm);
-    component
+    init_component::<UPDATE>(&stream, component, &cx, &relm);
+    stream
 }
 
-pub fn init_component<WIDGET>(component: &Component<WIDGET>, cx: &MainContext, relm: &Relm<WIDGET>)
-    where WIDGET: Update + 'static,
-          WIDGET::Msg: DisplayVariant + 'static,
+pub fn init_component<UPDATE>(stream: &EventStream<UPDATE::Msg>, mut component: UPDATE, cx: &MainContext,
+    relm: &Relm<UPDATE>)
+    where UPDATE: Update + 'static,
+          UPDATE::Msg: DisplayVariant + 'static,
 {
-    let stream = component.stream().clone();
-    component.widget_mut().subscriptions(relm);
-    let widget = component.widget_rc().clone();
+    let stream = stream.clone();
+    component.subscriptions(relm);
     let event_future = stream.for_each(move |event| {
-        let mut widget = widget.borrow_mut();
-        update_widget(&mut *widget, event);
+        update_component(&mut component, event);
         Ok(())
     });
     cx.execute(event_future);
 }
 
-fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg)
-    where WIDGET: Update,
+fn update_component<COMPONENT>(component: &mut COMPONENT, event: COMPONENT::Msg)
+    where COMPONENT: Update,
 {
     if cfg!(debug_assertions) {
         let time = SystemTime::now();
@@ -279,7 +273,7 @@ fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg)
             else {
                 debug.to_string()
             };
-        widget.update(event);
+        component.update(event);
         if let Ok(duration) = time.elapsed() {
             let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
             if ms >= 200 {
@@ -288,6 +282,6 @@ fn update_widget<WIDGET>(widget: &mut WIDGET, event: WIDGET::Msg)
         }
     }
     else {
-        widget.update(event)
+        component.update(event)
     }
 }

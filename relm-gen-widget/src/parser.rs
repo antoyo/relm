@@ -33,17 +33,12 @@ use syn::ItemKind::Mac;
 use syn::Lit::Str;
 use syn::StrStyle::Cooked;
 use syn::TokenTree::{self, Token};
-use syn::Token::{At, BinOp, Colon, Comma, Dot, Eq, FatArrow, Gt, Ident, Literal, Lt, ModSep, Pound};
-use syn::BinOpToken::Or;
+use syn::Token::{At, Colon, Comma, Dot, Eq, FatArrow, Gt, Ident, Literal, Lt, ModSep, Pound};
 
 use self::DefaultParam::*;
 use self::EventValue::*;
 use self::EventValueReturn::*;
 use self::EitherWidget::*;
-use self::IsEventOrNot::*;
-
-pub const RELM_WIDGET_CLONE_IDENT: &str = "__relm_widget_self_clone";
-pub const RELM_WIDGET_SELF_IDENT: &str = "__relm_widget_self";
 
 lazy_static! {
     static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
@@ -89,18 +84,14 @@ impl Event {
     }
 }
 
-#[derive(PartialEq)]
-enum IsEventOrNot {
-    IsEvent,
-    NotEvent,
-}
-
+#[derive(Debug)]
 pub struct Widget {
     pub child_events: ChildEvents,
     pub child_properties: HashMap<String, Expr>,
     pub children: Vec<Widget>,
-    pub container_type: Option<Option<String>>,
+    pub container_type: Option<Option<String>>, // TODO: Why two Options?
     pub init_parameters: Vec<Expr>,
+    pub is_container: bool,
     pub name: syn::Ident,
     pub parent_id: Option<String>,
     pub properties: HashMap<String, Expr>,
@@ -119,6 +110,7 @@ impl Widget {
             children,
             container_type: None,
             init_parameters,
+            is_container: false,
             name: syn::Ident::new(name),
             parent_id: None,
             properties,
@@ -141,6 +133,7 @@ impl Widget {
             children,
             container_type: None,
             init_parameters,
+            is_container: false,
             name: syn::Ident::new(name),
             parent_id: None,
             properties,
@@ -312,6 +305,7 @@ fn parse_child(mut tokens: &[TokenTree], root: bool) -> (Widget, &[TokenTree], O
     if let Some(name) = name {
         widget.name = syn::Ident::new(name);
     }
+    widget.is_container = !widget.children.is_empty();
     widget.container_type = container_type;
     let parent_id = attributes.get("parent").and_then(|opt_str| opt_str.map(str::to_string));
     (widget, new_tokens, parent_id)
@@ -481,19 +475,19 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
 
 fn parse_event_value(tokens: &[TokenTree]) -> (EventValueReturn, &[TokenTree], bool) {
     if Token(Ident(syn::Ident::new("return"))) == tokens[0] {
-        let (value, tokens, use_self) = parse_value(&tokens[1..], IsEvent);
+        let (value, tokens, use_self) = parse_value(&tokens[1..]);
         (CallReturn(value), tokens, use_self)
     }
     else if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[0] {
-        let (value1, new_tts, use_self1) = parse_value(tts, IsEvent);
+        let (value1, new_tts, use_self1) = parse_value(tts);
         if new_tts[0] != Token(Comma) {
             panic!("Expected `,` but found `{:?}` in view! macro", new_tts[0]);
         }
-        let (value2, _, use_self2) = parse_value(&new_tts[1..], IsEvent);
+        let (value2, _, use_self2) = parse_value(&new_tts[1..]);
         (Return(value1, value2), &tokens[1..], use_self1 || use_self2)
     }
     else {
-        let (value, tokens, use_self) = parse_value(tokens, IsEvent);
+        let (value, tokens, use_self) = parse_value(tokens);
         (WithoutReturn(value), tokens, use_self)
     }
 }
@@ -510,40 +504,25 @@ fn parse_value_or_child_properties<'a>(tokens: &'a [TokenTree], ident: String,
             &tokens[2..]
         },
         _ => {
-            let (value, tts, _) = parse_value(&tokens[1..], NotEvent);
+            let (value, tts, _) = parse_value(&tokens[1..]);
             properties.insert(ident, tokens_to_expr(value));
             tts
         },
     }
 }
 
-fn parse_value(tokens: &[TokenTree], is_event: IsEventOrNot) -> (Tokens, &[TokenTree], bool) {
+fn parse_value(tokens: &[TokenTree]) -> (Tokens, &[TokenTree], bool) {
     let mut current_param = Tokens::new();
     let mut i = 0;
-    let mut in_closure = false;
-    let mut in_closure_value = false;
     let mut use_self = false;
     while i < tokens.len() {
         match tokens[i] {
             Token(Ident(ref ident)) if *ident == syn::Ident::new("self") => {
                 use_self = true;
-                let new_ident =
-                    if is_event == IsEvent || in_closure_value {
-                        RELM_WIDGET_CLONE_IDENT
-                    }
-                    else {
-                        "self"
-                    };
+                let new_ident = "self";
                 Token(Ident(syn::Ident::new(new_ident))).to_tokens(&mut current_param)
             },
-            Token(Comma) if !in_closure => break,
-            ref token@Token(BinOp(Or)) => {
-                if in_closure {
-                    in_closure_value = true;
-                }
-                in_closure = !in_closure;
-                token.to_tokens(&mut current_param);
-            },
+            Token(Comma) => break,
             ref token => token.to_tokens(&mut current_param),
         }
         i += 1;
@@ -610,7 +589,7 @@ fn parse_child_properties(mut tokens: &[TokenTree]) -> HashMap<String, Tokens> {
         tokens = &tokens[1..];
         if let Token(Colon) = tokens[0] {
             tokens = &tokens[1..];
-            let (value, new_tokens, _) = parse_value(tokens, NotEvent);
+            let (value, new_tokens, _) = parse_value(tokens);
             tokens = new_tokens;
             properties.insert(ident, value);
         }

@@ -25,9 +25,6 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::{
     ContainerExt,
     EditableSignals,
@@ -90,7 +87,7 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -108,12 +105,12 @@ impl Widget for Win {
         connect!(relm, input, connect_changed(_), Change);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
-        Rc::new(RefCell::new(Win {
+        Win {
             input,
             label,
             model,
             window,
-        }))
+        }
     }
 }
 

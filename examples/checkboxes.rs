@@ -25,9 +25,6 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::{
     ButtonExt,
     ContainerExt,
@@ -103,16 +100,16 @@ impl Widget for CheckButton {
         self.button.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let button = gtk::CheckButton::new_with_label(model.label);
 
         connect!(relm, button, connect_clicked(_), Toggle);
 
-        Rc::new(RefCell::new(CheckButton {
+        CheckButton {
             button,
             model,
             relm: relm.clone(),
-        }))
+        }
     }
 }
 
@@ -141,7 +138,7 @@ impl Update for Win {
         match event {
             Quit => gtk::main_quit(),
             MinusToggle => {
-                if self.minus_button.widget().model.check {
+                if self.minus_button.widget().get_active() {
                     self.plus_button.stream().emit(Uncheck);
                 }
                 else {
@@ -149,7 +146,7 @@ impl Update for Win {
                 }
             },
             PlusToggle => {
-                if self.plus_button.widget().model.check {
+                if self.plus_button.widget().get_active() {
                     self.minus_button.stream().emit(Uncheck);
                 }
                 else {
@@ -167,7 +164,7 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = vbox.add_widget::<CheckButton, _>(relm, "+");
@@ -181,11 +178,11 @@ impl Widget for Win {
         connect!(minus_button@Toggle, relm, MinusToggle);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
-        Rc::new(RefCell::new(Win {
+        Win {
             minus_button,
             plus_button,
             window: window,
-        }))
+        }
     }
 }
 

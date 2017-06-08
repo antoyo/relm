@@ -25,9 +25,6 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::{
     Button,
     ButtonExt,
@@ -92,7 +89,7 @@ impl Widget for Text {
         self.vbox.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: TextModel) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, model: TextModel) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
@@ -103,12 +100,12 @@ impl Widget for Text {
 
         connect!(relm, input, connect_changed(_), Change);
 
-        Rc::new(RefCell::new(Text {
+        Text {
             input,
             label,
             model,
             vbox,
-        }))
+        }
     }
 }
 
@@ -162,7 +159,7 @@ impl Widget for Counter {
         self.vbox.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, model: Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -177,11 +174,11 @@ impl Widget for Counter {
         connect!(relm, plus_button, connect_clicked(_), Increment);
         connect!(relm, minus_button, connect_clicked(_), Decrement);
 
-        Rc::new(RefCell::new(Counter {
+        Counter {
             counter_label,
             model,
             vbox,
-        }))
+        }
     }
 }
 
@@ -220,7 +217,7 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Win>> {
+    fn view(relm: &Relm<Self>, _model: ()) -> Win {
         let window = Window::new(WindowType::Toplevel);
 
         let hbox = gtk::Box::new(Horizontal, 0);
@@ -234,12 +231,12 @@ impl Widget for Win {
 
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
-        Rc::new(RefCell::new(Win {
+        Win {
             _counter1: counter1,
             _counter2: counter2,
             _text: text,
             window: window,
-        }))
+        }
     }
 }
 

@@ -41,13 +41,19 @@
         unused_qualifications, unused_results)]
 
 /*
- * TODO: add a PrivateMsg type and an update_private() method to the Update trait to allow internal
- * messages to be send without requiring Clone.
+ * TODO: remove the code generation related to using self in event handling.
+ * TODO: remove the closure transformer code.
+ *
+ * TODO: connect the events and set the properties in Widget::created() (renamed from init_view()).
+ *      is it still a thing to do?
+ *
+ * TODO: move most of the examples in the tests/ directory.
  * TODO: add construct-only properties for relm widget (to replace initial parameters) to allow
  * setting them by name (or with default value).
  * TODO: find a way to do two-step initialization (to avoid using unitialized in model()).
  * TODO: consider using GBinding instead of manually adding calls to set_property().
- * TODO: remove the closure transformer code.
+ *
+ * TODO: add a FAQ with the question related to getting an error when not importing the gtk traits.
  *
  * TODO: show a warning when components are destroyed after the end of call to Widget::view().
  * TODO: warn in the attribute when an event cycle is found.
@@ -86,11 +92,14 @@ extern crate relm_core;
 extern crate relm_state;
 
 mod callback;
+mod component;
 mod container;
 mod macros;
 mod widget;
 
 use futures_glib::MainContext;
+#[doc(hidden)]
+pub use futures_glib::MainLoop;
 #[doc(hidden)]
 pub use glib::Cast;
 #[doc(hidden)]
@@ -104,11 +113,12 @@ use gobject_sys::{GObject, GValue};
 use libc::{c_char, c_uint};
 #[doc(hidden)]
 pub use relm_core::EventStream;
-pub use relm_state::{Component, DisplayVariant, IntoOption, IntoPair, Relm, Update, execute};
+pub use relm_state::{DisplayVariant, IntoOption, IntoPair, Relm, Update, execute};
 use relm_state::init_component;
 
 pub use callback::Resolver;
-pub use container::{Container, ContainerWidget, RelmContainer};
+pub use component::Component;
+pub use container::{Container, ContainerComponent, ContainerWidget};
 pub use widget::Widget;
 
 extern "C" {
@@ -157,9 +167,9 @@ fn create_widget_test<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam)
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    let (component, relm) = create_widget(cx, model_param);
-    init_component::<WIDGET>(&component, cx, &relm);
-    component
+    let (widget, component, relm) = create_widget(cx, model_param);
+    init_component::<WIDGET>(widget.stream(), component, cx, &relm);
+    widget
 }
 
 /// Create a new relm widget without adding it to an existing widget.
@@ -170,12 +180,28 @@ pub fn create_component<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: C
           CHILDWIDGET::Msg: DisplayVariant + 'static,
           WIDGET: Widget,
 {
-    let (component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
-    init_component::<CHILDWIDGET>(&component, relm.context(), &child_relm);
-    component
+    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
+    init_component::<CHILDWIDGET>(widget.stream(), component, relm.context(), &child_relm);
+    widget
 }
 
-fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> (Component<WIDGET>, Relm<WIDGET>)
+/// Create a new relm container widget without adding it to an existing widget.
+/// This is useful when a relm widget is at the root of another relm widget.
+pub fn create_container<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: CHILDWIDGET::ModelParam)
+        -> ContainerComponent<CHILDWIDGET>
+    where CHILDWIDGET: Container + Widget + 'static,
+          CHILDWIDGET::Msg: DisplayVariant + 'static,
+          WIDGET: Widget,
+{
+    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
+    let container = component.container().clone();
+    let containers = component.other_containers();
+    init_component::<CHILDWIDGET>(widget.stream(), component, relm.context(), &child_relm);
+    ContainerComponent::new(widget, container, containers)
+}
+
+fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam)
+    -> (Component<WIDGET>, WIDGET, Relm<WIDGET>)
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
@@ -183,10 +209,11 @@ fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> (
 
     let relm = Relm::new(cx.clone(), stream.clone());
     let model = WIDGET::model(&relm, model_param);
-    let widget = WIDGET::view(&relm, model);
-    widget.borrow_mut().init_view();
+    let mut widget = WIDGET::view(&relm, model);
+    widget.init_view();
 
-    (Component::new(stream, widget), relm)
+    let root = widget.root().clone();
+    (Component::new(stream, root), widget, relm)
 }
 
 // TODO: remove this workaround.
@@ -268,9 +295,9 @@ fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()
     gtk::init()?;
 
     let cx = MainContext::default(|cx| cx.clone());
-    let (component, relm) = create_widget::<WIDGET>(&cx, model_param);
-    init_component::<WIDGET>(&component, &cx, &relm);
-    Ok(component)
+    let (widget, component, relm) = create_widget::<WIDGET>(&cx, model_param);
+    init_component::<WIDGET>(widget.stream(), component, &cx, &relm);
+    Ok(widget)
 }
 
 /// Create the specified relm `Widget` and run the main event loops.

@@ -25,9 +25,6 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::{
     Button,
     ButtonExt,
@@ -94,7 +91,7 @@ impl Widget for Counter {
         self.vbox.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, model: Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
@@ -111,11 +108,11 @@ impl Widget for Counter {
         connect!(relm, plus_button, connect_clicked(_), Increment);
         connect!(relm, minus_button, connect_clicked(_), Decrement);
 
-        Rc::new(RefCell::new(Counter {
+        Counter {
             counter_label: counter_label,
             model,
             vbox: vbox,
-        }))
+        }
     }
 }
 
@@ -165,7 +162,7 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, _model: ()) -> Self {
         let window = Window::new(WindowType::Toplevel);
 
         let vbox = gtk::Box::new(Vertical, 0);
@@ -186,12 +183,12 @@ impl Widget for Win {
         connect!(relm, remove_button, connect_clicked(_), Remove);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
-        Rc::new(RefCell::new(Win {
+        Win {
             counters: vec![],
             hbox: hbox,
             relm: relm.clone(),
             window: window,
-        }))
+        }
     }
 }
 

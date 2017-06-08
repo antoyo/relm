@@ -27,9 +27,6 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::{
     ContainerExt,
     EventBox,
@@ -40,7 +37,16 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Component, Container, ContainerWidget, Relm, RelmContainer, Update, Widget, create_component};
+use relm::{
+    Component,
+    Container,
+    ContainerComponent,
+    ContainerWidget,
+    Relm,
+    Update,
+    Widget,
+    create_container,
+};
 
 use self::Msg::*;
 
@@ -67,11 +73,11 @@ impl Widget for Button {
         self.button.clone()
     }
 
-    fn view(_relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(_relm: &Relm<Self>, _model: Self::Model) -> Self {
         let button = gtk::Button::new_with_label("+");
-        Rc::new(RefCell::new(Button {
+        Button {
             button: button,
-        }))
+        }
     }
 }
 
@@ -82,9 +88,13 @@ struct VBox {
 
 impl Container for VBox {
     type Container = gtk::Box;
+    type Containers = ();
 
     fn container(&self) -> &Self::Container {
         &self.vbox
+    }
+
+    fn other_containers(&self) -> () {
     }
 }
 
@@ -108,20 +118,20 @@ impl Widget for VBox {
         self.event_box.clone()
     }
 
-    fn view(_relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(_relm: &Relm<Self>, _model: Self::Model) -> Self {
         let event_box = EventBox::new();
         let vbox = gtk::Box::new(Vertical, 0);
         event_box.add(&vbox);
 
-        Rc::new(RefCell::new(VBox {
+        VBox {
             event_box: event_box,
             vbox: vbox,
-        }))
+        }
     }
 }
 
 struct MyVBox {
-    vbox: Component<VBox>,
+    vbox: ContainerComponent<VBox>,
     _widget: Component<Button>,
 }
 
@@ -141,11 +151,11 @@ impl Widget for MyVBox {
     type Root = <VBox as Widget>::Root;
 
     fn root(&self) -> EventBox {
-        self.vbox.widget().root().clone()
+        self.vbox.widget().clone()
     }
 
-    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
-        let vbox = create_component::<VBox, _>(relm, ());
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
+        let vbox = create_container::<VBox, _>(relm, ());
 
         let plus_button = gtk::Button::new_with_label("+");
         vbox.add(&plus_button);
@@ -158,10 +168,10 @@ impl Widget for MyVBox {
         let minus_button = gtk::Button::new_with_label("-");
         vbox.add(&minus_button);
 
-        Rc::new(RefCell::new(MyVBox {
+        MyVBox {
             vbox: vbox,
             _widget: widget,
-        }))
+        }
     }
 }
 
@@ -197,17 +207,17 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
         let window = Window::new(WindowType::Toplevel);
         let vbox = window.add_widget::<MyVBox, _>(relm, ());
         window.show_all();
 
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
 
-        Rc::new(RefCell::new(Win {
+        Win {
             _vbox: vbox,
             window: window,
-        }))
+        }
     }
 }
 

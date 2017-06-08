@@ -69,21 +69,11 @@ impl Widget for TreeView {
     fn update(&mut self, _event: Msg) {
     }
 
-    fn set_visible(&self, visible: bool) {
-        self.tree_view.set_visible(visible);
-    }
-
     view! {
         #[name="tree_view"]
         gtk::TreeView {
             selection.changed(selection) => SelectionChanged(selection.clone()),
         }
-    }
-}
-
-impl TreeView {
-    fn get_selection(&self) -> TreeSelection {
-        self.tree_view.get_selection()
     }
 }
 

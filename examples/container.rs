@@ -28,9 +28,6 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::{
     ContainerExt,
     EventBox,
@@ -41,7 +38,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use gtk::WindowType::Toplevel;
-use relm::{Component, Container, ContainerWidget, Relm, RelmContainer, Update, Widget};
+use relm::{Component, Container, ContainerComponent, ContainerWidget, Relm, Update, Widget};
 
 use self::Msg::*;
 
@@ -68,11 +65,11 @@ impl Widget for Button {
         self.button.clone()
     }
 
-    fn view(_relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {
+    fn view(_relm: &Relm<Self>, _model: ()) -> Self {
         let button = gtk::Button::new_with_label("+");
-        Rc::new(RefCell::new(Button {
+        Button {
             button: button,
-        }))
+        }
     }
 }
 
@@ -83,9 +80,13 @@ struct VBox {
 
 impl Container for VBox {
     type Container = gtk::Box;
+    type Containers = ();
 
     fn container(&self) -> &Self::Container {
         &self.vbox
+    }
+
+    fn other_containers(&self) -> () {
     }
 }
 
@@ -109,14 +110,14 @@ impl Widget for VBox {
         self.event_box.clone()
     }
 
-    fn view(_relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(_relm: &Relm<Self>, _model: Self::Model) -> Self {
         let event_box = EventBox::new();
         let vbox = gtk::Box::new(Vertical, 0);
         event_box.add(&vbox);
-        Rc::new(RefCell::new(VBox {
+        VBox {
             event_box: event_box,
             vbox: vbox,
-        }))
+        }
     }
 }
 
@@ -127,7 +128,7 @@ pub enum Msg {
 
 struct Win {
     _button: Component<Button>,
-    _vbox: Component<VBox>,
+    _vbox: ContainerComponent<VBox>,
     window: Window,
 }
 
@@ -153,9 +154,9 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, _model: ()) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, _model: ()) -> Self {
         let window = Window::new(Toplevel);
-        let vbox = window.add_widget::<VBox, _>(relm, ());
+        let vbox = window.add_container::<VBox, _>(relm, ());
         let plus_button = gtk::Button::new_with_label("+");
         vbox.add(&plus_button);
         let label = Label::new(Some("0"));
@@ -165,11 +166,11 @@ impl Widget for Win {
         vbox.add(&minus_button);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
         window.show_all();
-        Rc::new(RefCell::new(Win {
+        Win {
             _button: button,
             _vbox: vbox,
             window: window,
-        }))
+        }
     }
 }
 

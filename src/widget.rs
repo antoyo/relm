@@ -19,9 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::{self, IsA, Object};
 
 use super::{Relm, run};
@@ -30,7 +27,7 @@ use relm_state::Update;
 /// Trait to implement to manage widget's events.
 pub trait Widget
     where Self: Update,
-          Self::Root: Clone + IsA<gtk::Widget>,
+          Self::Root: Clone + IsA<Object> + IsA<gtk::Widget>,
 {
     /// The type of the root widget.
     type Root;
@@ -68,5 +65,5 @@ pub trait Widget
     }
 
     /// Create the initial view.
-    fn view(relm: &Relm<Self>, model: Self::Model) -> Rc<RefCell<Self>>;
+    fn view(relm: &Relm<Self>, model: Self::Model) -> Self;
 }

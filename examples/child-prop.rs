@@ -27,9 +27,6 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use gtk::{
     BoxExt,
     Cast,
@@ -85,12 +82,12 @@ impl Widget for Button {
         parent.set_child_position(&self.button, 0);
     }
 
-    fn view(_relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(_relm: &Relm<Self>, _model: Self::Model) -> Self {
         let button = gtk::Button::new_with_label("+");
 
-        Rc::new(RefCell::new(Button {
+        Button {
             button: button,
-        }))
+        }
     }
 }
 
@@ -126,7 +123,7 @@ impl Widget for Win {
         self.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, _model: Self::Model) -> Rc<RefCell<Self>> {
+    fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
         let window = gtk::Window::new(Toplevel);
         let vbox = gtk::Box::new(Vertical, 0);
         window.add(&vbox);
@@ -138,10 +135,10 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
         window.show_all();
 
-        Rc::new(RefCell::new(Win {
+        Win {
             _button: relm_button,
             window: window,
-        }))
+        }
     }
 }
 
