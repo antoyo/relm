@@ -51,6 +51,11 @@ impl<WIDGET: Widget> Component<WIDGET> {
         }
     }
 
+    /// Emit a message of the widget stream.
+    pub fn emit(&self, msg: WIDGET::Msg) {
+        self.stream.emit(msg);
+    }
+
     /// Get the event stream of the component.
     /// This is used internally by the library.
     pub fn stream(&self) -> &EventStream<WIDGET::Msg> {

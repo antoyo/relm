@@ -139,18 +139,18 @@ impl Update for Win {
             Quit => gtk::main_quit(),
             MinusToggle => {
                 if self.minus_button.widget().get_active() {
-                    self.plus_button.stream().emit(Uncheck);
+                    self.plus_button.emit(Uncheck);
                 }
                 else {
-                    self.plus_button.stream().emit(Check);
+                    self.plus_button.emit(Check);
                 }
             },
             PlusToggle => {
                 if self.plus_button.widget().get_active() {
-                    self.minus_button.stream().emit(Uncheck);
+                    self.minus_button.emit(Uncheck);
                 }
                 else {
-                    self.minus_button.stream().emit(Check);
+                    self.minus_button.emit(Check);
                 }
             },
         }
