@@ -22,7 +22,7 @@
 use std::collections::HashMap;
 
 use quote::Tokens;
-use syn::{Expr, Generics, Ident, Path, parse_path};
+use syn::{Expr, Generics, Ident, Path, Ty, parse_path};
 use syn::fold::Folder;
 
 use parser::{
@@ -452,6 +452,28 @@ fn gen_event_metadata(event: &Event) -> Tokens {
     }
 }
 
+fn gen_widget_ident(widget: &Widget) -> Tokens {
+    match widget.widget {
+        Gtk(ref gtk_widget) => {
+            if let Some(Ty::Path(_, Path { ref segments, .. })) = gtk_widget.relm_name {
+                let ident = &segments[0].ident;
+                quote! {
+                    #ident
+                }
+            }
+            else {
+                panic!("relm name should be a Path");
+            }
+        },
+        Relm(_) => {
+            let path = &widget.typ;
+            quote! {
+                #path
+            }
+        },
+    }
+}
+
 fn gen_widget_type(widget: &Widget) -> Tokens {
     match widget.widget {
         Gtk(ref gtk_widget) => {
@@ -540,7 +562,8 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
         let &(ref name, _) = generator.container_names.get(&None).expect("default container");
         let add_widget_method = gen_add_widget_method(&generator.container_names);
 
-        let (containers, containers_type, other_containers_func) = gen_other_containers(&generator, &widget_type);
+        let widget_ident = gen_widget_ident(widget);
+        let (containers, containers_type, other_containers_func) = gen_other_containers(&generator, &widget_ident);
 
         quote! {
             #containers
