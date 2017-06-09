@@ -22,6 +22,7 @@
 use gtk;
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 
+use relm_state::EventStream;
 use super::{Component, DisplayVariant, Relm, create_component, create_widget, init_component};
 use widget::Widget;
 
@@ -59,6 +60,12 @@ impl<WIDGET: Container + Widget> ContainerComponent<WIDGET> {
         let component = create_component::<CHILDWIDGET, _>(relm, model_param);
         WIDGET::add_widget(&self, &component);
         component
+    }
+
+    /// Get the event stream of the component.
+    /// This is used internally by the library.
+    pub fn stream(&self) -> &EventStream<WIDGET::Msg> {
+        &self.component.stream()
     }
 
     // TODO: add delete methods?
