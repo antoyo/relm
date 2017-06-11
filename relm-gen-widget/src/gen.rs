@@ -39,29 +39,6 @@ use super::{Driver, MODEL_IDENT};
 
 use self::WidgetType::*;
 
-macro_rules! gen_set_prop_calls {
-    ($widget:expr, $ident:expr, $model_ident:expr) => {{
-        let ident = $ident;
-        let mut properties = vec![];
-        let mut visible_properties = vec![];
-        for (key, value) in &$widget.properties {
-            let mut remover = Transformer::new($model_ident);
-            let new_value = remover.fold_expr(value.clone());
-            let property_func = Ident::new(format!("set_{}", key));
-            let property = quote! {
-                #ident.#property_func(#new_value);
-            };
-            if key == "visible" {
-                visible_properties.push(property);
-            }
-            else {
-                properties.push(property);
-            }
-        }
-        (properties, visible_properties)
-    }};
-}
-
 macro_rules! set_container {
     ($_self:expr, $widget:expr, $widget_name:expr, $widget_type:expr) => {
         if let Some(ref container_type) = $widget.container_type {
@@ -299,6 +276,26 @@ impl<'a> Generator<'a> {
         }
     }
 
+    fn gtk_set_prop_calls(&self, widget: &Widget, ident: Tokens) -> (Vec<Tokens>, Vec<Tokens>) {
+        let mut properties = vec![];
+        let mut visible_properties = vec![];
+        for (key, value) in &widget.properties {
+            let mut remover = Transformer::new(MODEL_IDENT);
+            let new_value = remover.fold_expr(value.clone());
+            let property_func = Ident::new(format!("set_{}", key));
+            let property = quote! {
+                #ident.#property_func(#new_value);
+            };
+            if key == "visible" {
+                visible_properties.push(property);
+            }
+            else {
+                properties.push(property);
+            }
+        }
+        (properties, visible_properties)
+    }
+
     fn gtk_widget(&mut self, widget: &Widget, gtk_widget: &GtkWidget, parent: Option<&Ident>,
         parent_widget_type: WidgetType) -> Tokens
     {
@@ -320,7 +317,7 @@ impl<'a> Generator<'a> {
 
         let add_child_or_show_all = self.add_child_or_show_all(widget, parent, parent_widget_type);
         let ident = quote! { #widget_name };
-        let (properties, visible_properties) = gen_set_prop_calls!(widget, ident, MODEL_IDENT);
+        let (properties, visible_properties) = self.gtk_set_prop_calls(widget, ident);
         let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type, IsGtk);
 
         quote! {
@@ -350,19 +347,36 @@ impl<'a> Generator<'a> {
             .map(|child| self.widget(child, Some(widget_name), IsRelm))
             .collect();
         let ident = quote! { #widget_name.widget() };
-        let (mut properties, mut visible_properties) = gen_set_prop_calls!(widget, ident, MODEL_IDENT);
+        let (mut properties, mut visible_properties) = self.gtk_set_prop_calls(widget, ident);
         self.properties.append(&mut properties);
         self.properties.append(&mut visible_properties);
 
         let add_or_create_widget = self.add_or_create_widget(
             parent, parent_widget_type, widget_name, widget_type_ident, &widget.init_parameters, widget.is_container);
         let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type, IsRelm);
+        let messages = self.messages(widget, relm_widget);
 
         quote! {
             #add_or_create_widget
+            #messages
             #(#children)*
             #(#child_properties)*
         }
+    }
+
+    fn messages(&self, widget: &Widget, relm_widget: &RelmWidget) -> Tokens {
+        let mut tokens = quote! {};
+        let name = &widget.name;
+        for (variant, value) in &relm_widget.messages {
+            let mut remover = Transformer::new(MODEL_IDENT);
+            let value = remover.fold_expr(value.clone());
+            let variant = Ident::new(variant.as_str());
+            tokens = quote! {
+                #tokens
+                #name.stream().emit(#variant(#value));
+            };
+        }
+        tokens
     }
 
     fn widget(&mut self, widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Tokens {

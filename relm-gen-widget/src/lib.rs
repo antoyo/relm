@@ -41,7 +41,7 @@ mod walker;
 
 use std::collections::{HashMap, HashSet};
 
-use adder::{Adder, Property};
+use adder::{Adder, Message, Property};
 use gen::gen;
 pub use gen::gen_where_clause;
 use parser::EitherWidget::{Gtk, Relm};
@@ -71,6 +71,7 @@ use walker::ModelVariableVisitor;
 
 const MODEL_IDENT: &str = "__relm_model";
 
+type MsgModelMap = HashMap<Ident, HashSet<Message>>;
 type PropertyModelMap = HashMap<Ident, HashSet<Property>>;
 
 #[derive(Debug)]
@@ -79,6 +80,7 @@ pub struct Driver {
     generic_types: Option<Generics>,
     model_type: Option<ImplItem>,
     model_param_type: Option<ImplItem>,
+    msg_model_map: Option<MsgModelMap>,
     msg_type: Option<ImplItem>,
     other_methods: Vec<ImplItem>,
     properties_model_map: Option<PropertyModelMap>,
@@ -98,6 +100,7 @@ pub struct Driver {
 struct View {
     container_impl: Tokens,
     item: ImplItem,
+    msg_model_map: MsgModelMap,
     properties_model_map: PropertyModelMap,
     relm_widgets: HashMap<Ident, Path>,
     widget: Widget,
@@ -110,6 +113,7 @@ impl Driver {
             generic_types: None,
             model_type: None,
             model_param_type: None,
+            msg_model_map: None,
             msg_type: None,
             other_methods: vec![],
             properties_model_map: None,
@@ -129,7 +133,9 @@ impl Driver {
 
     fn add_set_property_to_method(&self, func: &mut ImplItem) {
         if let Method(_, ref mut block) = func.node {
-            let mut adder = Adder::new(self.properties_model_map.as_ref().expect("update method"));
+            let msg_map = self.msg_model_map.as_ref().expect("update method");
+            let property_map = self.properties_model_map.as_ref().expect("update method");
+            let mut adder = Adder::new(property_map, msg_map);
             *block = adder.fold_block(block.clone());
         }
     }
@@ -219,6 +225,7 @@ impl Driver {
             if let Some(on_add) = gen_set_child_prop_calls(&view.widget) {
                 new_items.push(on_add);
             }
+            self.msg_model_map = Some(view.msg_model_map);
             self.properties_model_map = Some(view.properties_model_map);
             new_items.push(view.item);
             self.widgets.insert(self.root_widget.clone().expect("root widget"),
@@ -351,8 +358,10 @@ impl Driver {
                 widget.relm_name = Some(typ.clone());
             }
             self.widget_parent_id = widget.parent_id.clone();
+            let mut msg_model_map = HashMap::new();
             let mut properties_model_map = HashMap::new();
             get_properties_model_map(&widget, &mut properties_model_map);
+            get_msg_model_map(&widget, &mut msg_model_map);
             self.add_widgets(&widget, &properties_model_map);
             let (view, relm_widgets, container_impl) = gen(name, &widget, self);
             let model_ident = Ident::new(MODEL_IDENT);
@@ -365,6 +374,7 @@ impl Driver {
             View {
                 container_impl,
                 item,
+                msg_model_map,
                 properties_model_map,
                 relm_widgets,
                 widget,
@@ -466,6 +476,34 @@ macro_rules! get_map {
             get_properties_model_map(child, $map);
         }
     }};
+}
+
+fn get_msg_model_map(widget: &Widget, map: &mut MsgModelMap) {
+    match widget.widget {
+        Gtk(_) => {
+            for child in &widget.children {
+                get_msg_model_map(child, map);
+            }
+        },
+        Relm(ref relm_widget) => {
+            for (name, expr) in &relm_widget.messages {
+                let mut visitor = ModelVariableVisitor::new();
+                visitor.visit_expr(&expr);
+                let model_variables = visitor.idents;
+                for var in model_variables {
+                    let set = map.entry(var).or_insert_with(HashSet::new);
+                    set.insert(Message {
+                        expr: expr.clone(),
+                        name: name.clone(),
+                        widget_name: widget.name.clone(),
+                    });
+                }
+            }
+            for child in &widget.children {
+                get_msg_model_map(child, map);
+            }
+        },
+    }
 }
 
 /*

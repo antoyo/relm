@@ -86,8 +86,8 @@ impl Event {
 
 #[derive(Debug)]
 pub struct Widget {
-    pub child_events: ChildEvents,
-    pub child_properties: HashMap<String, Expr>,
+    pub child_events: ChildEvents, // TODO: does it make sense for a relm widget?
+    pub child_properties: HashMap<String, Expr>, // TODO: does it make sense for a relm widget?
     pub children: Vec<Widget>,
     pub container_type: Option<Option<String>>, // TODO: Why two Options?
     pub init_parameters: Vec<Expr>,
@@ -172,6 +172,7 @@ impl GtkWidget {
 pub struct RelmWidget {
     pub events: HashMap<String, Vec<Event>>,
     pub gtk_events: HashMap<String, Event>,
+    pub messages: HashMap<String, Expr>,
 }
 
 impl RelmWidget {
@@ -179,6 +180,7 @@ impl RelmWidget {
         RelmWidget {
             events: HashMap::new(),
             gtk_events: HashMap::new(),
+            messages: HashMap::new(),
         }
     }
 }
@@ -640,7 +642,16 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
                 tts = &tts[1..];
                 match tts[0] {
                     Token(Colon) => {
-                        tts = parse_value_or_child_properties(tts, ident, &mut child_properties, &mut properties);
+                        let properties_or_signals =
+                            if ident.chars().next().map(|char| char.is_lowercase()) == Some(false) {
+                                // Uppercase is a msg to send.
+                                &mut relm_widget.messages
+                            }
+                            else {
+                                // Lowercase is a gtk property.
+                                &mut properties
+                            };
+                        tts = parse_value_or_child_properties(tts, ident, &mut child_properties, properties_or_signals);
                     },
                     Token(Dot) => {
                         let child_name = ident;

@@ -116,9 +116,9 @@ impl Widget for Win {
                     label: "Reset",
                 }
                 Text {
-                    // TODO: set the property by sending a message.
-                    //self.text.stream().emit(SetText(self.model.text.clone()));
-                    //SetText: self.model.text.clone(),
+                    // Send the message SetText(self.model.text.clone()) at initialization and when
+                    // the model attribute is updated.
+                    SetText: self.model.text.clone(),
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
