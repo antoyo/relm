@@ -377,7 +377,7 @@ fn gen_construct_widget(widget: &Widget) -> Tokens {
                 use gtk::StaticType;
                 use relm::{Downcast, FromGlibPtrNone, ToGlib};
                 ::gtk::Widget::from_glib_none(::relm::g_object_new(#struct_name::static_type().to_glib(),
-                #(#params,)* ::std::ptr::null() as *const i8) as *mut _)
+                #(#params,)* ::std::ptr::null() as *const _) as *mut _)
                 .downcast_unchecked()
             }
         }
