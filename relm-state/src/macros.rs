@@ -84,13 +84,13 @@ macro_rules! connect {
     }};
 
     // Connect to a GTK+ widget event where the return value is retrieved asynchronously.
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), async $msg:expr) => {{
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), async $msg:ident $( ( $( $arg:expr ),*) )* ) => {{
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
             let cx = ::futures_glib::MainContext::default(|cx| cx.clone());
             let lp = ::relm::MainLoop::new(Some(&cx));
             let (resolver, rx) = ::relm::Resolver::channel(lp.clone());
-            let msg: Option<_> = $crate::IntoOption::into_option($msg(resolver));
+            let msg: Option<_> = $crate::IntoOption::into_option($msg($($($arg,)*)* resolver));
             if let Some(msg) = msg {
                 stream.emit(msg);
             }

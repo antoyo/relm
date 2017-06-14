@@ -39,7 +39,7 @@ use self::Msg::*;
 
 #[derive(Msg)]
 pub enum Msg {
-    Delete(Resolver<Inhibit>),
+    Delete(i32, Resolver<Inhibit>),
     Press,
     Release,
     Quit,
@@ -69,7 +69,7 @@ impl Update for Win {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Delete(mut resolver) => {
+            Delete(_, mut resolver) => {
                 let inhibit = self.model.press_count > 3;
                 resolver.resolve(Inhibit(inhibit));
                 if !inhibit {
@@ -102,7 +102,7 @@ impl Widget for Win {
 
         connect!(relm, window, connect_key_press_event(_, _), return (Press, Inhibit(false)));
         connect!(relm, window, connect_key_release_event(_, _), return (Release, Inhibit(false)));
-        connect!(relm, window, connect_delete_event(_, _), async Delete);
+        connect!(relm, window, connect_delete_event(_, _), async Delete(42));
 
         Win {
             model,
