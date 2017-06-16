@@ -41,6 +41,7 @@
         unused_qualifications, unused_results)]
 
 /*
+ * TODO: prefix generated container name with _ to hide warnings.
  * TODO: remove the code generation related to using self in event handling.
  * TODO: remove the closure transformer code.
  *
