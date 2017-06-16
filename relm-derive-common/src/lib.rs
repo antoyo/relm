@@ -13,6 +13,8 @@ use syn::{
     Variant,
     VariantData,
 };
+use syn::Body::Enum;
+use syn::VariantData::Unit;
 
 pub fn impl_msg(ast: &MacroInput, krate: Ident) -> Tokens {
     let display = derive_display_variant(ast, &krate);
@@ -29,6 +31,7 @@ pub fn impl_simple_msg(ast: &MacroInput, krate: Ident) -> Tokens {
 
     let display = derive_display_variant(ast, &krate);
     let into_option = derive_into_option(ast, &krate);
+    let match_clone = derive_partial_clone(ast);
 
     let generics = &ast.generics;
     let generics_without_bound = remove_generic_bounds(generics);
@@ -57,9 +60,36 @@ pub fn impl_simple_msg(ast: &MacroInput, krate: Ident) -> Tokens {
 
         impl #generics Fn<((),)> for #typ #where_clause {
             extern "rust-call" fn call(&self, _: ((),)) -> Self::Output {
-                self.clone()
+                #match_clone
             }
         }
+    }
+}
+
+fn derive_partial_clone(ast: &MacroInput) -> Tokens {
+    if let Enum(ref variants) = ast.body {
+        let name = &ast.ident;
+        let mut patterns = vec![];
+        let mut values = vec![];
+        for variant in variants {
+            if variant.data == Unit {
+                let ident = &variant.ident;
+                patterns.push(quote! {
+                    #name::#ident
+                });
+                values.push(&variant.ident);
+            }
+        }
+        quote! {
+            #[allow(unreachable_patterns)]
+            match *self {
+                #(#patterns => #values,)*
+                _ => panic!("Expected a variant without parameter"),
+            }
+        }
+    }
+    else {
+        panic!("Expected enum but found {:?}", ast.body);
     }
 }
 

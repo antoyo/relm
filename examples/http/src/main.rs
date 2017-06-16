@@ -68,7 +68,7 @@ struct Model {
     topic: String,
 }
 
-#[derive(Clone, SimpleMsg)]
+#[derive(SimpleMsg)]
 enum Msg {
     DownloadCompleted,
     FetchUrl,

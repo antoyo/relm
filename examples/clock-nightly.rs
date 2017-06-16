@@ -38,7 +38,7 @@ use relm::{Relm, Update, Widget};
 
 use self::Msg::*;
 
-#[derive(Clone, SimpleMsg)]
+#[derive(SimpleMsg)]
 enum Msg {
     Quit,
     Tick,
