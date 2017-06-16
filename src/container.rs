@@ -19,11 +19,12 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use glib::Cast;
 use gtk;
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 
 use relm_state::EventStream;
-use super::{Component, DisplayVariant, Relm, create_component, create_widget, init_component};
+use super::{Component, DisplayVariant, Relm, create_widget, init_component};
 use widget::Widget;
 
 /// Struct for relm containers to add GTK+ and relm `Widget`s.
@@ -57,9 +58,11 @@ impl<WIDGET: Container + Widget> ContainerComponent<WIDGET> {
               PARENTWIDGET: Widget,
               WIDGET::Container: ContainerExt + IsA<gtk::Widget> + IsA<Object>,
     {
-        let component = create_component::<CHILDWIDGET, _>(relm, model_param);
-        WIDGET::add_widget(&self, &component);
-        component
+        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
+        let container = WIDGET::add_widget(&self, &widget);
+        component.on_add(container);
+        init_component::<CHILDWIDGET>(widget.stream(), component, relm.context(), &child_relm);
+        widget
     }
 
     /// Emit a message of the widget stream.
@@ -90,8 +93,12 @@ pub trait Container: Widget {
     type Containers;
 
     /// Add a relm widget to this container.
-    fn add_widget<WIDGET: Widget>(container: &ContainerComponent<Self>, component: &Component<WIDGET>) {
+    /// Return the widget that will be send to Widget::on_add().
+    fn add_widget<WIDGET: Widget>(container: &ContainerComponent<Self>, component: &Component<WIDGET>)
+        -> gtk::Container
+    {
         container.container.add(component.widget());
+        container.container.clone().upcast()
     }
 
     /// Get the containing widget, i.e. the widget where the children will be added.

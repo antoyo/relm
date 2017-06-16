@@ -513,6 +513,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
             if parent_id.is_none() {
                 default_container = quote! {
                     ::gtk::ContainerExt::add(&container.container, widget.widget());
+                    ::glib::Cast::upcast(container.container.clone())
                 };
             }
             else {
@@ -520,6 +521,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                     other_containers = quote! {
                         if WIDGET::parent_id() == Some(#parent_id) {
                             ::gtk::ContainerExt::add(&container.containers.#name, widget.widget());
+                            ::glib::Cast::upcast(container.containers.#name.clone())
                         }
                     };
                 }
@@ -528,6 +530,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                         #other_containers
                         else if WIDGET::parent_id() == Some(#parent_id) {
                             ::gtk::ContainerExt::add(&container.containers.#name, widget.widget());
+                            ::glib::Cast::upcast(container.containers.#name.clone())
                         }
                     };
                 }
@@ -542,7 +545,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
         }
         quote! {
             fn add_widget<WIDGET: Widget>(container: &::relm::ContainerComponent<Self>,
-                widget: &::relm::Component<WIDGET>)
+                widget: &::relm::Component<WIDGET>) -> gtk::Container
             {
                 #other_containers
                 #default_container
