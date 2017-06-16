@@ -19,24 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#[macro_export]
-#[doc(hidden)]
-macro_rules! check_recursion {
-    ($widget:ident) => {
-        if $widget.try_borrow_mut().is_err() {
-            panic!("An event to the same widget was emitted in the update() method, which would cause an infinite \
-                   recursion.\nThis can be caused by calling a gtk+ function that is connected to send a message \
-                   to the same widget.\nInspect the stack trace to determine which call it is.\nThen you can either \
-                   refactor your code to avoid a cyclic event dependency or block events from being emitted by doing \
-                   the following:\n{\n    let _lock = self.model.relm.stream().lock();\n    // Your panicking call.\n}\
-                   \nSee this example: \
-                   https://github.com/antoyo/relm/blob/feature/futures-glib/examples/checkboxes.rs#L88\
-                   This issue can also happen when emitting a signal to the same widget, in which case you need to\
-                   refactor your code to avoid this cyclic event dependency.");
-        }
-    };
-}
-
 /// Connect events to sending a message.
 ///
 /// Rule #1:
@@ -50,21 +32,20 @@ macro_rules! check_recursion {
 /// Option<MSG> can be None if no message needs to be emitted.
 ///
 /// Rule #3:
-/// Send `$msg` when the GTK+ `$event` is emitted on `$widget`.
+/// Send `$msg` with a Resolver and block the callback into it resolves to a value.
+/// This is useful in case you need an access to the model to decide whether you want to inhibit
+/// the event or not.
 ///
 /// Rule #4:
+/// Send `$msg` when the GTK+ `$event` is emitted on `$widget`.
+///
+/// Rule #5:
 /// Send `$msg` to `$widget` when the `$message` is received on `$stream`.
 #[macro_export]
 macro_rules! connect {
     // Connect to a GTK+ widget event, sending a message to another widget.
     ($widget:expr, $event:ident($($args:pat),*), $other_component:expr, $msg:expr) => {
-        let stream = $other_component.stream().clone();
-        $widget.$event(move |$($args),*| {
-            let msg: Option<_> = $crate::IntoOption::into_option($msg);
-            if let Some(msg) = msg {
-                stream.emit(msg);
-            }
-        });
+        connect_stream!($widget, $event($($args),*), $other_component.stream(), $msg);
     };
 
     // Connect to a GTK+ widget event.
@@ -114,7 +95,35 @@ macro_rules! connect {
     // Connect to a message reception.
     // TODO: create another macro rule accepting multiple patterns.
     ($src_component:ident @ $message:pat, $dst_component:expr, $msg:expr) => {
-        let stream = $dst_component.stream().clone();
+        connect_stream!($src_component@$message, $dst_component.stream(), $msg);
+    };
+}
+
+/// Connect events to sending a message.
+/// Similar to `connect!` but wants a stream instead of a component.
+///
+/// Rule #1:
+/// Send `$msg` to `$other_stream` when the GTK+ `$event` is emitted on `$widget`.
+///
+/// Rule #2:
+/// Send `$msg` to `$widget` when the `$message` is received on `$stream`.
+#[macro_export]
+macro_rules! connect_stream {
+    // Connect to a GTK+ widget event, sending a message to another widget.
+    ($widget:expr, $event:ident($($args:pat),*), $other_stream:expr, $msg:expr) => {
+        let stream = $other_stream.clone();
+        $widget.$event(move |$($args),*| {
+            let msg: Option<_> = $crate::IntoOption::into_option($msg);
+            if let Some(msg) = msg {
+                stream.emit(msg);
+            }
+        });
+    };
+
+    // Connect to a message reception.
+    // TODO: create another macro rule accepting multiple patterns.
+    ($src_component:ident @ $message:pat, $dst_stream:expr, $msg:expr) => {
+        let stream = $dst_stream.clone();
         $src_component.stream().observe(move |msg| {
             #[allow(unreachable_patterns)]
             match msg {
