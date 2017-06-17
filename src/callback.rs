@@ -32,6 +32,7 @@ macro_rules! unexpected_error {
 }
 
 /// Struct use to set the return value of a synchronous callback.
+#[derive(Clone)]
 pub struct Resolver<T: Default> {
     lp: MainLoop,
     send_done: bool,
