@@ -87,7 +87,7 @@ macro_rules! connect {
     // Connect to a message reception.
     // TODO: create another macro rule accepting multiple patterns.
     ($src_component:ident @ $message:pat, $dst_component:expr, $msg:expr) => {
-        let stream = $src_component.stream();
+        let stream = $src_component.stream().clone();
         connect_stream!(stream@$message, $dst_component.stream(), $msg);
     };
 }

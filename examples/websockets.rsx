@@ -172,7 +172,7 @@ impl Widget for Win {
                 Send(message)
             });
         }
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(return relm, window, connect_delete_event(_, _), (Some(Quit), Inhibit(false)));
 
         Win {
             entry: entry,

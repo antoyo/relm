@@ -29,6 +29,7 @@ extern crate relm_attributes;
 extern crate relm_derive;
 
 use gtk::{
+    Cast,
     ContainerExt,
     Frame,
     Inhibit,
@@ -192,16 +193,19 @@ impl Container for SplitBox {
         }
     }
 
-    fn add_widget<WIDGET: Widget>(container: &ContainerComponent<Self>, widget: &Component<WIDGET>)
+    fn add_widget<WIDGET: Widget>(container: &ContainerComponent<Self>, widget: &Component<WIDGET>) -> gtk::Container
     {
         if WIDGET::parent_id() == Some("right") {
             container.containers.hbox3.add(widget.widget());
+            container.containers.hbox3.clone().upcast()
         }
         else if WIDGET::parent_id() == Some("center") {
             container.containers.hbox2.add(widget.widget());
+            container.containers.hbox2.clone().upcast()
         }
         else {
             container.containers.hbox1.add(widget.widget());
+            container.containers.hbox1.clone().upcast()
         }
     }
 }
@@ -287,7 +291,7 @@ impl Widget for Win {
         let center_button = vbox.add_widget::<CenterButton, _>(&relm, ());
         let minus_button = gtk::Button::new_with_label("-");
         vbox.add(&minus_button);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(return relm, window, connect_delete_event(_, _), (Some(Quit), Inhibit(false)));
         window.show_all();
         Win {
             _button: button,

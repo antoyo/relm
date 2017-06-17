@@ -212,7 +212,7 @@ impl Widget for Win {
         let vbox = window.add_widget::<MyVBox, _>(relm, ());
         window.show_all();
 
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
+        connect!(return relm, window, connect_delete_event(_, _), (Some(Msg::Quit), Inhibit(false)));
 
         Win {
             _vbox: vbox,
