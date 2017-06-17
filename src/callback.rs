@@ -21,27 +21,28 @@
 
 //! Utility to transform a synchronous callback into an asynchronous one.
 
+use std::cell::Cell;
+
 use futures::{Async, AsyncSink, Sink};
 use futures::unsync::mpsc::{Receiver, Sender};
 use futures_glib::MainLoop;
 
 macro_rules! unexpected_error {
-    () => {
-        panic!("Unexpected error while sending the default return value of the callback")
+    ($data:expr) => {
+        panic!("Unexpected error while sending the default return value of the callback: {:?}", $data)
     };
 }
 
 /// Struct use to set the return value of a synchronous callback.
-#[derive(Clone)]
 pub struct Resolver<T: Default> {
     lp: MainLoop,
-    send_done: bool,
+    send_done: Cell<bool>,
     tx: Sender<T>,
 }
 
 impl<T: Default> Drop for Resolver<T> {
     fn drop(&mut self) {
-        if !self.send_done {
+        if !self.send_done.get() {
             self.send(Default::default());
         }
     }
@@ -57,9 +58,15 @@ impl<T: Default> Resolver<T> {
     fn new(lp: MainLoop, tx: Sender<T>) -> Self {
         Resolver {
             lp,
-            send_done: false,
+            send_done: Cell::new(false),
             tx,
         }
+    }
+
+    /// Duplicate a channel.
+    pub fn dup(&self) -> Self {
+        self.send_done.set(true);
+        Resolver::new(self.lp.clone(), self.tx.clone())
     }
 
     /// Set the return value of a synchronous callback in an asynchronous fashion.
@@ -68,16 +75,22 @@ impl<T: Default> Resolver<T> {
     }
 
     fn send(&mut self, value: T) {
-        match self.tx.start_send(value) {
-            Ok(AsyncSink::Ready) => {
-                match self.tx.poll_complete() {
-                    Ok(result) => assert_eq!(result, Async::Ready(())),
-                    Err(_error) => unexpected_error!(),
-                }
-            },
-            _ => unexpected_error!(),
+        if !self.send_done.get() {
+            match self.tx.start_send(value) {
+                Ok(AsyncSink::Ready) => {
+                    match self.tx.poll_complete() {
+                        Ok(result) => assert_eq!(result, Async::Ready(())),
+                        Err(error) => unexpected_error!(error),
+                    }
+                },
+                Ok(AsyncSink::NotReady(_)) => unexpected_error!("not ready"),
+                Err(error) => unexpected_error!(error),
+            }
+            self.send_done.set(true);
+            self.lp.quit();
         }
-        self.send_done = true;
-        self.lp.quit();
+        else {
+            warn!("Attempted to resolve a value for the second time on this Resolver");
+        }
     }
 }
