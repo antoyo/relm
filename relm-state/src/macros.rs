@@ -43,26 +43,18 @@
 /// Send `$msg` to `$widget` when the `$message` is received on `$stream`.
 #[macro_export]
 macro_rules! connect {
-    // Connect to a GTK+ widget event, sending a message to another widget.
-    ($widget:expr, $event:ident($($args:pat),*), $other_component:expr, $msg:expr) => {
-        connect_stream!($widget, $event($($args),*), $other_component.stream(), $msg);
-    };
-
     // Connect to a GTK+ widget event.
     // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
     // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
     // Option<MSG> can be None if no message needs to be emitted.
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), return $msg:expr) => {{
-        let stream = $relm.stream().clone();
-        $widget.$event(move |$($args),*| {
-            let (msg, return_value) = $crate::IntoPair::into_pair($msg);
-            let msg: Option<_> = $crate::IntoOption::into_option(msg);
-            if let Some(msg) = msg {
-                stream.emit(msg);
-            }
-            return_value
-        });
+    (return $relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
+        connect_stream!(return $relm.stream(), $widget, $event($($args),*), $msg);
     }};
+
+    // Connect to a GTK+ widget event, sending a message to another widget.
+    ($widget:expr, $event:ident($($args:pat),*), $other_component:expr, $msg:expr) => {
+        connect_stream!($widget, $event($($args),*), $other_component.stream(), $msg);
+    };
 
     // Connect to a GTK+ widget event where the return value is retrieved asynchronously.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), async $msg:ident $( ( $( $arg:expr ),*) )* ) => {{
@@ -110,6 +102,22 @@ macro_rules! connect {
 /// Send `$msg` to `$widget` when the `$message` is received on `$stream`.
 #[macro_export]
 macro_rules! connect_stream {
+    // Connect to a GTK+ widget event.
+    // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
+    // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
+    // Option<MSG> can be None if no message needs to be emitted.
+    (return $stream:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
+        let stream = $stream.clone();
+        $widget.$event(move |$($args),*| {
+            let (msg, return_value) = $crate::IntoPair::into_pair($msg);
+            let msg: Option<_> = $crate::IntoOption::into_option(msg);
+            if let Some(msg) = msg {
+                stream.emit(msg);
+            }
+            return_value
+        });
+    }};
+
     // Connect to a GTK+ widget event, sending a message to another widget.
     ($widget:expr, $event:ident($($args:pat),*), $other_stream:expr, $msg:expr) => {
         let stream = $other_stream.clone();
