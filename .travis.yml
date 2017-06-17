@@ -27,8 +27,8 @@ before_script:
 script:
   - cargo build
   - cargo test --no-run -v
-  - cd examples/http
-  - cargo build
+  #- cd examples/http
+  #- cargo build
   #- cd ../webkit-test
   #- cargo build
   - cd ../buttons-derive
