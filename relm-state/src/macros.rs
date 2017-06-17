@@ -95,7 +95,8 @@ macro_rules! connect {
     // Connect to a message reception.
     // TODO: create another macro rule accepting multiple patterns.
     ($src_component:ident @ $message:pat, $dst_component:expr, $msg:expr) => {
-        connect_stream!($src_component@$message, $dst_component.stream(), $msg);
+        let stream = $src_component.stream();
+        connect_stream!(stream@$message, $dst_component.stream(), $msg);
     };
 }
 
@@ -122,9 +123,9 @@ macro_rules! connect_stream {
 
     // Connect to a message reception.
     // TODO: create another macro rule accepting multiple patterns.
-    ($src_component:ident @ $message:pat, $dst_stream:expr, $msg:expr) => {
+    ($src_stream:ident @ $message:pat, $dst_stream:expr, $msg:expr) => {
         let stream = $dst_stream.clone();
-        $src_component.stream().observe(move |msg| {
+        $src_stream.observe(move |msg| {
             #[allow(unreachable_patterns)]
             match msg {
                 &$message =>  {
