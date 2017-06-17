@@ -181,7 +181,7 @@ impl Widget for Win {
 
         connect!(relm, add_button, connect_clicked(_), Add);
         connect!(relm, remove_button, connect_clicked(_), Remove);
-        connect!(return relm, window, connect_delete_event(_, _), (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         Win {
             counters: vec![],

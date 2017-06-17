@@ -201,21 +201,21 @@ impl<'a> Generator<'a> {
     fn collect_event(&mut self, widget_name: &Ident, name: &str, event: &Event) {
         let event_ident = Ident::new(format!("connect_{}", name));
         let event_params: Vec<_> = event.params.iter().map(|ident| Ident::new(ident.as_ref())).collect();
-        let (async, ret) = gen_event_metadata(event);
+        let metadata = gen_event_metadata(event);
         let connect =
             match event.value {
                 CurrentWidget(WithoutReturn(ref event_value)) => quote! {{
-                    connect!(#ret relm, #widget_name, #event_ident(#(#event_params),*), #async #event_value);
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #metadata #event_value);
                 }},
                 ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {{
                     connect!(#widget_name, #event_ident(#(#event_params),*), #foreign_widget_name, #event_value);
                 }},
                 CurrentWidget(Return(ref event_value, ref return_value)) => quote! {{
-                    connect!(return relm, #widget_name, #event_ident(#(#event_params),*), (#event_value, #return_value));
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), return (#event_value, #return_value));
                 }},
                 ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
                 CurrentWidget(CallReturn(ref func)) => quote! {{
-                    connect!(#ret relm, #widget_name, #event_ident(#(#event_params),*), #async #func);
+                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #metadata #func);
                 }},
 
             };
@@ -250,15 +250,15 @@ impl<'a> Generator<'a> {
                             (#(#event_params),*)
                         }
                     };
-                let (async, ret) = gen_event_metadata(event);
+                let metadata = gen_event_metadata(event);
                 let connect =
                     match event.value {
                         CurrentWidget(WithoutReturn(ref event_value)) => quote! {{
-                            connect!(#ret #widget_name@#event_ident #params, relm, #async #event_value);
+                            connect!(#widget_name@#event_ident #params, relm, #metadata #event_value);
                         }},
                         ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {{
-                            connect!(#ret #widget_name@#event_ident #params, #foreign_widget_name,
-                                     #async #event_value);
+                            connect!(#widget_name@#event_ident #params, #foreign_widget_name,
+                                     #metadata #event_value);
                         }},
                         CurrentWidget(Return(_, _)) | CurrentWidget(CallReturn(_)) | ForeignWidget(_, Return(_, _)) |
                             ForeignWidget(_, CallReturn(_)) => unreachable!(),
@@ -450,26 +450,20 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
     }
 }
 
-fn gen_event_metadata(event: &Event) -> (Tokens, Tokens) {
-    let async =
-        if event.async {
-            quote! {
-                async
-            }
-        }
-        else {
-            quote! {}
+fn gen_event_metadata(event: &Event) -> Tokens {
+    if event.async {
+        return quote! {
+            async
         };
-    let ret =
-        if let CurrentWidget(CallReturn(_)) = event.value {
-            quote! {
-                return
-            }
+    }
+    if let CurrentWidget(CallReturn(_)) = event.value {
+        quote! {
+            return
         }
-        else {
-            quote! {}
-        };
-    (async, ret)
+    }
+    else {
+        quote! {}
+    }
 }
 
 fn gen_widget_ident(widget: &Widget) -> Tokens {

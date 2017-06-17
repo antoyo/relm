@@ -100,8 +100,8 @@ impl Widget for Win {
 
         window.show_all();
 
-        connect!(return relm, window, connect_key_press_event(_, _), (Press, Inhibit(false)));
-        connect!(return relm, window, connect_key_release_event(_, _), (Release, Inhibit(false)));
+        connect!(relm, window, connect_key_press_event(_, _), return (Press, Inhibit(false)));
+        connect!(relm, window, connect_key_release_event(_, _), return (Release, Inhibit(false)));
         connect!(relm, window, connect_delete_event(_, _), async Delete(42));
 
         Win {

@@ -69,7 +69,7 @@ impl Widget for Win {
         window.show_all();
 
         let parent = window.clone();
-        connect!(return relm, window, connect_delete_event(_, _), {
+        connect!(relm, window, connect_delete_event(_, _), return {
             let num = dialog(&parent);
             match num {
                 1 => (Some(Quit), Inhibit(false)),

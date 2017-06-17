@@ -43,18 +43,18 @@
 /// Send `$msg` to `$widget` when the `$message` is received on `$stream`.
 #[macro_export]
 macro_rules! connect {
-    // Connect to a GTK+ widget event.
-    // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
-    // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
-    // Option<MSG> can be None if no message needs to be emitted.
-    (return $relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
-        connect_stream!(return $relm.stream(), $widget, $event($($args),*), $msg);
-    }};
-
     // Connect to a GTK+ widget event, sending a message to another widget.
     ($widget:expr, $event:ident($($args:pat),*), $other_component:expr, $msg:expr) => {
         connect_stream!($widget, $event($($args),*), $other_component.stream(), $msg);
     };
+
+    // Connect to a GTK+ widget event.
+    // This variant gives more control to the caller since it expects a `$msg` returning (Option<MSG>,
+    // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
+    // Option<MSG> can be None if no message needs to be emitted.
+    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), return $msg:expr) => {{
+        connect_stream!(return $relm.stream(), $widget, $event($($args),*), $msg);
+    }};
 
     // Connect to a GTK+ widget event where the return value is retrieved asynchronously.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), async $msg:ident $( ( $( $arg:expr ),*) )* ) => {{

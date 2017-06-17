@@ -176,7 +176,7 @@ impl Widget for Win {
 
         connect!(plus_button@Toggle, relm, PlusToggle);
         connect!(minus_button@Toggle, relm, MinusToggle);
-        connect!(return relm, window, connect_delete_event(_, _), (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         Win {
             minus_button,

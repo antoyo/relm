@@ -119,7 +119,7 @@ impl Widget for Win {
         // Send the message Increment when the button is clicked.
         connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
         connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
-        connect!(return relm, window, connect_delete_event(_, _), (Some(Msg::Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
 
         Win {
             counter_label: counter_label,

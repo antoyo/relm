@@ -254,7 +254,7 @@ impl Widget for Win {
 
         window.show_all();
 
-        connect!(return relm, window, connect_delete_event(_, _), (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         Win {
             _counter1: counter1,
