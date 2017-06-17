@@ -634,6 +634,7 @@ fn gen_other_containers(generator: &Generator, widget_type: &Tokens) -> (Tokens,
         }
         let names = &names;
         (quote! {
+            #[allow(dead_code)]
             pub struct #containers_ident {
                 #(#names: #types,)*
             }
