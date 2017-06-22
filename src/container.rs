@@ -59,7 +59,7 @@ impl<WIDGET: Container + Widget> ContainerComponent<WIDGET> {
               WIDGET::Container: ContainerExt + IsA<gtk::Widget> + IsA<Object>,
     {
         let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
-        let container = WIDGET::add_widget(&self, &widget);
+        let container = WIDGET::add_widget(self, &widget);
         component.on_add(container);
         init_component::<CHILDWIDGET>(widget.stream(), component, relm.context(), &child_relm);
         widget
