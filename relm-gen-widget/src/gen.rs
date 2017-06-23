@@ -38,6 +38,7 @@ use transformer::Transformer;
 use super::{Driver, MODEL_IDENT};
 
 use self::WidgetType::*;
+use self::WithParentheses::{WithParens, WithoutParens};
 
 macro_rules! set_container {
     ($_self:expr, $widget:expr, $widget_name:expr, $widget_type:expr) => {
@@ -56,6 +57,12 @@ macro_rules! set_container {
             $_self.container_names.insert(container_type.clone(), ($widget_name.clone(), $widget_type.clone()));
         }
     };
+}
+
+#[derive(PartialEq)]
+enum WithParentheses {
+    WithParens,
+    WithoutParens,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -151,7 +158,7 @@ impl<'a> Generator<'a> {
     fn add_or_create_widget(&mut self, parent: Option<&Ident>, parent_widget_type: WidgetType, widget_name: &Ident,
         widget_type_ident: &Path, init_parameters: &[Expr], is_container: bool) -> Tokens
     {
-        let init_parameters = gen_model_param(init_parameters);
+        let init_parameters = gen_model_param(init_parameters, WithParens);
         if let Some(parent) = parent {
             if parent_widget_type == IsGtk {
                 let add_method =
@@ -443,7 +450,7 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
         }
     }
     else {
-        let params = gen_model_param(&widget.init_parameters);
+        let params = gen_model_param(&widget.init_parameters, WithoutParens);
         quote! {
             #struct_name::new(#params)
         }
@@ -653,15 +660,22 @@ fn gen_other_containers(generator: &Generator, widget_type: &Tokens) -> (Tokens,
     }
 }
 
-fn gen_model_param(init_parameters: &[Expr]) -> Tokens {
+fn gen_model_param(init_parameters: &[Expr], with_parens: WithParentheses) -> Tokens {
     let mut params = vec![];
     for param in init_parameters {
         let mut remover = Transformer::new(MODEL_IDENT);
         let value = remover.fold_expr(param.clone());
         params.push(value);
     }
-    quote! {
-        (#(#params),*)
+    if with_parens == WithParens {
+        quote! {
+            (#(#params),*)
+        }
+    }
+    else {
+        quote! {
+            #(#params),*
+        }
     }
 }
 
