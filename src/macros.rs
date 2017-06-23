@@ -43,7 +43,7 @@ macro_rules! connect {
         let stream = $other_component.stream().clone();
         $widget.$event(move |$($args),*| {
             stream.emit($msg);
-        });
+        })
     };
 
     // Connect to a GTK+ widget event.
@@ -51,7 +51,7 @@ macro_rules! connect {
         let stream = $relm.stream().clone();
         $widget.$event(move |$($args),*| {
             stream.emit($msg);
-        });
+        })
     }};
 
     // Connect to a GTK+ widget event.
@@ -72,7 +72,7 @@ macro_rules! connect {
                 stream.emit(msg);
             }
             return_value
-        });
+        })
     }};
 
     // Connect to a GTK+ widget event.
@@ -88,7 +88,7 @@ macro_rules! connect {
                 stream.emit(msg);
             }
             return_value
-        });
+        })
     }};
 
     // Connect to a message reception.
