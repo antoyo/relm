@@ -45,8 +45,8 @@ mod stream;
 use std::time::SystemTime;
 
 use futures::{Future, Stream};
-use futures::future::Executor;
-use futures_glib::MainContext;
+use futures::future::Executor as FutureExecutor;
+use futures_glib::{Executor, MainContext};
 pub use relm_core::EventStream;
 
 pub use into::{IntoOption, IntoPair};
@@ -84,14 +84,14 @@ macro_rules! relm_connect_ignore {
 
 /// Handle connection of futures to send messages to the [`update()`](trait.Update.html#tymethod.update) method.
 pub struct Relm<UPDATE: Update> {
-    cx: MainContext,
+    executor: Executor,
     stream: EventStream<UPDATE::Msg>,
 }
 
 impl<UPDATE: Update> Clone for Relm<UPDATE> {
     fn clone(&self) -> Self {
         Relm {
-            cx: self.cx.clone(),
+            executor: self.executor.clone(),
             stream: self.stream.clone(),
         }
     }
@@ -99,9 +99,9 @@ impl<UPDATE: Update> Clone for Relm<UPDATE> {
 
 impl<UPDATE: Update> Relm<UPDATE> {
     /// Create a new relm stream handler.
-    pub fn new(cx: MainContext, stream: EventStream<UPDATE::Msg>) -> Self {
+    pub fn new(executor: Executor, stream: EventStream<UPDATE::Msg>) -> Self {
         Relm {
-            cx,
+            executor,
             stream,
         }
     }
@@ -181,14 +181,15 @@ impl<UPDATE: Update> Relm<UPDATE> {
         self.exec(self.connect_ignore_err(to_stream, callback));
     }
 
-    /// Get the main context of this stream.
-    pub fn context(&self) -> &MainContext {
-        &self.cx
-    }
-
     /// Spawn a future in the tokio event loop.
     pub fn exec<FUTURE: Future<Item=(), Error=()> + 'static>(&self, future: FUTURE) {
-        self.cx.execute(future);
+        // NOTE: no error can be returned from execute(), hence unwrap().
+        self.executor.execute(future).unwrap();
+    }
+
+    /// Get the handle of this stream.
+    pub fn executor(&self) -> &Executor {
+        &self.executor
     }
 
     /// Get the event stream of this stream.
@@ -248,25 +249,33 @@ impl DisplayVariant for () {
     }
 }
 
+/// Create an `Executor` attached to the main context.
+pub fn create_executor() -> Executor {
+    let cx = MainContext::default(|cx| cx.clone());
+    let executor = Executor::new();
+    executor.attach(&cx);
+    executor
+}
+
 /// Create a bare component, i.e. a component only implementing the Update trait, not the Widget
 /// trait.
 pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> EventStream<UPDATE::Msg>
     where UPDATE: Update + UpdateNew + 'static
 {
-    let cx = MainContext::default(|cx| cx.clone());
+    let executor = create_executor();
     let stream = EventStream::new();
 
-    let relm = Relm::new(cx.clone(), stream.clone());
+    let relm = Relm::new(executor.clone(), stream.clone());
     let model = UPDATE::model(&relm, model_param);
     let component = UPDATE::new(&relm, model);
 
-    init_component::<UPDATE>(&stream, component, &cx, &relm);
+    init_component::<UPDATE>(&stream, component, &executor, &relm);
     stream
 }
 
 /// Initialize a component by creating its subscriptions and dispatching the messages from the
 /// stream.
-pub fn init_component<UPDATE>(stream: &EventStream<UPDATE::Msg>, mut component: UPDATE, cx: &MainContext,
+pub fn init_component<UPDATE>(stream: &EventStream<UPDATE::Msg>, mut component: UPDATE, executor: &Executor,
     relm: &Relm<UPDATE>)
     where UPDATE: Update + 'static,
           UPDATE::Msg: DisplayVariant + 'static,
@@ -277,7 +286,8 @@ pub fn init_component<UPDATE>(stream: &EventStream<UPDATE::Msg>, mut component: 
         update_component(&mut component, event);
         Ok(())
     });
-    cx.execute(event_future);
+    // NOTE: no error can be returned from execute(), hence unwrap().
+    executor.execute(event_future).unwrap();
 }
 
 fn update_component<COMPONENT>(component: &mut COMPONENT, event: COMPONENT::Msg)

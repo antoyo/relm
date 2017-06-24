@@ -58,10 +58,10 @@ impl<WIDGET: Container + Widget> ContainerComponent<WIDGET> {
               PARENTWIDGET: Widget,
               WIDGET::Container: ContainerExt + IsA<gtk::Widget> + IsA<Object>,
     {
-        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
+        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.executor(), model_param);
         let container = WIDGET::add_widget(self, &widget);
         component.on_add(container);
-        init_component::<CHILDWIDGET>(widget.stream(), component, relm.context(), &child_relm);
+        init_component::<CHILDWIDGET>(widget.stream(), component, relm.executor(), &child_relm);
         widget
     }
 
@@ -152,13 +152,13 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
               WIDGET: Widget,
     {
-        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
+        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.executor(), model_param);
         let container = component.container().clone();
         let containers = component.other_containers();
         let root = component.root().clone();
         self.add(&root);
         component.on_add(self.clone());
-        init_component::<CHILDWIDGET>(widget.stream(), component, relm.context(), &child_relm);
+        init_component::<CHILDWIDGET>(widget.stream(), component, relm.executor(), &child_relm);
         ContainerComponent::new(widget, container, containers)
     }
 
@@ -168,10 +168,10 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
               CHILDWIDGET::Msg: DisplayVariant + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
     {
-        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
+        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.executor(), model_param);
         self.add(widget.widget());
         component.on_add(self.clone());
-        init_component::<CHILDWIDGET>(widget.stream(), component, relm.context(), &child_relm);
+        init_component::<CHILDWIDGET>(widget.stream(), component, relm.executor(), &child_relm);
         widget
     }
 

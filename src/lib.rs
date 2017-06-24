@@ -108,7 +108,7 @@ mod container;
 mod macros;
 mod widget;
 
-use futures_glib::MainContext;
+use futures_glib::Executor;
 #[doc(hidden)]
 pub use futures_glib::MainLoop;
 #[doc(hidden)]
@@ -131,6 +131,7 @@ pub use relm_state::{
     Relm,
     Update,
     UpdateNew,
+    create_executor,
     execute,
 };
 use relm_state::init_component;
@@ -182,12 +183,12 @@ macro_rules! use_impl_self_type {
     };
 }
 
-fn create_widget_test<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam) -> Component<WIDGET>
+fn create_widget_test<WIDGET>(executor: &Executor, model_param: WIDGET::ModelParam) -> Component<WIDGET>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, relm) = create_widget(cx, model_param);
-    init_component::<WIDGET>(widget.stream(), component, cx, &relm);
+    let (widget, component, relm) = create_widget(executor, model_param);
+    init_component::<WIDGET>(widget.stream(), component, executor, &relm);
     widget
 }
 
@@ -199,8 +200,8 @@ pub fn create_component<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: C
           CHILDWIDGET::Msg: DisplayVariant + 'static,
           WIDGET: Widget,
 {
-    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
-    init_component::<CHILDWIDGET>(widget.stream(), component, relm.context(), &child_relm);
+    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.executor(), model_param);
+    init_component::<CHILDWIDGET>(widget.stream(), component, relm.executor(), &child_relm);
     widget
 }
 
@@ -212,21 +213,21 @@ pub fn create_container<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: C
           CHILDWIDGET::Msg: DisplayVariant + 'static,
           WIDGET: Widget,
 {
-    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.context(), model_param);
+    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.executor(), model_param);
     let container = component.container().clone();
     let containers = component.other_containers();
-    init_component::<CHILDWIDGET>(widget.stream(), component, relm.context(), &child_relm);
+    init_component::<CHILDWIDGET>(widget.stream(), component, relm.executor(), &child_relm);
     ContainerComponent::new(widget, container, containers)
 }
 
-fn create_widget<WIDGET>(cx: &MainContext, model_param: WIDGET::ModelParam)
+fn create_widget<WIDGET>(executor: &Executor, model_param: WIDGET::ModelParam)
     -> (Component<WIDGET>, WIDGET, Relm<WIDGET>)
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
     let stream = EventStream::new();
 
-    let relm = Relm::new(cx.clone(), stream.clone());
+    let relm = Relm::new(executor.clone(), stream.clone());
     let model = WIDGET::model(&relm, model_param);
     let mut widget = WIDGET::view(&relm, model);
     widget.init_view();
@@ -301,8 +302,8 @@ pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WI
     futures_glib::init();
     init_gtk();
 
-    let cx = MainContext::default(|cx| cx.clone());
-    let component = create_widget_test::<WIDGET>(&cx);
+    let executor = create_executor();
+    let component = create_widget_test::<WIDGET>(&executor, model_param);
     Ok(component)
 }
 
@@ -313,9 +314,9 @@ fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()
     futures_glib::init();
     gtk::init()?;
 
-    let cx = MainContext::default(|cx| cx.clone());
-    let (widget, component, relm) = create_widget::<WIDGET>(&cx, model_param);
-    init_component::<WIDGET>(widget.stream(), component, &cx, &relm);
+    let executor = create_executor();
+    let (widget, component, relm) = create_widget::<WIDGET>(&executor, model_param);
+    init_component::<WIDGET>(widget.stream(), component, &executor, &relm);
     Ok(widget)
 }
 
