@@ -28,12 +28,9 @@ before_script:
 script:
   - cargo build
   - cargo test --no-run -v
-  #- cd examples/http
-  #- cargo build
-  #- cd ../webkit-test
-  #- cargo build
-  #- cd ../buttons-derive
-  #- cargo build
+  #- cargo build --manifest-path examples/http/Cargo.toml
+  #- cargo build --manifest-path examples/webkit-test/Cargo.toml
+  - cargo build --manifest-path examples/buttons-derive/Cargo.toml
 
 matrix:
   allow_failures:

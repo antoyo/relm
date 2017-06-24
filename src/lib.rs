@@ -48,6 +48,7 @@
 )]
 
 /*
+ * TODO: switch from gtk::main() to MainLoop to avoid issues with nested loops.
  * TODO: prefix generated container name with _ to hide warnings.
  * TODO: remove the code generation related to using self in event handling.
  * TODO: remove the closure transformer code.
