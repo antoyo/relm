@@ -5,5 +5,5 @@ version = "0.1.0"
 
 [dependencies]
 gtk = "^0.1.2"
-relm =  "^0.9.0"
-relm-derive = "^0.9.0"
+relm = { path = "../.."}
+relm-derive = { path = "../../relm-derive" }

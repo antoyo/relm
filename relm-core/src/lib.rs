@@ -19,6 +19,10 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+//! Core primitive types for relm.
+//!
+//! The primary type is `EventStream`.
+
 #![warn(
     missing_docs,
     trivial_casts,
@@ -30,7 +34,6 @@
 )]
 
 extern crate futures;
-extern crate gtk;
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -40,6 +43,7 @@ use std::rc::Rc;
 use futures::{Async, Poll, Stream};
 use futures::task::{self, Task};
 
+/// A lock is used to temporarily stop emitting messages.
 #[must_use]
 pub struct Lock<MSG> {
     stream: Rc<RefCell<_EventStream<MSG>>>,
@@ -59,6 +63,7 @@ struct _EventStream<MSG> {
     terminated: bool,
 }
 
+/// A stream of messages to be used for widget/signal communication and inter-widget communication.
 pub struct EventStream<MSG> {
     stream: Rc<RefCell<_EventStream<MSG>>>,
 }
@@ -72,6 +77,7 @@ impl<MSG> Clone for EventStream<MSG> {
 }
 
 impl<MSG> EventStream<MSG> {
+    /// Create a new event stream.
     pub fn new() -> Self {
         EventStream {
             stream: Rc::new(RefCell::new(_EventStream {
@@ -84,6 +90,7 @@ impl<MSG> EventStream<MSG> {
         }
     }
 
+    /// Close the event stream, i.e. stop processing messages.
     pub fn close(&self) -> Result<(), Error> {
         let mut stream = self.stream.borrow_mut();
         stream.terminated = true;
@@ -93,6 +100,7 @@ impl<MSG> EventStream<MSG> {
         Ok(())
     }
 
+    /// Send the `event` message to the stream and the observers.
     pub fn emit(&self, event: MSG) {
         if !self.stream.borrow().locked {
             if let Some(ref task) = self.stream.borrow().task {
@@ -113,6 +121,7 @@ impl<MSG> EventStream<MSG> {
         self.stream.borrow_mut().events.pop_front()
     }
 
+    /// Lock the stream (don't emit message) until the `Lock` goes out of scope.
     pub fn lock(&self) -> Lock<MSG> {
         self.stream.borrow_mut().locked = true;
         Lock {
@@ -125,6 +134,8 @@ impl<MSG> EventStream<MSG> {
         stream.terminated
     }
 
+    /// Add an observer to the event stream.
+    /// This callback will be called every time a message is emmited.
     pub fn observe<CALLBACK: Fn(&MSG) + 'static>(&self, callback: CALLBACK) {
         self.stream.borrow_mut().observers.push(Rc::new(callback));
     }

@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(conservative_impl_trait, fn_traits, unboxed_closures)]
+#![feature(conservative_impl_trait, fn_traits, proc_macro, unboxed_closures)]
 
 extern crate futures;
 extern crate gdk;
@@ -30,6 +30,7 @@ extern crate hyper_tls;
 extern crate json;
 #[macro_use]
 extern crate relm;
+extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 extern crate simplelog;
@@ -40,36 +41,34 @@ use futures::{Future, Stream};
 use gdk::RGBA;
 use gdk_pixbuf::PixbufLoader;
 use gtk::{
-    Button,
     ButtonExt,
-    ContainerExt,
-    Image,
     Inhibit,
-    Label,
+    OrientableExt,
     WidgetExt,
-    Window,
-    WindowType,
     STATE_FLAG_NORMAL,
 };
 use hyper::{Client, Error};
 use hyper_tls::HttpsConnector;
 use gtk::Orientation::Vertical;
-use relm::{Handle, Relm, RemoteRelm, Widget};
+use relm::{Relm, Widget};
+use relm_attributes::widget;
 use simplelog::{Config, TermLogger};
 use simplelog::LogLevelFilter::Warn;
 
 use self::Msg::*;
 
-const RED: &GdkRGBA = &GdkRGBA { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 };
+const RED: &RGBA = &RGBA { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 };
 
->>>>>>> de8ea84... Remove #[derive(Clone)] for the model
-struct Model {
+pub struct Model {
+    button_enabled: bool,
     gif_url: String,
+    loader: PixbufLoader,
     topic: String,
+    text: String,
 }
 
 #[derive(SimpleMsg)]
-enum Msg {
+pub enum Msg {
     DownloadCompleted,
     FetchUrl,
     HttpError(String),
@@ -78,65 +77,46 @@ enum Msg {
     Quit,
 }
 
-struct Win {
-    button: Button,
-    image: Image,
-    label: Label,
-    loader: PixbufLoader,
-    window: Window,
-}
-
+#[widget]
 impl Widget for Win {
-    type Model = Model;
-    type ModelParam = ();
-    type Msg = Msg;
-    type Root = Window;
-
-    fn model(_: ()) -> Model {
+    fn model() -> Model {
+        let topic = "cats";
         Model {
+            button_enabled: true,
             gif_url: "waiting.gif".to_string(),
-            topic: "cats".to_string(),
+            loader: PixbufLoader::new(),
+            topic: topic.to_string(),
+            text: topic.to_string(),
         }
     }
 
-    fn root(&self) -> &Self::Root {
-        &self.window
-    }
-
-    fn update(&mut self, event: Msg, _model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
             DownloadCompleted => {
-                self.button.set_sensitive(true);
+                self.model.button_enabled = true;
                 self.button.grab_focus();
-                self.loader.close().unwrap();
-                self.image.set_from_pixbuf(self.loader.get_pixbuf().as_ref());
-                self.loader = PixbufLoader::new();
+                self.model.loader.close().unwrap();
+                self.image.set_from_pixbuf(self.model.loader.get_pixbuf().as_ref());
+                self.model.loader = PixbufLoader::new();
             },
             FetchUrl => {
-                self.label.set_text("");
+                self.model.text = String::new();
                 // Disable the button because loading 2 images at the same time crashes the pixbuf
                 // loader.
-                self.button.set_sensitive(false);
-            },
-            HttpError(error) => {
-                self.button.set_sensitive(true);
-                self.label.set_text(&format!("HTTP error: {}", error));
-                self.label.override_color(STATE_FLAG_NORMAL, &RGBA::red());
-            },
-            ImageChunk(chunk) => {
-                self.loader.loader_write(&chunk).unwrap();
-            },
-            NewGif(_) => (),
-            Quit => gtk::main_quit(),
-        }
-    }
+                self.model.button_enabled = false;
 
-    fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
-        match event {
-            FetchUrl => {
-                let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}", model.topic);
+                let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}",
+                    self.model.topic);
                 let http_future = http_get(&url, relm.handle());
                 relm.connect_exec(http_future, NewGif, hyper_error_to_msg);
+            },
+            HttpError(error) => {
+                self.model.button_enabled = true;
+                self.model.text = format!("HTTP error: {}", error);
+                self.label.override_color(STATE_FLAG_NORMAL, RED);
+            },
+            ImageChunk(chunk) => {
+                self.model.loader.loader_write(&chunk).unwrap();
             },
             NewGif(result) => {
                 let string = String::from_utf8(result).unwrap();
@@ -146,38 +126,29 @@ impl Widget for Win {
                 let future = relm.connect(http_future, ImageChunk, hyper_error_to_msg);
                 relm.connect_exec_ignore_err(future, DownloadCompleted);
             },
-            _ => (),
+            Quit => gtk::main_quit(),
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, model: &Model) -> Self {
-        let vbox = gtk::Box::new(Vertical, 0);
-
-        let label = Label::new(None);
-        label.set_text(&model.topic);
-        vbox.add(&label);
-
-        let image = Image::new();
-        vbox.add(&image);
-
-        let button = Button::new_with_label("Load image");
-        vbox.add(&button);
-
-        let window = Window::new(WindowType::Toplevel);
-
-        window.add(&vbox);
-
-        window.show_all();
-
-        connect!(relm, button, connect_clicked(_), FetchUrl);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
-
-        Win {
-            button: button,
-            image: image,
-            label: label,
-            loader: PixbufLoader::new(),
-            window: window,
+    view! {
+        gtk::Window {
+            gtk::Box {
+                orientation: Vertical,
+                #[name="label"]
+                gtk::Label {
+                    text: &self.model.text,
+                },
+                #[name="image"]
+                gtk::Image {
+                },
+                #[name="button"]
+                gtk::Button {
+                    label: "Load image",
+                    sensitive: self.model.button_enabled,
+                    clicked => FetchUrl,
+                },
+            },
+            delete_event(_, _) => (Quit, Inhibit(false)),
         }
     }
 }
@@ -185,7 +156,7 @@ impl Widget for Win {
 impl Drop for Win {
     fn drop(&mut self) {
         // This is necessary to avoid a GDK warning.
-        self.loader.close().ok(); // Ignore the error since no data was loaded.
+        self.model.loader.close().ok(); // Ignore the error since no data was loaded.
     }
 }
 

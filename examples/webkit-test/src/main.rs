@@ -49,7 +49,7 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
-    fn init_view(&mut self, _model: &mut Model) {
+    fn init_view(&mut self) {
         self.webview.load_uri("https://crates.io/");
     }
 
@@ -59,7 +59,7 @@ impl Widget for Win {
         }
     }
 
-    fn update(&mut self, event: Msg, _model: &mut Model) {
+    fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
         }
