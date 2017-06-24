@@ -59,7 +59,7 @@ macro_rules! connect {
     // Connect to a GTK+ widget event where the return value is retrieved asynchronously.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), async $msg:ident $( ( $( $arg:expr ),*) )* ) => {{
         let stream = $relm.stream().clone();
-        $widget.$event(move |$($args),*| {
+        let _ = $widget.$event(move |$($args),*| {
             let cx = ::futures_glib::MainContext::default(|cx| cx.clone());
             let lp = ::relm::MainLoop::new(Some(&cx));
             let (resolver, rx) = ::relm::Resolver::channel(lp.clone());
@@ -76,7 +76,7 @@ macro_rules! connect {
     // Connect to a GTK+ widget event.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
         let stream = $relm.stream().clone();
-        $widget.$event(move |$($args),*| {
+        let _ = $widget.$event(move |$($args),*| {
             let msg: Option<_> = $crate::IntoOption::into_option($msg);
             if let Some(msg) = msg {
                 stream.emit(msg);
@@ -108,7 +108,7 @@ macro_rules! connect_stream {
     // Option<MSG> can be None if no message needs to be emitted.
     (return $stream:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
         let stream = $stream.clone();
-        $widget.$event(move |$($args),*| {
+        let _ = $widget.$event(move |$($args),*| {
             let (msg, return_value) = $crate::IntoPair::into_pair($msg);
             let msg: Option<_> = $crate::IntoOption::into_option(msg);
             if let Some(msg) = msg {
@@ -121,7 +121,7 @@ macro_rules! connect_stream {
     // Connect to a GTK+ widget event, sending a message to another widget.
     ($widget:expr, $event:ident($($args:pat),*), $other_stream:expr, $msg:expr) => {
         let stream = $other_stream.clone();
-        $widget.$event(move |$($args),*| {
+        let _ = $widget.$event(move |$($args),*| {
             let msg: Option<_> = $crate::IntoOption::into_option($msg);
             if let Some(msg) = msg {
                 stream.emit(msg);

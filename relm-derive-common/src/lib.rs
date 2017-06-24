@@ -123,6 +123,7 @@ fn derive_display_variant(ast: &MacroInput, krate: &Ident) -> Tokens {
 
         quote! {
             impl #generics ::#krate::DisplayVariant for #typ #where_clause {
+                #[allow(unused_qualifications)]
                 fn display_variant(&self) -> &'static str {
                     match *self {
                         #(#variant_patterns => #variant_names,)*
