@@ -19,6 +19,18 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+//! This crate provide the non-GUI part of relm:
+//! Basic component and message connection methods.
+
+#![warn(
+    missing_docs,
+    trivial_casts,
+    trivial_numeric_casts,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_qualifications, unused_results,
+)]
+
 extern crate futures;
 extern crate futures_glib;
 #[macro_use]
@@ -85,6 +97,7 @@ impl<UPDATE: Update> Clone for Relm<UPDATE> {
 }
 
 impl<UPDATE: Update> Relm<UPDATE> {
+    /// Create a new relm stream handler.
     pub fn new(cx: MainContext, stream: EventStream<UPDATE::Msg>) -> Self {
         Relm {
             cx,
@@ -184,6 +197,9 @@ impl<UPDATE: Update> Relm<UPDATE> {
     }
 }
 
+/// Trait for a basic (non-widget) component.
+/// A component has a model (data) associated with it and can mutate it when it receives a message
+/// (in the `update()` method).
 pub trait Update
     where Self: Sized,
           Self::Msg: DisplayVariant,
@@ -198,11 +214,6 @@ pub trait Update
     /// Create the initial model.
     fn model(relm: &Relm<Self>, param: Self::ModelParam) -> Self::Model;
 
-    /// Create a new component.
-    fn new(_relm: &Relm<Self>, _model: Self::Model) -> Option<Self> {
-        None
-    }
-
     /// Connect the subscriptions.
     /// Subscriptions are `Future`/`Stream` that are spawn when the object is created.
     fn subscriptions(&mut self, _relm: &Relm<Self>) {
@@ -210,6 +221,13 @@ pub trait Update
 
     /// Method called when a message is received from an event.
     fn update(&mut self, event: Self::Msg);
+}
+
+/// Trait for an `Update` object that can be created directly.
+/// This is useful for non-widget component.
+pub trait UpdateNew: Update {
+    /// Create a new component.
+    fn new(_relm: &Relm<Self>, _model: Self::Model) -> Self;
 }
 
 /// Format trait for enum variants.
@@ -232,20 +250,21 @@ impl DisplayVariant for () {
 /// Create a bare component, i.e. a component only implementing the Update trait, not the Widget
 /// trait.
 pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> EventStream<UPDATE::Msg>
-    where UPDATE: Update + 'static
+    where UPDATE: Update + UpdateNew + 'static
 {
     let cx = MainContext::default(|cx| cx.clone());
     let stream = EventStream::new();
 
     let relm = Relm::new(cx.clone(), stream.clone());
     let model = UPDATE::model(&relm, model_param);
-    let component = UPDATE::new(&relm, model)
-        .expect("Update::new() was called for a component that has not implemented this method");
+    let component = UPDATE::new(&relm, model);
 
     init_component::<UPDATE>(&stream, component, &cx, &relm);
     stream
 }
 
+/// Initialize a component by creating its subscriptions and dispatching the messages from the
+/// stream.
 pub fn init_component<UPDATE>(stream: &EventStream<UPDATE::Msg>, mut component: UPDATE, cx: &MainContext,
     relm: &Relm<UPDATE>)
     where UPDATE: Update + 'static,

@@ -37,8 +37,14 @@
 //! More info can be found in the [readme](https://github.com/antoyo/relm#relm).
 
 #![cfg_attr(feature = "use_impl_trait", feature(conservative_impl_trait))]
-#![warn(missing_docs, trivial_casts, trivial_numeric_casts, unused_extern_crates, unused_import_braces,
-        unused_qualifications, unused_results)]
+#![warn(
+    missing_docs,
+    trivial_casts,
+    trivial_numeric_casts,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_qualifications, unused_results,
+)]
 
 /*
  * TODO: prefix generated container name with _ to hide warnings.
@@ -116,7 +122,15 @@ use gobject_sys::{GObject, GValue};
 use libc::{c_char, c_uint};
 #[doc(hidden)]
 pub use relm_core::EventStream;
-pub use relm_state::{DisplayVariant, IntoOption, IntoPair, Relm, Update, execute};
+pub use relm_state::{
+    DisplayVariant,
+    IntoOption,
+    IntoPair,
+    Relm,
+    Update,
+    UpdateNew,
+    execute,
+};
 use relm_state::init_component;
 
 pub use callback::Resolver;
