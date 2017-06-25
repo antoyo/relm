@@ -13,3 +13,6 @@ git = "https://github.com/antoyo/futures-glib-rs"
 [dependencies.relm-core]
 path = "../relm-core"
 version = "^0.1.1"
+
+[features]
+use_impl_trait = []

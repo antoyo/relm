@@ -22,6 +22,7 @@
 //! This crate provide the non-GUI part of relm:
 //! Basic component and message connection methods.
 
+#![cfg_attr(feature = "use_impl_trait", feature(conservative_impl_trait))]
 #![warn(
     missing_docs,
     trivial_casts,
@@ -107,6 +108,12 @@ impl<UPDATE: Update> Relm<UPDATE> {
     }
 
     #[cfg(feature = "use_impl_trait")]
+    /// Connect a `Future` or a `Stream` called `to_stream` to send the message `success_callback`
+    /// in case of success and `failure_callback` in case of failure.
+    ///
+    /// ## Note
+    /// This function does not spawn the future.
+    /// You'll usually want to use [`Relm::connect_exec()`](struct.Relm.html#method.connect_exec) to both connect and spawn the future.
     pub fn connect<CALLBACK, FAILCALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM,
             success_callback: CALLBACK, failure_callback: FAILCALLBACK) -> impl Future<Item=(), Error=()>
         where CALLBACK: Fn(STREAM::Item) -> UPDATE::Msg + 'static,
@@ -137,6 +144,8 @@ impl<UPDATE: Update> Relm<UPDATE> {
     }
 
     #[cfg(feature = "use_impl_trait")]
+    /// This function is the same as [`Relm::connect()`](struct.Relm.html#method.connect) except it does not take a
+    /// `failure_callback`; hence, it ignores the errors.
     pub fn connect_ignore_err<CALLBACK, STREAM, TOSTREAM>(&self, to_stream: TOSTREAM, success_callback: CALLBACK)
             -> impl Future<Item=(), Error=()>
         where CALLBACK: Fn(STREAM::Item) -> UPDATE::Msg + 'static,
@@ -166,6 +175,7 @@ impl<UPDATE: Update> Relm<UPDATE> {
               FAILCALLBACK: Fn(STREAM::Error) -> UPDATE::Msg + 'static,
               STREAM: Stream + 'static,
               TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
+              UPDATE: 'static,
               UPDATE::Msg: 'static,
     {
         self.exec(self.connect(to_stream, callback, failure_callback));
@@ -176,6 +186,7 @@ impl<UPDATE: Update> Relm<UPDATE> {
         where CALLBACK: Fn(STREAM::Item) -> UPDATE::Msg + 'static,
               STREAM: Stream + 'static,
               TOSTREAM: ToStream<STREAM, Item=STREAM::Item, Error=STREAM::Error> + 'static,
+              UPDATE: 'static,
               UPDATE::Msg: 'static,
     {
         self.exec(self.connect_ignore_err(to_stream, callback));

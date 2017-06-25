@@ -36,7 +36,6 @@
 //!
 //! More info can be found in the [readme](https://github.com/antoyo/relm#relm).
 
-#![cfg_attr(feature = "use_impl_trait", feature(conservative_impl_trait))]
 #![warn(
     missing_docs,
     trivial_casts,
