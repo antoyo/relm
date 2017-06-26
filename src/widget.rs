@@ -59,7 +59,6 @@ pub trait Widget
     /// Create the window from this widget and start the main loop.
     fn run(model_param: Self::ModelParam) -> Result<(), ()>
         where Self: 'static,
-              Self::ModelParam: Default,
     {
         run::<Self>(model_param)
     }

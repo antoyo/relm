@@ -47,13 +47,11 @@
 )]
 
 /*
+ * FIXME: cannot add a trailing coma at the end of a initializer list.
  * TODO: switch from gtk::main() to MainLoop to avoid issues with nested loops.
  * TODO: prefix generated container name with _ to hide warnings.
  * TODO: remove the code generation related to using self in event handling.
  * TODO: remove the closure transformer code.
- *
- * TODO: connect the events and set the properties in Widget::created() (renamed from init_view()).
- *      is it still a thing to do?
  *
  * TODO: move most of the examples in the tests/ directory.
  * TODO: add construct-only properties for relm widget (to replace initial parameters) to allow
@@ -133,7 +131,7 @@ pub use relm_state::{
     create_executor,
     execute,
 };
-use relm_state::init_component;
+pub use relm_state::init_component;
 
 pub use callback::Resolver;
 pub use component::Component;
@@ -143,6 +141,17 @@ pub use widget::Widget;
 extern "C" {
     pub fn g_object_new_with_properties(object_type: GType, n_properties: c_uint, names: *mut *const c_char,
                                         values: *mut *const GValue) -> *mut GObject;
+}
+
+#[macro_export]
+macro_rules! create_component {
+    (<$widget_type:ty> :: $relm:expr, $model_param:expr $( , $widget:ident )*) => {{
+        let (widget, component, child_relm) = $crate::create_widget::<$widget_type>($relm.executor(), $model_param);
+        // TODO: allow not calling widget() here.
+        $($widget = component.$widget.widget().clone();)*
+        $crate::init_component::<$widget_type>(widget.stream(), component, $relm.executor(), &child_relm);
+        widget
+    }};
 }
 
 /// Dummy macro to be used with `#[derive(Widget)]`.
@@ -219,7 +228,8 @@ pub fn create_container<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: C
     ContainerComponent::new(widget, container, containers)
 }
 
-fn create_widget<WIDGET>(executor: &Executor, model_param: WIDGET::ModelParam)
+/// Create a new relm widget with `model_param` as initialization value.
+pub fn create_widget<WIDGET>(executor: &Executor, model_param: WIDGET::ModelParam)
     -> (Component<WIDGET>, WIDGET, Relm<WIDGET>)
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
@@ -306,7 +316,8 @@ pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WI
     Ok(component)
 }
 
-fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
+/// Initialize a widget.
+pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static
 {
@@ -371,7 +382,6 @@ fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()
 /// ```
 pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>
     where WIDGET: Widget + 'static,
-          WIDGET::ModelParam: Default,
 {
     let _component = init::<WIDGET>(model_param)?;
     gtk::main();
