@@ -271,7 +271,7 @@ pub fn create_executor() -> Executor {
 /// Create a bare component, i.e. a component only implementing the Update trait, not the Widget
 /// trait.
 pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> EventStream<UPDATE::Msg>
-    where UPDATE: Update + UpdateNew + 'static
+where UPDATE: Update + UpdateNew + 'static
 {
     let executor = create_executor();
     let stream = EventStream::new();

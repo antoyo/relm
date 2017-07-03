@@ -48,6 +48,7 @@
 
 /*
  * FIXME: cannot add a trailing coma at the end of a initializer list.
+ * TODO: show a warning when a component is imediately destroyed.
  * TODO: switch from gtk::main() to MainLoop to avoid issues with nested loops.
  * TODO: prefix generated container name with _ to hide warnings.
  * TODO: remove the code generation related to using self in event handling.
@@ -131,7 +132,7 @@ pub use relm_state::{
     create_executor,
     execute,
 };
-pub use relm_state::init_component;
+use relm_state::init_component;
 
 pub use callback::Resolver;
 pub use component::Component;
@@ -141,17 +142,6 @@ pub use widget::Widget;
 extern "C" {
     pub fn g_object_new_with_properties(object_type: GType, n_properties: c_uint, names: *mut *const c_char,
                                         values: *mut *const GValue) -> *mut GObject;
-}
-
-#[macro_export]
-macro_rules! create_component {
-    (<$widget_type:ty> :: $relm:expr, $model_param:expr $( , $widget:ident )*) => {{
-        let (widget, component, child_relm) = $crate::create_widget::<$widget_type>($relm.executor(), $model_param);
-        // TODO: allow not calling widget() here.
-        $($widget = component.$widget.widget().clone();)*
-        $crate::init_component::<$widget_type>(widget.stream(), component, $relm.executor(), &child_relm);
-        widget
-    }};
 }
 
 /// Dummy macro to be used with `#[derive(Widget)]`.
@@ -229,7 +219,7 @@ pub fn create_container<CHILDWIDGET, WIDGET>(relm: &Relm<WIDGET>, model_param: C
 }
 
 /// Create a new relm widget with `model_param` as initialization value.
-pub fn create_widget<WIDGET>(executor: &Executor, model_param: WIDGET::ModelParam)
+fn create_widget<WIDGET>(executor: &Executor, model_param: WIDGET::ModelParam)
     -> (Component<WIDGET>, WIDGET, Relm<WIDGET>)
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
