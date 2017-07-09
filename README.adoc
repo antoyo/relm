@@ -27,7 +27,7 @@ First, add this to you `Cargo.toml`:
 
 [source,bash]
 ----
-relm = "0.5.0"
+relm = "0.9.6"
 ----
 
 Next, add this to your crate:
