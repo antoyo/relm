@@ -186,7 +186,7 @@ macro_rules! relm_widget {
 #[macro_export]
 macro_rules! use_impl_self_type {
     (impl Widget for $self_type:ident { $($tts:tt)* }) => {
-        pub use __relm_gen_private::$self_type;
+        pub use self::__relm_gen_private::$self_type;
     };
 }
 
