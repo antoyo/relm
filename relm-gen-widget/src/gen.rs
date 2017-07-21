@@ -208,20 +208,25 @@ impl<'a> Generator<'a> {
     fn collect_event(&mut self, widget_name: &Ident, name: &str, event: &Event) {
         let event_ident = Ident::new(format!("connect_{}", name));
         let event_params: Vec<_> = event.params.iter().map(|ident| Ident::new(ident.as_ref())).collect();
+        let shared_values = gen_shared_values(&event.shared_values);
         let metadata = gen_event_metadata(event);
         let connect =
             match event.value {
                 CurrentWidget(WithoutReturn(ref event_value)) => quote! {{
+                    #shared_values
                     connect!(relm, #widget_name, #event_ident(#(#event_params),*), #metadata #event_value);
                 }},
                 ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {{
+                    #shared_values
                     connect!(#widget_name, #event_ident(#(#event_params),*), #foreign_widget_name, #event_value);
                 }},
                 CurrentWidget(Return(ref event_value, ref return_value)) => quote! {{
+                    #shared_values
                     connect!(relm, #widget_name, #event_ident(#(#event_params),*), return (#event_value, #return_value));
                 }},
                 ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
                 CurrentWidget(CallReturn(ref func)) => quote! {{
+                    #shared_values
                     connect!(relm, #widget_name, #event_ident(#(#event_params),*), #metadata #func);
                 }},
 
@@ -458,11 +463,6 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
 }
 
 fn gen_event_metadata(event: &Event) -> Tokens {
-    if event.async {
-        return quote! {
-            async
-        };
-    }
     if let CurrentWidget(CallReturn(_)) = event.value {
         quote! {
             return
@@ -470,6 +470,17 @@ fn gen_event_metadata(event: &Event) -> Tokens {
     }
     else {
         quote! {}
+    }
+}
+
+fn gen_shared_values(shared_values: &[Ident]) -> Tokens {
+    let model_ident = Ident::new(MODEL_IDENT);
+    let field_values = shared_values.iter()
+        .map(|ident| quote! {
+            #model_ident.#ident.clone()
+        });
+    quote! {
+        #(let #shared_values: Rc<_> = #field_values;)*
     }
 }
 

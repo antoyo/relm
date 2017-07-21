@@ -47,8 +47,8 @@
 )]
 
 /*
- * FIXME: cannot add a trailing coma at the end of a initializer list.
  * TODO: show a warning when a component is imediately destroyed.
+ * FIXME: cannot add a trailing coma at the end of a initializer list.
  * TODO: switch from gtk::main() to MainLoop to avoid issues with nested loops.
  * TODO: prefix generated container name with _ to hide warnings.
  * TODO: remove the code generation related to using self in event handling.
@@ -87,7 +87,6 @@
  * TODO: try tk-easyloop in another branch.
  */
 
-extern crate futures;
 extern crate futures_glib;
 extern crate glib;
 extern crate glib_sys;
@@ -95,12 +94,9 @@ extern crate gobject_sys;
 extern crate gtk;
 extern crate gtk_sys;
 extern crate libc;
-#[macro_use]
-extern crate log;
 extern crate relm_core;
 extern crate relm_state;
 
-mod callback;
 mod component;
 mod container;
 mod macros;
@@ -134,7 +130,6 @@ pub use relm_state::{
 };
 use relm_state::init_component;
 
-pub use callback::Resolver;
 pub use component::Component;
 pub use container::{Container, ContainerComponent, ContainerWidget};
 pub use widget::Widget;

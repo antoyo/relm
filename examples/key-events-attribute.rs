@@ -21,7 +21,6 @@
 
 #![feature(proc_macro)]
 
-extern crate futures;
 extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
@@ -30,25 +29,28 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
+use std::cell::Cell;
+use std::rc::Rc;
+
 use gtk::{
     Inhibit,
     WidgetExt,
 };
-use relm::{Relm, Resolver, Widget};
+use relm::{Relm, Widget};
 use relm_attributes::widget;
 
 use self::Msg::*;
 
 #[derive(Msg)]
 pub enum Msg {
-    Delete(Resolver<Inhibit>),
+    Delete,
     Press,
     Release,
     Quit,
 }
 
 pub struct Model {
-    press_count: i32,
+    press_count: Rc<Cell<i32>>,
     relm: Relm<Win>,
 }
 
@@ -56,22 +58,20 @@ pub struct Model {
 impl Widget for Win {
     fn model(relm: &Relm<Self>, _: ()) -> Model {
         Model {
-            press_count: 0,
+            press_count: Rc::new(Cell::new(0)),
             relm: relm.clone(),
         }
     }
 
     fn update(&mut self, event: Msg) {
         match event {
-            Delete(mut resolver) => {
-                let inhibit = self.model.press_count > 3;
-                resolver.resolve(Inhibit(inhibit));
-                if !inhibit {
+            Delete => {
+                if self.model.press_count.get() <= 3 {
                     self.model.relm.stream().emit(Quit);
                 }
             },
             Press => {
-                self.model.press_count += 1;
+                self.model.press_count.set(self.model.press_count.get() + 1);
                 println!("Press");
             },
             Release => {
@@ -85,9 +85,13 @@ impl Widget for Win {
         gtk::Window {
             key_press_event(_, key) => (Press, Inhibit(false)),
             key_release_event(_, key) => (Release, Inhibit(false)),
-            delete_event(_, _) => async Delete,
+            delete_event(_, _) with (press_count) => (Delete, inhibit_delete_event(&press_count)),
         }
     }
+}
+
+fn inhibit_delete_event(press_count: &Rc<Cell<i32>>) -> Inhibit {
+    Inhibit(press_count.get() > 3)
 }
 
 fn main() {

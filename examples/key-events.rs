@@ -19,7 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate futures;
 extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
@@ -33,13 +32,13 @@ use gtk::{
     Window,
     WindowType,
 };
-use relm::{Relm, Resolver, Update, Widget};
+use relm::{Relm, Update, Widget};
 
 use self::Msg::*;
 
 #[derive(Msg)]
 pub enum Msg {
-    Delete(i32, Resolver<Inhibit>),
+    Delete,
     Press,
     Release,
     Quit,
@@ -69,10 +68,8 @@ impl Update for Win {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Delete(_, mut resolver) => {
-                let inhibit = self.model.press_count > 3;
-                resolver.resolve(Inhibit(inhibit));
-                if !inhibit {
+            Delete => {
+                if self.model.press_count <= 3 {
                     self.model.relm.stream().emit(Quit);
                 }
             },
@@ -102,7 +99,7 @@ impl Widget for Win {
 
         connect!(relm, window, connect_key_press_event(_, _), return (Press, Inhibit(false)));
         connect!(relm, window, connect_key_release_event(_, _), return (Release, Inhibit(false)));
-        connect!(relm, window, connect_delete_event(_, _), async Delete(42));
+        connect!(relm, window, connect_delete_event(_, _), return (Delete, Inhibit(true)));
 
         Win {
             model,

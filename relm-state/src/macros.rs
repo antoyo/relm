@@ -32,14 +32,9 @@
 /// Option<MSG> can be None if no message needs to be emitted.
 ///
 /// Rule #3:
-/// Send `$msg` with a Resolver and block the callback into it resolves to a value.
-/// This is useful in case you need an access to the model to decide whether you want to inhibit
-/// the event or not.
-///
-/// Rule #4:
 /// Send `$msg` when the GTK+ `$event` is emitted on `$widget`.
 ///
-/// Rule #5:
+/// Rule #4:
 /// Send `$msg` to `$widget` when the `$message` is received on `$stream`.
 #[macro_export]
 macro_rules! connect {
@@ -54,23 +49,6 @@ macro_rules! connect {
     // Option<MSG> can be None if no message needs to be emitted.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), return $msg:expr) => {{
         connect_stream!(return $relm.stream(), $widget, $event($($args),*), $msg);
-    }};
-
-    // Connect to a GTK+ widget event where the return value is retrieved asynchronously.
-    ($relm:expr, $widget:expr, $event:ident($($args:pat),*), async $msg:ident $( ( $( $arg:expr ),*) )* ) => {{
-        let stream = $relm.stream().clone();
-        let _ = $widget.$event(move |$($args),*| {
-            let cx = ::futures_glib::MainContext::default(|cx| cx.clone());
-            let lp = ::relm::MainLoop::new(Some(&cx));
-            let (resolver, rx) = ::relm::Resolver::channel(lp.clone());
-            let msg: Option<_> = $crate::IntoOption::into_option($msg($($($arg,)*)* resolver));
-            if let Some(msg) = msg {
-                stream.emit(msg);
-            }
-            lp.run();
-            // TODO: remove unwrap().
-            ::futures::Stream::wait(rx).next().unwrap().unwrap()
-        });
     }};
 
     // Connect to a GTK+ widget event.

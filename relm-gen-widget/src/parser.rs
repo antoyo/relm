@@ -67,8 +67,8 @@ pub enum EventValue {
 
 #[derive(Debug)]
 pub struct Event {
-    pub async: bool,
     pub params: Vec<syn::Ident>,
+    pub shared_values: Vec<syn::Ident>,
     pub use_self: bool,
     pub value: EventValue,
 }
@@ -76,8 +76,8 @@ pub struct Event {
 impl Event {
     fn new() -> Self {
         Event {
-            async: false,
             params: vec![syn::Ident::new("_")],
+            shared_values: vec![],
             use_self: false,
             value: CurrentWidget(WithoutReturn(Tokens::new())),
         }
@@ -246,9 +246,7 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
     if let TokenTree::Delimited(Delimited { delim: Brace, ref tts }) = tokens[0] {
         let mut tts = &tts[..];
         while !tts.is_empty() {
-            let (async, new_tts) = try_parse_async(tts);
-            tts = new_tts;
-            if !async && (tts[0] == Token(Pound) || try_parse_name(tts).is_some()) {
+            if tts[0] == Token(Pound) || try_parse_name(tts).is_some() {
                 let (child, new_tts, _) = parse_child(tts, false);
                 tts = new_tts;
                 children.push(child);
@@ -269,8 +267,7 @@ fn parse_widget(tokens: &[TokenTree], save: bool) -> (Widget, &[TokenTree]) {
                         tts = new_tts;
                     },
                     TokenTree::Delimited(Delimited { delim: Paren, .. }) | Token(FatArrow) => {
-                        let (mut event, new_tts) = parse_event(tts, DefaultOneParam);
-                        event.async = async;
+                        let (event, new_tts) = parse_event(tts, DefaultOneParam);
                         gtk_widget.events.insert(ident, event);
                         tts = new_tts;
                     },
@@ -450,29 +447,33 @@ fn parse_event(mut tokens: &[TokenTree], default_param: DefaultParam) -> (Event,
         event.params = parse_comma_ident_list(tts);
         tokens = &tokens[1..];
     }
+    tokens = try_parse_shared_values(tokens, &mut event);
     if tokens[0] != Token(FatArrow) {
         panic!("Expected `=>` but found `{:?}` in view! macro", tokens[0]);
     }
     tokens = &tokens[1..];
-    event.value =
-        // Message sent to another widget.
-        if tokens.len() >= 2 && tokens[1] == Token(At) {
-            let (event_value, new_tokens, use_self) = parse_event_value(&tokens[2..]);
-            event.use_self = use_self;
-            let (ident, _) = parse_ident(tokens);
-            tokens = new_tokens;
-            let mut ident_tokens = Tokens::new();
-            ident_tokens.append(ident);
-            ForeignWidget(ident_tokens, event_value)
-        }
-        // Message sent to the same widget.
-        else {
-            let (event_value, new_tokens, use_self) = parse_event_value(tokens);
-            event.use_self = use_self;
-            tokens = new_tokens;
-            CurrentWidget(event_value)
-        };
+    tokens = parse_message_sent(tokens, &mut event);
     (event, tokens)
+}
+
+fn parse_message_sent<'a>(tokens: &'a [TokenTree], event: &mut Event) -> &'a [TokenTree] {
+    // Message sent to another widget.
+    if tokens.len() >= 2 && tokens[1] == Token(At) {
+        let (event_value, new_tokens, use_self) = parse_event_value(&tokens[2..]);
+        event.use_self = use_self;
+        let (ident, _) = parse_ident(tokens);
+        let mut ident_tokens = Tokens::new();
+        ident_tokens.append(ident);
+        event.value = ForeignWidget(ident_tokens, event_value);
+        new_tokens
+    }
+    // Message sent to the same widget.
+    else {
+        let (event_value, new_tokens, use_self) = parse_event_value(tokens);
+        event.use_self = use_self;
+        event.value = CurrentWidget(event_value);
+        new_tokens
+    }
 }
 
 fn parse_event_value(tokens: &[TokenTree]) -> (EventValueReturn, &[TokenTree], bool) {
@@ -689,15 +690,19 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
     (widget, &tokens[1..])
 }
 
-fn try_parse_async(tokens: &[TokenTree]) -> (bool, &[TokenTree]) {
-    if let Token(Pound) = tokens[0] {
-        if let TokenTree::Delimited(Delimited { delim: Bracket, ref tts }) = tokens[1] {
-            if tts[0] == Token(Ident(syn::Ident::new("async"))) {
-                return (true, &tokens[2..]);
-            }
+fn try_parse_shared_values<'a>(tokens: &'a [TokenTree], event: &mut Event) -> &'a [TokenTree] {
+    if tokens[0] == Token(Ident(syn::Ident::new("with"))) {
+        if let TokenTree::Delimited(Delimited { delim: Paren, ref tts }) = tokens[1] {
+            event.shared_values = parse_comma_ident_list(tts);
         }
+        else {
+            panic!("Expected `(` after `with` but found `{:?}` in view! macro", tokens[1]);
+        }
+        &tokens[2..]
     }
-    (false, tokens)
+    else {
+        tokens
+    }
 }
 
 fn tokens_to_expr(tokens: Tokens) -> Expr {
