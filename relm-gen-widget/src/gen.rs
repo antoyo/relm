@@ -475,12 +475,25 @@ fn gen_event_metadata(event: &Event) -> Tokens {
 
 fn gen_shared_values(shared_values: &[Ident]) -> Tokens {
     let model_ident = Ident::new(MODEL_IDENT);
-    let field_values = shared_values.iter()
-        .map(|ident| quote! {
-            #model_ident.#ident.clone()
+    let fields = shared_values.iter()
+        .map(|ident| {
+             let typ =
+                 if ident == "relm" {
+                     quote! {
+                         Relm<_>
+                     }
+                 }
+                 else {
+                     quote! {
+                         Rc<_>
+                     }
+                 };
+             quote! {
+                 let #ident: #typ = #model_ident.#ident.clone();
+             }
         });
     quote! {
-        #(let #shared_values: Rc<_> = #field_values;)*
+        #(#fields)*
     }
 }
 

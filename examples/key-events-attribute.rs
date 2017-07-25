@@ -85,12 +85,12 @@ impl Widget for Win {
         gtk::Window {
             key_press_event(_, key) => (Press, Inhibit(false)),
             key_release_event(_, key) => (Release, Inhibit(false)),
-            delete_event(_, _) with (press_count) => (Delete, inhibit_delete_event(&press_count)),
+            delete_event(_, _) with (press_count, relm) => (Delete, inhibit_delete_event(&press_count, &relm)),
         }
     }
 }
 
-fn inhibit_delete_event(press_count: &Rc<Cell<i32>>) -> Inhibit {
+fn inhibit_delete_event(press_count: &Rc<Cell<i32>>, _relm: &Relm<Win>) -> Inhibit {
     Inhibit(press_count.get() > 3)
 }
 
