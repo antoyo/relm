@@ -27,7 +27,9 @@ First, add this to you `Cargo.toml`:
 
 [source,bash]
 ----
+gtk = "^0.1.2"
 relm = "0.9.6"
+relm-derive = "^0.9.2"
 ----
 
 Next, add this to your crate:
@@ -150,7 +152,7 @@ Finally, show this `Widget` by calling `relm::run()`:
 [source,rust]
 ----
 fn main() {
-    relm::run::<Win>().unwrap();
+    relm::run::<Win>(()).unwrap();
 }
 ----
 
@@ -164,6 +166,24 @@ This attribute does the following:
  * Automatically create the `fn container()`, `type Msg`, `type Model` and `type Root` items.
  * Automatically insert the call to `Widget::set_property()` in the `update()` function when assigning to an attribute of the model.
  * Automatically create the `Widget` `struct`.
+
+To be able to use this attribute, you need to add the `relm-attributes` crate in your `Cargo.toml`:
+
+[source,toml]
+----
+relm-attributes = "^0.9.0"
+----
+
+and to add the following code:
+
+[source,rust]
+----
+#![feature(proc_macro)]
+
+extern crate relm_attributes;
+
+use relm_attributes::widget;
+----
 
 Here is an example using this attribute:
 
