@@ -295,3 +295,4 @@ For more information about how you can use relm, you can take a look at the http
  * https://github.com/sanpii/yellow-pitaya[Yellow Pitaya]
  * https://github.com/juchiast/gameoflife[Game of Life]
  * https://github.com/sebasmagri/rusty-sounds[Rusty Sounds]
+ * https://github.com/etrombly/country_parser[Country Parser]
