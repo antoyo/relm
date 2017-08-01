@@ -38,17 +38,7 @@ path = "relm-state"
 version = "^0.1.0"
 
 [dev-dependencies]
-base64 = "^0.4.0"
-blake2 = "^0.4.0"
-byteorder = "^1.0.0"
 chrono = "^0.3.0"
-rand = "^0.3.15"
-simplelog = "^0.4.2"
-tokio-core = "^0.1.4"
-tokio-proto = "^0.1.0"
-tokio-service = "^0.1.0"
-twist = "^0.5.0"
-url = "^1.4.0"
 
 [dev-dependencies.relm-attributes]
 path = "relm-attributes"
