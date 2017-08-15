@@ -1,6 +1,9 @@
 [package]
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
+description = "Non UI part of relm"
+license = "MIT"
 name = "relm-state"
+repository = "https://github.com/antoyo/relm"
 version = "0.10.0"
 
 [dependencies]
