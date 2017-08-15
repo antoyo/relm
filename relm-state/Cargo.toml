@@ -5,10 +5,8 @@ version = "0.10.0"
 
 [dependencies]
 futures = "^0.1.14"
+futures-glib = "^0.1.0"
 log = "^0.3.7"
-
-[dependencies.futures-glib]
-git = "https://github.com/antoyo/futures-glib-rs"
 
 [dependencies.relm-core]
 path = "../relm-core"
