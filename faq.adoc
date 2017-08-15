@@ -1,0 +1,4 @@
+= Frequently Asked Questions
+
+Why does a widget seem unresponsive/does not respond to events?:: This can happen if you do not keep the component representing the widget.
+When a component is dropped, its communication channel is closed so that any message sent will be ignored.
