@@ -1,7 +1,10 @@
 [package]
+authors = ["Antoni Boucher <bouanto@zoho.com>"]
+description = "Custom derive required by the relm-state crate."
+license = "MIT"
 name = "relm-derive-state"
 version = "0.10.0"
-authors = ["Antoni Boucher <bouanto@zoho.com>"]
+repository = "https://github.com/antoyo/relm"
 
 [lib]
 proc-macro = true
