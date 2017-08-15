@@ -116,7 +116,7 @@ impl Widget for Win {
         }
     }
 
-    fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
+    fn update_command(relm: &Relm<Self>, event: Msg, model: &mut Model) {
         if let Send = event {
             if let Some(ref service) = model.service {
                 // Send the message to the server.

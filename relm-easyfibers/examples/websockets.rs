@@ -61,7 +61,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use rand::Rng;
-use relm::{Handle, Relm, RemoteRelm, Widget};
+use relm::{Handle, Relm, Widget};
 use tokio_core::net::TcpStream;
 use tokio_proto::TcpClient;
 use tokio_proto::pipeline::ClientService;
@@ -131,7 +131,7 @@ impl Widget for Win {
         }
     }
 
-    fn update_command(relm: &Relm<Msg>, event: Msg, model: &mut Model) {
+    fn update_command(relm: &Relm<Self>, event: Msg, model: &mut Model) {
         if let Send(message) = event {
             if let Some(ref service) = model.service {
                 let send_future = ws_send(service, &message);
@@ -140,7 +140,7 @@ impl Widget for Win {
         }
     }
 
-    fn view(relm: &RemoteRelm<Self>, _model: &Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, _model: &Self::Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let label = Label::new(None);
