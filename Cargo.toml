@@ -6,7 +6,7 @@ documentation = "https://docs.rs/relm/"
 license = "MIT"
 name = "relm"
 repository = "https://github.com/antoyo/relm"
-version = "0.9.6"
+version = "0.10.0"
 
 [badges]
 
@@ -31,26 +31,26 @@ git = "https://github.com/antoyo/futures-glib-rs"
 
 [dependencies.relm-core]
 path = "relm-core"
-version = "^0.1.1"
+version = "^0.10.0"
 
 [dependencies.relm-state]
 path = "relm-state"
-version = "^0.1.0"
+version = "^0.10.0"
 
 [dev-dependencies]
 chrono = "^0.3.0"
 
 [dev-dependencies.relm-attributes]
 path = "relm-attributes"
-version = "^0.9.0"
+version = "^0.10.0"
 
 [dev-dependencies.relm-derive]
 path = "relm-derive"
-version = "^0.9.0"
+version = "^0.10.0"
 
 [dev-dependencies.relm-test]
 path = "relm-test"
-version = "^0.1.0"
+version = "^0.10.0"
 
 [features]
 nightly = []
