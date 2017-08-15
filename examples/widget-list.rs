@@ -126,7 +126,7 @@ enum Msg {
 struct Win {
     counters: Vec<Component<Counter>>,
     hbox: gtk::Box,
-    relm: Relm<Msg>,
+    relm: Relm<Win>,
     window: Window,
 }
 

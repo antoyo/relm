@@ -167,6 +167,7 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
         where CHILDWIDGET: Widget + 'static,
               CHILDWIDGET::Msg: DisplayVariant + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
+              WIDGET: Widget,
     {
         let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(relm.executor(), model_param);
         self.add(widget.widget());

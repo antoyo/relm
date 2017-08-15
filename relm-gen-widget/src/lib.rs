@@ -534,48 +534,6 @@ fn get_second_param_type(sig: &MethodSig) -> Ty {
     }
 }
 
-fn get_view(name: &Ident, state: &mut State) -> View {
-    {
-        let segments = &state.view_macro.as_ref().expect("view! macro missing").path.segments;
-        if segments.len() != 1 || segments[0].ident != "view" {
-            panic!("Unexpected macro item")
-        }
-    }
-    impl_view(name, state)
-}
-
-fn impl_view(name: &Ident, state: &mut State) -> View {
-    let tokens = &state.view_macro.as_ref().expect("view_macro in impl_view()").tts;
-    if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
-        let mut widget = parse(tts);
-        if let Gtk(ref mut widget) = widget {
-            widget.relm_name = Some(name.clone());
-        }
-        let mut properties_model_map = HashMap::new();
-        get_properties_model_map(&widget, &mut properties_model_map);
-        add_widgets(&widget, &mut state.widgets, &properties_model_map);
-        let idents: Vec<_> = state.widgets.keys().collect();
-        let (view, relm_widgets, container_impl) = gen(name, &widget, &mut state.root_widget, &mut state.root_widget_expr, &mut state.root_widget_type, &idents);
-        let event_type = &state.widget_msg_type;
-        let item = block_to_impl_item(quote! {
-            #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
-            fn view(relm: ::relm::Relm<#event_type>, model: &Self::Model) -> Self {
-                #view
-            }
-        });
-        View {
-            container_impl: container_impl,
-            item: item,
-            properties_model_map: properties_model_map,
-            relm_widgets: relm_widgets,
-            widget: widget,
-        }
-    }
-    else {
-        panic!("Expected `{{` but found `{:?}` in view! macro", tokens[0]);
-    }
-}
-
 fn gen_set_child_prop_calls(widget: &Widget) -> Option<ImplItem> {
     let mut tokens = Tokens::new();
     let widget_name = &widget.name;
