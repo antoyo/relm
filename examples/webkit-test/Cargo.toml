@@ -6,11 +6,13 @@ version = "0.1.0"
 [dependencies]
 futures = "^0.1.10"
 gtk = "^0.1.2"
-relm = { path = "../.." }
-relm-attributes = { path = "../../relm-attributes" }
-relm-derive = { path = "../../relm-derive" }
+webkit2gtk = "^0.1.0"
 
-[dependencies.webkit2gtk]
-branch = "crate"
-git = "https://github.com/antoyo/webkit2gtk-rs"
-version = "^0.1"
+[dependencies.relm]
+path = "../.."
+
+[dependencies.relm-attributes]
+path = "../../relm-attributes"
+
+[dependencies.relm-derive]
+path = "../../relm-derive"
