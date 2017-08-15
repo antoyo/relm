@@ -273,7 +273,7 @@ fn init_gtk() {
 /// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
 /// #     }
 /// #
-/// #     fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
+/// #     fn view(relm: &Relm<Self>, _model: &Self::Model) -> Self {
 /// #         let window = Window::new(WindowType::Toplevel);
 /// #
 /// #         Win {
@@ -285,7 +285,7 @@ fn init_gtk() {
 /// # #[derive(Msg)]
 /// # enum Msg {}
 /// # fn main() {
-/// let component = relm::init_test::<Win>().unwrap();
+/// let component = relm::init_test::<Win>(()).unwrap();
 /// let widgets = component.widget();
 /// # }
 /// ```
@@ -347,7 +347,7 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
 /// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
 /// #     }
 /// #
-/// #     fn view(relm: Relm<Msg>, _model: &Self::Model) -> Self {
+/// #     fn view(relm: &Relm<Self>, _model: &Self::Model) -> Self {
 /// #         let window = Window::new(WindowType::Toplevel);
 /// #
 /// #         Win {
