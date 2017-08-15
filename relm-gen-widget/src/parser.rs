@@ -665,7 +665,7 @@ fn parse_relm_widget(tokens: &[TokenTree]) -> (Widget, &[TokenTree]) {
                         if ident.chars().next().map(|char| char.is_lowercase()) == Some(false) {
                             // Uppercase is a msg.
                             let (event, new_tts) = parse_event(&tts[0..], DefaultNoParam);
-                            let mut entry = relm_widget.events.entry(ident).or_insert_with(Vec::new);
+                            let entry = relm_widget.events.entry(ident).or_insert_with(Vec::new);
                             entry.push(event);
                             tts = new_tts;
                         }
