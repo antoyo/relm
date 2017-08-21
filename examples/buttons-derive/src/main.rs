@@ -28,6 +28,7 @@ extern crate relm_derive;
 use gtk::{
     ButtonExt,
     Inhibit,
+    LabelExt,
     OrientableExt,
     WidgetExt,
 };
