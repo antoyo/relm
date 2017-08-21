@@ -33,6 +33,7 @@ use std::fmt::Display;
 use gtk::{
     ButtonExt,
     Inhibit,
+    LabelExt,
     OrientableExt,
     WidgetExt,
 };

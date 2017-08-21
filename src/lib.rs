@@ -307,7 +307,7 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
           WIDGET::Msg: DisplayVariant + 'static
 {
     futures_glib::init();
-    gtk::init()?;
+    gtk::init().map_err(|_| ())?;
 
     let executor = create_executor();
     let (widget, component, relm) = create_widget::<WIDGET>(&executor, model_param);

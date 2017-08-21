@@ -28,7 +28,7 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
-use gtk::{Inhibit, WidgetExt};
+use gtk::{Inhibit, LabelExt, WidgetExt};
 use relm::Widget;
 use relm_attributes::widget;
 

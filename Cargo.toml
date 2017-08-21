@@ -5,8 +5,9 @@ description = "Asynchronous, GTK+-based, GUI library, inspired by Elm, written i
 documentation = "https://docs.rs/relm/"
 license = "MIT"
 name = "relm"
+readme = "README.adoc"
 repository = "https://github.com/antoyo/relm"
-version = "0.10.0"
+version = "0.10.1"
 
 [badges]
 
@@ -20,11 +21,11 @@ repository = "antoyo/relm"
 
 [dependencies]
 futures-glib = "^0.2.0"
-glib = "^0.1.2"
-glib-sys = "^0.3.4"
-gobject-sys = "^0.3.3"
-gtk = "^0.1.1"
-gtk-sys = "^0.3.3"
+glib = "^0.3.0"
+glib-sys = "^0.4.0"
+gobject-sys = "^0.4.0"
+gtk = "^0.2.0"
+gtk-sys = "^0.4.0"
 libc = "^0.2.22"
 
 [dependencies.relm-core]

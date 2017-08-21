@@ -36,6 +36,7 @@ use chrono::{DateTime, Local};
 use futures_glib::Interval;
 use gtk::{
     Inhibit,
+    LabelExt,
     WidgetExt,
 };
 use relm::{Relm, Widget};

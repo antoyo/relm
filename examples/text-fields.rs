@@ -32,6 +32,7 @@ use gtk::{
     EntryExt,
     Inhibit,
     Label,
+    LabelExt,
     WidgetExt,
     Window,
     WindowType,

@@ -32,6 +32,7 @@ use gtk::{
     EditableSignals,
     EntryExt,
     Inhibit,
+    LabelExt,
     OrientableExt,
     WidgetExt,
 };

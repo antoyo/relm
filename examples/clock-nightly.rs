@@ -33,7 +33,15 @@ use std::time::Duration;
 
 use chrono::Local;
 use futures_glib::Interval;
-use gtk::{ContainerExt, Inhibit, Label, WidgetExt, Window, WindowType};
+use gtk::{
+    ContainerExt,
+    Inhibit,
+    Label,
+    LabelExt,
+    WidgetExt,
+    Window,
+    WindowType,
+};
 use relm::{Relm, Update, Widget};
 
 use self::Msg::*;

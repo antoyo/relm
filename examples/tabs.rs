@@ -31,6 +31,8 @@ extern crate relm_derive;
 use gtk::{
     ButtonExt,
     Inhibit,
+    LabelExt,
+    NotebookExt,
     WidgetExt,
 };
 use relm::Widget;

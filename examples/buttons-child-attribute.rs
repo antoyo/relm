@@ -32,6 +32,7 @@ use gtk::{
     BoxExt,
     ButtonExt,
     Inhibit,
+    LabelExt,
     OrientableExt,
     PackType,
     WidgetExt,

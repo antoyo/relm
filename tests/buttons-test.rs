@@ -33,6 +33,7 @@ extern crate relm_test;
 use gtk::{
     ButtonExt,
     Inhibit,
+    LabelExt,
     OrientableExt,
     WidgetExt,
 };

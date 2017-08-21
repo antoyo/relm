@@ -34,6 +34,7 @@ use gtk::{
     ContainerExt,
     Inhibit,
     Label,
+    LabelExt,
     WidgetExt,
     Window,
     WindowType,

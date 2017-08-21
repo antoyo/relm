@@ -33,9 +33,13 @@ use gtk::{
     CellRendererText,
     Inhibit,
     ListStore,
+    ListStoreExt,
+    ListStoreExtManual,
     ToValue,
     TreeSelection,
+    TreeSelectionExt,
     TreeViewColumn,
+    TreeViewExt,
     Type,
     WidgetExt,
 };
