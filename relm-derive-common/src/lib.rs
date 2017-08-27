@@ -10,8 +10,6 @@ use syn::{
     Generics,
     Ident,
     MacroInput,
-    Variant,
-    VariantData,
 };
 use syn::Body::Enum;
 use syn::VariantData::Unit;
@@ -102,22 +100,14 @@ fn derive_display_variant(ast: &MacroInput, krate: &Ident) -> Tokens {
     };
 
     if let Body::Enum(ref variants) = ast.body {
-        let variant_idents_values = gen_idents_count(variants);
-        let variant_patterns = variant_idents_values.iter().map(|&(ref ident, value_count)| {
-            let value_idents = gen_ignored_idents(value_count);
-            if value_count > 0 {
-                quote! {
-                    #name::#ident(#(#value_idents),*)
-                }
-            }
-            else {
-                quote! {
-                    #name::#ident
-                }
+        let variant_patterns = variants.iter().map(|variant| {
+            let ident = &variant.ident;
+            quote! {
+                #name::#ident { .. }
             }
         });
-        let variant_names = variant_idents_values.iter().map(|&(ref ident, _)| {
-            ident.to_string()
+        let variant_names = variants.iter().map(|variant| {
+            variant.ident.to_string()
         });
         let where_clause = gen_where_clause(generics);
 
@@ -153,25 +143,6 @@ fn derive_into_option(ast: &MacroInput, krate: &Ident) -> Tokens {
             }
         }
     }
-}
-
-fn gen_idents_count(variants: &[Variant]) -> Vec<(&Ident, usize)> {
-    variants.iter().map(|variant| {
-        let value_count =
-            if let VariantData::Tuple(ref tuple) = variant.data {
-                tuple.len()
-            }
-            else {
-                0
-            };
-        (&variant.ident, value_count)
-    }).collect()
-}
-
-fn gen_ignored_idents(count: usize) -> Vec<Ident> {
-    (0..count)
-        .map(|_| Ident::new("_"))
-        .collect()
 }
 
 fn remove_generic_bounds(generics: &Generics) -> Generics {
