@@ -239,8 +239,8 @@ impl Widget for Win {
 }
 ----
 
-NOTE: The `struct Win` is now automatically created by the attribute, as are the function `root()` and the types `Model`, `ModelParam`, `Msg` and `Container`.
-You can still provide the method and the types if needed, but you cannot create the `struct`.
+NOTE: The `struct Win` is now automatically created by the attribute, as are the function `root()` and the associated types `Model`, `ModelParam`, `Msg` and `Container`.
+You can still provide the method and the associated types if needed, but you cannot create the `struct`.
 
 [NOTE]
 ====

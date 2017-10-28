@@ -47,6 +47,18 @@
 )]
 
 /*
+ * FIXME: some relm widgets requires { and } (see the rusic music-player) while other do not.
+ * FIXME: should not require to import WidgetExt because it calls show().
+ * FIXME: cannot have relm event with tuple as a value like:
+ * RelmWidget {
+ *     RelmEvent((value1, value2)) => …
+ * }
+ * TODO: use pub(crate) instead of pub so that we're not bound to make the model and msg structs pub.
+ *
+ * TODO: alternative to tokio with a trait to get FD and add this FD to glib (perhaps using a
+ * GSource).
+ * For timers, add a connect_timeout!() macro or something.
+ *
  * TODO: show a warning when a component is imediately destroyed.
  * FIXME: cannot add a trailing coma at the end of a initializer list.
  * TODO: switch from gtk::main() to MainLoop to avoid issues with nested loops.

@@ -94,6 +94,7 @@ impl<MSG> EventStream<MSG> {
     pub fn close(&self) -> Result<(), Error> {
         let mut stream = self.stream.borrow_mut();
         stream.terminated = true;
+        // TODO: document why it is needed.
         if let Some(ref task) = stream.task {
             task.notify();
         }
