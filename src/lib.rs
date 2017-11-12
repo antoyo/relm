@@ -162,7 +162,7 @@ macro_rules! impl_widget {
     };
 }
 
-/// Macro to be used as a stable alternative to the #[widget] attribute.
+/// Macro to be used as a stable alternative to the `#[widget]` attribute.
 #[macro_export]
 macro_rules! relm_widget {
     ($($tts:tt)*) => {
