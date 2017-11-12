@@ -21,7 +21,7 @@
 
 //! Asynchronous GUI library based on GTK+ and futures/tokio.
 //!
-//! This library provides a `Widget` trait that you can use to create asynchronous GUI components.
+//! This library provides a [`Widget`](trait.Widget.html) trait that you can use to create asynchronous GUI components.
 //! This is the trait you will need to implement for your application.
 //! It helps you to implement MVC (Model, View, Controller) in an elegant way.
 //!
