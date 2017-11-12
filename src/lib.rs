@@ -27,6 +27,7 @@
 //!
 //! ## Installation
 //! Add this to your `Cargo.toml`:
+//!
 //! ```toml
 //! [dependencies]
 //! gtk = "^0.1.2"
