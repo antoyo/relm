@@ -328,6 +328,7 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
 }
 
 /// Create the specified relm `Widget` and run the main event loops.
+///
 /// ```
 /// # extern crate gtk;
 /// # #[macro_use]
