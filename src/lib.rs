@@ -254,6 +254,7 @@ fn init_gtk() {
 /// Initialize a widget for a test.
 ///
 /// It is to be used this way:
+///
 /// ```
 /// # extern crate gtk;
 /// # #[macro_use]
