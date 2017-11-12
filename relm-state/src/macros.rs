@@ -21,21 +21,18 @@
 
 /// Connect events to sending a message.
 ///
-/// Rule #1:
-/// Send `$msg` to `$other_component` when the GTK+ `$event` is emitted on `$widget`.
+/// ## Rules
+/// 1. Send `$msg` to `$other_component` when the GTK+ `$event` is emitted on `$widget`.
 ///
-/// Rule #2:
-/// Optionally send `$msg.0` when the GTK+ `$event` is emitted on `$widget`.
+/// 2. Optionally send `$msg.0` when the GTK+ `$event` is emitted on `$widget`.
 /// Return `$msg.1` in the GTK+ callback.
 /// This variant gives more control to the caller since it expects a `$msg` returning `(Option<MSG>,
 /// ReturnValue)` where the `ReturnValue` is the value to return in the GTK+ callback.
 /// Option<MSG> can be None if no message needs to be emitted.
 ///
-/// Rule #3:
-/// Send `$msg` when the GTK+ `$event` is emitted on `$widget`.
+/// 3. Send `$msg` when the GTK+ `$event` is emitted on `$widget`.
 ///
-/// Rule #4:
-/// Send `$msg` to `$widget` when the `$message` is received on `$stream`.
+/// 4. Send `$msg` to `$widget` when the `$message` is received on `$stream`.
 #[macro_export]
 macro_rules! connect {
     // Connect to a GTK+ widget event, sending a message to another widget.
@@ -73,11 +70,10 @@ macro_rules! connect {
 /// Connect events to sending a message.
 /// Similar to `connect!` but wants a stream instead of a component.
 ///
-/// Rule #1:
-/// Send `$msg` to `$other_stream` when the GTK+ `$event` is emitted on `$widget`.
+/// ## Rules
+/// 1. Send `$msg` to `$other_stream` when the GTK+ `$event` is emitted on `$widget`.
 ///
-/// Rule #2:
-/// Send `$msg` to `$widget` when the `$message` is received on `$stream`.
+/// 2. Send `$msg` to `$widget` when the `$message` is received on `$stream`.
 #[macro_export]
 macro_rules! connect_stream {
     // Connect to a GTK+ widget event.

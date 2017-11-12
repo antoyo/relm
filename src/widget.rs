@@ -53,7 +53,7 @@ pub trait Widget
     // TODO: ajouter une méthode param() pour déterminer des paramètres qui seront pris en compte à
     // l’ajout du widget.
 
-    /// Get the root widget of the view.e. the root widget of the view.
+    /// Get the root widget of the view.
     fn root(&self) -> Self::Root;
 
     /// Create the window from this widget and start the main loop.

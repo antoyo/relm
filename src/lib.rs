@@ -21,12 +21,13 @@
 
 //! Asynchronous GUI library based on GTK+ and futures/tokio.
 //!
-//! This library provides a `Widget` trait that you can use to create asynchronous GUI components.
+//! This library provides a [`Widget`](trait.Widget.html) trait that you can use to create asynchronous GUI components.
 //! This is the trait you will need to implement for your application.
 //! It helps you to implement MVC (Model, View, Controller) in an elegant way.
 //!
 //! ## Installation
 //! Add this to your `Cargo.toml`:
+//!
 //! ```toml
 //! [dependencies]
 //! gtk = "^0.1.2"
@@ -161,7 +162,7 @@ macro_rules! impl_widget {
     };
 }
 
-/// Macro to be used as a stable alternative to the #[widget] attribute.
+/// Macro to be used as a stable alternative to the `#[widget]` attribute.
 #[macro_export]
 macro_rules! relm_widget {
     ($($tts:tt)*) => {
