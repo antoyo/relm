@@ -115,6 +115,8 @@ mod container;
 mod macros;
 mod widget;
 
+pub mod prelude;
+
 use futures_glib::Executor;
 #[doc(hidden)]
 pub use futures_glib::MainLoop;
