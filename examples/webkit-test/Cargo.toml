@@ -4,9 +4,9 @@ name = "webkit-test"
 version = "0.1.0"
 
 [dependencies]
-futures = "^0.1.10"
-gtk = "^0.2.0"
-webkit2gtk = "^0.1.0"
+futures = "^0.1"
+gtk = "^0.2"
+webkit2gtk = "^0.2"
 
 [dependencies.relm]
 path = "../.."

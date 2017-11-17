@@ -10,7 +10,6 @@ addons:
       - binutils-dev
       - libgtk-3-dev
       - libsoup2.4-dev
-      #- libwebkit2gtk-4.0-dev
 
 env:
   - RUST_BACKTRACE=1
@@ -19,6 +18,11 @@ rust:
   - nightly
   #- beta
   #- stable
+
+before_install:
+  - sudo add-apt-repository ppa:webkit-team/ppa -y
+  - sudo apt-get update
+  - sudo apt-get install libwebkit2gtk-4.0-dev -y
 
 before_script:
   - "export DISPLAY=:99.0"
@@ -29,7 +33,7 @@ script:
   - cargo build
   - cargo test --no-run -v
   #- cargo build --manifest-path examples/http/Cargo.toml
-  #- cargo build --manifest-path examples/webkit-test/Cargo.toml
+  - cargo build --manifest-path examples/webkit-test/Cargo.toml
   - cargo build --manifest-path examples/buttons-derive/Cargo.toml
 
 matrix:

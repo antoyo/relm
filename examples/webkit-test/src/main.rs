@@ -33,8 +33,9 @@ use gtk::{
     Inhibit,
     WidgetExt,
 };
-use relm::Widget;
 use relm_attributes::widget;
+use relm::Widget;
+use webkit2gtk::WebViewExt;
 
 use self::Msg::*;
 
