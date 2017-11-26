@@ -1,0 +1,19 @@
+[package]
+authors = ["Antoni Boucher <bouanto@zoho.com>"]
+name = "async"
+version = "0.1.0"
+[dependencies]
+futures = "^0.1.17"
+gtk = "^0.3.0"
+gtk-sys = "^0.5.0"
+relm-attributes = "^0.10.0"
+
+[dependencies.gio]
+features = ["v2_50"]
+version = "^0.3.0"
+
+[dependencies.relm]
+path = "../.."
+
+[dependencies.relm-derive]
+path = "../../relm-derive"
