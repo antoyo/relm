@@ -4,6 +4,6 @@ name = "buttons-derive"
 version = "0.1.0"
 
 [dependencies]
-gtk = "^0.2.0"
+gtk = "^0.3.0"
 relm = { path = "../.."}
 relm-derive = { path = "../../relm-derive" }

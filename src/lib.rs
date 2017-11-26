@@ -30,9 +30,9 @@
 //!
 //! ```toml
 //! [dependencies]
-//! gtk = "^0.1.2"
-//! relm = "^0.5.0"
-//! relm-derive = "^0.1.2"
+//! gtk = "^0.3.0"
+//! relm = "^0.11.0"
+//! relm-derive = "^0.11.0"
 //! ```
 //!
 //! More info can be found in the [readme](https://github.com/antoyo/relm#relm).
@@ -266,30 +266,33 @@ fn init_gtk() {
 /// # extern crate relm_derive;
 /// #
 /// # use gtk::{Window, WindowType};
-/// # use relm::{Relm, Widget};
+/// # use relm::{Relm, Update, Widget};
 /// #
 /// # struct Win {
 /// #     window: Window,
 /// # }
 /// #
-/// # impl Widget for Win {
+/// # impl Update for Win {
 /// #     type Model = ();
 /// #     type ModelParam = ();
 /// #     type Msg = Msg;
-/// #     type Root = Window;
 /// #
-/// #     fn model(_: ()) -> () {
+/// #     fn model(_: &Relm<Self>, _: ()) -> () {
 /// #         ()
 /// #     }
 /// #
-/// #     fn root(&self) -> &Self::Root {
-/// #         &self.window
+/// #     fn update(&mut self, event: Msg) {
+/// #     }
+/// # }
+/// #
+/// # impl Widget for Win {
+/// #     type Root = Window;
+/// #
+/// #     fn root(&self) -> Self::Root {
+/// #         self.window.clone()
 /// #     }
 /// #
-/// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
-/// #     }
-/// #
-/// #     fn view(relm: &Relm<Self>, _model: &Self::Model) -> Self {
+/// #     fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
 /// #         let window = Window::new(WindowType::Toplevel);
 /// #
 /// #         Win {
@@ -341,30 +344,33 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
 /// # extern crate relm_derive;
 /// #
 /// # use gtk::{Window, WindowType};
-/// # use relm::{Relm, Widget};
+/// # use relm::{Relm, Update, Widget};
 /// #
 /// # struct Win {
 /// #     window: Window,
 /// # }
 /// #
-/// # impl Widget for Win {
+/// # impl Update for Win {
 /// #     type Model = ();
 /// #     type ModelParam = ();
 /// #     type Msg = Msg;
-/// #     type Root = Window;
 /// #
-/// #     fn model(_: ()) -> () {
+/// #     fn model(_: &Relm<Self>, _: ()) -> () {
 /// #         ()
 /// #     }
 /// #
-/// #     fn root(&self) -> &Self::Root {
-/// #         &self.window
+/// #     fn update(&mut self, event: Msg) {
+/// #     }
+/// # }
+/// #
+/// # impl Widget for Win {
+/// #     type Root = Window;
+/// #
+/// #     fn root(&self) -> Self::Root {
+/// #         self.window.clone()
 /// #     }
 /// #
-/// #     fn update(&mut self, event: Msg, model: &mut Self::Model) {
-/// #     }
-/// #
-/// #     fn view(relm: &Relm<Self>, _model: &Self::Model) -> Self {
+/// #     fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
 /// #         let window = Window::new(WindowType::Toplevel);
 /// #
 /// #         Win {

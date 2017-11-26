@@ -23,11 +23,11 @@ See http://gtk-rs.org/docs-src/requirements[this page] for information on how to
 
 First, add this to you `Cargo.toml`:
 
-[source,bash]
+[source,toml]
 ----
-gtk = "^0.2.0"
-relm = "^0.10.0"
-relm-derive = "^0.10.0"
+gtk = "^0.3.0"
+relm = "^0.11.0"
+relm-derive = "^0.11.0"
 ----
 
 Next, add this to your crate:
@@ -172,7 +172,7 @@ To be able to use this attribute, you need to add the `relm-attributes` crate in
 
 [source,toml]
 ----
-relm-attributes = "^0.10.0"
+relm-attributes = "^0.11.0"
 ----
 
 and to add the following code:
