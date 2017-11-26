@@ -8,9 +8,6 @@ name = "relm"
 readme = "README.adoc"
 repository = "https://github.com/antoyo/relm"
 version = "0.10.1"
-
-[badges]
-
 [badges.appveyor]
 branch = "master"
 repository = "antoyo/relm"
@@ -20,12 +17,12 @@ branch = "master"
 repository = "antoyo/relm"
 
 [dependencies]
-futures-glib = "^0.2.0"
-glib = "^0.3.0"
-glib-sys = "^0.4.0"
-gobject-sys = "^0.4.0"
-gtk = "^0.2.0"
-gtk-sys = "^0.4.0"
+futures-glib = "^0.3.0"
+glib = "^0.4.0"
+glib-sys = "^0.5.0"
+gobject-sys = "^0.5.0"
+gtk = "^0.3.0"
+gtk-sys = "^0.5.0"
 libc = "^0.2.22"
 
 [dependencies.relm-core]
@@ -38,6 +35,11 @@ version = "^0.10.0"
 
 [dev-dependencies]
 chrono = "^0.3.0"
+futures = "^0.1.17"
+
+[dev-dependencies.gio]
+version = "^0.3.0"
+features = ["v2_50"]
 
 [dev-dependencies.relm-attributes]
 path = "relm-attributes"
@@ -54,21 +56,14 @@ version = "^0.10.0"
 [features]
 nightly = []
 use_impl_trait = ["relm-state/use_impl_trait"]
-
-[metadata]
-
-[metadata.release]
-
 [[metadata.release.pre-release-replacements]]
 file = "README.adoc"
 replace = "relm = \"{{version}}\""
 search = "relm = \"[a-z0-9^\\.-]+\""
-
 [[metadata.release.pre-release-replacements]]
 file = "src/lib.rs"
 replace = "relm = \"{{version}}\""
 search = "relm = \"[a-z0-9^\\.-]+\""
-
 [[metadata.release.pre-release-replacements]]
 file = "examples/buttons-derive/Cargo.toml"
 replace = "relm = \"{{version}}\""

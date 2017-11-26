@@ -56,6 +56,8 @@
  * }
  * TODO: use pub(crate) instead of pub so that we're not bound to make the model and msg structs pub.
  *
+ * TODO: add init() method to the Widget (or Update) trait as a shortcut for init::<Widget>()?
+ *
  * TODO: alternative to tokio with a trait to get FD and add this FD to glib (perhaps using a
  * GSource).
  * For timers, add a connect_timeout!() macro or something.

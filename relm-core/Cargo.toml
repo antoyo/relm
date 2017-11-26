@@ -10,7 +10,7 @@ version = "0.10.1"
 
 [dependencies]
 futures = "^0.1.14"
-futures-glib = "^0.2.0"
+futures-glib = "^0.3.0"
 
 [dev-dependencies]
 chrono = "^0.3.0"

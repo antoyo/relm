@@ -121,3 +121,223 @@ macro_rules! connect_stream {
         });
     };
 }
+
+/// Connect an asynchronous method call to send a message.
+/// The variants with `$fail_msg` will send this message when there's an error.
+/// Those without this argument will ignore the error.
+#[macro_export]
+macro_rules! connect_async {
+    ($object:expr, $async_method:ident, $relm:expr, $msg:ident) => {
+        connect_async!($object, $async_method(), $relm, $msg)
+    };
+    ($object:expr, $async_method:ident ( $($args:expr),* ), $relm:expr, $msg:ident) => {{
+        use ::futures::Sink;
+        let (tx, rx) = ::futures::sync::mpsc::unbounded();
+        let tx = ::std::sync::Mutex::new(tx);
+        $object.$async_method($($args,)* None, move |result| {
+            if let Ok(result) = result {
+                let mut tx = tx.lock().unwrap();
+                if let Ok(::futures::AsyncSink::Ready) = tx.start_send(result) {
+                    tx.poll_complete().unwrap();
+                } else {
+                    eprintln!("Unable to send message to sender");
+                }
+            }
+        });
+        $relm.connect_exec_ignore_err(rx, $msg);
+    }};
+    ($object:expr, $async_method:ident, $relm:expr, $msg:ident, $fail_msg:ident) => {
+        connect_async!($object, $async_method(), $relm, $msg, $fail_msg)
+    };
+    ($object:expr, $async_method:ident ( $($args:expr),* ), $relm:expr, $msg:ident, $fail_msg:ident) => {{
+        use ::futures::{Sink, Stream};
+        let (tx, rx) = ::futures::sync::mpsc::unbounded();
+        let tx = ::std::sync::Mutex::new(tx);
+        $object.$async_method($($args,)* None, move |result| {
+            let mut tx = tx.lock().unwrap();
+            if let Ok(::futures::AsyncSink::Ready) = tx.start_send(result) {
+                tx.poll_complete().unwrap();
+            } else {
+                eprintln!("Unable to send message to sender");
+            }
+        });
+
+        let event_stream = $relm.stream().clone();
+        let fail_event_stream = $relm.stream().clone();
+        let future =
+            rx.for_each(move |result| {
+                match result {
+                    Ok(value) => event_stream.emit($msg(value)),
+                    Err(error) => fail_event_stream.emit($fail_msg(error)),
+                }
+                Ok(())
+            });
+        $relm.exec(future);
+    }};
+}
+
+/// Connect an asynchronous function call to send a message.
+/// The variants with `$fail_msg` will send this message when there's an error.
+/// Those without this argument will ignore the error.
+#[macro_export]
+macro_rules! connect_async_func {
+    ($class:ident :: $async_function:ident, $relm:expr, $msg:ident) => {
+        connect_async!($async_func(), $relm, $msg)
+    };
+    ($class:ident :: $async_func:ident ( $($args:expr),* ), $relm:expr, $msg:ident) => {{
+        use ::futures::Sink;
+        let (tx, rx) = ::futures::sync::mpsc::unbounded();
+        let tx = ::std::sync::Mutex::new(tx);
+        $class::$async_func($($args,)* None, move |result| {
+            if let Ok(result) = result {
+                let mut tx = tx.lock().unwrap();
+                if let Ok(::futures::AsyncSink::Ready) = tx.start_send(result) {
+                    tx.poll_complete().unwrap();
+                } else {
+                    eprintln!("Unable to send message to sender");
+                }
+            }
+        });
+        $relm.connect_exec_ignore_err(rx, $msg);
+    }};
+    ($class:ident :: $async_func:ident, $relm:expr, $msg:ident, $fail_msg:ident) => {
+        connect_async!($async_func(), $relm, $msg, $fail_msg)
+    };
+    ($class:ident :: $async_func:ident ( $($args:expr),* ), $relm:expr, $msg:ident, $fail_msg:ident) => {{
+        use ::futures::{Sink, Stream};
+        let (tx, rx) = ::futures::sync::mpsc::unbounded();
+        let tx = ::std::sync::Mutex::new(tx);
+        $class::$async_func($($args,)* None, move |result| {
+            let mut tx = tx.lock().unwrap();
+            if let Ok(::futures::AsyncSink::Ready) = tx.start_send(result) {
+                tx.poll_complete().unwrap();
+            } else {
+                eprintln!("Unable to send message to sender");
+            }
+        });
+
+        let event_stream = $relm.stream().clone();
+        let fail_event_stream = $relm.stream().clone();
+        let future =
+            rx.for_each(move |result| {
+                match result {
+                    Ok(value) => event_stream.emit($msg(value)),
+                    Err(error) => fail_event_stream.emit($fail_msg(error)),
+                }
+                Ok(())
+            });
+        $relm.exec(future);
+    }};
+}
+
+/// Like `connect_async!`, but also return a `Cancellable` to control the asynchronous request.
+#[macro_export]
+macro_rules! connect_async_full {
+    ($object:expr, $async_method:ident, $relm:expr, $msg:ident) => {
+        connect_async_full!($object, $async_method(), $relm, $msg)
+    };
+    ($object:expr, $async_method:ident ( $($args:expr),* ), $relm:expr, $msg:ident) => {{
+        let cancellable = ::gio::Cancellable::new();
+        use ::futures::Sink;
+        let (tx, rx) = ::futures::sync::mpsc::unbounded();
+        let tx = ::std::sync::Mutex::new(tx);
+        $object.$async_method($($args,)* Some(&cancellable), move |result| {
+            if let Ok(result) = result {
+                let mut tx = tx.lock().unwrap();
+                if let Ok(::futures::AsyncSink::Ready) = tx.start_send(result) {
+                    tx.poll_complete().unwrap();
+                } else {
+                    eprintln!("Unable to send message to sender");
+                }
+            }
+        });
+        $relm.connect_exec_ignore_err(rx, $msg);
+        cancellable
+    }};
+    ($object:expr, $async_method:ident, $relm:expr, $msg:ident, $fail_msg:ident) => {
+        connect_async_full!($object, $async_method(), $relm, $msg, $fail_msg)
+    };
+    ($object:expr, $async_method:ident ( $($args:expr),* ), $relm:expr, $msg:ident, $fail_msg:ident) => {{
+        let cancellable = ::gio::Cancellable::new();
+        use ::futures::{Sink, Stream};
+        let (tx, rx) = ::futures::sync::mpsc::unbounded();
+        let tx = ::std::sync::Mutex::new(tx);
+        $object.$async_method($($args,)* Some(&cancellable), move |result| {
+            let mut tx = tx.lock().unwrap();
+            if let Ok(::futures::AsyncSink::Ready) = tx.start_send(result) {
+                tx.poll_complete().unwrap();
+            } else {
+                eprintln!("Unable to send message to sender");
+            }
+        });
+
+        let event_stream = $relm.stream().clone();
+        let fail_event_stream = $relm.stream().clone();
+        let future =
+            rx.for_each(move |result| {
+                match result {
+                    Ok(value) => event_stream.emit($msg(value)),
+                    Err(error) => fail_event_stream.emit($fail_msg(error)),
+                }
+                Ok(())
+            });
+        $relm.exec(future);
+        cancellable
+    }};
+}
+
+/// Like `connect_async_func!`, but also return a `Cancellable` to control the asynchronous request.
+#[macro_export]
+macro_rules! connect_async_func_full {
+    ($class:ident :: $async_function:ident, $relm:expr, $msg:ident) => {
+        connect_async!($async_func(), $relm, $msg)
+    };
+    ($class:ident :: $async_func:ident ( $($args:expr),* ), $relm:expr, $msg:ident) => {{
+        let cancellable = ::gio::Cancellable::new();
+        use ::futures::Sink;
+        let (tx, rx) = ::futures::sync::mpsc::unbounded();
+        let tx = ::std::sync::Mutex::new(tx);
+        $class::$async_func($($args,)* Some(&cancellable), move |result| {
+            if let Ok(result) = result {
+                let mut tx = tx.lock().unwrap();
+                if let Ok(::futures::AsyncSink::Ready) = tx.start_send(result) {
+                    tx.poll_complete().unwrap();
+                } else {
+                    eprintln!("Unable to send message to sender");
+                }
+            }
+        });
+        $relm.connect_exec_ignore_err(rx, $msg);
+        cancellable
+    }};
+    ($class:ident :: $async_func:ident, $relm:expr, $msg:ident, $fail_msg:ident) => {
+        connect_async!($async_func(), $relm, $msg, $fail_msg)
+    };
+    ($class:ident :: $async_func:ident ( $($args:expr),* ), $relm:expr, $msg:ident, $fail_msg:ident) => {{
+        let cancellable = ::gio::Cancellable::new();
+        use ::futures::{Sink, Stream};
+        let (tx, rx) = ::futures::sync::mpsc::unbounded();
+        let tx = ::std::sync::Mutex::new(tx);
+        $class::$async_func($($args,)* Some(&cancellable), move |result| {
+            let mut tx = tx.lock().unwrap();
+            if let Ok(::futures::AsyncSink::Ready) = tx.start_send(result) {
+                tx.poll_complete().unwrap();
+            } else {
+                eprintln!("Unable to send message to sender");
+            }
+        });
+
+        let event_stream = $relm.stream().clone();
+        let fail_event_stream = $relm.stream().clone();
+        let future =
+            rx.for_each(move |result| {
+                match result {
+                    Ok(value) => event_stream.emit($msg(value)),
+                    Err(error) => fail_event_stream.emit($fail_msg(error)),
+                }
+                Ok(())
+            });
+        $relm.exec(future);
+        cancellable
+    }};
+}
