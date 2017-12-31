@@ -48,6 +48,12 @@
 )]
 
 /*
+ * TODO: look at these projects for a new design:
+ * https://github.com/alexflint/gallium
+ * https://github.com/lxn/walk
+ * https://github.com/schibsted/layout
+ *
+ *
  * FIXME: some relm widgets requires { and } (see the rusic music-player) while other do not.
  * FIXME: should not require to import WidgetExt because it calls show().
  * FIXME: cannot have relm event with tuple as a value like:
