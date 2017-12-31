@@ -31,6 +31,8 @@ screenshot() {
   sleep 2
   # create screenshot
   env DISPLAY=:99 import -window root ${OUTDIR}/${EXAMPLE}.png &>/dev/null
+  # crop image
+  convert ${OUTDIR}/${EXAMPLE}.png -trim ${OUTDIR}/${EXAMPLE}.png
 
   # stop virtual Xserver
   killall Xvfb &>/dev/null
@@ -55,11 +57,6 @@ tablefooter() {
   echo -e "More info here: [https://github.com/antoyo/relm](https://github.com/antoyo/relm)\n" >> ${MARKDOWN}
 }
 
-create_html() {
-  cd ${OUTDIR}
-  pandoc --metadata title="Relm Example Screenshots" --highlight-style pygments --self-contained --highlight-style=tango -s -f markdown -t html5 -o screenshots.html README.md
-}
-
 # START
 cleanup
 
@@ -73,5 +70,3 @@ for example in $(find examples/ -maxdepth 1 -name "*.rs" -type f); do
 done
 
 tablefooter
-
-create_html
