@@ -67,6 +67,9 @@ impl Widget for Win {
                     label: "+",
                 },
                 gtk::Label {
+                    tab: {
+                        label: &gtk::Label::new("Second page"),
+                    },
                     text: "0",
                 },
                 gtk::Button {
