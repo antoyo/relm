@@ -45,6 +45,7 @@ lazy_static! {
 }
 
 type ChildEvents = HashMap<(String, String), Event>;
+type ChildProperties = HashMap<(String, String), Expr>;
 
 #[derive(Clone, Copy, PartialEq)]
 enum DefaultParam {
@@ -87,7 +88,7 @@ impl Event {
 #[derive(Debug)]
 pub struct Widget {
     pub child_events: ChildEvents, // TODO: does it make sense for a relm widget?
-    pub child_properties: HashMap<String, Expr>, // TODO: does it make sense for a relm widget?
+    pub child_properties: HashMap<(String, String), Expr>, // TODO: does it make sense for a relm widget?
     pub children: Vec<Widget>,
     pub container_type: Option<Option<String>>, // TODO: Why two Options?
     pub init_parameters: Vec<Expr>,
@@ -101,7 +102,7 @@ pub struct Widget {
 
 impl Widget {
     fn new_gtk(widget: GtkWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
-        properties: HashMap<String, Expr>, child_properties: HashMap<String, Expr>, child_events: ChildEvents) -> Self
+        properties: HashMap<String, Expr>, child_properties: ChildProperties, child_events: ChildEvents) -> Self
     {
         let name = gen_widget_name(&typ);
         Widget {
@@ -120,7 +121,7 @@ impl Widget {
     }
 
     fn new_relm(widget: RelmWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
-        properties: HashMap<String, Expr>, child_properties: HashMap<String, Expr>, child_events: ChildEvents) -> Self
+        properties: HashMap<String, Expr>, child_properties: ChildProperties, child_events: ChildEvents) -> Self
     {
         let mut name = gen_widget_name(&typ);
         // Relm widgets are not used in the update() method; they are only saved to avoid dropping
@@ -496,13 +497,13 @@ fn parse_event_value(tokens: &[TokenTree]) -> (EventValueReturn, &[TokenTree], b
 }
 
 fn parse_value_or_child_properties<'a>(tokens: &'a [TokenTree], ident: String,
-    child_properties: &mut HashMap<String, Expr>, properties: &mut HashMap<String, Expr>) -> &'a [TokenTree]
+    child_properties: &mut ChildProperties, properties: &mut HashMap<String, Expr>) -> &'a [TokenTree]
 {
     match tokens[1] {
         TokenTree::Delimited(Delimited { delim: Brace, tts: ref child_tokens }) => {
             let props = parse_child_properties(child_tokens);
             for (key, value) in props {
-                child_properties.insert(key, tokens_to_expr(value));
+                child_properties.insert((ident.clone(), key), tokens_to_expr(value));
             }
             &tokens[2..]
         },

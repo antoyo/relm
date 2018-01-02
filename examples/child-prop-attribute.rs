@@ -57,7 +57,7 @@ impl Widget for Button {
 
     view! {
         gtk::Button {
-            packing: {
+            child: {
                 expand: false,
                 fill: true,
                 pack_type: PackType::Start,

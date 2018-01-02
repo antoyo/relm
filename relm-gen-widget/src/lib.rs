@@ -537,8 +537,8 @@ fn get_second_param_type(sig: &MethodSig) -> Ty {
 fn gen_set_child_prop_calls(widget: &Widget) -> Option<ImplItem> {
     let mut tokens = Tokens::new();
     let widget_name = &widget.name;
-    for (key, value) in &widget.child_properties {
-        let property_func = Ident::new(format!("set_child_{}", key));
+    for (&(ref ident, ref key), value) in &widget.child_properties {
+        let property_func = Ident::new(format!("set_{}_{}", ident, key));
         tokens.append(quote! {
             parent.#property_func(&self.#widget_name, #value);
         });

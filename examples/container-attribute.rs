@@ -112,7 +112,7 @@ impl Widget for Win {
         gtk::Window {
             VBox {
                 gtk::Button {
-                    packing: {
+                    child: {
                         padding: 20,
                     },
                     clicked => Increment,

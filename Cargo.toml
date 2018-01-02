@@ -7,7 +7,7 @@ license = "MIT"
 name = "relm"
 readme = "README.adoc"
 repository = "https://github.com/antoyo/relm"
-version = "0.11.0"
+version = "0.12.0"
 [badges.appveyor]
 branch = "master"
 repository = "antoyo/relm"
@@ -27,11 +27,11 @@ libc = "^0.2.22"
 
 [dependencies.relm-core]
 path = "relm-core"
-version = "^0.11.0"
+version = "^0.12.0"
 
 [dependencies.relm-state]
 path = "relm-state"
-version = "^0.11.0"
+version = "^0.12.0"
 
 [dev-dependencies]
 chrono = "^0.3.0"
@@ -42,15 +42,15 @@ version = "^0.3.0"
 
 [dev-dependencies.relm-attributes]
 path = "relm-attributes"
-version = "^0.11.0"
+version = "^0.12.0"
 
 [dev-dependencies.relm-derive]
 path = "relm-derive"
-version = "^0.11.0"
+version = "^0.12.0"
 
 [dev-dependencies.relm-test]
 path = "relm-test"
-version = "^0.11.0"
+version = "^0.12.0"
 
 [features]
 nightly = []

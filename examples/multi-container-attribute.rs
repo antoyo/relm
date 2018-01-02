@@ -113,7 +113,7 @@ impl Widget for SplitBox {
             },
             #[container="right"]
             MyFrame {
-                packing: {
+                child: {
                     padding: 10,
                 },
             }

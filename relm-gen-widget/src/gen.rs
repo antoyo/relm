@@ -724,8 +724,8 @@ fn gen_set_child_prop_calls(widget: &Widget, parent: Option<&Ident>, parent_widg
     let widget_name = &widget.name;
     let mut child_properties = vec![];
     if let Some(parent) = parent {
-        for (key, value) in &widget.child_properties {
-            let property_func = Ident::new(format!("set_child_{}", key));
+        for (&(ref ident, ref key), value) in &widget.child_properties {
+            let property_func = Ident::new(format!("set_{}_{}", ident, key));
             let parent =
                 if parent_widget_type == IsGtk {
                     quote! {
