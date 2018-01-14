@@ -363,14 +363,26 @@ impl Driver {
         };
         if top_level_items.len() > 1 {
             // If the token tree isn't empty, count the number of items at the top level of `view!`
+            let mut comma_previously_found = false;
             for item in top_level_items {
                 match item {
-                    // Items are separated by commas, so the presence of a comma means that there
-                    // is more than one item at the top level of `view!`
+                    // Items are separated by commas, so the presence of anything after a comma
+                    // means that there is more than one item at the top level of `view!`. A trailing
+                    // comma should not cause a panic
                     TokenTree::Token(Token::Comma) => {
-                        panic!("There may only be one top-level item in `view!`");
+                        if comma_previously_found {
+                            // Bug out if something was found after a comma (another comma in this case)
+                            panic!("There may only be one top-level item in `view!`");
+                        } else {
+                            // Bug out if something was found after a comma
+                            comma_previously_found = true;
+                        }
                     }
-                    _ => {}
+                    _ => {
+                        if comma_previously_found {
+                            panic!("There may only be one top-level item in `view!`");
+                        }
+                    }
                 }
             }
         } else if top_level_items.len() == 0 {
