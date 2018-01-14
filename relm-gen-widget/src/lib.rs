@@ -56,6 +56,8 @@ use syn::{
     Mac,
     MethodSig,
     Path,
+    PathSegment,
+    Token,
     TokenTree,
     parse_item,
     parse_type,
@@ -341,13 +343,50 @@ impl Driver {
     }
 
     fn get_view(&mut self, name: &Ident, typ: &Ty) -> View {
-        {
-            let segments = &self.view_macro.as_ref().expect("view! macro missing").path.segments;
-            if segments.len() != 1 || segments[0].ident != "view" {
-                panic!("Unexpected macro item")
-            }
-        }
+        // This method should probably just be replaced with `impl_view` and
+        // `view_validation_before_impl` should be put inside `impl_view`
+        self.view_validation_before_impl();
         self.impl_view(name, typ)
+    }
+
+    fn view_validation_before_impl(&mut self) {
+        // This is what comes immediately after `view!` e.g. `{ ... }`
+        let macro_token_tree = &self.view_macro.as_ref().expect("`view!` macro not yet set").tts;
+        // Panic if the macro is declared as anything other than `view! { ... }` or equivalent
+        if macro_token_tree.len() != 1 {
+            panic!("Invalid `view!` syntax, must be `view! { ... }`, `view! ( ... )`, or `view! [ ... ]`");
+        }
+        // Reach inside the brackets and bind the contents (the top level items) of `view!`
+        let top_level_items = match &macro_token_tree[0] {
+            &TokenTree::Delimited(Delimited {ref tts, ..}) => tts.clone(),
+            _ => panic!("Contents of `view!` should be a comma-delimitted series of items")
+        };
+        if top_level_items.len() > 1 {
+            // If the token tree isn't empty, count the number of items at the top level of `view!`
+            for item in top_level_items {
+                match item {
+                    // Items are separated by commas, so the presence of a comma means that there
+                    // is more than one item at the top level of `view!`
+                    TokenTree::Token(Token::Comma) => {
+                        panic!("There may only be one top-level item in `view!`");
+                    }
+                    _ => {}
+                }
+            }
+        } else if top_level_items.len() == 0 {
+            // Panic if `view!` is empty e.g. `view! {}`
+            panic!("`view!` macro is empty, must contain one top-level item");
+        }
+        let macro_name_segments: &Vec<PathSegment> = &self.view_macro.as_ref().expect("`view!` macro not yet set").path.segments;
+        let last_segment = &macro_name_segments[macro_name_segments.len() - 1];
+        if (macro_name_segments.len() != 1) || (last_segment.ident.as_ref() != "view") {
+            let mut segments: Vec<&str> = Vec::new();
+            for seg in macro_name_segments {
+                segments.push(seg.ident.as_ref());
+            }
+            let joined_path = segments.join("::");
+            panic!("Expected `view!` macro, found `{}` instead", joined_path);
+        }
     }
 
     fn impl_view(&mut self, name: &Ident, typ: &Ty) -> View {
@@ -554,5 +593,117 @@ fn gen_set_child_prop_calls(widget: &Widget) -> Option<ImplItem> {
     }
     else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use syn::parse_expr;
+    use syn::{ExprKind};
+
+    #[test]
+    #[should_panic(expected = "Expected `view!` macro, found `foo` instead")]
+    fn incorrect_view_macro_name() {
+        let macro_text = "foo! {
+            gtk::Window {}
+        }";
+        let parsed_expr: ExprKind = parse_expr(macro_text).unwrap().node;
+        let mac = match parsed_expr {
+            ExprKind::Mac(mac) => mac,
+            _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
+        };
+        let mut driver = Driver {
+            data_method: None,
+            generic_types: None,
+            model_type: None,
+            model_param_type: None,
+            msg_model_map: None,
+            msg_type: None,
+            other_methods: vec![],
+            properties_model_map: None,
+            root_method: None,
+            root_type: None,
+            root_widget: None,
+            root_widget_expr: None,
+            root_widget_type: None,
+            update_method: None,
+            view_macro: Some(mac),
+            widget_model_type: None,
+            widget_msg_type: None,
+            widget_parent_id: None,
+            widgets: HashMap::new(),
+        };
+        driver.view_validation_before_impl();
+    }
+
+    #[test]
+    #[should_panic(expected = "`view!` macro is empty, must contain one top-level item")]
+    fn empty_view_macro() {
+        let macro_text = "view! {
+        }";
+        let parsed_expr: ExprKind = parse_expr(macro_text).unwrap().node;
+        let mac = match parsed_expr {
+            ExprKind::Mac(mac) => mac,
+            _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
+        };
+        let mut driver = Driver {
+            data_method: None,
+            generic_types: None,
+            model_type: None,
+            model_param_type: None,
+            msg_model_map: None,
+            msg_type: None,
+            other_methods: vec![],
+            properties_model_map: None,
+            root_method: None,
+            root_type: None,
+            root_widget: None,
+            root_widget_expr: None,
+            root_widget_type: None,
+            update_method: None,
+            view_macro: Some(mac),
+            widget_model_type: None,
+            widget_msg_type: None,
+            widget_parent_id: None,
+            widgets: HashMap::new(),
+        };
+        driver.view_validation_before_impl();
+    }
+
+    #[test]
+    #[should_panic(expected = "There may only be one top-level item in `view!`")]
+    fn multiple_top_level_items() {
+        let macro_text = "view! {
+            gtk::Window {},
+            gtk::Window {}
+        }";
+        let parsed_expr: ExprKind = parse_expr(macro_text).unwrap().node;
+        let mac = match parsed_expr {
+            ExprKind::Mac(mac) => mac,
+            _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
+        };
+        let mut driver = Driver {
+            data_method: None,
+            generic_types: None,
+            model_type: None,
+            model_param_type: None,
+            msg_model_map: None,
+            msg_type: None,
+            other_methods: vec![],
+            properties_model_map: None,
+            root_method: None,
+            root_type: None,
+            root_widget: None,
+            root_widget_expr: None,
+            root_widget_type: None,
+            update_method: None,
+            view_macro: Some(mac),
+            widget_model_type: None,
+            widget_msg_type: None,
+            widget_parent_id: None,
+            widgets: HashMap::new(),
+        };
+        driver.view_validation_before_impl();
     }
 }
