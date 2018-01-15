@@ -361,29 +361,10 @@ impl Driver {
             &TokenTree::Delimited(Delimited {ref tts, ..}) => tts.clone(),
             _ => panic!("Contents of `view!` should be a comma-delimitted series of items")
         };
-        if top_level_items.len() > 1 {
-            // If the token tree isn't empty, count the number of items at the top level of `view!`
-            let mut comma_previously_found = false;
-            for item in top_level_items {
-                match item {
-                    // Items are separated by commas, so the presence of anything after a comma
-                    // means that there is more than one item at the top level of `view!`. A trailing
-                    // comma should not cause a panic
-                    TokenTree::Token(Token::Comma) => {
-                        if comma_previously_found {
-                            // Bug out if something was found after a comma (another comma in this case)
-                            panic!("There may only be one top-level item in `view!`");
-                        } else {
-                            // Bug out if something was found after a comma
-                            comma_previously_found = true;
-                        }
-                    }
-                    _ => {
-                        if comma_previously_found {
-                            panic!("There may only be one top-level item in `view!`");
-                        }
-                    }
-                }
+        if let Some(index) = top_level_items.iter().position(|item| item == &TokenTree::Token(Token::Comma)) {
+            // Find a comma (meaning more than one top level item) and panic unless it's just a trailing comma
+            if index != top_level_items.len() - 1 {
+                panic!("There may only be one top-level item in `view!`");
             }
         } else if top_level_items.len() == 0 {
             // Panic if `view!` is empty e.g. `view! {}`
