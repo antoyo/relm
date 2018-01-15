@@ -624,27 +624,8 @@ mod tests {
             ExprKind::Mac(mac) => mac,
             _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
         };
-        let mut driver = Driver {
-            data_method: None,
-            generic_types: None,
-            model_type: None,
-            model_param_type: None,
-            msg_model_map: None,
-            msg_type: None,
-            other_methods: vec![],
-            properties_model_map: None,
-            root_method: None,
-            root_type: None,
-            root_widget: None,
-            root_widget_expr: None,
-            root_widget_type: None,
-            update_method: None,
-            view_macro: Some(mac),
-            widget_model_type: None,
-            widget_msg_type: None,
-            widget_parent_id: None,
-            widgets: HashMap::new(),
-        };
+        let mut driver = Driver::new();
+        driver.view_macro = Some(mac);
         driver.view_validation_before_impl();
     }
 
@@ -658,27 +639,8 @@ mod tests {
             ExprKind::Mac(mac) => mac,
             _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
         };
-        let mut driver = Driver {
-            data_method: None,
-            generic_types: None,
-            model_type: None,
-            model_param_type: None,
-            msg_model_map: None,
-            msg_type: None,
-            other_methods: vec![],
-            properties_model_map: None,
-            root_method: None,
-            root_type: None,
-            root_widget: None,
-            root_widget_expr: None,
-            root_widget_type: None,
-            update_method: None,
-            view_macro: Some(mac),
-            widget_model_type: None,
-            widget_msg_type: None,
-            widget_parent_id: None,
-            widgets: HashMap::new(),
-        };
+        let mut driver = Driver::new();
+        driver.view_macro = Some(mac);
         driver.view_validation_before_impl();
     }
 
@@ -694,27 +656,8 @@ mod tests {
             ExprKind::Mac(mac) => mac,
             _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
         };
-        let mut driver = Driver {
-            data_method: None,
-            generic_types: None,
-            model_type: None,
-            model_param_type: None,
-            msg_model_map: None,
-            msg_type: None,
-            other_methods: vec![],
-            properties_model_map: None,
-            root_method: None,
-            root_type: None,
-            root_widget: None,
-            root_widget_expr: None,
-            root_widget_type: None,
-            update_method: None,
-            view_macro: Some(mac),
-            widget_model_type: None,
-            widget_msg_type: None,
-            widget_parent_id: None,
-            widgets: HashMap::new(),
-        };
+        let mut driver = Driver::new();
+        driver.view_macro = Some(mac);
         driver.view_validation_before_impl();
     }
 }
