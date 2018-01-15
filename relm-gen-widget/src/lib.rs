@@ -392,11 +392,10 @@ impl Driver {
         let macro_name_segments: &Vec<PathSegment> = &self.view_macro.as_ref().expect("`view!` macro not yet set").path.segments;
         let last_segment = &macro_name_segments[macro_name_segments.len() - 1];
         if (macro_name_segments.len() != 1) || (last_segment.ident.as_ref() != "view") {
-            let mut segments: Vec<&str> = Vec::new();
-            for seg in macro_name_segments {
-                segments.push(seg.ident.as_ref());
-            }
-            let joined_path = segments.join("::");
+            let joined_path = macro_name_segments.iter()
+                .map(|seg| seg.ident.as_ref())
+                .collect::<Vec<&str>>()
+                .join("::");
             panic!("Expected `view!` macro, found `{}` instead", joined_path);
         }
     }
