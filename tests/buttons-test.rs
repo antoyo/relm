@@ -27,7 +27,6 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-#[macro_use]
 extern crate relm_test;
 
 use gtk::{
@@ -94,30 +93,30 @@ impl Widget for Win {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use relm;
-    use relm_test::click;
+// #[cfg(test)]
+// mod tests {
+//     use relm;
+//     use relm_test::click;
 
-    use super::Win;
+//     use super::Win;
 
-    #[test]
-    fn label_change() {
-        // TODO: find a way to make it work: get the real component?
-        /*let component = relm::init_test::<Win>(()).unwrap();
-        let inc_button = component.widget().inc_button.clone();
-        let dec_button = component.widget().dec_button.clone();
+//     #[test]
+//     fn label_change() {
+//         // TODO: find a way to make it work: get the real component?
+//         let component = relm::init_test::<Win>(()).unwrap();
+//         let inc_button = component.widget().inc_button.clone();
+//         let dec_button = component.widget().dec_button.clone();
 
-        assert_text!(component.widget().label, 0);
-        click(&inc_button);
-        assert_text!(component.widget().label, 1);
-        click(&inc_button);
-        assert_text!(component.widget().label, 2);
-        click(&dec_button);
-        assert_text!(component.widget().label, 1);
-        click(&dec_button);
-        assert_text!(component.widget().label, 0);
-        click(&dec_button);
-        assert_text!(component.widget().label, -1);*/
-    }
-}
+//         assert_text!(component.widget().label, 0);
+//         click(&inc_button);
+//         assert_text!(component.widget().label, 1);
+//         click(&inc_button);
+//         assert_text!(component.widget().label, 2);
+//         click(&dec_button);
+//         assert_text!(component.widget().label, 1);
+//         click(&dec_button);
+//         assert_text!(component.widget().label, 0);
+//         click(&dec_button);
+//         assert_text!(component.widget().label, -1);
+//     }
+// }
