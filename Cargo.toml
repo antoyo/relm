@@ -1,5 +1,3 @@
-[workspace]
-
 [package]
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 categories = ["asynchronous", "gui"]
