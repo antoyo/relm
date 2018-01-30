@@ -49,16 +49,16 @@ use Msg::*;
 
 
 // There will be several widgets involved in this example, but this struct
-// will act as a container just for the widgets that we will be updating
+// will act as a container just for the widgets that we will be updating.
 struct Widgets {
     clock_label: Label,
     counter_label: Label,
 }
 
 // This enum holds the various messages that will be passed between our
-// widgets. Note that we aren't deriving `Msg` because this is example
-// is barebones and isn't meant to instruct you how to create a typical
-// application.
+// widgets. Note that we aren't deriving `Msg` because this example uses
+// the `relm-core` crate, which is the basic event-handling library that
+// `relm` depends on.
 #[derive(Clone, Debug)]
 enum Msg {
     Clock,
@@ -67,7 +67,8 @@ enum Msg {
     Quit,
 }
 
-// This is the model, and contains some state
+// This struct represents the model, and it maintains the state needed to
+// populate the widget. The model is updated in the `update` method.
 struct Model {
     counter: i32,
 }
@@ -76,10 +77,10 @@ fn main() {
     futures_glib::init();
     gtk::init().unwrap();
 
-    // This is a layout container that will stack widgets from the top down
+    // This is a layout container that will stack widgets vertically.
     let vbox = gtk::Box::new(Vertical, 0);
 
-    // Add some widgets to the layout
+    // Add some widgets to the layout.
     let clock_label = Label::new(None);
     vbox.add(&clock_label);
     let plus_button = Button::new_with_label("+");
@@ -90,13 +91,13 @@ fn main() {
     vbox.add(&minus_button);
 
     // As mentioned above, this struct holds the labels that we're going
-    // to be updating
+    // to be updating.
     let widgets = Widgets {
         clock_label: clock_label,
         counter_label: counter_label,
     };
 
-    // Create a new window, and add our layout container to it
+    // Create a new window and add our layout container to it.
     let window = Window::new(WindowType::Toplevel);
     window.add(&vbox);
 
@@ -126,7 +127,7 @@ fn main() {
         });
     }
 
-    // Send the `Increment` message when `plus_button` emits the `clicked` signal
+    // Send the `Increment` message when `plus_button` emits the `clicked` signal.
     {
         let stream = main_stream.clone();
         plus_button.connect_clicked(move |_| {
@@ -134,7 +135,7 @@ fn main() {
         });
     }
 
-    // Send the `Decrement` message when `minus_button` emits the `clicked` signal
+    // Send the `Decrement` message when `minus_button` emits the `clicked` signal.
     {
         let stream = main_stream.clone();
         minus_button.connect_clicked(move |_| {
@@ -144,7 +145,7 @@ fn main() {
 
     window.show_all();
 
-    // Close the window and quit when the window close button is clicked
+    // Close the window and quit when the window close button is clicked.
     {
         let stream = main_stream.clone();
         window.connect_delete_event(move |_, _| {
@@ -153,12 +154,12 @@ fn main() {
         });
     }
 
-    // Create the initial state of the model
+    // Create the initial state of the model.
     let mut model = Model {
         counter: 0,
     };
 
-    // Here we respond to messages that are generated
+    // Here we respond to messages that are generated and update the model.
     fn update(event: Msg, model: &mut Model, widgets: &Widgets) {
         match event {
             Clock => {
@@ -178,7 +179,8 @@ fn main() {
     }
 
     // Now we're going to have some fun with futures and the `futures_glib` crate.
-    // First we need some boilerplate code to set up the event loop.
+    // First we need some boilerplate code to set up an `Executor`, which allows
+    // us to spawn futures on the `futures_glib` event loop.
     let cx = MainContext::default(|cx| cx.clone());
     let ex = Executor::new();
     ex.attach(&cx);
@@ -199,7 +201,7 @@ fn main() {
         })
     };
 
-    // The value `interval` is a future that will resolve when the stream ends or
+    // The value `interval_future` is a future that will resolve when the stream ends or
     // when an error is raised. We execute this future by passing it to the executor.
     ex.spawn(interval_future);
 
