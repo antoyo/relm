@@ -115,7 +115,7 @@ impl Widget for Win {
                 gtk::Button {
                     clicked => Reset,
                     label: "Reset",
-                }
+                },
                 Text {
                     // Send the message SetText(self.model.text.clone()) at initialization and when
                     // the model attribute is updated.

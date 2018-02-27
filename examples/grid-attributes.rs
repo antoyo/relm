@@ -32,7 +32,6 @@ use gtk::{
     ButtonExt,
     GridExt,
     Inhibit,
-    LabelExt,
     WidgetExt,
 };
 use relm::Widget;

@@ -5,59 +5,56 @@
 #![recursion_limit="256"]
 
 extern crate proc_macro;
+#[macro_use]
 extern crate quote;
 extern crate relm_derive_common;
 extern crate relm_gen_widget;
 extern crate syn;
 
 use proc_macro::TokenStream;
-
 use quote::Tokens;
 use relm_gen_widget::gen_widget;
 use relm_derive_common::{impl_msg, impl_simple_msg};
 use syn::{
     Ident,
     Item,
-    VariantData,
-    parse_item,
-    parse_macro_input,
+    ItemStruct,
+    parse,
 };
-use syn::ItemKind::Struct;
-use syn::TokenTree::Delimited;
-use syn::Ty::Mac;
+use syn::Type::Macro;
+use syn::spanned::Spanned;
 
 #[proc_macro_derive(SimpleMsg)]
 pub fn simple_msg(input: TokenStream) -> TokenStream {
-    let string = input.to_string();
-    let ast = parse_macro_input(&string).unwrap();
-    let gen = impl_simple_msg(&ast, Ident::new("relm"));
-    gen.parse().unwrap()
+    let ast: Item = parse(input).unwrap();
+    let gen = impl_simple_msg(&ast, Ident::new("relm", ast.span()));
+    gen.into()
 }
 
 #[proc_macro_derive(Msg)]
 pub fn msg(input: TokenStream) -> TokenStream {
-    let string = input.to_string();
-    let ast = parse_macro_input(&string).unwrap();
-    let gen = impl_msg(&ast, Ident::new("relm"));
-    gen.parse().unwrap()
+    let ast: Item = parse(input).unwrap();
+    let gen = impl_msg(&ast, Ident::new("relm", ast.span()));
+    gen.into()
 }
 
 #[proc_macro_derive(Widget)]
 pub fn widget(input: TokenStream) -> TokenStream {
-    let source = input.to_string();
-    let ast = parse_item(&source).unwrap();
+    let ast: Item = parse(input).unwrap();
     let expanded = impl_widget(&ast);
-    expanded.parse().unwrap()
+    expanded.into()
 }
 
 fn impl_widget(ast: &Item) -> Tokens {
-    if let Struct(VariantData::Struct(ref fields), _) = ast.node {
+    if let Item::Struct(ItemStruct { ref fields, ..}) = *ast {
         for field in fields {
-            if field.ident == Some(Ident::new("widget")) {
-                if let Mac(ref mac) = field.ty {
-                    if let Delimited(syn::Delimited { ref tts, .. }) = mac.tts[0] {
-                        let mut tokens = Tokens::new();
-                        tokens.append_all(tts);
+            if let Some(ref ident) = field.ident {
+                if ident.as_ref() == "widget" {
+                    if let Macro(ref mac) = field.ty {
+                        let tts = &mac.mac.tts;
+                        let tokens = quote! {
+                            #tts
+                        };
                         return gen_widget(tokens);
                     }
                 }
