@@ -21,10 +21,15 @@
 
 //! Visitor to get all the model attribute used in an expression.
 
-use syn;
-use syn::{Expr, Ident};
-use syn::ExprKind::{Field, Path};
-use syn::visit::{Visitor, walk_expr};
+use syn::{
+    Expr,
+    ExprField,
+    ExprPath,
+    Ident,
+    Path,
+};
+use syn::Member::Named;
+use syn::visit::{Visit, visit_expr};
 
 pub struct ModelVariableVisitor {
     pub idents: Vec<Ident>,
@@ -38,19 +43,23 @@ impl ModelVariableVisitor {
     }
 }
 
-impl Visitor for ModelVariableVisitor {
-    fn visit_expr(&mut self, expr: &Expr) {
-        if let Field(ref obj, ref field) = expr.node {
-            if let Field(ref expr, ref model_ident) = obj.node {
-                if let Expr { node: Path(None, syn::Path { ref segments, .. }), .. } = **expr {
-                    if *model_ident == Ident::new("model") &&
-                        segments.get(0).map(|segment| &segment.ident) == Some(&Ident::new("self"))
-                    {
-                        self.idents.push(field.clone());
+impl<'ast> Visit<'ast> for ModelVariableVisitor {
+    fn visit_expr(&mut self, expr: &'ast Expr) {
+        if let Expr::Field(ExprField { base: ref obj, member: ref field, .. }) = *expr {
+            if let Expr::Field(ExprField { base: ref expr, member: ref model_ident, .. }) = **obj {
+                if let Expr::Path(ExprPath { path: Path { ref segments, .. }, .. }) = **expr {
+                    if let Named(ref model_ident) = *model_ident {
+                        if model_ident.as_ref() == "model" &&
+                            segments.first().map(|segment| segment.value().ident.as_ref()) == Some("self")
+                        {
+                            if let Named(ref field) = *field {
+                                self.idents.push(field.clone());
+                            }
+                        }
                     }
                 }
             }
         }
-        walk_expr(self, expr);
+        visit_expr(self, expr);
     }
 }

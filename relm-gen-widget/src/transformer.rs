@@ -21,10 +21,16 @@
 
 //! Transformer to transform the self.model by the actual model identifier.
 
-use syn;
-use syn::{Expr, Ident, parse_path};
-use syn::fold::{Folder, noop_fold_expr};
-use syn::ExprKind::{Field, Path};
+use syn::{
+    Expr,
+    ExprField,
+    ExprPath,
+    Ident,
+    Path,
+    parse,
+};
+use syn::fold::{Fold, fold_expr};
+use syn::Member::Named;
 
 pub struct Transformer {
     model_ident: String,
@@ -38,25 +44,26 @@ impl Transformer {
     }
 }
 
-impl Folder for Transformer {
+use syn::spanned::Spanned;
+
+impl Fold for Transformer {
     fn fold_expr(&mut self, expr: Expr) -> Expr {
-        if let Field(ref field_expr, ref ident) = expr.node {
-            if *ident == Ident::new("model") {
-                if let Path(None, syn::Path { ref segments, .. }) = field_expr.node {
-                    if segments.get(0).map(|segment| &segment.ident) == Some(&Ident::new("self")) {
-                        let model_ident = Ident::new(self.model_ident.as_str());
-                        let tokens = quote! {
-                            #model_ident
-                        };
-                        let path = parse_path(tokens.as_str()).expect("model path");
-                        return Expr {
-                            node: Path(None, path),
-                            attrs: vec![],
-                        };
+        if let Expr::Field(ExprField { ref base, ref member, .. }) = expr {
+            if let Named(ref ident) = *member {
+                if ident.as_ref() == "model" {
+                    if let Expr::Path(ExprPath { path: Path { ref segments, .. }, .. }) = **base {
+                        if segments.first().map(|segment| segment.value().ident.as_ref()) == Some("self") {
+                            let model_ident = Ident::from(self.model_ident.as_str()); // TODO: check if the position is needed.
+                            let tokens = quote_spanned! { expr.span() => {
+                                let model = &#model_ident;
+                                model
+                            }};
+                            return parse(tokens.into()).expect("model path");
+                        }
                     }
                 }
             }
         }
-        noop_fold_expr(self, expr)
+        fold_expr(self, expr)
     }
 }

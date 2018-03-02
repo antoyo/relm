@@ -25,12 +25,16 @@
  * TODO: think about conditions and loops (widget-list).
  */
 
+#![cfg_attr(feature = "unstable", feature(proc_macro))]
 #![recursion_limit="128"]
 
 #[macro_use]
 extern crate lazy_static;
+extern crate proc_macro;
+extern crate proc_macro2;
 #[macro_use]
 extern crate quote;
+#[macro_use]
 extern crate syn;
 
 mod adder;
@@ -41,34 +45,34 @@ mod walker;
 
 use std::collections::{HashMap, HashSet};
 
+use quote::Tokens;
+use syn::{
+    ArgCaptured,
+    Generics,
+    Ident,
+    ImplItem,
+    ImplItemMethod,
+    ItemImpl,
+    Macro,
+    MethodSig,
+    Path,
+    ReturnType,
+    TypePath,
+    parse,
+};
+use syn::FnArg::{self, Captured};
+use syn::fold::Fold;
+use syn::ImplItem::{Const, Method, Verbatim};
+use syn::Item::{self, Impl};
+use syn::spanned::Spanned;
+use syn::Type;
+use syn::visit::Visit;
+
 use adder::{Adder, Message, Property};
 use gen::gen;
 pub use gen::gen_where_clause;
 use parser::EitherWidget::{Gtk, Relm};
-use parser::{Widget, parse};
-use quote::Tokens;
-use syn::{
-    Delimited,
-    FunctionRetTy,
-    Generics,
-    Ident,
-    ImplItem,
-    Mac,
-    MethodSig,
-    Path,
-    PathSegment,
-    Token,
-    TokenTree,
-    parse_item,
-    parse_type,
-};
-use syn::FnArg::Captured;
-use syn::fold::Folder;
-use syn::ImplItemKind::{Const, Macro, Method, Type};
-use syn::ItemKind::Impl;
-use syn::Pat::Wild;
-use syn::Ty::{self, Tup};
-use syn::visit::Visitor;
+use parser::{Widget, parse_widget};
 use walker::ModelVariableVisitor;
 
 const MODEL_IDENT: &str = "__relm_model";
@@ -92,9 +96,9 @@ pub struct Driver {
     root_widget_expr: Option<Tokens>,
     root_widget_type: Option<Tokens>,
     update_method: Option<ImplItem>,
-    view_macro: Option<Mac>,
-    widget_model_type: Option<Ty>,
-    widget_msg_type: Option<Ty>,
+    view_macro: Option<Macro>,
+    widget_model_type: Option<Type>,
+    widget_msg_type: Option<Type>,
     widget_parent_id: Option<String>,
     widgets: HashMap<Ident, Tokens>, // Map widget ident to widget type.
 }
@@ -134,7 +138,7 @@ impl Driver {
     }
 
     fn add_set_property_to_method(&self, func: &mut ImplItem) {
-        if let Method(_, ref mut block) = func.node {
+        if let Method(ImplItemMethod { ref mut block, .. }) = *func {
             let msg_map = self.msg_model_map.as_ref().expect("update method");
             let property_map = self.properties_model_map.as_ref().expect("update method");
             let mut adder = Adder::new(property_map, msg_map);
@@ -164,14 +168,14 @@ impl Driver {
         }
     }
 
-    fn create_struct(&self, typ: &Ty, relm_widgets: &HashMap<Ident, Path>, generics: &Generics) -> Tokens {
+    fn create_struct(&self, typ: &Type, relm_widgets: &HashMap<Ident, Path>, generics: &Generics) -> Tokens {
         let where_clause = gen_where_clause(generics);
         let widgets = self.widgets.iter().filter(|&(ident, _)| !relm_widgets.contains_key(ident));
-        let (idents, types): (Vec<_>, Vec<_>) = widgets.unzip();
+        let (idents, types): (Vec<Ident>, Vec<_>) = widgets.unzip();
         let relm_idents = relm_widgets.keys();
         let relm_types = relm_widgets.values();
         let widget_model_type = self.widget_model_type.as_ref().expect("missing model method");
-        quote! {
+        quote_spanned! { typ.span() =>
             #[allow(dead_code, missing_docs)]
             pub struct #typ #where_clause {
                 #(#idents: #types,)*
@@ -182,20 +186,21 @@ impl Driver {
     }
 
     fn gen_widget(&mut self, input: Tokens) -> Tokens {
-        let source = input.to_string();
-        let mut ast = parse_item(&source).expect("parse_item() in gen_widget()");
-        if let Impl(unsafety, polarity, generics, path, typ, items) = ast.node {
+        let mut ast: Item = parse(input.into()).expect("parse_item() in gen_widget()");
+        if let Impl(ItemImpl { attrs, defaultness, unsafety, impl_token, generics, trait_, self_ty, items, brace_token }
+                    ) = ast
+        {
             self.generic_types = Some(generics.clone());
-            let name = get_name(&typ);
+            let name = get_name(&self_ty);
             let mut new_items = vec![];
             let mut update_items = vec![];
             for item in items {
                 let mut i = item.clone();
-                match item.node {
-                    Const(_, _) => panic!("Unexpected const item"),
-                    Macro(mac) => self.view_macro = Some(mac),
-                    Method(sig, _) => {
-                        match item.ident.to_string().as_ref() {
+                match item {
+                    Const(..) => panic!("Unexpected const item"),
+                    ImplItem::Macro(mac) => self.view_macro = Some(mac.mac),
+                    Method(ImplItemMethod { sig, .. }) => {
+                        match sig.ident.to_string().as_ref() {
                             "parent_id" => self.data_method = Some(i),
                             "root" => self.root_method = Some(i),
                             "model" => {
@@ -212,18 +217,19 @@ impl Driver {
                             _ => self.other_methods.push(i),
                         }
                     },
-                    Type(_) => {
-                        match item.ident.to_string().as_ref() {
+                    ImplItem::Type(typ) => {
+                        match typ.ident.to_string().as_ref() {
                             "Root" => self.root_type = Some(i),
                             "Model" => self.model_type = Some(i),
                             "ModelParam" => self.model_param_type = Some(i),
                             "Msg" => self.msg_type = Some(i),
-                            _ => panic!("Unexpected type item {:?}", item.ident),
+                            _ => panic!("Unexpected type item {:?}", typ.ident),
                         }
                     },
+                    Verbatim(..) => panic!("Unexpected verbatim item"),
                 }
             }
-            let view = self.get_view(&name, &typ);
+            let view = self.get_view(&name, &self_ty);
             if let Some(on_add) = gen_set_child_prop_calls(&view.widget) {
                 new_items.push(on_add);
             }
@@ -232,16 +238,17 @@ impl Driver {
             new_items.push(view.item);
             self.widgets.insert(self.root_widget.clone().expect("root widget"),
             self.root_widget_type.clone().expect("root widget type"));
-            let widget_struct = self.create_struct(&typ, &view.relm_widgets, &generics);
+            let widget_struct = self.create_struct(&self_ty, &view.relm_widgets, &generics);
             new_items.push(self.get_root_type());
             if let Some(data_method) = self.get_data_method() {
                 new_items.push(data_method);
             }
             new_items.push(self.get_root());
-            let other_methods = self.get_other_methods(&typ, &generics);
-            let update_impl = self.update_impl(&typ, &generics, update_items);
-            let item = Impl(unsafety, polarity, generics, path, typ, new_items);
-            ast.node = item;
+            let other_methods = self.get_other_methods(&self_ty, &generics);
+            let update_impl = self.update_impl(&self_ty, &generics, update_items);
+            let item = Impl(ItemImpl { attrs, defaultness, unsafety, generics, impl_token, trait_, self_ty, brace_token,
+                items: new_items });
+            ast = item;
             let container_impl = view.container_impl;
             quote! {
                 #widget_struct
@@ -298,7 +305,7 @@ impl Driver {
         })
     }
 
-    fn get_other_methods(&mut self, typ: &Ty, generics: &Generics) -> Tokens {
+    fn get_other_methods(&mut self, typ: &Type, generics: &Generics) -> Tokens {
         let mut other_methods: Vec<_> = self.other_methods.drain(..).collect();
         let where_clause = gen_where_clause(generics);
         for method in &mut other_methods {
@@ -342,7 +349,7 @@ impl Driver {
         func
     }
 
-    fn get_view(&mut self, name: &Ident, typ: &Ty) -> View {
+    fn get_view(&mut self, name: &Ident, typ: &Type) -> View {
         // This method should probably just be replaced with `impl_view` and
         // `view_validation_before_impl` should be put inside `impl_view`
         self.view_validation_before_impl();
@@ -350,18 +357,27 @@ impl Driver {
     }
 
     fn view_validation_before_impl(&mut self) {
+        /*
         // This is what comes immediately after `view!` e.g. `{ ... }`
-        let macro_token_tree = &self.view_macro.as_ref().expect("`view!` macro not yet set").tts;
+        let macro_token_tree: Vec<_> = self.view_macro.as_ref().expect("`view!` macro not yet set").tts
+            .clone()
+            .into_iter()
+            .collect();
         // Panic if the macro is declared as anything other than `view! { ... }` or equivalent
         if macro_token_tree.len() != 1 {
             panic!("Invalid `view!` syntax, must be `view! { ... }`, `view! ( ... )`, or `view! [ ... ]`");
         }
         // Reach inside the brackets and bind the contents (the top level items) of `view!`
-        let top_level_items = match &macro_token_tree[0] {
-            &TokenTree::Delimited(Delimited {ref tts, ..}) => tts.clone(),
+        let top_level_items: Vec<_> = match macro_token_tree[0].kind {
+            TokenNode::Group(_, ref tts) => tts.clone().into_iter().collect(),
             _ => panic!("Contents of `view!` should be a comma-delimitted series of items")
         };
-        if let Some(index) = top_level_items.iter().position(|item| item == &TokenTree::Token(Token::Comma)) {
+        if let Some(index) = top_level_items.iter().position(|item|
+            match item.kind {
+                TokenNode::Op(',', _) => true,
+                _ => false,
+            })
+        {
             // Find a comma (meaning more than one top level item) and panic unless it's just a trailing comma
             if index != top_level_items.len() - 1 {
                 panic!("There may only be one top-level item in `view!`");
@@ -370,7 +386,7 @@ impl Driver {
             // Panic if `view!` is empty e.g. `view! {}`
             panic!("`view!` macro is empty, must contain one top-level item");
         }
-        let macro_name_segments: &Vec<PathSegment> = &self.view_macro.as_ref().expect("`view!` macro not yet set").path.segments;
+        let macro_name_segments = &self.view_macro.as_ref().expect("`view!` macro not yet set").path.segments;
         let last_segment = &macro_name_segments[macro_name_segments.len() - 1];
         if (macro_name_segments.len() != 1) || (last_segment.ident.as_ref() != "view") {
             let joined_path = macro_name_segments.iter()
@@ -379,51 +395,48 @@ impl Driver {
                 .join("::");
             panic!("Expected `view!` macro, found `{}` instead", joined_path);
         }
+        */
     }
 
-    fn impl_view(&mut self, name: &Ident, typ: &Ty) -> View {
-        let tokens = &self.view_macro.take().expect("view_macro in impl_view()").tts;
-        if let TokenTree::Delimited(Delimited { ref tts, .. }) = tokens[0] {
-            let mut widget = parse(tts);
-            if let Gtk(ref mut widget) = widget.widget {
-                widget.relm_name = Some(typ.clone());
-            }
-            self.widget_parent_id = widget.parent_id.clone();
-            let mut msg_model_map = HashMap::new();
-            let mut properties_model_map = HashMap::new();
-            get_properties_model_map(&widget, &mut properties_model_map);
-            get_msg_model_map(&widget, &mut msg_model_map);
-            self.add_widgets(&widget, &properties_model_map);
-            let (view, relm_widgets, container_impl) = gen(name, &widget, self);
-            let model_ident = Ident::new(MODEL_IDENT);
-            let item = block_to_impl_item(quote! {
-                #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
-                fn view(relm: &::relm::Relm<Self>, #model_ident: Self::Model) -> Self {
-                    #view
-                }
-            });
-            View {
-                container_impl,
-                item,
-                msg_model_map,
-                properties_model_map,
-                relm_widgets,
-                widget,
-            }
+    fn impl_view(&mut self, name: &Ident, typ: &Type) -> View {
+        let tts = self.view_macro.take().expect("view_macro in impl_view()").tts;
+        let mut widget = parse_widget(tts);
+        if let Gtk(ref mut widget) = widget.widget {
+            widget.relm_name = Some(typ.clone());
         }
-        else {
-            panic!("Expected `{{` but found `{:?}` in view! macro", tokens[0]);
+        self.widget_parent_id = widget.parent_id.clone();
+        let mut msg_model_map = HashMap::new();
+        let mut properties_model_map = HashMap::new();
+        get_properties_model_map(&widget, &mut properties_model_map);
+        get_msg_model_map(&widget, &mut msg_model_map);
+        self.add_widgets(&widget, &properties_model_map);
+        let (view, relm_widgets, container_impl) = gen(name, &widget, self);
+        let model_ident = Ident::from(MODEL_IDENT); // TODO: maybe need to set Span here.
+        let code = quote_spanned! { name.span() =>
+            #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
+            fn view(relm: &::relm::Relm<Self>, #model_ident: Self::Model) -> Self {
+                #view
+            }
+        };
+        let item = block_to_impl_item(code);
+        View {
+            container_impl,
+            item,
+            msg_model_map,
+            properties_model_map,
+            relm_widgets,
+            widget,
         }
     }
 
-    fn update_impl(&mut self, typ: &Ty, generics: &Generics, items: Vec<ImplItem>) -> Tokens {
+    fn update_impl(&mut self, typ: &Type, generics: &Generics, items: Vec<ImplItem>) -> Tokens {
         let where_clause = gen_where_clause(generics);
 
         let msg = self.get_msg_type();
         let model_param = self.get_model_param_type();
         let update = self.get_update();
         let model = self.get_model_type();
-        quote! {
+        quote_spanned! { typ.span() =>
             impl #generics ::relm::Update for #typ #where_clause {
                 #msg
                 #model
@@ -441,21 +454,24 @@ pub fn gen_widget(input: Tokens) -> Tokens {
 }
 
 fn add_model_param(model_fn: &mut ImplItem, model_param_type: &mut Option<ImplItem>) {
-    if let Method(ref mut method_sig, _) = model_fn.node {
-        let len = method_sig.decl.inputs.len();
+    let span = model_fn.span();
+    if let Method(ImplItemMethod { ref mut sig, .. }) = *model_fn {
+        let len = sig.decl.inputs.len();
         if len == 0 || len == 1 {
-            let type_tokens = quote! {
+            let type_tokens = quote_spanned! { span =>
                 &::relm::Relm<Self>
             };
-            let typ = parse_type(type_tokens.as_str()).expect("Relm type");
-            method_sig.decl.inputs.insert(0, Captured(Wild, typ));
+            let ty: Type = parse(type_tokens.into()).expect("Relm type");
+            let input: FnArg = parse(quote! { _: #ty }.into()).expect("wild arg");
+            sig.decl.inputs.insert(0, input);
             if len == 0 {
-                method_sig.decl.inputs.push(Captured(Wild, Tup(vec![])));
+                let input: FnArg = parse(quote! { _: () }.into()).expect("wild arg");
+                sig.decl.inputs.push(input);
             }
         }
-        if let Some(&Captured(_, ref path)) = method_sig.decl.inputs.get(1) {
+        if let Some(&Captured(ArgCaptured { ref ty, .. })) = sig.decl.inputs.iter().nth(1) {
             *model_param_type = Some(block_to_impl_item(quote! {
-                type ModelParam = #path;
+                type ModelParam = #ty;
             }));
         }
     }
@@ -467,20 +483,20 @@ fn block_to_impl_item(tokens: Tokens) -> ImplItem {
             #tokens
         }
     };
-    let implementation = parse_item(implementation.as_str()).expect("parse_item in block_to_impl_item");
-    match implementation.node {
-        Impl(_, _, _, _, _, items) => items[0].clone(),
+    let implementation: Item = parse(implementation.into()).expect("parse_item in block_to_impl_item");
+    match implementation {
+        Impl(ItemImpl { items, .. }) => items[0].clone(),
         _ => unreachable!(),
     }
 }
 
-fn get_name(typ: &Ty) -> Ident {
-    if let Ty::Path(_, ref path) = *typ {
+fn get_name(typ: &Type) -> Ident {
+    if let Type::Path(TypePath { ref path, .. }) = *typ {
         let mut parts = vec![];
         for segment in &path.segments {
             parts.push(segment.ident.as_ref());
         }
-        Ident::new(parts.join("::"))
+        Ident::new(&parts.join("::"), typ.span())
     }
     else {
         panic!("Expected Path")
@@ -547,35 +563,36 @@ fn get_properties_model_map(widget: &Widget, map: &mut PropertyModelMap) {
     }
 }
 
-fn get_return_type(sig: MethodSig) -> Ty {
-    if let FunctionRetTy::Ty(ty) = sig.decl.output {
-        ty
+fn get_return_type(sig: MethodSig) -> Type {
+    if let ReturnType::Type(_, ty) = sig.decl.output {
+        *ty
     }
     else {
-        panic!("Unexpected default, expecting Ty");
+        panic!("Unexpected default, expecting Type");
     }
 }
 
-fn get_second_param_type(sig: &MethodSig) -> Ty {
-    if let Captured(_, ref path) = sig.decl.inputs[1] {
-        path.clone()
+fn get_second_param_type(sig: &MethodSig) -> Type {
+    if let Captured(ArgCaptured { ref ty, .. }) = sig.decl.inputs[1] {
+        ty.clone()
     }
     else {
-        panic!("Unexpected `{:?}`, expecting Captured Ty", sig.decl.inputs[1]);
+        panic!("Unexpected `(unknown)`, expecting Captured Type"/*, sig.decl.inputs[1]*/); // TODO
     }
 }
 
 fn gen_set_child_prop_calls(widget: &Widget) -> Option<ImplItem> {
-    let mut tokens = Tokens::new();
+    let mut tokens = quote! {};
     let widget_name = &widget.name;
     for (&(ref ident, ref key), value) in &widget.child_properties {
-        let property_func = Ident::new(format!("set_{}_{}", ident, key));
-        tokens.append(quote! {
+        let property_func = Ident::new(&format!("set_{}_{}", ident, key), key.span());
+        tokens = quote_spanned! { widget_name.span() =>
+            #tokens
             parent.#property_func(&self.#widget_name, #value);
-        });
+        };
     }
     if !widget.child_properties.is_empty() {
-        Some(block_to_impl_item(quote! {
+        Some(block_to_impl_item(quote_spanned! { widget_name.span() =>
             fn on_add<W: ::gtk::IsA<::gtk::Widget> + ::gtk::IsA<::gtk::Object>>(&self, parent: W) {
                 let parent: gtk::Box = ::gtk::Cast::downcast(::gtk::Cast::upcast::<::gtk::Widget>(parent))
                     .expect("the parent of a widget with child properties must be a gtk::Box");

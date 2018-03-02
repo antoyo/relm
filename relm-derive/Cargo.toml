@@ -11,8 +11,8 @@ version = "0.12.0"
 proc-macro = true
 
 [dependencies]
-quote = "^0.3.14"
-syn = "^0.11.8"
+quote = "^0.4.2"
+syn = "^0.12.13"
 
 [dependencies.relm-derive-common]
 path = "../relm-derive-common"
@@ -21,3 +21,6 @@ version = "^0.12.0"
 [dependencies.relm-gen-widget]
 path = "../relm-gen-widget"
 version = "^0.12.0"
+
+[features]
+unstable = ["relm-derive-common/unstable", "relm-gen-widget/unstable"]

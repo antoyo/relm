@@ -19,43 +19,25 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::boxed;
-
 use quote::Tokens;
-use syn;
-use syn::{Expr, ExprKind, Ident, Path, Stmt, parse_expr};
-use syn::ExprKind::{Assign, AssignOp, Block, Field};
-use syn::fold::{Folder, noop_fold_expr};
-use syn::Stmt::Semi;
-use syn::Unsafety::Normal;
+use syn::{
+    Expr,
+    ExprAssign,
+    ExprAssignOp,
+    ExprBlock,
+    ExprField,
+    ExprPath,
+    Ident,
+    Path,
+    Stmt,
+    parse,
+};
+use syn::Expr::{Assign, AssignOp, Block, Field};
+use syn::fold::{Fold, fold_expr};
+use syn::Member::Named;
+use syn::spanned::Spanned;
 
 use super::{MsgModelMap, PropertyModelMap};
-
-macro_rules! fold_assign {
-    ($_self:expr, $lhs:expr, $new_assign:expr) => {{
-        let mut statements = vec![];
-        let new_statements =
-            if let Field(ref field_expr, ref ident) = $lhs.node {
-                if is_model_path(field_expr) {
-                    Some(create_stmts(ident, $_self.property_map, $_self.msg_map))
-                }
-                else {
-                    None
-                }
-            }
-            else {
-                None
-            };
-        let mut new_assign = $new_assign;
-        if let Some(mut stmts) = new_statements {
-            let new_expr = Expr { node: new_assign, attrs: vec![] };
-            statements.push(Semi(boxed::Box::new(new_expr)));
-            statements.append(&mut stmts);
-            new_assign = Block(Normal, syn::Block { stmts: statements })
-        }
-        new_assign
-    }};
-}
 
 pub struct Adder<'a> {
     msg_map: &'a MsgModelMap,
@@ -71,26 +53,51 @@ impl<'a> Adder<'a> {
     }
 }
 
-impl<'a> Folder for Adder<'a> {
+impl<'a> Adder<'a> {
+    fn fold_assign(&self, lhs: Expr, mut new_assign: Expr) -> Expr {
+        let mut statements = vec![];
+        let new_statements =
+            if let Field(ExprField { ref base, member: Named(ref ident), .. }) = lhs {
+                if is_model_path(base) {
+                    Some(create_stmts(ident, self.property_map, self.msg_map))
+                }
+                else {
+                    None
+                }
+            }
+            else {
+                None
+            };
+        if let Some(mut stmts) = new_statements {
+            let statement: Stmt = parse(quote! {
+                #new_assign;
+            }.into()).expect("expression statement");
+            statements.push(statement);
+            statements.append(&mut stmts);
+            new_assign = parse(quote! {{
+                #(#statements)*
+            }}.into()).expect("statements");
+        }
+        new_assign
+    }
+}
+
+impl<'a> Fold for Adder<'a> {
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         let lhs_clone =
-            match expr.node {
-                Assign(ref lhs, _) | AssignOp(_, ref lhs, _) => lhs.clone(),
-                _ => return noop_fold_expr(self, expr),
+            match expr {
+                Assign(ExprAssign { ref left, .. }) | AssignOp(ExprAssignOp { ref left, .. }) => *left.clone(),
+                _ => return fold_expr(self, expr),
             };
-        let new_expr = noop_fold_expr(self, expr);
-        let new_node = fold_assign!(self, lhs_clone, new_expr.node);
-        Expr {
-            node: new_node,
-            attrs: new_expr.attrs.into_iter().map(|a| self.fold_attribute(a)).collect(),
-        }
+        let new_expr = fold_expr(self, expr);
+        self.fold_assign(lhs_clone, new_expr)
     }
 }
 
 #[derive(Debug, Eq, Hash, PartialEq)]
 pub struct Message {
     pub expr: Expr,
-    pub name: String,
+    pub name: Ident,
     pub widget_name: Ident,
 }
 
@@ -98,7 +105,7 @@ pub struct Message {
 pub struct Property {
     pub expr: Expr,
     pub is_relm_widget: bool,
-    pub name: String,
+    pub name: Ident,
     pub widget_name: Ident,
 }
 
@@ -116,13 +123,13 @@ fn create_stmts_for_msgs(ident: &Ident, msg_map: &MsgModelMap) -> Vec<Stmt> {
             let widget_name = &msg.widget_name;
             let mut value = Tokens::new();
             value.append_all(&[&msg.expr]);
-            let variant = Ident::new(msg.name.as_str());
-            let stmt = quote! {
+            let variant = &msg.name;
+            let stmt = quote_spanned! { ident.span() =>
                 { self.#widget_name.stream().emit(#variant(#value)); }
             };
-            let expr = parse_expr(&stmt.parse::<String>().expect("parse::<String>() in create_stmts"))
-                .expect("parse_expr() in create_stmts");
-            if let ExprKind::Block(_, ref block) = expr.node {
+            let expr: Expr = parse(stmt.into())
+                .expect("parse() in create_stmts");
+            if let Block(ExprBlock { ref block, .. }) = expr {
                 stmts.push(block.stmts[0].clone());
             }
         }
@@ -135,23 +142,22 @@ fn create_stmts_for_props(ident: &Ident, property_map: &PropertyModelMap) -> Vec
     if let Some(properties) = property_map.get(ident) {
         for property in properties {
             let widget_name = &property.widget_name;
-            let prop_name = Ident::new(format!("set_{}", property.name));
+            let prop_name = Ident::new(&format!("set_{}", property.name), property.name.span());
             let mut tokens = Tokens::new();
             tokens.append_all(&[&property.expr]);
             let stmt =
                 if property.is_relm_widget {
-                    quote! {
+                    quote_spanned! { ident.span() =>
                         { self.#widget_name.#prop_name(#tokens); }
                     }
                 }
                 else {
-                    quote! {
+                    quote_spanned! { ident.span() =>
                         { self.#widget_name.#prop_name(#tokens); }
                     }
                 };
-            let expr = parse_expr(&stmt.parse::<String>().expect("parse::<String>() in create_stmts"))
-                .expect("parse_expr() in create_stmts");
-            if let ExprKind::Block(_, ref block) = expr.node {
+            let expr: Expr = parse(stmt.into()).expect("parse() in create_stmts");
+            if let Block(ExprBlock { ref block, .. }) = expr {
                 stmts.push(block.stmts[0].clone());
             }
         }
@@ -160,9 +166,11 @@ fn create_stmts_for_props(ident: &Ident, property_map: &PropertyModelMap) -> Vec
 }
 
 fn is_model_path(expr: &Expr) -> bool {
-    if let Field(ref expr, ref ident) = expr.node {
-        if let Expr { node: ExprKind::Path(None, Path { ref segments, .. }), .. } = **expr {
-            return segments.len() == 1 && segments[0].ident == Ident::new("self") && *ident == Ident::new("model");
+    if let Field(ExprField { ref base, ref member, .. }) = *expr {
+        if let Expr::Path(ExprPath { path: Path { ref segments, .. }, ..}) = **base {
+            if let Named(member_name) = *member {
+                return segments.len() == 1 && segments[0].ident.as_ref() == "self" && member_name.as_ref() == "model";
+            }
         }
     }
     false

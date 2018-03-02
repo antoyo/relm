@@ -6,15 +6,17 @@ extern crate syn;
 use quote::Tokens;
 use relm_gen_widget::gen_where_clause;
 use syn::{
-    Body,
+    Fields,
+    GenericParam,
     Generics,
     Ident,
-    MacroInput,
+    Item,
+    LifetimeDef,
+    TypeParam,
 };
-use syn::Body::Enum;
-use syn::VariantData::Unit;
+use syn::spanned::Spanned;
 
-pub fn impl_msg(ast: &MacroInput, krate: Ident) -> Tokens {
+pub fn impl_msg(ast: &Item, krate: Ident) -> Tokens {
     let display = derive_display_variant(ast, &krate);
     let into_option = derive_into_option(ast, &krate);
 
@@ -24,53 +26,58 @@ pub fn impl_msg(ast: &MacroInput, krate: Ident) -> Tokens {
     }
 }
 
-pub fn impl_simple_msg(ast: &MacroInput, krate: Ident) -> Tokens {
-    let name = &ast.ident;
+pub fn impl_simple_msg(ast: &Item, krate: Ident) -> Tokens {
+    if let Item::Enum(ref enum_item) = *ast {
+        let name = &enum_item.ident;
 
-    let display = derive_display_variant(ast, &krate);
-    let into_option = derive_into_option(ast, &krate);
-    let match_clone = derive_partial_clone(ast);
+        let display = derive_display_variant(ast, &krate);
+        let into_option = derive_into_option(ast, &krate);
+        let match_clone = derive_partial_clone(ast);
 
-    let generics = &ast.generics;
-    let generics_without_bound = remove_generic_bounds(generics);
-    let typ = quote! {
-        #name #generics_without_bound
-    };
-    let where_clause = gen_where_clause(&generics);
+        let generics = &enum_item.generics;
+        let generics_without_bound = remove_generic_bounds(generics);
+        let typ = quote! {
+            #name #generics_without_bound
+        };
+        let where_clause = gen_where_clause(&generics);
 
-    quote! {
-        #display
-        #into_option
+        quote! {
+            #display
+            #into_option
 
-        impl #generics FnOnce<((),)> for #typ #where_clause {
-            type Output = #typ;
+            impl #generics FnOnce<((),)> for #typ #where_clause {
+                type Output = #typ;
 
-            extern "rust-call" fn call_once(self, args: ((),)) -> Self::Output {
-                self.call(args)
+                extern "rust-call" fn call_once(self, args: ((),)) -> Self::Output {
+                    self.call(args)
+                }
             }
-        }
 
-        impl #generics FnMut<((),)> for #typ #where_clause {
-            extern "rust-call" fn call_mut(&mut self, args: ((),)) -> Self::Output {
-                self.call(args)
+            impl #generics FnMut<((),)> for #typ #where_clause {
+                extern "rust-call" fn call_mut(&mut self, args: ((),)) -> Self::Output {
+                    self.call(args)
+                }
             }
-        }
 
-        impl #generics Fn<((),)> for #typ #where_clause {
-            extern "rust-call" fn call(&self, _: ((),)) -> Self::Output {
-                #match_clone
+            impl #generics Fn<((),)> for #typ #where_clause {
+                extern "rust-call" fn call(&self, _: ((),)) -> Self::Output {
+                    #match_clone
+                }
             }
         }
     }
+    else {
+        panic!("expected enum");
+    }
 }
 
-fn derive_partial_clone(ast: &MacroInput) -> Tokens {
-    if let Enum(ref variants) = ast.body {
-        let name = &ast.ident;
+fn derive_partial_clone(ast: &Item) -> Tokens {
+    if let Item::Enum(ref enum_item) = *ast {
+        let name = &enum_item.ident;
         let mut patterns = vec![];
         let mut values = vec![];
-        for variant in variants {
-            if variant.data == Unit {
+        for variant in &enum_item.variants {
+            if variant.fields == Fields::Unit {
                 let ident = &variant.ident;
                 patterns.push(quote! {
                     #name::#ident
@@ -87,31 +94,31 @@ fn derive_partial_clone(ast: &MacroInput) -> Tokens {
         }
     }
     else {
-        panic!("Expected enum but found {:?}", ast.body);
+        panic!("Expected enum but found {:?}", ast);
     }
 }
 
-fn derive_display_variant(ast: &MacroInput, krate: &Ident) -> Tokens {
-    let generics = &ast.generics;
-    let name = &ast.ident;
-    let generics_without_bound = remove_generic_bounds(generics);
-    let typ = quote! {
-        #name #generics_without_bound
-    };
+fn derive_display_variant(ast: &Item, krate: &Ident) -> Tokens {
+    if let Item::Enum(ref enum_item) = *ast {
+        let generics = &enum_item.generics;
+        let name = &enum_item.ident;
+        let generics_without_bound = remove_generic_bounds(generics);
+        let typ = quote! {
+            #name #generics_without_bound
+        };
 
-    if let Body::Enum(ref variants) = ast.body {
-        let variant_patterns = variants.iter().map(|variant| {
+        let variant_patterns = enum_item.variants.iter().map(|variant| {
             let ident = &variant.ident;
             quote! {
                 #name::#ident { .. }
             }
         });
-        let variant_names = variants.iter().map(|variant| {
+        let variant_names = enum_item.variants.iter().map(|variant| {
             variant.ident.to_string()
         });
         let where_clause = gen_where_clause(generics);
 
-        quote! {
+        quote_spanned! { krate.span() =>
             impl #generics ::#krate::DisplayVariant for #typ #where_clause {
                 #[allow(unused_qualifications)]
                 fn display_variant(&self) -> &'static str {
@@ -127,28 +134,41 @@ fn derive_display_variant(ast: &MacroInput, krate: &Ident) -> Tokens {
     }
 }
 
-fn derive_into_option(ast: &MacroInput, krate: &Ident) -> Tokens {
-    let generics = &ast.generics;
-    let name = &ast.ident;
-    let generics_without_bound = remove_generic_bounds(generics);
-    let typ = quote! {
-        #name #generics_without_bound
-    };
-    let where_clause = gen_where_clause(&generics);
+fn derive_into_option(ast: &Item, krate: &Ident) -> Tokens {
+    if let Item::Enum(ref enum_item) = *ast {
+        let generics = &enum_item.generics;
+        let name = &enum_item.ident;
+        let generics_without_bound = remove_generic_bounds(generics);
+        let typ = quote! {
+            #name #generics_without_bound
+        };
+        let where_clause = gen_where_clause(&generics);
 
-    quote! {
-        impl #generics ::#krate::IntoOption<#typ> for #typ #where_clause {
-            fn into_option(self) -> Option<#typ> {
-                Some(self)
+        quote_spanned! { krate.span() =>
+            impl #generics ::#krate::IntoOption<#typ> for #typ #where_clause {
+                fn into_option(self) -> Option<#typ> {
+                    Some(self)
+                }
             }
         }
+    }
+    else {
+        panic!("Expecting enum");
     }
 }
 
 fn remove_generic_bounds(generics: &Generics) -> Generics {
     let mut generics = generics.clone();
-    for param in &mut generics.ty_params {
-        param.bounds = vec![];
+    for param in generics.params.iter_mut() {
+        match *param {
+            GenericParam::Lifetime(LifetimeDef { ref mut bounds, .. }) =>
+                while bounds.pop().is_some() {
+                },
+            GenericParam::Type(TypeParam { ref mut bounds, .. }) =>
+                while bounds.pop().is_some() {
+                },
+            _ => (),
+        }
     }
     generics.clone()
 }

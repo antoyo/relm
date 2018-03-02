@@ -38,7 +38,7 @@ use env_logger::LogBuilder;
 use log::LogRecord;
 use proc_macro::TokenStream;
 use relm_gen_widget::gen_widget;
-use syn::parse_item;
+use syn::{Item, parse};
 
 #[proc_macro_attribute]
 pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
@@ -52,14 +52,13 @@ pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
     }
     builder.init().ok();
 
-    let source = input.to_string();
-    let ast = parse_item(&source).unwrap();
+    let ast: Item = parse(input).unwrap();
     let tokens = quote! {
         #ast
     };
     let expanded = gen_widget(tokens);
-    log_formatted(expanded.parse::<String>().unwrap());
-    expanded.parse().unwrap()
+    log_formatted(expanded.to_string());
+    expanded.into()
 }
 
 fn log_formatted(code: String) {

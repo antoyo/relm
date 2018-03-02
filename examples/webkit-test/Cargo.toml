@@ -6,9 +6,10 @@ version = "0.1.0"
 [dependencies]
 futures = "^0.1"
 gtk = "^0.3"
-webkit2gtk = "^0.2"
+webkit2gtk = "^0.3"
 
 [dependencies.relm]
+default-features = false
 path = "../.."
 
 [dependencies.relm-attributes]
