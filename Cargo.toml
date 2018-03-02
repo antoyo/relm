@@ -55,7 +55,7 @@ version = "^0.12.0"
 [features]
 default = ["unstable"]
 nightly = []
-unstable = ["relm-attributes/unstable", "relm-derive/unstable"]
+unstable = []
 use_impl_trait = ["relm-state/use_impl_trait"]
 [[metadata.release.pre-release-replacements]]
 file = "README.adoc"
