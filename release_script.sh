@@ -31,3 +31,5 @@ cd ..
 cd ./relm-derive-state
 cargo release --no-dev-version
 cd ..
+
+cargo release --no-dev-version
