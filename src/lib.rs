@@ -48,6 +48,9 @@
 )]
 
 /*
+ * TODO: improve README so that examples can be copy/pasted.
+ * TODO: add tests for relm-derive-state.
+ *
  * TODO: look at these projects for a new design:
  * https://github.com/alexflint/gallium
  * https://github.com/lxn/walk
