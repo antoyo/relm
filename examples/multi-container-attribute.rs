@@ -83,6 +83,7 @@ impl Widget for Button {
 
     view! {
         #[parent="right"]
+        #[name="button"]
         gtk::Button {
             label: "+",
         },

@@ -320,9 +320,9 @@ impl ChildItem {
     }
 }
 
-named! { attributes -> HashMap<String, Option<LitStr>>, do_parse!(
+named! { attributes -> HashMap<String, Option<LitStr>>, map!(many0!(do_parse!(
     punct!(#) >>
-    values: map!(brackets!(many0!(do_parse!(
+    values: map!(brackets!(separated_by0!(punct!(,), do_parse!(
         name: syn!(Ident) >>
         value: option!(do_parse!(
             punct!(=) >>
@@ -331,9 +331,17 @@ named! { attributes -> HashMap<String, Option<LitStr>>, do_parse!(
         )) >>
         (name.to_string(), value)
     ))), |(_, values)|
-        values.into_iter().collect()
+        values
     ) >>
-    (values))
+    (values))), |maps| {
+        let mut attrs = HashMap::new();
+        for map in maps {
+            for (key, values) in map {
+                attrs.insert(key, values);
+            }
+        }
+        attrs
+    })
 }
 
 #[derive(Debug)]
