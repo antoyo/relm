@@ -242,6 +242,20 @@ impl Widget for Win {
 NOTE: The `struct Win` is now automatically created by the attribute, as are the function `root()` and the associated types `Model`, `ModelParam`, `Msg` and `Container`.
 You can still provide the method and the associated types if needed, but you cannot create the `struct`.
 
+NOTE: To benefit from better error messages, enable the following features:
+
+ * relm/unstable
+ * relm-attributes/unstable
+ * relm-derive/unstable
+
+To do so, add the following lines to your `Cargo.toml`:
+
+[source,toml]
+----
+[features]
+default = ["relm/unstable", "relm-attributes/unstable", "relm-derive/unstable"]
+----
+
 [NOTE]
 ====
 It is possible to use this syntax from stable Rust.
