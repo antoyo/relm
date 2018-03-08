@@ -46,7 +46,7 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
-    fn model() -> () {
+    fn model() {
     }
 
     fn update(&mut self, event: Msg) {

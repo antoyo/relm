@@ -568,7 +568,10 @@ fn get_return_type(sig: MethodSig) -> Type {
         *ty
     }
     else {
-        panic!("Unexpected default, expecting Type");
+        Type::Tuple(syn::TypeTuple {
+            paren_token: syn::token::Paren::default(),
+            elems: syn::punctuated::Punctuated::new()
+        })
     }
 }
 
