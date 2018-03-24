@@ -5,8 +5,8 @@ version = "0.1.0"
 
 [dependencies]
 futures = "^0.1"
-gtk = "^0.3"
-webkit2gtk = "^0.3"
+gtk = "^0.4"
+webkit2gtk = "^0.4"
 
 [dependencies.relm]
 default-features = false
