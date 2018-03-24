@@ -34,23 +34,21 @@ use std::env;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-use env_logger::LogBuilder;
-use log::LogRecord;
+use env_logger::Builder;
 use proc_macro::TokenStream;
 use relm_gen_widget::gen_widget;
 use syn::{Item, parse};
 
 #[proc_macro_attribute]
 pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
-    let format = |record: &LogRecord| {
-        record.args().to_string()
-    };
-    let mut builder = LogBuilder::new();
-    builder.format(format);
+    let mut builder = Builder::new();
+    builder.format(|buf, record| {
+        write!(buf, "{}", record.args())
+    });
     if let Ok(rust_log) = env::var("RUST_LOG") {
         builder.parse(&rust_log);
     }
-    builder.init().ok();
+    builder.try_init().ok();
 
     let ast: Item = parse(input).unwrap();
     let tokens = quote! {

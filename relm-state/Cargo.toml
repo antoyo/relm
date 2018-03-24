@@ -9,7 +9,7 @@ version = "0.13.0"
 [dependencies]
 futures = "^0.1.14"
 futures-glib = "^0.4.0"
-log = "^0.3.7"
+log = "0.4"
 
 [dependencies.relm-core]
 path = "../relm-core"
