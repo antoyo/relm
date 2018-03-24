@@ -3,7 +3,7 @@ authors = ["Antoni Boucher <bouanto@zoho.com>"]
 description = "Custom derive required by the relm-state crate."
 license = "MIT"
 name = "relm-derive-state"
-version = "0.12.0"
+version = "0.13.0"
 repository = "https://github.com/antoyo/relm"
 
 [lib]
@@ -14,7 +14,7 @@ syn = "^0.12.13"
 
 [dependencies.relm-derive-common]
 path = "../relm-derive-common"
-version = "^0.12.0"
+version = "^0.13.0"
 
 [features]
 unstable = ["relm-derive-common/unstable"]
