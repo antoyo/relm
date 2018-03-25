@@ -7,7 +7,7 @@ name = "relm-gen-widget"
 repository = "https://github.com/antoyo/relm"
 version = "0.13.0"
 [dependencies]
-lazy_static = "^0.2.4"
+lazy_static = "1.0"
 proc-macro2 = "^0.2.3"
 quote = "^0.4.2"
 
