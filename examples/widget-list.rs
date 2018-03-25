@@ -25,14 +25,10 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
+use gtk::prelude::*;
 use gtk::{
     Button,
-    ButtonExt,
-    ContainerExt,
-    Inhibit,
     Label,
-    LabelExt,
-    WidgetExt,
     Window,
     WindowType,
 };
