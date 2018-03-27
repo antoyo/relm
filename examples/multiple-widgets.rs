@@ -223,9 +223,9 @@ impl Widget for Win {
 
         let hbox = gtk::Box::new(Horizontal, 0);
 
-        let counter1 = hbox.add_widget::<Counter, _>(relm, ());
-        let counter2 = hbox.add_widget::<Counter, _>(relm, ());
-        let text = hbox.add_widget::<Text, _>(relm, ());
+        let counter1 = hbox.add_widget::<Counter>(());
+        let counter2 = hbox.add_widget::<Counter>(());
+        let text = hbox.add_widget::<Text>(());
         window.add(&hbox);
 
         window.show_all();

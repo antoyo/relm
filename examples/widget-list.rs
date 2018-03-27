@@ -127,7 +127,6 @@ enum Msg {
 struct Win {
     counters: Vec<Component<Counter>>,
     hbox: gtk::Box,
-    relm: Relm<Win>,
     window: Window,
 }
 
@@ -143,7 +142,7 @@ impl Update for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Add => {
-                let widget = self.hbox.add_widget::<Counter, _>(&self.relm, ());
+                let widget = self.hbox.add_widget::<Counter>(());
                 self.counters.push(widget);
             },
             Quit => gtk::main_quit(),
@@ -187,7 +186,6 @@ impl Widget for Win {
         Win {
             counters: vec![],
             hbox: hbox,
-            relm: relm.clone(),
             window: window,
         }
     }

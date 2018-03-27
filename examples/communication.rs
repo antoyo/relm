@@ -241,9 +241,9 @@ impl Widget for Win {
 
         let label = Label::new(None);
 
-        let counter1 = hbox.add_widget::<Counter, _>(relm, ());
-        let counter2 = hbox.add_widget::<Counter, _>(relm, ());
-        let text = hbox.add_widget::<Text, _>(relm, ());
+        let counter1 = hbox.add_widget::<Counter>(());
+        let counter2 = hbox.add_widget::<Counter>(());
+        let text = hbox.add_widget::<Text>(());
         hbox.add(&label);
 
         connect!(text@Change(ref text), relm, TextChange(text.clone()));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -19,92 +19,79 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate chrono;
+#![feature(proc_macro)]
+
 extern crate gtk;
 #[macro_use]
 extern crate relm;
+extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
-use chrono::Local;
+use std::thread;
+use std::time::Duration;
+
 use gtk::{
-    ContainerExt,
-    Continue,
     Inhibit,
-    Label,
     LabelExt,
+    OrientableExt,
     WidgetExt,
-    Window,
-    WindowType,
 };
-use relm::{Relm, Update, Widget};
+use gtk::Orientation::Vertical;
+use relm::{Channel, Relm, Widget};
+use relm_attributes::widget;
 
 use self::Msg::*;
 
+// Define the structure of the model.
+pub struct Model {
+    _channel: Channel<i32>,
+    text: String,
+}
+
+// The messages that can be sent to the update function.
 #[derive(Msg)]
-enum Msg {
+pub enum Msg {
     Quit,
-    Tick,
+    Value(i32),
 }
 
-struct Win {
-    label: Label,
-    window: Window,
-}
-
-impl Update for Win {
-    type Model = ();
-    type ModelParam = ();
-    type Msg = Msg;
-
-    fn model(_: &Relm<Self>, _: ()) -> () {
-        ()
-    }
-
-    fn subscriptions(&mut self, relm: &Relm<Self>) {
+#[widget]
+impl Widget for Win {
+    // The initial model.
+    fn model(relm: &Relm<Self>, _: ()) -> Model {
         let stream = relm.stream().clone();
-        gtk::timeout_add(1000, move || {
-            stream.emit(Tick);
-            Continue(true)
+        let (channel, sender) = Channel::new(move |num| {
+            stream.emit(Value(num));
         });
-    }
-
-    fn update(&mut self, event: Msg) {
-        match event {
-            Tick => {
-                let time = Local::now();
-                self.label.set_text(&format!("{}", time.format("%H:%M:%S")));
-            },
-            Quit => gtk::main_quit(),
+        thread::spawn(move || {
+            thread::sleep(Duration::from_secs(2));
+            sender.send(42).expect("send message");
+        });
+        Model {
+            _channel: channel,
+            text: "Computing...".to_string(),
         }
     }
-}
 
-impl Widget for Win {
-    type Root = Window;
-
-    fn root(&self) -> Self::Root {
-        self.window.clone()
+    // Update the model according to the message received.
+    fn update(&mut self, event: Msg) {
+        match event {
+            Quit => gtk::main_quit(),
+            Value(num) => self.model.text = num.to_string(),
+        }
     }
 
-    fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
-        let label = Label::new(None);
-
-        let window = Window::new(WindowType::Toplevel);
-
-        window.add(&label);
-
-        window.show_all();
-
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
-
-        let mut win = Win {
-            label: label,
-            window: window,
-        };
-
-        win.update(Tick);
-        win
+    view! {
+        gtk::Window {
+            gtk::Box {
+                orientation: Vertical,
+                gtk::Label {
+                    text: &self.model.text,
+                },
+            },
+            delete_event(_, _) => (Quit, Inhibit(false)),
+        }
     }
 }
 

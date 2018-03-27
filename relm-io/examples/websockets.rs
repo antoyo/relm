@@ -24,12 +24,9 @@
  * TODO: test with a message sent from the server.
  */
 
-#![feature(conservative_impl_trait)]
-
 extern crate base64;
 extern crate blake2;
 extern crate byteorder;
-extern crate futures;
 extern crate gtk;
 extern crate rand;
 #[macro_use]
@@ -46,7 +43,6 @@ use std::net::ToSocketAddrs;
 use base64::encode;
 use blake2::{Blake2b, Digest};
 use byteorder::{BigEndian, WriteBytesExt};
-use futures::Future;
 use gtk::{
     Button,
     ButtonExt,

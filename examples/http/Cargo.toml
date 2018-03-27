@@ -2,21 +2,16 @@
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 name = "http"
 version = "0.1.0"
-
 [dependencies]
-futures = "^0.1.10"
-gdk = "^0.5.3"
-gdk-pixbuf = "^0.1.1"
-gdk = "^0.5.3"
-gtk = "^0.1.2"
+gdk = "^0.8.0"
+gdk-pixbuf = "^0.4.0"
+gio = "^0.4.0"
+glib = "^0.5.0"
+glib-sys = "^0.6.0"
+gtk = "^0.4.0"
 json = "^0.11.5"
 simplelog = "^0.4.2"
-
-[dependencies.hyper]
-git = "https://github.com/hyperium/hyper"
-
-[dependencies.hyper-tls]
-git = "https://github.com/hyperium/hyper-tls"
+uhttp_uri = "^0.5.1"
 
 [dependencies.relm]
 path = "../.."

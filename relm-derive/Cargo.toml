@@ -5,7 +5,7 @@ documentation = "https://docs.rs/relm-derive/"
 license = "MIT"
 name = "relm-derive"
 repository = "https://github.com/antoyo/relm"
-version = "0.13.0"
+version = "0.14.0"
 
 [lib]
 proc-macro = true
@@ -16,11 +16,11 @@ syn = "^0.12.13"
 
 [dependencies.relm-derive-common]
 path = "../relm-derive-common"
-version = "^0.13.0"
+version = "^0.14.0"
 
 [dependencies.relm-gen-widget]
 path = "../relm-gen-widget"
-version = "^0.13.0"
+version = "^0.14.0"
 
 [features]
 unstable = ["relm-derive-common/unstable", "relm-gen-widget/unstable"]

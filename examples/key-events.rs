@@ -19,7 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
