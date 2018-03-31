@@ -48,6 +48,8 @@
 )]
 
 /*
+ * TODO: relm-test: copy the widgets structure only for testing (old: add function find_widget_by_name()).
+ *
  * TODO: remove log of formatted code.
  *
  * TODO: improve README so that examples can be copy/pasted.
