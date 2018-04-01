@@ -167,8 +167,8 @@ impl Widget for Win {
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
-        let plus_button = vbox.add_widget::<CheckButton, _>(relm, "+");
-        let minus_button = vbox.add_widget::<CheckButton, _>(relm, "-");
+        let plus_button = vbox.add_widget::<CheckButton>("+");
+        let minus_button = vbox.add_widget::<CheckButton>("-");
 
         let window = Window::new(WindowType::Toplevel);
         window.add(&vbox);

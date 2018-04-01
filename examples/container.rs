@@ -156,12 +156,12 @@ impl Widget for Win {
 
     fn view(relm: &Relm<Self>, _model: ()) -> Self {
         let window = Window::new(Toplevel);
-        let vbox = window.add_container::<VBox, _>(relm, ());
+        let vbox = window.add_container::<VBox>(());
         let plus_button = gtk::Button::new_with_label("+");
         vbox.add(&plus_button);
         let label = Label::new(Some("0"));
         vbox.add(&label);
-        let button = vbox.add_widget::<Button, _>(relm, ());
+        let button = vbox.add_widget::<Button>(());
         let minus_button = gtk::Button::new_with_label("-");
         vbox.add(&minus_button);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));

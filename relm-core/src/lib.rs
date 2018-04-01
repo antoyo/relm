@@ -30,18 +30,23 @@
     unused_extern_crates,
     unused_import_braces,
     unused_qualifications,
-    unused_results,
 )]
 
-extern crate futures;
+extern crate glib;
+extern crate glib_sys;
+extern crate libc;
+
+mod source;
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::io::Error;
+use std::marker::PhantomData;
 use std::rc::Rc;
+use std::sync::mpsc::{self, Receiver, Sender};
 
-use futures::{Async, Poll, Stream};
-use futures::task::{self, Task};
+use source::{SourceFuncs, new_source, source_get};
+
+use glib::{MainContext, Source};
 
 /// A lock is used to temporarily stop emitting messages.
 #[must_use]
@@ -55,114 +60,170 @@ impl<MSG> Drop for Lock<MSG> {
     }
 }
 
+struct ChannelData<MSG> {
+    callback: Box<FnMut(MSG)>,
+    peeked_value: Option<MSG>,
+    receiver: Receiver<MSG>,
+}
+
+/// A channel to send a message to a relm widget from another thread.
+pub struct Channel<MSG> {
+    _source: Source,
+    _phantom: PhantomData<MSG>,
+}
+
+impl<MSG> Channel<MSG> {
+    /// Create a new channel with a callback that will be called when a message is received.
+    pub fn new<CALLBACK: FnMut(MSG) + 'static>(callback: CALLBACK) -> (Self, Sender<MSG>) {
+        let (sender, receiver) = mpsc::channel();
+        let source = new_source(RefCell::new(ChannelData {
+            callback: Box::new(callback),
+            peeked_value: None,
+            receiver,
+        }));
+        let main_context = MainContext::default().expect("no main context");
+        source.attach(&main_context);
+        (Self {
+            _source: source,
+            _phantom: PhantomData,
+        }, sender)
+    }
+}
+
+impl<MSG> SourceFuncs for RefCell<ChannelData<MSG>> {
+    fn dispatch(&self) -> bool {
+        // TODO: show errors.
+        let msg = self.borrow_mut().peeked_value.take().or_else(|| {
+            self.borrow().receiver.try_recv().ok()
+        });
+        if let Some(msg) = msg {
+            let callback = &mut self.borrow_mut().callback;
+            callback(msg);
+        }
+        true
+    }
+
+    fn prepare(&self) -> (bool, Option<u32>) {
+        if self.borrow().peeked_value.is_some() {
+            return (true, None);
+        }
+        self.borrow_mut().peeked_value = self.borrow().receiver.try_recv().ok();
+        (self.borrow().peeked_value.is_some(), None)
+    }
+
+}
+
 struct _EventStream<MSG> {
     events: VecDeque<MSG>,
     locked: bool,
     observers: Vec<Rc<Fn(&MSG)>>,
-    task: Option<Task>,
-    terminated: bool,
+}
+
+impl<MSG> SourceFuncs for SourceData<MSG> {
+    fn dispatch(&self) -> bool {
+        let event = self.stream.borrow_mut().events.pop_front();
+        if let (Some(event), Some(callback)) = (event, self.callback.borrow_mut().as_mut()) {
+            callback(event);
+        }
+        true
+    }
+
+    fn prepare(&self) -> (bool, Option<u32>) {
+        (!self.stream.borrow().events.is_empty(), None)
+    }
+
+}
+
+struct SourceData<MSG> {
+    callback: Rc<RefCell<Option<Box<FnMut(MSG)>>>>,
+    stream: Rc<RefCell<_EventStream<MSG>>>,
 }
 
 /// A stream of messages to be used for widget/signal communication and inter-widget communication.
 pub struct EventStream<MSG> {
-    stream: Rc<RefCell<_EventStream<MSG>>>,
+    source: Source,
+    _phantom: PhantomData<MSG>,
 }
 
 impl<MSG> Clone for EventStream<MSG> {
     fn clone(&self) -> Self {
         EventStream {
-            stream: self.stream.clone(),
+            source: self.source.clone(),
+            _phantom: PhantomData,
         }
+    }
+}
+
+impl<MSG> EventStream<MSG> {
+    fn get_callback(&self) -> Rc<RefCell<Option<Box<FnMut(MSG)>>>> {
+        source_get::<SourceData<MSG>>(&self.source).callback.clone()
+    }
+
+    fn get_stream(&self) -> Rc<RefCell<_EventStream<MSG>>> {
+        source_get::<SourceData<MSG>>(&self.source).stream.clone()
     }
 }
 
 impl<MSG> EventStream<MSG> {
     /// Create a new event stream.
     pub fn new() -> Self {
+        let event_stream: _EventStream<MSG> = _EventStream {
+            events: VecDeque::new(),
+            locked: false,
+            observers: vec![],
+        };
+        let source = new_source(SourceData {
+            callback: Rc::new(RefCell::new(None)),
+            stream: Rc::new(RefCell::new(event_stream)),
+        });
+        let main_context = MainContext::default().expect("no main context");
+        source.attach(&main_context);
         EventStream {
-            stream: Rc::new(RefCell::new(_EventStream {
-                events: VecDeque::new(),
-                locked: false,
-                observers: vec![],
-                task: None,
-                terminated: false,
-            })),
+            source,
+            _phantom: PhantomData,
         }
     }
 
     /// Close the event stream, i.e. stop processing messages.
-    pub fn close(&self) -> Result<(), Error> {
-        let mut stream = self.stream.borrow_mut();
-        stream.terminated = true;
-        // TODO: document why it is needed.
-        if let Some(ref task) = stream.task {
-            task.notify();
-        }
-        Ok(())
+    pub fn close(&self) {
+        self.source.destroy();
     }
 
     /// Send the `event` message to the stream and the observers.
     pub fn emit(&self, event: MSG) {
-        if !self.stream.borrow().locked {
-            if let Some(ref task) = self.stream.borrow().task {
-                task.notify();
-            }
-
-            let len = self.stream.borrow().observers.len();
+        let stream = self.get_stream();
+        if !stream.borrow().locked {
+            let len = stream.borrow().observers.len();
             for i in 0..len {
-                let observer = self.stream.borrow().observers[i].clone();
+                let observer = stream.borrow().observers[i].clone();
                 observer(&event);
             }
 
-            self.stream.borrow_mut().events.push_back(event);
+            stream.borrow_mut().events.push_back(event);
         }
-    }
-
-    fn get_event(&self) -> Option<MSG> {
-        self.stream.borrow_mut().events.pop_front()
     }
 
     /// Lock the stream (don't emit message) until the `Lock` goes out of scope.
     pub fn lock(&self) -> Lock<MSG> {
-        self.stream.borrow_mut().locked = true;
+        let stream = self.get_stream();
+        stream.borrow_mut().locked = true;
         Lock {
-            stream: self.stream.clone(),
+            stream: self.get_stream().clone(),
         }
-    }
-
-    fn is_terminated(&self) -> bool {
-        let stream = self.stream.borrow();
-        stream.terminated
     }
 
     /// Add an observer to the event stream.
     /// This callback will be called every time a message is emmited.
     pub fn observe<CALLBACK: Fn(&MSG) + 'static>(&self, callback: CALLBACK) {
-        self.stream.borrow_mut().observers.push(Rc::new(callback));
+        let stream = self.get_stream();
+        stream.borrow_mut().observers.push(Rc::new(callback));
     }
-}
 
-impl<MSG: 'static> Stream for EventStream<MSG> {
-    type Item = MSG;
-    type Error = ();
-
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        if self.is_terminated() {
-            Ok(Async::Ready(None))
-        }
-        else {
-            match self.get_event() {
-                Some(event) => {
-                    let mut stream = self.stream.borrow_mut();
-                    stream.task = None;
-                    Ok(Async::Ready(Some(event)))
-                },
-                None => {
-                    let mut stream = self.stream.borrow_mut();
-                    stream.task = Some(task::current());
-                    Ok(Async::NotReady)
-                },
-            }
-        }
+    /// Add a callback to the event stream.
+    /// This is the main callback and received a owned version of the message, in contrast to
+    /// observe().
+    pub fn set_callback<CALLBACK: FnMut(MSG) + 'static>(&self, callback: CALLBACK) {
+        let source_callback = self.get_callback();
+        *source_callback.borrow_mut() = Some(Box::new(callback));
     }
 }

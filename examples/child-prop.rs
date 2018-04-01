@@ -131,7 +131,7 @@ impl Widget for Win {
         vbox.add(&label);
         let button = gtk::Button::new_with_label("-");
         vbox.add(&button);
-        let relm_button = vbox.add_widget::<Button, _>(relm, ());
+        let relm_button = vbox.add_widget::<Button>(());
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
         window.show_all();
 

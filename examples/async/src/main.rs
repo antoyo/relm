@@ -21,7 +21,6 @@
 
 #![feature(proc_macro)]
 
-extern crate futures;
 extern crate gio;
 extern crate gtk;
 extern crate gtk_sys;

@@ -230,13 +230,13 @@ impl Widget for SplitBox {
         self.vbox.clone()
     }
 
-    fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
+    fn view(_relm: &Relm<Self>, _model: Self::Model) -> Self {
         let vbox = gtk::Box::new(Horizontal, 0);
         let hbox1 = gtk::Box::new(Vertical, 0);
         vbox.add(&hbox1);
         let hbox2 = Frame::new(None);
         vbox.add(&hbox2);
-        let hbox3 = vbox.add_container::<MyFrame, _>(relm, ());
+        let hbox3 = vbox.add_container::<MyFrame>(());
         SplitBox {
             hbox1,
             hbox2,
@@ -282,13 +282,13 @@ impl Widget for Win {
 
     fn view(relm: &Relm<Self>, _model: ()) -> Self {
         let window = Window::new(Toplevel);
-        let vbox = window.add_container::<SplitBox, _>(relm, ());
+        let vbox = window.add_container::<SplitBox>(());
         let plus_button = gtk::Button::new_with_label("+");
         vbox.add(&plus_button);
         let label = Label::new(Some("0"));
         vbox.add(&label);
-        let button = vbox.add_widget::<Button, _>(relm, ());
-        let center_button = vbox.add_widget::<CenterButton, _>(relm, ());
+        let button = vbox.add_widget::<Button>(());
+        let center_button = vbox.add_widget::<CenterButton>(());
         let minus_button = gtk::Button::new_with_label("-");
         vbox.add(&minus_button);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));

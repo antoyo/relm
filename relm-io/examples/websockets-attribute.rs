@@ -19,12 +19,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(conservative_impl_trait, proc_macro)]
+#![feature(proc_macro)]
 
 extern crate base64;
 extern crate blake2;
 extern crate byteorder;
-extern crate futures;
 extern crate gtk;
 extern crate rand;
 #[macro_use]
@@ -42,7 +41,6 @@ use std::net::ToSocketAddrs;
 use base64::encode;
 use blake2::{Blake2b, Digest};
 use byteorder::{BigEndian, WriteBytesExt};
-use futures::Future;
 use gtk::{
     ButtonExt,
     EditableSignals,

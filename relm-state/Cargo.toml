@@ -4,16 +4,11 @@ description = "Non UI part of relm"
 license = "MIT"
 name = "relm-state"
 repository = "https://github.com/antoyo/relm"
-version = "0.13.0"
+version = "0.14.0"
 
 [dependencies]
-futures = "^0.1.14"
-futures-glib = "^0.4.0"
 log = "0.4"
 
 [dependencies.relm-core]
 path = "../relm-core"
-version = "^0.13.0"
-
-[features]
-use_impl_trait = []
+version = "^0.14.0"

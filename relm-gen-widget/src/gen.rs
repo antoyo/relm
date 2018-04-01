@@ -179,15 +179,14 @@ impl<'a> Generator<'a> {
                     };
                 quote_spanned! { widget_name.span() =>
                     let #widget_name = {
-                        ::relm::ContainerWidget::#add_method::<#widget_type_ident, _>(&#parent, &relm,
-                            #init_parameters)
+                        ::relm::ContainerWidget::#add_method::<#widget_type_ident>(&#parent, #init_parameters)
                     };
                 }
             }
             else {
                 quote_spanned! { widget_name.span() =>
                     let #widget_name = {
-                        #parent.add_widget::<#widget_type_ident, _>(&relm, #init_parameters)
+                        #parent.add_widget::<#widget_type_ident>(#init_parameters)
                     };
                 }
             }
@@ -203,12 +202,12 @@ impl<'a> Generator<'a> {
             });
             if is_container {
                 quote_spanned! { widget_name.span() =>
-                    let #widget_name = ::relm::create_container::<#widget_type_ident, _>(&relm, #init_parameters);
+                    let #widget_name = ::relm::create_container::<#widget_type_ident>(#init_parameters);
                 }
             }
             else {
                 quote_spanned! { widget_name.span() =>
-                    let #widget_name = ::relm::create_component::<#widget_type_ident, _>(&relm, #init_parameters);
+                    let #widget_name = ::relm::create_component::<#widget_type_ident>(#init_parameters);
                 }
             }
         }

@@ -4,7 +4,6 @@ name = "webkit-test"
 version = "0.1.0"
 
 [dependencies]
-futures = "^0.1"
 gtk = "^0.4"
 webkit2gtk = "^0.4"
 

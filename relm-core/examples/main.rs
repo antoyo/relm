@@ -20,8 +20,6 @@
  */
 
 extern crate chrono;
-extern crate futures;
-extern crate futures_glib;
 extern crate glib;
 extern crate gtk;
 extern crate relm_core;
@@ -29,8 +27,6 @@ extern crate relm_core;
 use std::time::Duration;
 
 use chrono::Local;
-use futures::Stream;
-use futures_glib::{Interval, MainContext, Executor};
 use gtk::{
     Button,
     ButtonExt,
@@ -74,7 +70,6 @@ struct Model {
 }
 
 fn main() {
-    futures_glib::init();
     gtk::init().unwrap();
 
     // This is a layout container that will stack widgets vertically.
@@ -178,13 +173,6 @@ fn main() {
         }
     }
 
-    // Now we're going to have some fun with futures and the `futures_glib` crate.
-    // First we need some boilerplate code to set up an `Executor`, which allows
-    // us to spawn futures on the `futures_glib` event loop.
-    let cx = MainContext::default(|cx| cx.clone());
-    let ex = Executor::new();
-    ex.attach(&cx);
-
     // Create an interval which will produce a stream of type `()` at regular
     // intervals (1 second in this case). A closure is executed on each value
     // produced by the stream. This specific closure happens to ignore the values
@@ -192,26 +180,20 @@ fn main() {
     // a new value (which again happens every second) we send the `Clock` signal
     // to the main event stream (which causes the clock label to update). Finally,
     // we return `Ok` so that iteration over the stream continues.
-    let interval_future = {
+    /*let interval_future = {
         let interval = Interval::new(Duration::from_secs(1));
         let stream = main_stream.clone();
         interval.map_err(|_| ()).for_each(move |_| {
             stream.emit(Clock);
             Ok(())
         })
-    };
-
-    // The value `interval_future` is a future that will resolve when the stream ends or
-    // when an error is raised. We execute this future by passing it to the executor.
-    ex.spawn(interval_future);
+    };*/
 
     // Now we create another future by applying our `update` function to the main
     // event stream. Again, we pass the future to the executor.
-    let event_future = main_stream.for_each(move |msg| {
+    main_stream.set_callback(move |msg| {
         update(msg, &mut model, &widgets);
-        Ok(())
     });
-    ex.spawn(event_future);
 
     gtk::main();
 }

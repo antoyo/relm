@@ -7,7 +7,7 @@ license = "MIT"
 name = "relm"
 readme = "README.adoc"
 repository = "https://github.com/antoyo/relm"
-version = "0.13.0"
+version = "0.14.0"
 [badges.appveyor]
 branch = "master"
 repository = "antoyo/relm"
@@ -17,7 +17,6 @@ branch = "master"
 repository = "antoyo/relm"
 
 [dependencies]
-futures-glib = "^0.4.0"
 glib = "^0.5.0"
 glib-sys = "^0.6.0"
 gobject-sys = "^0.6.0"
@@ -27,36 +26,34 @@ libc = "^0.2.22"
 
 [dependencies.relm-core]
 path = "relm-core"
-version = "^0.13.0"
+version = "^0.14.0"
 
 [dependencies.relm-state]
 path = "relm-state"
-version = "^0.13.0"
+version = "^0.14.0"
 
 [dev-dependencies]
 chrono = "^0.3.0"
-futures = "^0.1.17"
 
 [dev-dependencies.gio]
 version = "^0.4.0"
 
 [dev-dependencies.relm-attributes]
 path = "relm-attributes"
-version = "^0.13.0"
+version = "^0.14.0"
 
 [dev-dependencies.relm-derive]
 path = "relm-derive"
-version = "^0.13.0"
+version = "^0.14.0"
 
 [dev-dependencies.relm-test]
 path = "relm-test"
-version = "^0.13.0"
+version = "^0.14.0"
 
 [features]
 default = ["unstable"]
 nightly = []
 unstable = []
-use_impl_trait = ["relm-state/use_impl_trait"]
 [[metadata.release.pre-release-replacements]]
 file = "README.adoc"
 replace = "relm = \"{{version}}\""

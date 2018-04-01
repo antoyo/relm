@@ -22,19 +22,16 @@
 #![feature(fn_traits, unboxed_closures)]
 
 extern crate chrono;
-extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use std::time::Duration;
-
 use chrono::Local;
-use futures_glib::Interval;
 use gtk::{
     ContainerExt,
+    Continue,
     Inhibit,
     Label,
     LabelExt,
@@ -67,8 +64,11 @@ impl Update for Win {
     }
 
     fn subscriptions(&mut self, relm: &Relm<Self>) {
-        let stream = Interval::new(Duration::from_secs(1));
-        relm.connect_exec_ignore_err(stream, Tick);
+        let stream = relm.stream().clone();
+        gtk::timeout_add(1000, move || {
+            stream.emit(Tick);
+            Continue(true)
+        });
     }
 
     fn update(&mut self, event: Msg) {

@@ -22,7 +22,6 @@
 #![feature(proc_macro, unboxed_closures)]
 
 extern crate chrono;
-extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
@@ -30,11 +29,9 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
-use std::time::Duration;
-
 use chrono::{DateTime, Local};
-use futures_glib::Interval;
 use gtk::{
+    Continue,
     Inhibit,
     LabelExt,
     WidgetExt,
@@ -51,7 +48,7 @@ pub struct Model {
 #[derive(Msg)]
 pub enum Msg {
     Quit,
-    Tick(()),
+    Tick,
 }
 
 #[widget]
@@ -63,13 +60,16 @@ impl Widget for Win {
     }
 
     fn subscriptions(&mut self, relm: &Relm<Self>) {
-        let stream = Interval::new(Duration::from_secs(1));
-        relm.connect_exec_ignore_err(stream, Tick);
+        let stream = relm.stream().clone();
+        gtk::timeout_add(1000, move || {
+            stream.emit(Tick);
+            Continue(true)
+        });
     }
 
     fn update(&mut self, event: Msg) {
         match event {
-            Tick(()) => self.model.time = Local::now(),
+            Tick => self.model.time = Local::now(),
             Quit => gtk::main_quit(),
         }
     }

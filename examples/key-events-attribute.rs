@@ -21,7 +21,6 @@
 
 #![feature(proc_macro)]
 
-extern crate futures_glib;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
