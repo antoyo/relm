@@ -242,6 +242,7 @@ impl Update for Http {
 
     fn subscriptions(&mut self, relm: &Relm<Self>) {
         let client = SocketClient::new();
+        // TODO: call client.set_tls().
         if let Some(host) = HttpUri::new(&self.model.url).ok().map(|uri| uri.authority) {
             connect_async!(client, connect_to_host_async(host, 80), relm, Connection);
         }

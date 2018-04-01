@@ -44,7 +44,6 @@
     unused_extern_crates,
     unused_import_braces,
     unused_qualifications,
-    unused_results,
 )]
 
 /*
@@ -133,6 +132,7 @@ use glib_sys::GType;
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
 use gobject_sys::{GObject, GValue};
+use gtk::Continue;
 use libc::{c_char, c_uint};
 #[doc(hidden)]
 pub use relm_core::{Channel, EventStream};
@@ -391,4 +391,24 @@ pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>
     let _component = init::<WIDGET>(model_param)?;
     gtk::main();
     Ok(())
+}
+
+/// Emit the `msg` every `duration` ms.
+pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, duration: u32, constructor: F) {
+    let stream = stream.clone();
+    gtk::timeout_add(duration, move || {
+        let msg = constructor();
+        stream.emit(msg);
+        Continue(true)
+    });
+}
+
+/// After `duration` ms, emit `msg`.
+pub fn timeout<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, duration: u32, constructor: F) {
+    let stream = stream.clone();
+    gtk::timeout_add(duration, move || {
+        let msg = constructor();
+        stream.emit(msg);
+        Continue(false)
+    });
 }

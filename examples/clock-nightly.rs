@@ -31,7 +31,6 @@ extern crate relm_derive;
 use chrono::Local;
 use gtk::{
     ContainerExt,
-    Continue,
     Inhibit,
     Label,
     LabelExt,
@@ -39,7 +38,7 @@ use gtk::{
     Window,
     WindowType,
 };
-use relm::{Relm, Update, Widget};
+use relm::{Relm, Update, Widget, interval};
 
 use self::Msg::*;
 
@@ -64,11 +63,7 @@ impl Update for Win {
     }
 
     fn subscriptions(&mut self, relm: &Relm<Self>) {
-        let stream = relm.stream().clone();
-        gtk::timeout_add(1000, move || {
-            stream.emit(Tick);
-            Continue(true)
-        });
+        interval(relm.stream(), 1000, || Tick);
     }
 
     fn update(&mut self, event: Msg) {

@@ -31,12 +31,11 @@ extern crate relm_derive;
 
 use chrono::{DateTime, Local};
 use gtk::{
-    Continue,
     Inhibit,
     LabelExt,
     WidgetExt,
 };
-use relm::{Relm, Widget};
+use relm::{Relm, Widget, interval};
 use relm_attributes::widget;
 
 use self::Msg::*;
@@ -60,11 +59,7 @@ impl Widget for Win {
     }
 
     fn subscriptions(&mut self, relm: &Relm<Self>) {
-        let stream = relm.stream().clone();
-        gtk::timeout_add(1000, move || {
-            stream.emit(Tick);
-            Continue(true)
-        });
+        interval(relm.stream(), 1000, || Tick);
     }
 
     fn update(&mut self, event: Msg) {
