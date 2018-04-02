@@ -8,8 +8,6 @@ repository = "https://github.com/antoyo/relm"
 version = "0.14.3"
 
 [dependencies]
-env_logger = "0.5"
-log = "0.4"
 quote = "0.5"
 syn = "0.13"
 

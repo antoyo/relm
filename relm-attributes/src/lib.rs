@@ -21,59 +21,22 @@
 
 #![feature(proc_macro)]
 
-extern crate env_logger;
-#[macro_use]
-extern crate log;
 extern crate proc_macro;
 #[macro_use]
 extern crate quote;
 extern crate relm_gen_widget;
 extern crate syn;
 
-use std::env;
-use std::io::Write;
-use std::process::{Command, Stdio};
-
-use env_logger::Builder;
 use proc_macro::TokenStream;
 use relm_gen_widget::gen_widget;
 use syn::{Item, parse};
 
 #[proc_macro_attribute]
 pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
-    let mut builder = Builder::new();
-    builder.format(|buf, record| {
-        write!(buf, "{}", record.args())
-    });
-    if let Ok(rust_log) = env::var("RUST_LOG") {
-        builder.parse(&rust_log);
-    }
-    builder.try_init().ok();
-
     let ast: Item = parse(input).unwrap();
     let tokens = quote! {
         #ast
     };
     let expanded = gen_widget(tokens);
-    log_formatted(expanded.to_string());
     expanded.into()
-}
-
-fn log_formatted(code: String) {
-    let command = Command::new("rustfmt")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn();
-    warn!("{}", code);
-    if let Ok(mut child) = command {
-        warn!("*************************");
-        {
-            let stdin = child.stdin.as_mut().expect("failed to get stdin");
-            write!(stdin, "{}", code).expect("failed to write to stdin");
-        }
-        let result = String::from_utf8(child.wait_with_output().expect("failed to wait on child").stdout)
-            .expect("failed to decode rustfmt output");
-        warn!("{}", result);
-    }
 }
