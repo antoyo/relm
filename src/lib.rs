@@ -112,6 +112,7 @@ extern crate glib;
 extern crate glib_sys;
 extern crate gobject_sys;
 extern crate gtk;
+#[cfg(feature = "test")]
 extern crate gtk_sys;
 extern crate libc;
 extern crate relm_core;
@@ -193,13 +194,15 @@ macro_rules! use_impl_self_type {
     };
 }
 
-fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> Component<WIDGET>
+#[cfg(feature = "test")]
+fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WIDGET>, WIDGET::Widgets)
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, relm) = create_widget(model_param);
+    let (widget, component, relm): (_, WIDGET, _) = create_widget(model_param);
+    let widgets = component.get_widgets();
     init_component::<WIDGET>(widget.stream(), component, &relm);
-    widget
+    (widget, widgets)
 }
 
 /// Create a new relm widget without adding it to an existing widget.
@@ -246,6 +249,7 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
 }
 
 // TODO: remove this workaround.
+#[cfg(feature = "test")]
 fn init_gtk() {
     let mut argc = 0;
     unsafe {
@@ -308,7 +312,8 @@ fn init_gtk() {
 /// let widgets = component.widget();
 /// # }
 /// ```
-pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
+#[cfg(feature = "test")]
+pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(Component<WIDGET>, WIDGET::Widgets), ()>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static
 {

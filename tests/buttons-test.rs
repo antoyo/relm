@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -19,6 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#![cfg(feature = "test")]
 #![feature(proc_macro)]
 
 extern crate gtk;
@@ -27,6 +28,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
 extern crate relm_test;
 
 use gtk::{
@@ -93,30 +95,31 @@ impl Widget for Win {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use relm;
-//     use relm_test::click;
+#[cfg(test)]
+mod tests {
+    use gtk::LabelExt;
 
-//     use super::Win;
+    use relm;
+    use relm_test::click;
 
-//     #[test]
-//     fn label_change() {
-//         // TODO: find a way to make it work: get the real component?
-//         let component = relm::init_test::<Win>(()).unwrap();
-//         let inc_button = component.widget().inc_button.clone();
-//         let dec_button = component.widget().dec_button.clone();
+    use super::Win;
 
-//         assert_text!(component.widget().label, 0);
-//         click(&inc_button);
-//         assert_text!(component.widget().label, 1);
-//         click(&inc_button);
-//         assert_text!(component.widget().label, 2);
-//         click(&dec_button);
-//         assert_text!(component.widget().label, 1);
-//         click(&dec_button);
-//         assert_text!(component.widget().label, 0);
-//         click(&dec_button);
-//         assert_text!(component.widget().label, -1);
-//     }
-// }
+    #[test]
+    fn label_change() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let inc_button = widgets.inc_button.clone();
+        let dec_button = widgets.dec_button.clone();
+
+        assert_text!(widgets.label, 0);
+        click(&inc_button);
+        assert_text!(widgets.label, 1);
+        click(&inc_button);
+        assert_text!(widgets.label, 2);
+        click(&dec_button);
+        assert_text!(widgets.label, 1);
+        click(&dec_button);
+        assert_text!(widgets.label, 0);
+        click(&dec_button);
+        assert_text!(widgets.label, -1);
+    }
+}
