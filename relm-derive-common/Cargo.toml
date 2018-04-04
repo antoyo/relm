@@ -4,7 +4,7 @@ description = "Common derive implementation internally used by relm crates"
 license = "MIT"
 name = "relm-derive-common"
 repository = "https://github.com/antoyo/relm"
-version = "0.14.0"
+version = "0.14.1"
 
 [dependencies]
 quote = "0.5"
