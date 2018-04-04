@@ -47,7 +47,7 @@ pub enum ButtonMsg {
 }
 
 #[widget]
-impl Widget for Button {
+impl Widget for GtkButton {
     fn model() -> () {
     }
 
@@ -58,6 +58,19 @@ impl Widget for Button {
         gtk::Button {
             label: "+",
         },
+    }
+}
+
+#[widget]
+impl Widget for Button {
+    fn model() -> () {
+    }
+
+    fn update(&mut self, _msg: ButtonMsg) {
+    }
+
+    view! {
+        GtkButton
     }
 }
 

@@ -204,11 +204,10 @@ fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> Component<WIDG
 
 /// Create a new relm widget without adding it to an existing widget.
 /// This is useful when a relm widget is at the root of another relm widget.
-pub fn create_component<CHILDWIDGET, WIDGET>(model_param: CHILDWIDGET::ModelParam)
+pub fn create_component<CHILDWIDGET>(model_param: CHILDWIDGET::ModelParam)
         -> Component<CHILDWIDGET>
     where CHILDWIDGET: Widget + 'static,
           CHILDWIDGET::Msg: DisplayVariant + 'static,
-          WIDGET: Widget,
 {
     let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
     init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
