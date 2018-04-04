@@ -30,7 +30,7 @@ use std::sync::Mutex;
 use proc_macro;
 #[cfg(feature = "unstable")]
 use proc_macro::TokenTree;
-use proc_macro2::{TokenNode, TokenStream};
+use proc_macro2::{TokenTree, TokenStream};
 use quote::ToTokens;
 use syn::{
     self,
@@ -602,7 +602,7 @@ fn expr_use_self(expr: &Expr) -> bool {
     let mut tokens = quote! {};
     expr.to_tokens(&mut tokens);
     tokens.into_iter().any(|token| {
-        if let TokenNode::Term(term) = token.kind {
+        if let TokenTree::Term(term) = token {
             return term.as_str() == "self";
         }
         false

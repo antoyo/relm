@@ -14,7 +14,6 @@ use syn::{
     LifetimeDef,
     TypeParam,
 };
-use syn::spanned::Spanned;
 
 pub fn impl_msg(ast: &Item, krate: Ident) -> Tokens {
     let display = derive_display_variant(ast, &krate);

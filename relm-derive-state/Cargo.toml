@@ -10,7 +10,7 @@ repository = "https://github.com/antoyo/relm"
 proc-macro = true
 
 [dependencies]
-syn = "^0.12.13"
+syn = "0.13"
 
 [dependencies.relm-derive-common]
 path = "../relm-derive-common"

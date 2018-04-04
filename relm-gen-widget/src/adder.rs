@@ -35,7 +35,6 @@ use syn::{
 use syn::Expr::{Assign, AssignOp, Block, Field};
 use syn::fold::{Fold, fold_expr};
 use syn::Member::Named;
-use syn::spanned::Spanned;
 
 use super::{MsgModelMap, PropertyModelMap};
 
