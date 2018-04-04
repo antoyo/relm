@@ -10,8 +10,8 @@ version = "0.14.0"
 [dependencies]
 env_logger = "0.5"
 log = "0.4"
-quote = "^0.4.2"
-syn = "^0.12.13"
+quote = "0.5"
+syn = "0.13"
 
 [dependencies.relm-gen-widget]
 path = "../relm-gen-widget"

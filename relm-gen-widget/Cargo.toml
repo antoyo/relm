@@ -8,12 +8,12 @@ repository = "https://github.com/antoyo/relm"
 version = "0.14.0"
 [dependencies]
 lazy_static = "1.0"
-proc-macro2 = "^0.2.3"
-quote = "^0.4.2"
+proc-macro2 = "0.3"
+quote = "0.5"
 
 [dependencies.syn]
 features = ["extra-traits", "fold", "full", "visit"]
-version = "^0.12.13"
+version = "^0.13"
 
 [features]
 unstable = ["proc-macro2/nightly"]
