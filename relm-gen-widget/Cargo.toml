@@ -17,3 +17,4 @@ version = "^0.12.13"
 
 [features]
 unstable = ["proc-macro2/nightly"]
+test = []

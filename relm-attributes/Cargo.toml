@@ -22,3 +22,4 @@ proc-macro = true
 
 [features]
 unstable = ["relm-gen-widget/unstable"]
+test = ["relm-gen-widget/test"]
