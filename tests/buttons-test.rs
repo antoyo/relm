@@ -49,14 +49,15 @@ pub struct Model {
     relm: Relm<Win>,
 }
 
-#[derive(Msg)]
+#[derive(Clone, Msg)]
 pub enum Msg {
     Decrement,
     FiveInc,
     GetModel,
-    RecvModel(Model),
     Increment,
+    RecvModel(Model),
     Quit,
+    TwoInc(i32, i32),
 }
 
 #[widget]
@@ -76,6 +77,9 @@ impl Widget for Win {
             GetModel => self.model.relm.stream().emit(RecvModel(self.model.clone())),
             Increment => {
                 self.model.counter += 1;
+                if self.model.counter == 2 {
+                    self.model.relm.stream().emit(TwoInc(1, 2));
+                }
                 if self.model.counter == 5 {
                     self.model.relm.stream().emit(FiveInc);
                 }
@@ -83,6 +87,8 @@ impl Widget for Win {
             // To be listened to by the user.
             RecvModel(_) => (),
             Quit => gtk::main_quit(),
+            // To be listened to by the user.
+            TwoInc(_, _) => (),
         }
     }
 
@@ -112,14 +118,12 @@ impl Widget for Win {
 
 #[cfg(test)]
 mod tests {
-    use gtk;
     use gtk::LabelExt;
 
     use relm;
-    use relm_test::click;
+    use relm_test::{Observer, click};
 
-    //use Msg::FiveInc;
-    use Msg::{GetModel, RecvModel};
+    use Msg::{FiveInc, GetModel, RecvModel, TwoInc};
     use Win;
 
     #[test]
@@ -128,11 +132,39 @@ mod tests {
         let inc_button = widgets.inc_button.clone();
         let dec_button = widgets.dec_button.clone();
 
+        // Observe for messages.
+        let observer = Observer::new(component.stream(), |msg|
+            if let FiveInc = msg {
+                true
+            }
+            else {
+                false
+            }
+        );
+
+        // Shortcut for the previous call to Observer::new().
+        let two_observer = observer_new!(component, TwoInc(_, _));
+
+        let model_observer = Observer::new(component.stream(), |msg|
+            if let RecvModel(_) = msg {
+                true
+            }
+            else {
+                false
+            }
+        );
+
         assert_text!(widgets.label, 0);
         click(&inc_button);
         assert_text!(widgets.label, 1);
         click(&inc_button);
         assert_text!(widgets.label, 2);
+
+        // Shortcut for the call to wait() below.
+        observer_wait!(let TwoInc(one, two) = two_observer);
+        assert_eq!(one, 1);
+        assert_eq!(two, 2);
+
         click(&dec_button);
         assert_text!(widgets.label, 1);
         click(&dec_button);
@@ -140,33 +172,22 @@ mod tests {
         click(&dec_button);
         assert_text!(widgets.label, -1);
 
-        // Observe for events on the widget.
-        component.stream().observe(|msg| {
-            match msg {
-                /*FiveInc => {
-                    // Hack to avoid exiting the main loop too quickly.
-                    gtk::timeout_add(10, || {
-                        gtk::main_quit();
-                        gtk::Continue(false)
-                    });
-                },*/
-                RecvModel(model) => {
-                    assert_eq!(model.counter, 5);
-                    // Allow the test to finish.
-                    gtk::main_quit();
-                },
-                _ => (),
-            }
-        });
-
         for _ in 0..6 {
             click(&inc_button);
         }
 
+        // Wait to receive the message on this observer.
+        observer.wait();
+
         // Ask for the model. This will emit RecvModel.
         component.stream().emit(GetModel);
 
-        // Prevent the test from finishing early.
-        gtk::main();
+        let msg = model_observer.wait();
+        if let RecvModel(model) = msg {
+            assert_eq!(model.counter, 5);
+        }
+        else {
+            panic!("Wrong message type.");
+        }
     }
 }
