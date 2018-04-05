@@ -19,12 +19,9 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(proc_macro)]
-
 extern crate gtk;
 #[macro_use]
 extern crate relm;
-extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
@@ -36,7 +33,6 @@ use gtk::{
     WidgetExt,
 };
 use relm::Widget;
-use relm_attributes::widget;
 
 use self::Msg::*;
 
@@ -45,38 +41,39 @@ pub enum Msg {
     Quit,
 }
 
-#[widget]
-impl Widget for Win {
-    fn model() -> () {
-        ()
-    }
-
-    fn update(&mut self, event: Msg) {
-        match event {
-            Quit => gtk::main_quit(),
+relm_widget! {
+    impl ::relm::Widget for Win {
+        fn model() -> () {
+            ()
         }
-    }
 
-    view! {
-        gtk::Window {
-            gtk::Notebook {
-                gtk::Button {
-                    child: {
-                        tab_label: Some("First Button"),
+        fn update(&mut self, event: Msg) {
+            match event {
+                Quit => gtk::main_quit(),
+            }
+        }
+
+        view! {
+            gtk::Window {
+                gtk::Notebook {
+                    gtk::Button {
+                        child: {
+                            tab_label: Some("First Button"),
+                        },
+                        label: "+",
                     },
-                    label: "+",
-                },
-                gtk::Label {
-                    tab: {
-                        label: &gtk::Label::new("Second page"),
+                    gtk::Label {
+                        tab: {
+                            label: &gtk::Label::new("Second page"),
+                        },
+                        text: "0",
                     },
-                    text: "0",
+                    gtk::Button {
+                        label: "-",
+                    },
                 },
-                gtk::Button {
-                    label: "-",
-                },
-            },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+                delete_event(_, _) => (Quit, Inhibit(false)),
+            }
         }
     }
 }
