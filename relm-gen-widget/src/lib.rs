@@ -468,12 +468,12 @@ impl Driver {
         let where_clause = gen_where_clause(generics);
         let mut relm_idents = quote! { };
         for token in relm_widgets.keys().map(|ident| ident.clone().into_tokens()) {
-            relm_idents = quote! {
+            relm_idents = quote_spanned! { typ.span() =>
                 #relm_idents
                 #token: self.#token.clone(),
             };
         }
-        quote! {
+        quote_spanned! { typ.span() =>
             impl #generics ::relm::WidgetTest for #typ #where_clause {
                 type Widgets = #name;
 
