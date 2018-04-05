@@ -22,3 +22,6 @@ path = "../../relm-attributes"
 
 [dependencies.relm-derive]
 path = "../../relm-derive"
+
+[features]
+default = ["gtk/v3_22", "relm/unstable", "relm-attributes/unstable", "relm-derive/unstable"]

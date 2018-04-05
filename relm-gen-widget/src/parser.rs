@@ -28,8 +28,6 @@ use std::str::FromStr;
 use std::sync::Mutex;
 
 use proc_macro;
-#[cfg(feature = "unstable")]
-use proc_macro::TokenTree;
 use proc_macro2::{TokenTree, TokenStream};
 use quote::ToTokens;
 use syn::{
@@ -786,7 +784,7 @@ pub fn respan_with(tokens: proc_macro::TokenStream, span: proc_macro::Span) -> p
         match token.kind {
             proc_macro::TokenNode::Group(delimiter, inner_tokens) => {
                 let new_tokens = respan_with(inner_tokens, span);
-                result.push(TokenTree {
+                result.push(proc_macro::TokenTree {
                     span,
                     kind: proc_macro::TokenNode::Group(delimiter, new_tokens),
                 });
