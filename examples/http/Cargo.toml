@@ -2,6 +2,7 @@
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 name = "http"
 version = "0.1.0"
+
 [dependencies]
 gdk = "^0.8.0"
 gdk-pixbuf = "^0.4.0"

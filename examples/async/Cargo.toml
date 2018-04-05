@@ -2,6 +2,7 @@
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 name = "async"
 version = "0.1.0"
+
 [dependencies]
 gtk = "^0.4.0"
 gtk-sys = "^0.6.0"
