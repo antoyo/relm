@@ -30,10 +30,18 @@ use super::{EventStream, Widget};
 /// The `#[widget]` attribute takes care of storing them in the struct automatically (see the
 /// [communication-attribute example](https://github.com/antoyo/relm/blob/master/examples/communication-attribute.rs)).
 #[must_use]
-#[derive(Clone)]
 pub struct Component<WIDGET: Widget> {
     stream: EventStream<WIDGET::Msg>,
     widget: WIDGET::Root,
+}
+
+impl<WIDGET: Widget> Clone for Component<WIDGET> {
+    fn clone(&self) -> Self {
+        Self {
+            stream: self.stream.clone(),
+            widget: self.widget.clone(),
+        }
+    }
 }
 
 impl<WIDGET: Widget> Drop for Component<WIDGET> {
