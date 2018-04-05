@@ -267,8 +267,9 @@ fn init_gtk() {
 /// # extern crate relm_derive;
 /// #
 /// # use gtk::{Window, WindowType};
-/// # use relm::{Relm, Update, Widget};
+/// # use relm::{Relm, Update, Widget, WidgetTest};
 /// #
+/// # #[derive(Clone)]
 /// # struct Win {
 /// #     window: Window,
 /// # }
@@ -283,6 +284,14 @@ fn init_gtk() {
 /// #     }
 /// #
 /// #     fn update(&mut self, event: Msg) {
+/// #     }
+/// # }
+/// #
+/// # impl WidgetTest for Win {
+/// #     type Widgets = Win;
+/// #
+/// #     fn get_widgets(&self) -> Self::Widgets {
+/// #         self.clone()
 /// #     }
 /// # }
 /// #
@@ -305,8 +314,7 @@ fn init_gtk() {
 /// # #[derive(Msg)]
 /// # enum Msg {}
 /// # fn main() {
-/// let component = relm::init_test::<Win>(()).unwrap();
-/// let widgets = component.widget();
+/// let (component, widgets) = relm::init_test::<Win>(()).unwrap();
 /// # }
 /// ```
 pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->

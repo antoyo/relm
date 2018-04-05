@@ -171,6 +171,7 @@ struct SplitBox {
     vbox: gtk::Box,
 }
 
+#[derive(Clone)]
 struct SplitBoxContainers {
     hbox1: gtk::Box,
     hbox2: Frame,
