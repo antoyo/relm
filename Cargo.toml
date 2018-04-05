@@ -55,7 +55,6 @@ version = "^0.14.0"
 default = ["unstable"]
 nightly = []
 unstable = []
-test = ["relm-derive/test"]
 
 [[metadata.release.pre-release-replacements]]
 file = "README.adoc"

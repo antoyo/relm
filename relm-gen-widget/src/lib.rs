@@ -45,9 +45,7 @@ mod walker;
 
 use std::collections::{HashMap, HashSet};
 
-use quote::Tokens;
-#[cfg(feature = "test")]
-use quote::ToTokens;
+use quote::{Tokens, ToTokens};
 use syn::{
     ArgCaptured,
     Generics,
@@ -170,33 +168,6 @@ impl Driver {
         }
     }
 
-    #[cfg(feature = "test")]
-    fn widgets_type(&self, typ: &Type) -> ImplItem {
-        let name = Ident::from(format!("__{}Widgets", get_name(&typ)));
-        block_to_impl_item(quote! {
-            type Widgets = #name;
-        })
-    }
-
-    #[cfg(feature = "test")]
-    fn widgets_fn(&self, typ: &Type, relm_widgets: &HashMap<Ident, Path>) -> ImplItem {
-        let mut relm_idents = quote! { };
-        for token in relm_widgets.keys().map(|ident| ident.clone().into_tokens()) {
-            relm_idents = quote! {
-                #relm_idents
-                #token: self.#token.clone(),
-            };
-        }
-        let name = Ident::from(format!("__{}Widgets", get_name(&typ)));
-        block_to_impl_item(quote_spanned! { typ.span() =>
-            fn get_widgets(&self) -> #name {
-                #name {
-                    #relm_idents
-                }
-            }
-        })
-    }
-
     fn create_struct(&self, typ: &Type, relm_widgets: &HashMap<Ident, Path>, generics: &Generics) -> Tokens {
         let where_clause = gen_where_clause(generics);
         let widgets = self.widgets.iter().filter(|&(ident, _)| !relm_widgets.contains_key(ident));
@@ -206,7 +177,6 @@ impl Driver {
         let relm_idents = relm_widgets.keys();
         let relm_types = relm_widgets.values();
         let widget_model_type = self.widget_model_type.as_ref().expect("missing model method");
-        #[cfg(feature = "test")]
         let widgets = {
             let relm_idents = relm_widgets.keys();
             let relm_types = relm_widgets.values();
@@ -216,9 +186,6 @@ impl Driver {
                     #(pub #relm_idents: #relm_types,)*
                 }
             }
-        };
-        #[cfg(not(feature = "test"))]
-        let widgets = quote! {
         };
         quote_spanned! { typ.span() =>
             #[allow(dead_code, missing_docs)]
@@ -293,10 +260,7 @@ impl Driver {
             new_items.push(self.get_root());
             let other_methods = self.get_other_methods(&self_ty, &generics);
             let update_impl = self.update_impl(&self_ty, &generics, update_items);
-            #[cfg(feature = "test")]
-            new_items.push(self.widgets_fn(&self_ty, &view.relm_widgets));
-            #[cfg(feature = "test")]
-            new_items.push(self.widgets_type(&self_ty));
+            let widget_test_impl = self.widget_test_impl(&self_ty, &generics, &view.relm_widgets);
             let item = Impl(ItemImpl { attrs, defaultness, unsafety, generics, impl_token, trait_, self_ty, brace_token,
                 items: new_items });
             ast = item;
@@ -306,6 +270,7 @@ impl Driver {
                 #ast
                 #container_impl
                 #update_impl
+                #widget_test_impl
 
                 #other_methods
             }
@@ -494,6 +459,29 @@ impl Driver {
                 #model_param
                 #update
                 #(#items)*
+            }
+        }
+    }
+
+    fn widget_test_impl(&self, typ: &Type, generics: &Generics, relm_widgets: &HashMap<Ident, Path>) -> Tokens {
+        let name = Ident::from(format!("__{}Widgets", get_name(&typ)));
+        let where_clause = gen_where_clause(generics);
+        let mut relm_idents = quote! { };
+        for token in relm_widgets.keys().map(|ident| ident.clone().into_tokens()) {
+            relm_idents = quote! {
+                #relm_idents
+                #token: self.#token.clone(),
+            };
+        }
+        quote! {
+            impl #generics ::relm::WidgetTest for #typ #where_clause {
+                type Widgets = #name;
+
+                fn get_widgets(&self) -> #name {
+                    #name {
+                        #relm_idents
+                    }
+                }
             }
         }
     }

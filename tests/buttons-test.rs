@@ -19,7 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![cfg(feature = "test")]
 #![feature(proc_macro)]
 
 extern crate gtk;
@@ -39,34 +38,50 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::Widget;
+use relm::{Relm, Widget};
 use relm_attributes::widget;
 
 use self::Msg::*;
 
+#[derive(Clone)]
 pub struct Model {
     counter: i32,
+    relm: Relm<Win>,
 }
 
 #[derive(Msg)]
 pub enum Msg {
     Decrement,
+    FiveInc,
+    GetModel,
+    RecvModel(Model),
     Increment,
     Quit,
 }
 
 #[widget]
 impl Widget for Win {
-    fn model() -> Model {
+    fn model(relm: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
+            relm: relm.clone(),
         }
     }
 
     fn update(&mut self, event: Msg) {
         match event {
             Decrement => self.model.counter -= 1,
-            Increment => self.model.counter += 1,
+            // To be listened to by the user.
+            FiveInc => (),
+            GetModel => self.model.relm.stream().emit(RecvModel(self.model.clone())),
+            Increment => {
+                self.model.counter += 1;
+                if self.model.counter == 5 {
+                    self.model.relm.stream().emit(FiveInc);
+                }
+            },
+            // To be listened to by the user.
+            RecvModel(_) => (),
             Quit => gtk::main_quit(),
         }
     }
@@ -97,16 +112,19 @@ impl Widget for Win {
 
 #[cfg(test)]
 mod tests {
+    use gtk;
     use gtk::LabelExt;
 
     use relm;
     use relm_test::click;
 
-    use super::Win;
+    //use Msg::FiveInc;
+    use Msg::{GetModel, RecvModel};
+    use Win;
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (component, widgets) = relm::init_test::<Win>(()).unwrap();
         let inc_button = widgets.inc_button.clone();
         let dec_button = widgets.dec_button.clone();
 
@@ -121,5 +139,34 @@ mod tests {
         assert_text!(widgets.label, 0);
         click(&dec_button);
         assert_text!(widgets.label, -1);
+
+        // Observe for events on the widget.
+        component.stream().observe(|msg| {
+            match msg {
+                /*FiveInc => {
+                    // Hack to avoid exiting the main loop too quickly.
+                    gtk::timeout_add(10, || {
+                        gtk::main_quit();
+                        gtk::Continue(false)
+                    });
+                },*/
+                RecvModel(model) => {
+                    assert_eq!(model.counter, 5);
+                    // Allow the test to finish.
+                    gtk::main_quit();
+                },
+                _ => (),
+            }
+        });
+
+        for _ in 0..6 {
+            click(&inc_button);
+        }
+
+        // Ask for the model. This will emit RecvModel.
+        component.stream().emit(GetModel);
+
+        // Prevent the test from finishing early.
+        gtk::main();
     }
 }

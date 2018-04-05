@@ -24,4 +24,3 @@ version = "^0.14.0"
 
 [features]
 unstable = ["relm-derive-common/unstable", "relm-gen-widget/unstable"]
-test = ["relm-gen-widget/test"]

@@ -32,14 +32,6 @@ pub trait Widget
     /// The type of the root widget.
     type Root;
 
-    #[cfg(feature = "test")]
-    /// Represents the structure holding all the widgets. Useful for tests.
-    type Widgets;
-
-    #[cfg(feature = "test")]
-    /// Get the structure containing all the widgets. Useful for tests.
-    fn get_widgets(&self) -> Self::Widgets;
-
     /// Update the view after it is initially created.
     /// This method is only useful when using the `#[widget]` attribute, because when not using it,
     /// you can use the [`view()`](trait.Widget.html#tymethod.view) method instead.
@@ -73,4 +65,14 @@ pub trait Widget
 
     /// Create the initial view.
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self;
+}
+
+/// Trait implemented by the generator to ease the creation of tests of relm widgets using the
+/// view! macro.
+pub trait WidgetTest : Widget {
+    /// Represents the structure holding all the widgets. Useful for tests.
+    type Widgets;
+
+    /// Get the structure containing all the widgets. Useful for tests.
+    fn get_widgets(&self) -> Self::Widgets;
 }
