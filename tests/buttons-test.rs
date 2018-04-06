@@ -123,7 +123,7 @@ mod tests {
     use relm;
     use relm_test::{Observer, click};
 
-    use Msg::{FiveInc, GetModel, RecvModel, TwoInc};
+    use Msg::{self, FiveInc, GetModel, RecvModel, TwoInc};
     use Win;
 
     #[test]
@@ -162,6 +162,15 @@ mod tests {
 
         // Shortcut for the call to wait() below.
         observer_wait!(let TwoInc(one, two) = two_observer);
+        assert_eq!(one, 1);
+        assert_eq!(two, 2);
+
+        click(&dec_button);
+        assert_text!(widgets.label, 1);
+        click(&inc_button);
+        assert_text!(widgets.label, 2);
+
+        observer_wait!(let Msg::TwoInc(one, two) = two_observer);
         assert_eq!(one, 1);
         assert_eq!(two, 2);
 

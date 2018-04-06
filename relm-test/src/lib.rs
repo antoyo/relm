@@ -78,10 +78,10 @@ macro_rules! observer_new {
 
 #[macro_export]
 macro_rules! observer_wait {
-    (let $variant:ident($name1:ident, $name2:ident $(,$rest:ident)*) = $observer:expr) => {
+    (let $($variant:ident)::*($name1:ident, $name2:ident $(,$rest:ident)*) = $observer:expr) => {
         let ($name1, $name2 $(, $rest)*) = {
             let msg = $observer.wait();
-            if let $variant($name1, $name2 $(, $rest)*) = msg {
+            if let $($variant)::*($name1, $name2 $(, $rest)*) = msg {
                 ($name1, $name2 $(, $rest)*)
             }
             else {
@@ -89,10 +89,10 @@ macro_rules! observer_wait {
             }
         };
     };
-    (let $variant:ident($name:ident) = $observer:expr) => {
+    (let $($variant:ident)::*($name:ident) = $observer:expr) => {
         let $name = {
             let msg = $observer.wait();
-            if let $variant($name) = msg {
+            if let $($variant)::*($name) = msg {
                 $name
             }
             else {
