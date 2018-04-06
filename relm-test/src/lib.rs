@@ -1,11 +1,26 @@
+extern crate gdk;
+extern crate gdk_sys;
+extern crate glib;
 extern crate glib_sys;
 extern crate gtk;
 extern crate relm_core;
 
 use std::cell::RefCell;
+use std::mem;
 use std::rc::Rc;
 
-use gtk::{ButtonExt, Continue};
+use gdk::EventKey;
+use gdk::enums::key::Key;
+use gdk_sys::{GdkEventKey, GDK_KEY_PRESS, GDK_KEY_RELEASE};
+use glib::translate::{FromGlibPtrFull, ToGlibPtr};
+use gtk::{
+    ButtonExt,
+    Continue,
+    IsA,
+    Widget,
+    WidgetExt,
+    propagate_event,
+};
 use relm_core::EventStream;
 
 #[macro_export]
@@ -20,6 +35,30 @@ pub fn click<B: ButtonExt>(button: &B) {
     // TODO: look at how this is implemented to support other widgets.
     button.clicked();
     run_loop();
+}
+
+pub fn key_press<W: IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
+    let mut event: GdkEventKey = unsafe { mem::zeroed() };
+    event.type_ = GDK_KEY_PRESS;
+    event.window = widget.get_window().expect("window").to_glib_none().0;
+    event.send_event = 1;
+    event.keyval = key;
+    let mut event: EventKey = unsafe { FromGlibPtrFull::from_glib_full(&mut event as *mut _) };
+    propagate_event(widget, &mut event);
+    run_loop();
+    mem::forget(event); // The event is allocated on the stack, hence we don't want to free it.
+}
+
+pub fn key_release<W: IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
+    let mut event: GdkEventKey = unsafe { mem::zeroed() };
+    event.type_ = GDK_KEY_RELEASE;
+    event.window = widget.get_window().expect("window").to_glib_none().0;
+    event.send_event = 1;
+    event.keyval = key;
+    let mut event: EventKey = unsafe { FromGlibPtrFull::from_glib_full(&mut event as *mut _) };
+    propagate_event(widget, &mut event);
+    run_loop();
+    mem::forget(event); // The event is allocated on the stack, hence we don't want to free it.
 }
 
 /// Wait for events the specified amount the milliseconds.
