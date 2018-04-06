@@ -93,7 +93,7 @@ impl Widget for Win {
             Quit => gtk::main_quit(),
             // To be listened to by the user.
             TwoInc(_, _) => (),
-            UpdateText => timeout(self.model.relm.stream(), 1000, || UpdateTextNow),
+            UpdateText => timeout(self.model.relm.stream(), 100, || UpdateTextNow),
             UpdateTextNow => self.model.text = "Updated text".to_string(),
         }
     }
@@ -136,7 +136,7 @@ mod tests {
     use gtk::LabelExt;
 
     use relm;
-    use relm_test::{Observer, click};
+    use relm_test::{Observer, click, wait};
 
     use Msg::{self, FiveInc, GetModel, RecvModel, TwoInc};
     use Win;
@@ -222,5 +222,8 @@ mod tests {
         assert_text!(widgets.text, "");
         click(update_button);
         assert_text!(widgets.text, "");
+
+        wait(200);
+        assert_text!(widgets.text, "Updated text");
     }
 }

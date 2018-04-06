@@ -5,7 +5,7 @@ extern crate relm_core;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use gtk::ButtonExt;
+use gtk::{ButtonExt, Continue};
 use relm_core::EventStream;
 
 #[macro_export]
@@ -20,6 +20,15 @@ pub fn click<B: ButtonExt>(button: &B) {
     // TODO: look at how this is implemented to support other widgets.
     button.clicked();
     run_loop();
+}
+
+/// Wait for events the specified amount the milliseconds.
+pub fn wait(ms: u32) {
+    gtk::timeout_add(ms, || {
+        gtk::main_quit();
+        Continue(false)
+    });
+    gtk::main();
 }
 
 pub fn run_loop() {
