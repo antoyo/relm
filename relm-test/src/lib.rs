@@ -3,7 +3,6 @@ extern crate gdk_sys;
 extern crate glib;
 extern crate glib_sys;
 extern crate gtk;
-extern crate gtk_sys;
 extern crate relm_core;
 
 use std::cell::RefCell;
@@ -11,24 +10,14 @@ use std::mem;
 use std::rc::Rc;
 
 use gdk::{
-    EventButton,
     EventKey,
-    EventMotion,
     unicode_to_keyval,
 };
 use gdk::enums::key::Key;
 use gdk_sys::{
-    GdkEventButton,
     GdkEventKey,
-    GdkEventMotion,
-    GdkModifierType,
-    gdk_test_simulate_button,
-    GDK_BUTTON_PRESS,
-    GDK_BUTTON_RELEASE,
-    GDK_BUTTON_PRIMARY,
     GDK_KEY_PRESS,
     GDK_KEY_RELEASE,
-    GDK_MOTION_NOTIFY,
 };
 use glib::translate::{FromGlibPtrFull, ToGlibPtr};
 use gtk::{
@@ -43,7 +32,6 @@ use gtk::{
     WidgetExt,
     propagate_event,
 };
-use gtk_sys::gtk_test_widget_click;
 use relm_core::EventStream;
 
 #[macro_export]
@@ -54,51 +42,9 @@ macro_rules! assert_text {
 }
 
 /// Simulate a click on a button.
-pub fn click<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    unsafe {
-        gtk_test_widget_click(widget.to_glib_none().0, GDK_BUTTON_PRIMARY as u32, GdkModifierType::empty());
-    }
-    run_loop();
-}
-
-pub fn mouse_move<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, x: u32, y: u32) {
-    let mut event: GdkEventMotion = unsafe { mem::zeroed() };
-    event.type_ = GDK_MOTION_NOTIFY;
-    event.window = widget.get_window().expect("window").to_glib_none().0;
-    event.send_event = 1;
-    event.x_root = x as f64;
-    event.y_root = y as f64;
-    let mut event: EventMotion = unsafe { FromGlibPtrFull::from_glib_full(&mut event as *mut _) };
-    propagate_event(widget, &mut event);
-    run_loop();
-    mem::forget(event); // The event is allocated on the stack, hence we don't want to free it.
-}
-
-pub fn mouse_press<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    unsafe {
-        gdk_test_simulate_button(
-            widget.get_window().expect("window").to_glib_none().0,
-            -1,
-            -1,
-            GDK_BUTTON_PRIMARY as u32,
-            GdkModifierType::empty(),
-            GDK_BUTTON_PRESS
-        );
-    }
-    run_loop();
-}
-
-pub fn mouse_release<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    unsafe {
-        gdk_test_simulate_button(
-            widget.get_window().expect("window").to_glib_none().0,
-            -1,
-            -1,
-            GDK_BUTTON_PRIMARY as u32,
-            GdkModifierType::empty(),
-            GDK_BUTTON_RELEASE
-        );
-    }
+pub fn click<B: ButtonExt>(button: &B) {
+    // TODO: look at how this is implemented to support other widgets.
+    button.clicked();
     run_loop();
 }
 
