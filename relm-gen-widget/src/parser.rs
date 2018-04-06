@@ -781,16 +781,15 @@ fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<Str
 pub fn respan_with(tokens: proc_macro::TokenStream, span: proc_macro::Span) -> proc_macro::TokenStream {
     let mut result = vec![];
     for mut token in tokens {
-        match token.kind {
-            proc_macro::TokenNode::Group(delimiter, inner_tokens) => {
-                let new_tokens = respan_with(inner_tokens, span);
-                result.push(proc_macro::TokenTree {
-                    span,
-                    kind: proc_macro::TokenNode::Group(delimiter, new_tokens),
-                });
+        match token {
+            proc_macro::TokenTree::Group(group) => {
+                let new_tokens = respan_with(group.stream(), span);
+                let mut res = proc_macro::TokenTree::Group(proc_macro::Group::new(group.delimiter(), new_tokens));
+                res.set_span(span);
+                result.push(res);
             },
             _ => {
-                token.span = span;
+                token.set_span(span);
                 result.push(token);
             }
         }
