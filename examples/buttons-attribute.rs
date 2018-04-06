@@ -49,6 +49,7 @@ pub struct Model {
 // The messages that can be sent to the update function.
 #[derive(Msg)]
 pub enum Msg {
+    #[cfg(test)] Test,
     Decrement,
     Increment,
     Quit,

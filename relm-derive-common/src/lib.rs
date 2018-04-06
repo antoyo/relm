@@ -107,9 +107,10 @@ fn derive_display_variant(ast: &Item, krate: &Ident) -> Tokens {
         };
 
         let variant_patterns = enum_item.variants.iter().map(|variant| {
+            let attrs = &variant.attrs;
             let ident = &variant.ident;
             quote! {
-                #name::#ident { .. }
+                #(#attrs)* #name::#ident { .. }
             }
         });
         let variant_names = enum_item.variants.iter().map(|variant| {
