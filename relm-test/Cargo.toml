@@ -19,3 +19,6 @@ gtk-sys = "^0.6.0"
 [dependencies.relm-core]
 path = "../relm-core"
 version = "^0.14.0"
+
+[features]
+default = ["gtk/v3_16"]

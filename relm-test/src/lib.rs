@@ -9,14 +9,25 @@ use std::cell::RefCell;
 use std::mem;
 use std::rc::Rc;
 
-use gdk::EventKey;
+use gdk::{
+    EventKey,
+    unicode_to_keyval,
+};
 use gdk::enums::key::Key;
-use gdk_sys::{GdkEventKey, GDK_KEY_PRESS, GDK_KEY_RELEASE};
+use gdk_sys::{
+    GdkEventKey,
+    GDK_KEY_PRESS,
+    GDK_KEY_RELEASE,
+};
 use glib::translate::{FromGlibPtrFull, ToGlibPtr};
 use gtk::{
     ButtonExt,
+    Cast,
     Continue,
+    Entry,
+    EntryExt,
     IsA,
+    Object,
     Widget,
     WidgetExt,
     propagate_event,
@@ -37,7 +48,29 @@ pub fn click<B: ButtonExt>(button: &B) {
     run_loop();
 }
 
-pub fn key_press<W: IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
+pub fn enter_key<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
+    key_press(widget, key);
+    key_release(widget, key);
+}
+
+pub fn enter_keys<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, text: &str) {
+    for char in text.chars() {
+        let key = unicode_to_keyval(char as u32);
+        enter_key(widget, key);
+    }
+}
+
+pub fn focus<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
+    if let Ok(entry) = widget.clone().dynamic_cast::<Entry>() {
+        entry.grab_focus_without_selecting();
+    }
+    else {
+        widget.grab_focus();
+    }
+}
+
+pub fn key_press<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
+    focus(widget);
     let mut event: GdkEventKey = unsafe { mem::zeroed() };
     event.type_ = GDK_KEY_PRESS;
     event.window = widget.get_window().expect("window").to_glib_none().0;
@@ -49,7 +82,8 @@ pub fn key_press<W: IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
     mem::forget(event); // The event is allocated on the stack, hence we don't want to free it.
 }
 
-pub fn key_release<W: IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
+pub fn key_release<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
+    focus(widget);
     let mut event: GdkEventKey = unsafe { mem::zeroed() };
     event.type_ = GDK_KEY_RELEASE;
     event.window = widget.get_window().expect("window").to_glib_none().0;

@@ -81,6 +81,8 @@ impl Widget for Win {
                     changed(entry) => Change(entry.get_text().unwrap()),
                     placeholder_text: "Text to reverse",
                 },
+                #[name = "entry2"]
+                gtk::Entry { },
                 #[name = "label"]
                 gtk::Label {
                     text: &self.model.content,
@@ -94,10 +96,15 @@ impl Widget for Win {
 #[cfg(test)]
 mod tests {
     use gdk::enums::key;
-    use gtk::LabelExt;
+    use gtk::{EntryExt, LabelExt};
 
     use relm;
-    use relm_test::{key_press, key_release};
+    use relm_test::{
+        enter_key,
+        enter_keys,
+        key_press,
+        key_release,
+    };
 
     use Win;
 
@@ -105,11 +112,18 @@ mod tests {
     fn label_change() {
         let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
         let entry = &widgets.entry;
+        let entry2 = &widgets.entry2;
         let label = &widgets.label;
 
         key_press(entry, key::A);
         assert_text!(label, "A");
         key_release(entry, key::A);
         assert_text!(label, "A");
+        enter_key(entry, key::B);
+        enter_key(entry2, key::C);
+        assert_text!(label, "BA");
+        assert_text!(entry2, "C");
+        enter_keys(entry, "CD");
+        assert_text!(label, "DCBA");
     }
 }
