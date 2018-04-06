@@ -38,7 +38,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Widget};
+use relm::{Relm, Widget, timeout};
 use relm_attributes::widget;
 
 use self::Msg::*;
@@ -47,6 +47,7 @@ use self::Msg::*;
 pub struct Model {
     counter: i32,
     relm: Relm<Win>,
+    text: String,
 }
 
 #[derive(Clone, Msg)]
@@ -58,6 +59,8 @@ pub enum Msg {
     RecvModel(Model),
     Quit,
     TwoInc(i32, i32),
+    UpdateText,
+    UpdateTextNow,
 }
 
 #[widget]
@@ -66,6 +69,7 @@ impl Widget for Win {
         Model {
             counter: 0,
             relm: relm.clone(),
+            text: String::new(),
         }
     }
 
@@ -89,6 +93,8 @@ impl Widget for Win {
             Quit => gtk::main_quit(),
             // To be listened to by the user.
             TwoInc(_, _) => (),
+            UpdateText => timeout(self.model.relm.stream(), 1000, || UpdateTextNow),
+            UpdateTextNow => self.model.text = "Updated text".to_string(),
         }
     }
 
@@ -110,6 +116,15 @@ impl Widget for Win {
                     clicked => Decrement,
                     label: "-",
                 },
+                #[name="text"]
+                gtk::Label {
+                    text: &self.model.text,
+                },
+                #[name="update_button"]
+                gtk::Button {
+                    clicked => UpdateText,
+                    label: "Update text",
+                },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
         }
@@ -129,8 +144,9 @@ mod tests {
     #[test]
     fn label_change() {
         let (component, widgets) = relm::init_test::<Win>(()).unwrap();
-        let inc_button = widgets.inc_button.clone();
-        let dec_button = widgets.dec_button.clone();
+        let inc_button = &widgets.inc_button;
+        let dec_button = &widgets.dec_button;
+        let update_button = &widgets.update_button;
 
         // Observe for messages.
         let observer = Observer::new(component.stream(), |msg|
@@ -155,9 +171,9 @@ mod tests {
         );
 
         assert_text!(widgets.label, 0);
-        click(&inc_button);
+        click(inc_button);
         assert_text!(widgets.label, 1);
-        click(&inc_button);
+        click(inc_button);
         assert_text!(widgets.label, 2);
 
         // Shortcut for the call to wait() below.
@@ -165,24 +181,24 @@ mod tests {
         assert_eq!(one, 1);
         assert_eq!(two, 2);
 
-        click(&dec_button);
+        click(dec_button);
         assert_text!(widgets.label, 1);
-        click(&inc_button);
+        click(inc_button);
         assert_text!(widgets.label, 2);
 
         observer_wait!(let Msg::TwoInc(one, two) = two_observer);
         assert_eq!(one, 1);
         assert_eq!(two, 2);
 
-        click(&dec_button);
+        click(dec_button);
         assert_text!(widgets.label, 1);
-        click(&dec_button);
+        click(dec_button);
         assert_text!(widgets.label, 0);
-        click(&dec_button);
+        click(dec_button);
         assert_text!(widgets.label, -1);
 
         for _ in 0..6 {
-            click(&inc_button);
+            click(inc_button);
         }
 
         // Wait to receive the message on this observer.
@@ -198,5 +214,13 @@ mod tests {
         else {
             panic!("Wrong message type.");
         }
+
+        component.stream().emit(GetModel);
+        observer_wait!(let RecvModel(model) = model_observer);
+        assert_eq!(model.counter, 5);
+
+        assert_text!(widgets.text, "");
+        click(update_button);
+        assert_text!(widgets.text, "");
     }
 }
