@@ -47,19 +47,11 @@
 )]
 
 /*
- * TODO: relm-test: copy the widgets structure only for testing (old: add function find_widget_by_name()).
- *
  * TODO: maybe remove SimpleMsg.
  * TODO: remove log of formatted code.
  *
  * TODO: improve README so that examples can be copy/pasted.
  * TODO: add tests for relm-derive-state.
- *
- * TODO: look at these projects for a new design:
- * https://github.com/alexflint/gallium
- * https://github.com/lxn/walk
- * https://github.com/schibsted/layout
- *
  *
  * FIXME: some relm widgets requires { and } (see the rusic music-player) while other do not.
  * FIXME: should not require to import WidgetExt because it calls show().
