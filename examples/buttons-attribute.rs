@@ -30,13 +30,7 @@ extern crate relm_derive;
 #[macro_use]
 extern crate relm_test;
 
-use gtk::{
-    ButtonExt,
-    Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
-};
+use gtk::prelude::*;
 use gtk::Orientation::Vertical;
 use relm::Widget;
 use relm_attributes::widget;
