@@ -21,6 +21,7 @@
 
 #![feature(proc_macro)]
 
+extern crate gdk;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
@@ -30,6 +31,7 @@ extern crate relm_derive;
 #[macro_use]
 extern crate relm_test;
 
+use gdk::EventType::DoubleButtonPress;
 use gtk::{
     ButtonExt,
     Inhibit,
@@ -51,6 +53,7 @@ use self::Msg::*;
 #[derive(Clone)]
 pub struct Model {
     counter: i32,
+    inc_text: String,
     relm: Relm<Win>,
     text: String,
 }
@@ -58,6 +61,7 @@ pub struct Model {
 #[derive(Clone, Msg)]
 pub enum Msg {
     Decrement,
+    DoubleClick,
     FiveInc,
     GetModel,
     Increment,
@@ -82,6 +86,7 @@ impl Widget for Win {
     fn model(relm: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
+            inc_text: "Increment".to_string(),
             relm: relm.clone(),
             text: String::new(),
         }
@@ -90,6 +95,7 @@ impl Widget for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Decrement => self.model.counter -= 1,
+            DoubleClick => self.model.inc_text = "Double click".to_string(),
             // To be listened to by the user.
             FiveInc => (),
             GetModel => self.model.relm.stream().emit(RecvModel(self.model.clone())),
@@ -154,10 +160,17 @@ impl Widget for Win {
                     label: "Update text",
                 },
                 gtk::EventBox {
-                    button_press_event(_, _) => (Increment, Inhibit(false)),
+                    button_press_event(_, event) => ({
+                        if event.get_event_type() == DoubleButtonPress {
+                            DoubleClick
+                        }
+                        else {
+                            Increment
+                        }
+                    }, Inhibit(false)),
                     #[name="inc_label"]
                     gtk::Label {
-                        text: "Increment",
+                        text: &self.model.inc_text,
                     },
                 },
             },
@@ -178,7 +191,7 @@ mod tests {
     };
 
     use relm;
-    use relm_test::{Observer, click, wait};
+    use relm_test::{Observer, click, double_click, wait};
 
     use Msg::{self, FiveInc, GetModel, RecvModel, TwoInc};
     use Win;
@@ -281,5 +294,10 @@ mod tests {
 
         wait(200);
         assert_text!(widgets.text, "Updated text");
+
+        assert_text!(inc_label, "Increment");
+        double_click(inc_label);
+        assert_text!(inc_label, "Double click");
+        assert_text!(widgets.label, 10);
     }
 }

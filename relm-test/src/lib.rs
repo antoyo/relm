@@ -44,6 +44,7 @@ use gdk_sys::{
     GDK_BUTTON_PRIMARY,
     GDK_BUTTON_PRESS,
     GDK_BUTTON_RELEASE,
+    GDK_DOUBLE_BUTTON_PRESS,
     GDK_KEY_PRESS,
     GDK_KEY_RELEASE,
     GDK_MOTION_NOTIFY,
@@ -56,7 +57,6 @@ use gtk::{
     Continue,
     EditableExt,
     Entry,
-    EntryExt,
     IsA,
     MenuItem,
     MenuItemExt,
@@ -94,6 +94,15 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
     run_loop();
 }
 
+/// Simulate a double-click on a widget.
+pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
+    click(widget);
+    mouse_press(widget);
+    mouse_press2(widget);
+    mouse_release(widget);
+    run_loop();
+}
+
 pub fn mouse_move<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, x: u32, y: u32) {
     let mut event: GdkEventMotion = unsafe { mem::zeroed() };
     event.type_ = GDK_MOTION_NOTIFY;
@@ -112,6 +121,20 @@ pub fn mouse_move<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, x: u32, 
 pub fn mouse_press<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
     let mut event: GdkEventButton = unsafe { mem::zeroed() };
     event.type_ = GDK_BUTTON_PRESS;
+    if let Some(window) = widget.get_window() {
+        event.window = window.to_glib_none().0;
+    }
+    event.send_event = 1;
+    event.button = GDK_BUTTON_PRIMARY as u32;
+    let mut event: EventButton = unsafe { FromGlibPtrFull::from_glib_full(&mut event as *mut _) };
+    propagate_event(widget, &mut event);
+    run_loop();
+    mem::forget(event); // The event is allocated on the stack, hence we don't want to free it.
+}
+
+pub fn mouse_press2<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
+    let mut event: GdkEventButton = unsafe { mem::zeroed() };
+    event.type_ = GDK_DOUBLE_BUTTON_PRESS;
     if let Some(window) = widget.get_window() {
         event.window = window.to_glib_none().0;
     }
