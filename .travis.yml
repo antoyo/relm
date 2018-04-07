@@ -10,6 +10,8 @@ addons:
       - binutils-dev
       - libgtk-3-dev
       - libsoup2.4-dev
+      - libxtst-dev
+      - at-spi2-core
 
 env:
   - RUST_BACKTRACE=1
@@ -22,7 +24,7 @@ rust:
 before_install:
   - sudo add-apt-repository ppa:webkit-team/ppa -y
   - sudo apt-get update
-  - sudo apt-get install libwebkit2gtk-4.0-dev libxtst-dev -y
+  - sudo apt-get install libwebkit2gtk-4.0-dev -y
 
 before_script:
   - "export DISPLAY=:99.0"
