@@ -4,7 +4,7 @@ description = "Non UI part of relm"
 license = "MIT"
 name = "relm-state"
 repository = "https://github.com/antoyo/relm"
-version = "0.14.3"
+version = "0.14.4"
 
 [dependencies]
 log = "0.4"
