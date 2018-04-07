@@ -144,6 +144,6 @@ mod tests {
         click(dec_button);
         assert_text!(label, 0);
         click(dec_button);
-        assert_text!(label, 0);
+        assert_text!(label, -1);
     }
 }
