@@ -54,6 +54,7 @@ use gtk::{
     ButtonExt,
     Cast,
     Continue,
+    EditableExt,
     Entry,
     EntryExt,
     IsA,
@@ -149,11 +150,11 @@ pub fn enter_keys<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, 
 }
 
 pub fn focus<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
+    widget.grab_focus();
     if let Ok(entry) = widget.clone().dynamic_cast::<Entry>() {
-        entry.grab_focus_without_selecting();
-    }
-    else {
-        widget.grab_focus();
+        // Hack to make it work on Travis.
+        // Should use grab_focus_without_selecting() instead.
+        entry.set_position(-1);
     }
 }
 
