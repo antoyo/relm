@@ -34,7 +34,12 @@ use gtk::{
     ButtonExt,
     Inhibit,
     LabelExt,
+    Menu,
+    MenuItem,
+    MenuItemExt,
+    MenuShellExt,
     OrientableExt,
+    ToolButtonExt,
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
@@ -65,6 +70,15 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
+    fn init_view(&mut self) {
+        let menu = Menu::new();
+        let inc = MenuItem::new_with_label("Increment");
+        connect!(self.model.relm, inc, connect_activate(_), Increment);
+        menu.append(&inc);
+        self.menu_action.set_submenu(Some(&menu));
+        self.menu_bar.show_all();
+    }
+
     fn model(relm: &Relm<Self>, _: ()) -> Model {
         Model {
             counter: 0,
@@ -101,6 +115,20 @@ impl Widget for Win {
     view! {
         gtk::Window {
             gtk::Box {
+                #[name="menu_bar"]
+                gtk::MenuBar {
+                    #[name="menu_action"]
+                    gtk::MenuItem {
+                        label: "Action",
+                    },
+                },
+                gtk::Toolbar {
+                    #[name="inc_tool_button"]
+                    gtk::ToolButton {
+                        label: "Increment",
+                        clicked => Increment,
+                    },
+                },
                 orientation: Vertical,
                 #[name="inc_button"]
                 gtk::Button {
@@ -125,6 +153,13 @@ impl Widget for Win {
                     clicked => UpdateText,
                     label: "Update text",
                 },
+                gtk::EventBox {
+                    button_press_event(_, _) => (Increment, Inhibit(false)),
+                    #[name="inc_label"]
+                    gtk::Label {
+                        text: "Increment",
+                    },
+                },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
         }
@@ -133,7 +168,14 @@ impl Widget for Win {
 
 #[cfg(test)]
 mod tests {
-    use gtk::LabelExt;
+    use gtk::{
+        Cast,
+        ContainerExt,
+        LabelExt,
+        Menu,
+        MenuItem,
+        MenuItemExt,
+    };
 
     use relm;
     use relm_test::{Observer, click, wait};
@@ -147,6 +189,8 @@ mod tests {
         let inc_button = &widgets.inc_button;
         let dec_button = &widgets.dec_button;
         let update_button = &widgets.update_button;
+        let inc_tool_button = &widgets.inc_tool_button;
+        let inc_label = &widgets.inc_label;
 
         // Observe for messages.
         let observer = Observer::new(component.stream(), |msg|
@@ -218,6 +262,18 @@ mod tests {
         component.stream().emit(GetModel);
         observer_wait!(let RecvModel(model) = model_observer);
         assert_eq!(model.counter, 5);
+
+        let action_menu: MenuItem = widgets.menu_bar.get_children()[0].clone().downcast().expect("menu item 2");
+        let menu: Menu = action_menu.get_submenu().expect("menu 2").downcast().expect("menu 3");
+        let inc_menu: MenuItem = menu.get_children()[0].clone().downcast().expect("menu item");
+        click(&inc_menu);
+        assert_text!(widgets.label, 6);
+
+        click(inc_tool_button);
+        assert_text!(widgets.label, 7);
+
+        click(inc_label);
+        assert_text!(widgets.label, 8);
 
         assert_text!(widgets.text, "");
         click(update_button);
