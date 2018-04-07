@@ -15,5 +15,5 @@ gtk = "^0.4.0"
 libc = "^0.2.39"
 
 [dev-dependencies]
-chrono = "^0.3.0"
+chrono = "0.4"
 glib = "^0.5.0"
