@@ -277,6 +277,7 @@ mod tests {
         assert_eq!(model.counter, 5);
 
         let action_menu: MenuItem = widgets.menu_bar.get_children()[0].clone().downcast().expect("menu item 2");
+        click(&action_menu);
         let menu: Menu = action_menu.get_submenu().expect("menu 2").downcast().expect("menu 3");
         let inc_menu: MenuItem = menu.get_children()[0].clone().downcast().expect("menu item");
         click(&inc_menu);

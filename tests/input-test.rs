@@ -115,23 +115,18 @@ mod tests {
         let entry2 = &widgets.entry2;
         let label = &widgets.label;
 
-        /*
-        key_press(entry, key::Shift_L);
-        ::relm_test::wait(10);
+        // TODO: add test with uppercase letter (shift) when this issue (https://github.com/enigo-rs/enigo/issues/49) is fixed.
+        //key_press(entry, key::Shift_L);
         key_press(entry, key::A);
-        assert_text!(label, "A");
-        ::relm_test::wait(10);
+        assert_text!(label, "a");
         key_release(entry, key::A);
-        //enter_key(entry, key::A);
-        ::gtk::main();
-        assert_text!(label, "A");
+        assert_text!(label, "a");
         enter_key(entry, key::B);
         enter_key(entry2, key::C);
-        assert_text!(label, "BA");
-        assert_text!(entry2, "C");
+        assert_text!(label, "ba");
+        assert_text!(entry2, "c");
         enter_keys(entry, "CD");
-        key_release(entry, key::Shift_L);
-        assert_text!(label, "DCBA");
-        */
+        //key_release(entry, key::Shift_L);
+        assert_text!(label, "DCba");
     }
 }

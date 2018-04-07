@@ -21,53 +21,30 @@
 
 extern crate enigo;
 extern crate gdk;
-extern crate gdk_sys;
-extern crate glib;
 extern crate glib_sys;
 extern crate gtk;
 extern crate relm_core;
 
 use std::cell::RefCell;
-use std::mem;
 use std::rc::Rc;
 
-use enigo::{Enigo, KeyboardControllable};
-use gdk::{
-    EventButton,
-    EventKey,
-    EventMotion,
-    keyval_to_unicode,
+use enigo::{
+    Enigo,
+    KeyboardControllable,
+    MouseButton,
+    MouseControllable,
 };
+use gdk::{WindowExt, keyval_to_unicode};
 use gdk::enums::key::{self, Key};
-use gdk_sys::{
-    GdkEventButton,
-    GdkEventKey,
-    GdkEventMotion,
-    GDK_BUTTON_PRIMARY,
-    GDK_BUTTON_PRESS,
-    GDK_BUTTON_RELEASE,
-    GDK_DOUBLE_BUTTON_PRESS,
-    GDK_KEY_PRESS,
-    GDK_KEY_RELEASE,
-    GDK_MOTION_NOTIFY,
-};
-use glib::translate::{FromGlibPtrFull, ToGlibPtr};
 use gtk::{
-    Button,
-    ButtonExt,
     Cast,
     Continue,
     EditableExt,
     Entry,
     IsA,
-    MenuItem,
-    MenuItemExt,
     Object,
-    ToolButton,
-    ToolButtonExt,
     Widget,
     WidgetExt,
-    propagate_event,
     test_widget_wait_for_draw,
 };
 use relm_core::EventStream;
@@ -81,86 +58,52 @@ macro_rules! assert_text {
 
 /// Simulate a click on a widget.
 pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    if let Ok(menu_item) = widget.clone().dynamic_cast::<MenuItem>() {
-        menu_item.emit_activate();
-    }
-    else {
-        mouse_press(widget);
-        mouse_release(widget);
-        if let Ok(button) = widget.clone().dynamic_cast::<Button>() {
-            button.clicked();
-        }
-        else if let Ok(tool_button) = widget.clone().dynamic_cast::<ToolButton>() {
-            tool_button.emit_clicked();
-        }
-    }
+    test_widget_wait_for_draw(widget);
+    let allocation = widget.get_allocation();
+    mouse_move(widget, allocation.width / 2, allocation.height / 2);
+    let mut enigo = Enigo::new();
+    enigo.mouse_click(MouseButton::Left);
     run_loop();
 }
 
 /// Simulate a double-click on a widget.
 pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
     click(widget);
-    mouse_press(widget);
-    mouse_press2(widget);
-    mouse_release(widget);
-    run_loop();
+    click(widget);
 }
 
-pub fn mouse_move<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, x: u32, y: u32) {
-    let mut event: GdkEventMotion = unsafe { mem::zeroed() };
-    event.type_ = GDK_MOTION_NOTIFY;
-    if let Some(window) = widget.get_window() {
-        event.window = window.to_glib_none().0;
+/// Move the mouse relative to the widget position.
+pub fn mouse_move<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, x: i32, y: i32) {
+    test_widget_wait_for_draw(widget);
+    let toplevel_window = widget.get_toplevel().and_then(|toplevel| toplevel.get_window());
+    if let (Some(toplevel), Some(toplevel_window)) = (widget.get_toplevel(), toplevel_window) {
+        let (_, window_x, window_y) = toplevel_window.get_origin();
+        if let Some((x, y)) = widget.translate_coordinates(&toplevel, x, y) {
+            let x = window_x + x;
+            let y = window_y + y;
+            let mut enigo = Enigo::new();
+            enigo.mouse_move_to(x, y);
+            run_loop();
+        }
     }
-    event.send_event = 1;
-    event.x_root = x as f64;
-    event.y_root = y as f64;
-    let mut event: EventMotion = unsafe { FromGlibPtrFull::from_glib_full(&mut event as *mut _) };
-    propagate_event(widget, &mut event);
-    run_loop();
-    mem::forget(event); // The event is allocated on the stack, hence we don't want to free it.
 }
 
 pub fn mouse_press<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    let mut event: GdkEventButton = unsafe { mem::zeroed() };
-    event.type_ = GDK_BUTTON_PRESS;
-    if let Some(window) = widget.get_window() {
-        event.window = window.to_glib_none().0;
-    }
-    event.send_event = 1;
-    event.button = GDK_BUTTON_PRIMARY as u32;
-    let mut event: EventButton = unsafe { FromGlibPtrFull::from_glib_full(&mut event as *mut _) };
-    propagate_event(widget, &mut event);
+    test_widget_wait_for_draw(widget);
+    let allocation = widget.get_allocation();
+    mouse_move(widget, allocation.width / 2, allocation.height / 2);
+    let mut enigo = Enigo::new();
+    enigo.mouse_down(MouseButton::Left);
     run_loop();
-    mem::forget(event); // The event is allocated on the stack, hence we don't want to free it.
-}
-
-pub fn mouse_press2<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    let mut event: GdkEventButton = unsafe { mem::zeroed() };
-    event.type_ = GDK_DOUBLE_BUTTON_PRESS;
-    if let Some(window) = widget.get_window() {
-        event.window = window.to_glib_none().0;
-    }
-    event.send_event = 1;
-    event.button = GDK_BUTTON_PRIMARY as u32;
-    let mut event: EventButton = unsafe { FromGlibPtrFull::from_glib_full(&mut event as *mut _) };
-    propagate_event(widget, &mut event);
-    run_loop();
-    mem::forget(event); // The event is allocated on the stack, hence we don't want to free it.
 }
 
 pub fn mouse_release<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    let mut event: GdkEventButton = unsafe { mem::zeroed() };
-    event.type_ = GDK_BUTTON_RELEASE;
-    if let Some(window) = widget.get_window() {
-        event.window = window.to_glib_none().0;
-    }
-    event.send_event = 1;
-    event.button = GDK_BUTTON_PRIMARY as u32;
-    let mut event: EventButton = unsafe { FromGlibPtrFull::from_glib_full(&mut event as *mut _) };
-    propagate_event(widget, &mut event);
+    test_widget_wait_for_draw(widget);
+    let allocation = widget.get_allocation();
+    mouse_move(widget, allocation.width / 2, allocation.height / 2);
+    let mut enigo = Enigo::new();
+    enigo.mouse_up(MouseButton::Left);
     run_loop();
-    mem::forget(event); // The event is allocated on the stack, hence we don't want to free it.
 }
 
 pub fn enter_key<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
