@@ -1,5 +1,8 @@
 #!/bin/bash
 
+git pull
+git push
+
 cd ./relm-core
 cargo release --no-dev-version
 cd ..
