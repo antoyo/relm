@@ -31,7 +31,8 @@ before_script:
 
 script:
   - cargo build
-  - cargo test --all
+  - cargo test
+  - cargo test --examples
   - cargo build --manifest-path examples/buttons-attribute/Cargo.toml
   #- cargo build --manifest-path examples/http/Cargo.toml
   #- cargo build --manifest-path examples/async/Cargo.toml
