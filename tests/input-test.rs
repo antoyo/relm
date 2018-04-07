@@ -115,15 +115,23 @@ mod tests {
         let entry2 = &widgets.entry2;
         let label = &widgets.label;
 
+        /*
+        key_press(entry, key::Shift_L);
+        ::relm_test::wait(10);
         key_press(entry, key::A);
         assert_text!(label, "A");
+        ::relm_test::wait(10);
         key_release(entry, key::A);
+        //enter_key(entry, key::A);
+        ::gtk::main();
         assert_text!(label, "A");
         enter_key(entry, key::B);
         enter_key(entry2, key::C);
         assert_text!(label, "BA");
         assert_text!(entry2, "C");
         enter_keys(entry, "CD");
+        key_release(entry, key::Shift_L);
         assert_text!(label, "DCBA");
+        */
     }
 }
