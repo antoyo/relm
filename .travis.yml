@@ -12,6 +12,7 @@ addons:
       - libsoup2.4-dev
       - libxtst-dev
       - at-spi2-core
+      - openbox
 
 env:
   - RUST_BACKTRACE=1
