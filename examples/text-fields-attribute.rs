@@ -31,7 +31,7 @@ extern crate relm_derive;
 #[macro_use]
 extern crate relm_test;
 
-use gtk::prelude::*;
+use gtk::*;
 use gtk::Orientation::Vertical;
 use relm::Widget;
 use relm_attributes::widget;
@@ -96,7 +96,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use gdk::enums::key;
-    use gtk::prelude::*;
+    use gtk::LabelExt;
 
     use relm;
     use relm_test::{enter_key, enter_keys};

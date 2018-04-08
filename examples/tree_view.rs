@@ -4,18 +4,13 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 
-use gtk::prelude::*;
-use relm::{Relm, Update, Widget};
 use std::fs;
 use std::io;
 use std::path::PathBuf;
-use gtk::{
-    Inhibit,
-    TreeView,
-    Window,
-    WindowType
-};
+
+use gtk::*;
 use gtk::Orientation::Vertical;
+use relm::{Relm, Update, Widget};
 
 // These two constants stand for the columns of the listmodel and the listview
 const VALUE_COL: i32 = 0;

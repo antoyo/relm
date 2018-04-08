@@ -31,11 +31,7 @@ extern crate relm_derive;
 extern crate relm_test;
 
 use chrono::{DateTime, Local};
-use gtk::{
-    Inhibit,
-    LabelExt,
-    WidgetExt,
-};
+use gtk::*;
 use relm::{Relm, Widget, interval};
 use relm_attributes::widget;
 
@@ -88,7 +84,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use chrono::{Local, NaiveTime};
-    use gtk::prelude::*;
+    use gtk::LabelExt;
 
     use relm;
     use relm_test::wait;

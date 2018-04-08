@@ -19,26 +19,18 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+extern crate gdk;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
-use gtk::{
-    ContainerExt,
-    EditableSignals,
-    Entry,
-    EntryExt,
-    Inhibit,
-    Label,
-    LabelExt,
-    WidgetExt,
-    Window,
-    WindowType,
-};
+use gtk::*;
 use gtk::Orientation::Vertical;
-use relm::{Relm, Update, Widget};
+use relm::{Relm, Update, Widget, WidgetTest};
 
 use self::Msg::*;
 
@@ -53,9 +45,14 @@ enum Msg {
 }
 
 struct Win {
+    model: Model,
+    widgets: Widgets,
+}
+
+#[derive(Clone)]
+struct Widgets {
     input: Entry,
     label: Label,
-    model: Model,
     window: Window,
 }
 
@@ -73,8 +70,8 @@ impl Update for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Change => {
-                self.model.content = self.input.get_text().unwrap().chars().rev().collect();
-                self.label.set_text(&self.model.content);
+                self.model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();
+                self.widgets.label.set_text(&self.model.content);
             },
             Quit => gtk::main_quit(),
         }
@@ -85,7 +82,7 @@ impl Widget for Win {
     type Root = Window;
 
     fn root(&self) -> Self::Root {
-        self.window.clone()
+        self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
@@ -107,14 +104,59 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         Win {
-            input,
-            label,
             model,
-            window,
+            widgets: Widgets {
+                input,
+                label,
+                window,
+            },
         }
+    }
+}
+
+impl WidgetTest for Win {
+    type Widgets = Widgets;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.widgets.clone()
     }
 }
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gdk::enums::key;
+    use gtk::LabelExt;
+
+    use relm;
+    use relm_test::{enter_key, enter_keys};
+
+    use Win;
+
+    #[test]
+    fn label_change() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let entry = &widgets.input;
+        let label = &widgets.label;
+
+        assert_text!(label, "");
+
+        enter_keys(entry, "test");
+        assert_text!(label, "tset");
+
+        enter_key(entry, key::BackSpace);
+        assert_text!(label, "set");
+
+        enter_key(entry, key::Home);
+        //enter_key(entry, key::Delete); // TODO: when supported by enigo.
+        enter_keys(entry, "a");
+        assert_text!(label, "seta");
+
+        enter_key(entry, key::End);
+        enter_keys(entry, "a");
+        assert_text!(label, "aseta");
+    }
 }
