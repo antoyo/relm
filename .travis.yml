@@ -31,7 +31,7 @@ before_script:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
-  - openbox # needs a window manager for the tests (to get focus to work)
+  - openbox & # needs a window manager for the tests (to get focus to work)
 
 script:
   - cargo build
