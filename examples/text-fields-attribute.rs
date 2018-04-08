@@ -21,21 +21,17 @@
 
 #![feature(proc_macro)]
 
+extern crate gdk;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
-use gtk::{
-    EditableSignals,
-    EntryExt,
-    Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
-};
+use gtk::prelude::*;
 use gtk::Orientation::Vertical;
 use relm::Widget;
 use relm_attributes::widget;
@@ -74,6 +70,7 @@ impl Widget for Win {
         gtk::Window {
             gtk::Box {
                 orientation: Vertical,
+                #[name="entry"]
                 gtk::Entry {
                     changed(entry) => {
                         let text = entry.get_text().unwrap();
@@ -82,6 +79,7 @@ impl Widget for Win {
                     },
                     placeholder_text: "Text to reverse",
                 },
+                #[name="label"]
                 gtk::Label {
                     text: &self.model.content,
                 },
@@ -93,4 +91,39 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gdk::enums::key;
+    use gtk::prelude::*;
+
+    use relm;
+    use relm_test::{enter_key, enter_keys};
+
+    use Win;
+
+    #[test]
+    fn label_change() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let entry = &widgets.entry;
+        let label = &widgets.label;
+
+        assert_text!(label, "");
+
+        enter_keys(entry, "test");
+        assert_text!(label, "tset (4)");
+
+        enter_key(entry, key::BackSpace);
+        assert_text!(label, "set (3)");
+
+        enter_key(entry, key::Home);
+        //enter_key(entry, key::Delete); // TODO: when supported by enigo.
+        enter_keys(entry, "a");
+        assert_text!(label, "seta (4)");
+
+        enter_key(entry, key::End);
+        enter_keys(entry, "a");
+        assert_text!(label, "aseta (5)");
+    }
 }
