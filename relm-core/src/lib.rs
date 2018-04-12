@@ -107,7 +107,8 @@ impl<MSG> SourceFuncs for RefCell<ChannelData<MSG>> {
         if self.borrow().peeked_value.is_some() {
             return (true, None);
         }
-        self.borrow_mut().peeked_value = self.borrow().receiver.try_recv().ok();
+        let peek_val = self.borrow().receiver.try_recv().ok();
+        self.borrow_mut().peeked_value = peek_val;
         (self.borrow().peeked_value.is_some(), None)
     }
 
