@@ -37,7 +37,11 @@ use enigo::{
 use gdk::{WindowExt, keyval_to_unicode};
 use gdk::enums::key::{self, Key};
 use gtk::{
+    Bin,
+    BinExt,
     Cast,
+    Container,
+    ContainerExt,
     Continue,
     EditableExt,
     Entry,
@@ -122,6 +126,34 @@ pub fn enter_keys<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, 
         enigo.key_sequence(&char.to_string());
         run_loop();
     }
+}
+
+pub fn find_widget_by_name<W: Clone + IsA<Object> + IsA<Widget>>(parent: &W, name: &str) -> Option<Widget> {
+    if let Ok(container) = parent.clone().dynamic_cast::<Container>() {
+        for child in container.get_children() {
+            if let Some(string) = child.get_name() {
+                if string == name {
+                    return Some(child);
+                }
+            }
+            if let Some(widget) = find_widget_by_name(&child, name) {
+                return Some(widget);
+            }
+        }
+    }
+    else if let Ok(bin) = parent.clone().dynamic_cast::<Bin>() {
+        if let Some(child) = bin.get_child() {
+            if let Some(string) = child.get_name() {
+                if string == name {
+                    return Some(child);
+                }
+            }
+            if let Some(widget) = find_widget_by_name(&child, name) {
+                return Some(widget);
+            }
+        }
+    }
+    None
 }
 
 pub fn focus<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {

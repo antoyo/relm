@@ -32,7 +32,18 @@ extern crate relm_derive;
 extern crate relm_test;
 
 use gdk::EventType::DoubleButtonPress;
-use gtk::*;
+use gtk::{
+    ButtonExt,
+    Inhibit,
+    LabelExt,
+    Menu,
+    MenuItem,
+    MenuItemExt,
+    MenuShellExt,
+    OrientableExt,
+    ToolButtonExt,
+    WidgetExt,
+};
 use gtk::Orientation::Vertical;
 use relm::{Relm, Widget, timeout};
 use relm_attributes::widget;
@@ -79,6 +90,7 @@ impl Widget for ClickableLabel {
             }, Inhibit(false)),
             #[name="label"]
             gtk::Label {
+                name: "label",
                 text: &self.model.text,
             },
         },
@@ -218,11 +230,17 @@ mod tests {
     };
 
     use relm;
-    use relm_test::{Observer, click, double_click, wait};
+    use relm_test::{
+        Observer,
+        click,
+        double_click,
+        find_widget_by_name,
+        wait,
+    };
 
     use Msg::{self, FiveInc, GetModel, RecvModel, TwoInc};
     use LabelMsg::Text;
-    use {ClickableLabel, Win};
+    use Win;
 
     #[test]
     fn label_change() {
@@ -326,7 +344,8 @@ mod tests {
         wait(200);
         assert_text!(widgets.text, "Updated text");
 
-        double_click(inc_label);
+        let inc_label = find_widget_by_name(inc_label, "label").expect("find label");
+        double_click(&inc_label);
         observer_wait!(let Text(text) = label_observer);
         assert_eq!(text, "Double click");
         assert_text!(widgets.label, 10);
