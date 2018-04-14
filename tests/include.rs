@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{
     ButtonExt,
@@ -73,9 +75,51 @@ impl Widget for Win {
     }
 
     // Specify a view written in another file.
-    view!("examples/buttons.relm");
+    view!("tests/buttons.relm");
 }
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{ButtonExt, LabelExt};
+
+    use relm;
+    use relm_test::click;
+
+    use Win;
+
+    #[test]
+    fn label_change() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let inc_button = &widgets.inc_button;
+        let dec_button = &widgets.dec_button;
+        let label = &widgets.label;
+
+        assert_label!(inc_button, "+");
+        assert_label!(dec_button, "-");
+
+        assert_text!(label, 0);
+        click(inc_button);
+        assert_text!(label, 1);
+        click(inc_button);
+        assert_text!(label, 2);
+        click(inc_button);
+        assert_text!(label, 3);
+        click(inc_button);
+        assert_text!(label, 4);
+
+        click(dec_button);
+        assert_text!(label, 3);
+        click(dec_button);
+        assert_text!(label, 2);
+        click(dec_button);
+        assert_text!(label, 1);
+        click(dec_button);
+        assert_text!(label, 0);
+        click(dec_button);
+        assert_text!(label, -1);
+    }
 }
