@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{
     ButtonExt,
@@ -80,6 +82,7 @@ impl Widget for Win {
                 // Set the orientation property of the Box.
                 orientation: Vertical,
                 // Create a Button inside the Box.
+                #[name="button"]
                 gtk::Button({ label: "_inc", use_underline: self.model.use_underline }) {
                     // Send the message Increment when the button is clicked.
                     clicked => Increment,
@@ -100,4 +103,21 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::ButtonExt;
+
+    use relm;
+
+    use Win;
+
+    #[test]
+    fn button_position() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let button = &widgets.button;
+        assert_label!(button, "_inc");
+        assert!(button.get_use_underline());
+    }
 }

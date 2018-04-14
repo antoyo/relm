@@ -54,6 +54,13 @@ use gtk::{
 use relm_core::EventStream;
 
 #[macro_export]
+macro_rules! assert_label {
+    ($widget:expr, $string:expr) => {
+        assert_eq!($widget.get_label().expect("get label"), $string.to_string());
+    };
+}
+
+#[macro_export]
 macro_rules! assert_text {
     ($widget:expr, $string:expr) => {
         assert_eq!($widget.get_text().expect("get text"), $string.to_string());
