@@ -24,6 +24,7 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+extern crate relm_test;
 
 use gtk::{
     ButtonExt,
@@ -35,7 +36,14 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{Component, ContainerWidget, Relm, Update, Widget};
+use relm::{
+    Component,
+    ContainerWidget,
+    Relm,
+    Update,
+    Widget,
+    WidgetTest,
+};
 
 use self::CheckMsg::*;
 use self::Msg::*;
@@ -120,6 +128,7 @@ enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
 struct Win {
     minus_button: Component<CheckButton>,
     plus_button: Component<CheckButton>,
@@ -186,6 +195,50 @@ impl Widget for Win {
     }
 }
 
+impl WidgetTest for Win {
+    type Widgets = Win;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.clone()
+    }
+}
+
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::ToggleButtonExt;
+
+    use relm;
+    use relm_test::click;
+
+    use Win;
+
+    #[test]
+    fn check_uncheck() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let plus_button = widgets.plus_button.widget();
+        let minus_button = widgets.minus_button.widget();
+
+        assert!(!plus_button.get_active());
+        assert!(!minus_button.get_active());
+
+        click(plus_button);
+        assert!(plus_button.get_active());
+        assert!(!minus_button.get_active());
+
+        click(plus_button);
+        assert!(!plus_button.get_active());
+        assert!(minus_button.get_active());
+
+        click(minus_button);
+        assert!(plus_button.get_active());
+        assert!(!minus_button.get_active());
+
+        click(minus_button);
+        assert!(!plus_button.get_active());
+        assert!(minus_button.get_active());
+    }
 }
