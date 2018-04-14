@@ -27,6 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+extern crate relm_test;
 
 use gtk::{
     BoxExt,
@@ -100,13 +101,16 @@ impl Widget for Win {
         gtk::Window {
             gtk::Box {
                 orientation: Vertical,
+                #[name="label"]
                 gtk::Label {
                     text: &self.model.counter.to_string(),
                 },
+                #[name="dec_button"]
                 gtk::Button {
                     clicked => Decrement,
                     label: "-",
                 },
+                #[name="inc_button"]
                 Button {
                     clicked => Increment,
                 },
@@ -118,4 +122,28 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::WidgetExt;
+
+    use relm;
+
+    use Win;
+
+    #[test]
+    fn button_position() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let inc_button = widgets.inc_button.widget();
+        let dec_button = &widgets.dec_button;
+        let label = &widgets.label;
+
+        let inc_allocation = inc_button.get_allocation();
+        let dec_allocation = dec_button.get_allocation();
+        let label_allocation = label.get_allocation();
+        assert!(inc_allocation.y < dec_allocation.y);
+        // 10 is the padding.
+        assert_eq!(dec_allocation.y, inc_allocation.y + inc_allocation.height + 10 + label_allocation.height);
+    }
 }
