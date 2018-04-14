@@ -104,7 +104,6 @@ extern crate glib;
 extern crate glib_sys;
 extern crate gobject_sys;
 extern crate gtk;
-extern crate gtk_sys;
 extern crate libc;
 extern crate relm_core;
 extern crate relm_state;
@@ -238,15 +237,6 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
     (Component::new(stream, root), widget, relm)
 }
 
-// TODO: remove this workaround.
-fn init_gtk() {
-    let mut argc = 0;
-    unsafe {
-        gtk_sys::gtk_init(&mut argc, std::ptr::null_mut());
-        gtk::set_initialized();
-    }
-}
-
 /// Initialize a widget for a test.
 ///
 /// It is to be used this way:
@@ -314,7 +304,7 @@ pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    init_gtk();
+    gtk::init().map_err(|_| ())?;
 
     let component = create_widget_test::<WIDGET>(model_param);
     Ok(component)

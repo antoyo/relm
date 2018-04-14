@@ -32,23 +32,58 @@ extern crate relm_derive;
 extern crate relm_test;
 
 use gdk::EventType::DoubleButtonPress;
-use gtk::{
-    ButtonExt,
-    Inhibit,
-    LabelExt,
-    Menu,
-    MenuItem,
-    MenuItemExt,
-    MenuShellExt,
-    OrientableExt,
-    ToolButtonExt,
-    WidgetExt,
-};
+use gtk::*;
 use gtk::Orientation::Vertical;
 use relm::{Relm, Widget, timeout};
 use relm_attributes::widget;
 
 use self::Msg::*;
+use self::LabelMsg::*;
+
+pub struct LabelModel {
+    text: String,
+}
+
+#[derive(Clone, Msg)]
+pub enum LabelMsg {
+    Click,
+    DblClick,
+    Text(String),
+}
+
+#[widget]
+impl Widget for ClickableLabel {
+    fn model() -> LabelModel {
+        LabelModel {
+            text: String::new(),
+        }
+    }
+
+    fn update(&mut self, event: LabelMsg) {
+        match event {
+            // To be listened to by the user.
+            Click | DblClick => (),
+            Text(text) => self.model.text = text,
+        }
+    }
+
+    view! {
+        gtk::EventBox {
+            button_press_event(_, event) => ({
+                if event.get_event_type() == DoubleButtonPress {
+                    DblClick
+                }
+                else {
+                    Click
+                }
+            }, Inhibit(false)),
+            #[name="label"]
+            gtk::Label {
+                text: &self.model.text,
+            },
+        },
+    }
+}
 
 #[derive(Clone)]
 pub struct Model {
@@ -159,19 +194,11 @@ impl Widget for Win {
                     clicked => UpdateText,
                     label: "Update text",
                 },
-                gtk::EventBox {
-                    button_press_event(_, event) => ({
-                        if event.get_event_type() == DoubleButtonPress {
-                            DoubleClick
-                        }
-                        else {
-                            Increment
-                        }
-                    }, Inhibit(false)),
-                    #[name="inc_label"]
-                    gtk::Label {
-                        text: &self.model.inc_text,
-                    },
+                #[name="inc_label"]
+                ClickableLabel {
+                    Click => Increment,
+                    DblClick => DoubleClick,
+                    Text: self.model.inc_text.clone(),
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
@@ -194,11 +221,12 @@ mod tests {
     use relm_test::{Observer, click, double_click, wait};
 
     use Msg::{self, FiveInc, GetModel, RecvModel, TwoInc};
-    use Win;
+    use LabelMsg::Text;
+    use {ClickableLabel, Win};
 
     #[test]
     fn label_change() {
-        let (component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (component, widgets) = relm::init_test::<Win>(()).expect("init relm test");
         let inc_button = &widgets.inc_button;
         let dec_button = &widgets.dec_button;
         let update_button = &widgets.update_button;
@@ -214,6 +242,7 @@ mod tests {
                 false
             }
         );
+        let label_observer = observer_new!(inc_label, Text(_));
 
         // Shortcut for the previous call to Observer::new().
         let two_observer = observer_new!(component, TwoInc(_, _));
@@ -286,6 +315,7 @@ mod tests {
         click(inc_tool_button);
         assert_text!(widgets.label, 7);
 
+        let inc_label = inc_label.widget();
         click(inc_label);
         assert_text!(widgets.label, 8);
 
@@ -296,9 +326,23 @@ mod tests {
         wait(200);
         assert_text!(widgets.text, "Updated text");
 
-        assert_text!(inc_label, "Increment");
         double_click(inc_label);
-        assert_text!(inc_label, "Double click");
+        observer_wait!(let Text(text) = label_observer);
+        assert_eq!(text, "Double click");
         assert_text!(widgets.label, 10);
     }
+
+    /*
+     * Starting gtk multiple in a different thread is forbidden.
+    #[test]
+    fn clickable_label() {
+        let (component, widgets) = relm::init_test::<ClickableLabel>(()).expect("init relm test");
+        let label = &widgets.label;
+
+        assert_text!(label, "");
+
+        component.stream().emit(Text("Test".to_string()));
+        wait(200);
+        assert_text!(label, "Test");
+    }*/
 }
