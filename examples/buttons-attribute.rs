@@ -125,6 +125,9 @@ mod tests {
         let dec_button = &widgets.dec_button;
         let label = &widgets.label;
 
+        assert_label!(inc_button, "+");
+        assert_label!(dec_button, "-");
+
         assert_text!(label, 0);
         click(inc_button);
         assert_text!(label, 1);
