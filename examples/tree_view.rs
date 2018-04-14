@@ -8,7 +8,21 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
-use gtk::*;
+use gtk::{
+    CellLayoutExt,
+    ContainerExt,
+    GtkWindowExt,
+    Inhibit,
+    ListStoreExtManual,
+    StaticType,
+    TreeModelExt,
+    TreeSelectionExt,
+    TreeView,
+    TreeViewExt,
+    WidgetExt,
+    Window,
+    WindowType
+};
 use gtk::Orientation::Vertical;
 use relm::{Relm, Update, Widget};
 

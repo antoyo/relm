@@ -28,7 +28,18 @@ extern crate relm_derive;
 #[macro_use]
 extern crate relm_test;
 
-use gtk::*;
+use gtk::{
+    ContainerExt,
+    EditableSignals,
+    Entry,
+    EntryExt,
+    Inhibit,
+    Label,
+    LabelExt,
+    WidgetExt,
+    Window,
+    WindowType,
+};
 use gtk::Orientation::Vertical;
 use relm::{Relm, Update, Widget, WidgetTest};
 

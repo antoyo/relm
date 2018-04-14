@@ -31,7 +31,11 @@ extern crate relm_derive;
 extern crate relm_test;
 
 use chrono::{DateTime, Local};
-use gtk::*;
+use gtk::{
+    Inhibit,
+    LabelExt,
+    WidgetExt,
+};
 use relm::{Relm, Widget, interval};
 use relm_attributes::widget;
 

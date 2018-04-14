@@ -28,7 +28,15 @@ extern crate relm_derive;
 extern crate relm_test;
 
 use chrono::Local;
-use gtk::*;
+use gtk::{
+    ContainerExt,
+    Inhibit,
+    Label,
+    LabelExt,
+    WidgetExt,
+    Window,
+    WindowType,
+};
 use relm::{Relm, Update, Widget, WidgetTest, interval};
 
 use self::Msg::*;
