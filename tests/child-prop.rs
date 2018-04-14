@@ -26,6 +26,7 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+extern crate relm_test;
 
 use gtk::{
     BoxExt,
@@ -39,7 +40,14 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use gtk::WindowType::Toplevel;
-use relm::{Component, ContainerWidget, Relm, Update, Widget};
+use relm::{
+    Component,
+    ContainerWidget,
+    Relm,
+    Update,
+    Widget,
+    WidgetTest,
+};
 
 use self::Msg::*;
 
@@ -96,8 +104,11 @@ pub enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
 struct Win {
-    _button: Component<Button>,
+    dec_button: gtk::Button,
+    inc_button: Component<Button>,
+    label: gtk::Label,
     window: gtk::Window,
 }
 
@@ -129,19 +140,53 @@ impl Widget for Win {
         window.add(&vbox);
         let label = gtk::Label::new(Some("0"));
         vbox.add(&label);
-        let button = gtk::Button::new_with_label("-");
-        vbox.add(&button);
+        let dec_button = gtk::Button::new_with_label("-");
+        vbox.add(&dec_button);
         let relm_button = vbox.add_widget::<Button>(());
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
         window.show_all();
 
         Win {
-            _button: relm_button,
+            dec_button,
+            inc_button: relm_button,
+            label,
             window: window,
         }
     }
 }
 
+impl WidgetTest for Win {
+    type Widgets = Win;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.clone()
+    }
+}
+
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::WidgetExt;
+
+    use relm;
+
+    use Win;
+
+    #[test]
+    fn button_position() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let inc_button = widgets.inc_button.widget();
+        let dec_button = &widgets.dec_button;
+        let label = &widgets.label;
+
+        let inc_allocation = inc_button.get_allocation();
+        let dec_allocation = dec_button.get_allocation();
+        let label_allocation = label.get_allocation();
+        assert!(inc_allocation.y < dec_allocation.y);
+        // 10 is the padding.
+        assert_eq!(dec_allocation.y, inc_allocation.y + inc_allocation.height + 10 + label_allocation.height);
+    }
 }
