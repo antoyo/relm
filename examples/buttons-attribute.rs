@@ -111,7 +111,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::LabelExt;
+    use gtk::{ButtonExt, LabelExt};
 
     use relm;
     use relm_test::click;
