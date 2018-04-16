@@ -135,6 +135,11 @@ pub fn enter_keys<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, 
     }
 }
 
+pub fn find_child_by_name<C: IsA<Widget>, W: Clone + IsA<Object> + IsA<Widget>>(parent: &W, name: &str) -> Option<C> {
+    find_widget_by_name(parent, name)
+        .and_then(|widget| widget.downcast().ok())
+}
+
 pub fn find_widget_by_name<W: Clone + IsA<Object> + IsA<Widget>>(parent: &W, name: &str) -> Option<Widget> {
     if let Ok(container) = parent.clone().dynamic_cast::<Container>() {
         for child in container.get_children() {

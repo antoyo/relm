@@ -24,6 +24,8 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{
     Button,
@@ -40,7 +42,14 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, Relm, Update, Widget};
+use relm::{
+    Component,
+    ContainerWidget,
+    Relm,
+    Update,
+    Widget,
+    WidgetTest,
+};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -93,9 +102,11 @@ impl Widget for Text {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let input = Entry::new();
+        input.set_name("entry");
         vbox.add(&input);
 
         let label = Label::new(None);
+        label.set_name("text_label");
         vbox.add(&label);
 
         let input2 = input.clone();
@@ -163,12 +174,15 @@ impl Widget for Counter {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
+        plus_button.set_name("inc_button");
         vbox.add(&plus_button);
 
         let counter_label = Label::new("0");
+        counter_label.set_name("label");
         vbox.add(&counter_label);
 
         let minus_button = Button::new_with_label("-");
+        minus_button.set_name("dec_button");
         vbox.add(&minus_button);
 
         connect!(relm, plus_button, connect_clicked(_), Increment);
@@ -193,11 +207,17 @@ enum Msg {
 }
 
 struct Win {
-    _counter1: Component<Counter>,
-    _counter2: Component<Counter>,
-    label: Label,
     model: Model,
-    _text: Component<Text>,
+    widgets: Widgets,
+}
+
+#[derive(Clone)]
+struct Widgets {
+    counter1: Component<Counter>,
+    counter2: Component<Counter>,
+    dec_button: Button,
+    label: Label,
+    text: Component<Text>,
     window: Window,
 }
 
@@ -217,7 +237,7 @@ impl Update for Win {
             TextChange(text) => {
                 println!("{}", text);
                 self.model.counter += 1;
-                self.label.set_text(&self.model.counter.to_string());
+                self.widgets.label.set_text(&self.model.counter.to_string());
             },
             Quit => gtk::main_quit(),
         }
@@ -228,7 +248,7 @@ impl Widget for Win {
     type Root = Window;
 
     fn root(&self) -> Self::Root {
-        self.window.clone()
+        self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Model) -> Self {
@@ -236,8 +256,8 @@ impl Widget for Win {
 
         let hbox = gtk::Box::new(Horizontal, 0);
 
-        let button = Button::new_with_label("Decrement");
-        hbox.add(&button);
+        let dec_button = Button::new_with_label("Decrement");
+        hbox.add(&dec_button);
 
         let label = Label::new(None);
 
@@ -249,7 +269,7 @@ impl Widget for Win {
         connect!(text@Change(ref text), relm, TextChange(text.clone()));
         connect!(text@Change(_), counter1, Increment);
         connect!(counter1@Increment, counter2, Decrement);
-        connect!(button, connect_clicked(_), counter1, Decrement);
+        connect!(dec_button, connect_clicked(_), counter1, Decrement);
 
         window.add(&hbox);
 
@@ -258,16 +278,88 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         Win {
-            _counter1: counter1,
-            _counter2: counter2,
-            label: label,
             model,
-            _text: text,
-            window: window,
+            widgets: Widgets {
+                counter1,
+                counter2,
+                dec_button,
+                label,
+                text,
+                window,
+            },
         }
+    }
+}
+
+impl WidgetTest for Win {
+    type Widgets = Widgets;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.widgets.clone()
     }
 }
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Button, Entry, Label, LabelExt};
+
+    use relm;
+    use relm_test::{click, enter_keys, find_child_by_name};
+
+    use Win;
+
+    #[test]
+    fn label_change() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let dec_button = &widgets.dec_button;
+        let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label1");
+        let inc_button1: Button = find_child_by_name(widgets.counter1.widget(), "inc_button").expect("button1");
+        let dec_button1: Button = find_child_by_name(widgets.counter1.widget(), "dec_button").expect("button1");
+        let label2: Label = find_child_by_name(widgets.counter2.widget(), "label").expect("label2");
+        let label = &widgets.label;
+        let entry: Entry = find_child_by_name(widgets.text.widget(), "entry").expect("entry");
+        let text_label: Label = find_child_by_name(widgets.text.widget(), "text_label").expect("label");
+
+        assert_text!(label1, 0);
+
+        click(dec_button);
+        assert_text!(label1, -1);
+
+        click(dec_button);
+        assert_text!(label1, -2);
+
+        assert_text!(label2, 0);
+
+        click(&inc_button1);
+        assert_text!(label1, -1);
+        assert_text!(label2, -1);
+
+        click(&inc_button1);
+        assert_text!(label1, 0);
+        assert_text!(label2, -2);
+
+        click(&dec_button1);
+        assert_text!(label1, -1);
+        assert_text!(label2, -2);
+
+        click(&dec_button1);
+        assert_text!(label1, -2);
+        assert_text!(label2, -2);
+
+        assert_text!(label, "");
+
+        enter_keys(&entry, "t");
+        assert_text!(label, 1);
+        assert_text!(label1, -1);
+        assert_text!(text_label, "t");
+
+        enter_keys(&entry, "e");
+        assert_text!(label, 2);
+        assert_text!(label1, 0);
+        assert_text!(text_label, "et");
+    }
 }
