@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{
     ButtonExt,
@@ -84,10 +86,12 @@ impl Widget for Win {
                     // TODO: check if using two events of the same name work.
                     label: "+",
                 },
+                #[name="label"]
                 gtk::Label {
                     // Bind the text property of the label to the counter attribute of the model.
                     text: &self.model.counter.to_string(),
                 },
+                #[name="dec_button"]
                 gtk::Button {
                     clicked => Decrement,
                     label: "-",
@@ -100,4 +104,26 @@ impl Widget for Win {
 
 fn main() {
     Win::run((40, 2)).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::LabelExt;
+
+    use relm;
+    use relm_test::click;
+
+    use Win;
+
+    #[test]
+    fn model_params() {
+        let (_component, widgets) = relm::init_test::<Win>((2, 3)).unwrap();
+        let dec_button = &widgets.dec_button;
+        let label = &widgets.label;
+
+        assert_text!(label, 5);
+
+        click(dec_button);
+        assert_text!(label, 4);
+    }
 }
