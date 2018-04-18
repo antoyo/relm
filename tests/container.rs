@@ -27,6 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+extern crate relm_test;
 
 use gtk::{
     ContainerExt,
@@ -38,7 +39,16 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use gtk::WindowType::Toplevel;
-use relm::{Component, Container, ContainerComponent, ContainerWidget, Relm, Update, Widget};
+use relm::{
+    Component,
+    Container,
+    ContainerComponent,
+    ContainerWidget,
+    Relm,
+    Update,
+    Widget,
+    WidgetTest,
+};
 
 use self::Msg::*;
 
@@ -126,10 +136,14 @@ pub enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
 struct Win {
     _button: Component<Button>,
     _vbox: ContainerComponent<VBox>,
     window: Window,
+    inc_button: gtk::Button,
+    dec_button: gtk::Button,
+    label: Label,
 }
 
 impl Update for Win {
@@ -157,23 +171,58 @@ impl Widget for Win {
     fn view(relm: &Relm<Self>, _model: ()) -> Self {
         let window = Window::new(Toplevel);
         let vbox = window.add_container::<VBox>(());
-        let plus_button = gtk::Button::new_with_label("+");
-        vbox.add(&plus_button);
+        let inc_button = gtk::Button::new_with_label("+");
+        vbox.add(&inc_button);
         let label = Label::new(Some("0"));
         vbox.add(&label);
         let button = vbox.add_widget::<Button>(());
-        let minus_button = gtk::Button::new_with_label("-");
-        vbox.add(&minus_button);
+        let dec_button = gtk::Button::new_with_label("-");
+        vbox.add(&dec_button);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
         window.show_all();
         Win {
             _button: button,
             _vbox: vbox,
             window: window,
+            inc_button,
+            dec_button,
+            label,
         }
+    }
+}
+
+impl WidgetTest for Win {
+    type Widgets = Win;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.clone()
     }
 }
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::WidgetExt;
+
+    use relm;
+
+    use Win;
+
+    #[test]
+    fn widget_position() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let inc_button = &widgets.inc_button;
+        let dec_button = &widgets.dec_button;
+        let label = &widgets.label;
+
+        let inc_allocation = inc_button.get_allocation();
+        let dec_allocation = dec_button.get_allocation();
+        let label_allocation = label.get_allocation();
+        assert!(inc_allocation.y < dec_allocation.y);
+        assert!(inc_allocation.y < label_allocation.y);
+        assert!(label_allocation.y < dec_allocation.y);
+    }
 }
