@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use std::fmt::Display;
 
@@ -93,13 +95,16 @@ impl<T: IncDec + Display> Widget for Counter<T> {
             orientation: Vertical,
             gtk::Button {
                 label: "+",
+                name: "inc_button",
                 clicked => Increment,
             },
             gtk::Label {
+                name: "label",
                 text: &self.model.counter.to_string(),
             },
             gtk::Button {
                 label: "-",
+                name: "dec_button",
                 clicked => Decrement,
             },
         }
@@ -127,7 +132,9 @@ impl Widget for Win {
         gtk::Window {
             gtk::Box {
                 orientation: Horizontal,
+                #[name="counter1"]
                 Counter<i32>(2),
+                #[name="counter2"]
                 Counter<i32>(3),
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
@@ -137,4 +144,47 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Button, Label, LabelExt};
+
+    use relm;
+    use relm_test::{click, find_child_by_name};
+
+    use Win;
+
+    #[test]
+    fn widget_position() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let inc_button1: Button = find_child_by_name(widgets.counter1.widget(), "inc_button").expect("inc button");
+        let dec_button1: Button = find_child_by_name(widgets.counter1.widget(), "dec_button").expect("dec button");
+        let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label");
+        let inc_button2: Button = find_child_by_name(widgets.counter2.widget(), "inc_button").expect("inc button");
+        let dec_button2: Button = find_child_by_name(widgets.counter2.widget(), "dec_button").expect("dec button");
+        let label2: Label = find_child_by_name(widgets.counter2.widget(), "label").expect("label");
+
+        assert_text!(label1, 2);
+
+        click(&inc_button1);
+        assert_text!(label1, 3);
+
+        click(&inc_button1);
+        assert_text!(label1, 4);
+
+        click(&dec_button1);
+        assert_text!(label1, 3);
+
+        assert_text!(label2, 3);
+
+        click(&inc_button2);
+        assert_text!(label2, 4);
+
+        click(&inc_button2);
+        assert_text!(label2, 5);
+
+        click(&dec_button2);
+        assert_text!(label2, 4);
+    }
 }

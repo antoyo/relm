@@ -24,6 +24,8 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use std::fmt::Display;
 
@@ -39,7 +41,14 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, Relm, Update, Widget};
+use relm::{
+    Component,
+    ContainerWidget,
+    Relm,
+    Update,
+    Widget,
+    WidgetTest,
+};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -118,12 +127,15 @@ impl<T: Clone + IncDec + Display + 'static> Widget for Counter<T> {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
+        plus_button.set_name("inc_button");
         vbox.add(&plus_button);
 
         let counter_label = Label::new(Some(model.counter.to_string().as_ref()));
+        counter_label.set_name("label");
         vbox.add(&counter_label);
 
         let minus_button = Button::new_with_label("-");
+        minus_button.set_name("dec_button");
         vbox.add(&minus_button);
 
         connect!(relm, plus_button, connect_clicked(_), Increment(T::identity()));
@@ -142,9 +154,10 @@ enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
 struct Win {
-    _counter1: Component<Counter<i32>>,
-    _counter2: Component<Counter<i32>>,
+    counter1: Component<Counter<i32>>,
+    counter2: Component<Counter<i32>>,
     window: Window,
 }
 
@@ -185,13 +198,64 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         Win {
-            _counter1: counter1,
-            _counter2: counter2,
+            counter1: counter1,
+            counter2: counter2,
             window: window,
         }
     }
 }
 
+impl WidgetTest for Win {
+    type Widgets = Win;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.clone()
+    }
+}
+
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Button, Label, LabelExt};
+
+    use relm;
+    use relm_test::{click, find_child_by_name};
+
+    use Win;
+
+    #[test]
+    fn widget_position() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let inc_button1: Button = find_child_by_name(widgets.counter1.widget(), "inc_button").expect("inc button");
+        let dec_button1: Button = find_child_by_name(widgets.counter1.widget(), "dec_button").expect("dec button");
+        let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label");
+        let inc_button2: Button = find_child_by_name(widgets.counter2.widget(), "inc_button").expect("inc button");
+        let dec_button2: Button = find_child_by_name(widgets.counter2.widget(), "dec_button").expect("dec button");
+        let label2: Label = find_child_by_name(widgets.counter2.widget(), "label").expect("label");
+
+        assert_text!(label1, 2);
+
+        click(&inc_button1);
+        assert_text!(label1, 3);
+
+        click(&inc_button1);
+        assert_text!(label1, 4);
+
+        click(&dec_button1);
+        assert_text!(label1, 3);
+
+        assert_text!(label2, 3);
+
+        click(&inc_button2);
+        assert_text!(label2, 4);
+
+        click(&inc_button2);
+        assert_text!(label2, 5);
+
+        click(&dec_button2);
+        assert_text!(label2, 4);
+    }
 }
