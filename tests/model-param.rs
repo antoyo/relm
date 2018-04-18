@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -24,6 +24,8 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{
     Button,
@@ -37,7 +39,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Update, Widget};
+use relm::{Relm, Update, Widget, WidgetTest};
 
 struct Model {
     counter: i32,
@@ -50,11 +52,17 @@ enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
+struct Widgets {
+    counter_label: Label,
+    dec_button: Button,
+    window: Window,
+}
+
 // Create the structure that holds the widgets used in the view.
 struct Win {
-    counter_label: Label,
     model: Model,
-    window: Window,
+    widgets: Widgets,
 }
 
 impl Update for Win {
@@ -72,7 +80,7 @@ impl Update for Win {
     }
 
     fn update(&mut self, event: Msg) {
-        let label = &self.counter_label;
+        let label = &self.widgets.counter_label;
 
         match event {
             Msg::Decrement => {
@@ -95,7 +103,7 @@ impl Widget for Win {
 
     // Return the root widget.
     fn root(&self) -> Self::Root {
-        self.window.clone()
+        self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
@@ -108,8 +116,8 @@ impl Widget for Win {
         let counter_label = Label::new(model.counter.to_string().as_ref());
         vbox.add(&counter_label);
 
-        let minus_button = Button::new_with_label("-");
-        vbox.add(&minus_button);
+        let dec_button = Button::new_with_label("-");
+        vbox.add(&dec_button);
 
         let window = Window::new(WindowType::Toplevel);
 
@@ -119,17 +127,50 @@ impl Widget for Win {
 
         // Send the message Increment when the button is clicked.
         connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
-        connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
+        connect!(relm, dec_button, connect_clicked(_), Msg::Decrement);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
 
         Win {
-            counter_label,
             model,
-            window,
+            widgets: Widgets {
+                counter_label,
+                dec_button,
+                window,
+            },
         }
+    }
+}
+
+impl WidgetTest for Win {
+    type Widgets = Widgets;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.widgets.clone()
     }
 }
 
 fn main() {
     Win::run(42).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::LabelExt;
+
+    use relm;
+    use relm_test::click;
+
+    use Win;
+
+    #[test]
+    fn model_param() {
+        let (_component, widgets) = relm::init_test::<Win>(5).unwrap();
+        let dec_button = &widgets.dec_button;
+        let label = &widgets.counter_label;
+
+        assert_text!(label, 5);
+
+        click(dec_button);
+        assert_text!(label, 4);
+    }
 }
