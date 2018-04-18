@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{
     ButtonExt,
@@ -106,6 +108,7 @@ impl Widget for Win {
                     // TODO: check if using two events of the same name work.
                     label: "+",
                 },
+                #[name="label"]
                 gtk::Label {
                     // Bind the text property of the label to the counter attribute of the model.
                     text: &self.model.counter.to_string(),
@@ -114,6 +117,7 @@ impl Widget for Win {
                     clicked => Decrement,
                     label: "-",
                 },
+                #[name="button"]
                 Button("Button text attribute".to_string()),
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
@@ -123,4 +127,24 @@ impl Widget for Win {
 
 fn main() {
     Win::run(42).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{ButtonExt, LabelExt};
+
+    use relm;
+    use relm_test::click;
+
+    use Win;
+
+    #[test]
+    fn model_params() {
+        let (_component, widgets) = relm::init_test::<Win>(5).unwrap();
+        let label = &widgets.label;
+        let button = widgets.button.widget();
+
+        assert_text!(label, 5);
+        assert_label!(button, "Button text attribute");
+    }
 }
