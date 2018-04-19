@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{
     ButtonExt,
@@ -72,9 +74,11 @@ impl Widget for Text {
         gtk::Box {
             orientation: Vertical,
             gtk::Entry {
+                name: "entry",
                 changed(entry) => Change(entry.get_text().unwrap()),
             },
             gtk::Label {
+                name: "label",
                 text: &self.model.content,
             },
         }
@@ -111,9 +115,11 @@ impl Widget for Counter {
             orientation: Vertical,
             gtk::Button {
                 label: "+",
+                name: "inc_button",
                 clicked => Increment,
             },
             gtk::Label {
+                name: "label",
                 text: &self.model.counter.to_string(),
             },
             gtk::Button {
@@ -144,8 +150,11 @@ impl Widget for Win {
     view! {
         gtk::Window {
             gtk::Box {
+                #[name="counter1"]
                 Counter,
+                #[name="counter2"]
                 Counter,
+                #[name="text"]
                 Text,
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
@@ -155,4 +164,43 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Button, Entry, Label, LabelExt};
+
+    use relm;
+    use relm_test::{click, enter_keys, find_child_by_name};
+
+    use Win;
+
+    #[test]
+    fn model_params() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let counter1 = &widgets.counter1;
+        let text = &widgets.text;
+        let inc_button1: Button = find_child_by_name(counter1.widget(), "inc_button").expect("button");
+        let label1: Label = find_child_by_name(counter1.widget(), "label").expect("label");
+        let counter2 = &widgets.counter2;
+        let inc_button2: Button = find_child_by_name(counter2.widget(), "inc_button").expect("button");
+        let label2: Label = find_child_by_name(counter2.widget(), "label").expect("label");
+        let entry: Entry = find_child_by_name(text.widget(), "entry").expect("entry");
+        let text_label: Label = find_child_by_name(text.widget(), "label").expect("label");
+
+        assert_text!(label1, 0);
+
+        click(&inc_button1);
+        assert_text!(label1, 1);
+
+        assert_text!(label2, 0);
+
+        click(&inc_button2);
+        assert_text!(label2, 1);
+
+        assert_text!(text_label, "");
+
+        enter_keys(&entry, "test");
+        assert_text!(text_label, "tset");
+    }
 }
