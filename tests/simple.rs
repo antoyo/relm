@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{Inhibit, LabelExt, WidgetExt};
 use relm::Widget;
@@ -85,6 +87,7 @@ impl Widget for Win {
 
     view! {
         gtk::Window {
+            #[name="label"]
             Label,
             delete_event(_, _) => (Quit, Inhibit(false)),
         }
@@ -93,4 +96,21 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::LabelExt;
+
+    use relm;
+
+    use Win;
+
+    #[test]
+    fn root_widget() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let label = widgets.label.widget();
+
+        assert_text!(label, "Test");
+    }
 }
