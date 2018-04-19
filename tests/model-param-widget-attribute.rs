@@ -134,7 +134,6 @@ mod tests {
     use gtk::{ButtonExt, LabelExt};
 
     use relm;
-    use relm_test::click;
 
     use Win;
 

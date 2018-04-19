@@ -25,7 +25,7 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-#[macro_use]
+#[cfg_attr(test, macro_use)]
 extern crate relm_test;
 
 use gtk::{

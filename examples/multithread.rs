@@ -27,7 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-#[macro_use]
+#[cfg_attr(test, macro_use)]
 extern crate relm_test;
 
 use std::thread;
