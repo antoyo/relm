@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{
     ButtonExt,
@@ -74,6 +76,7 @@ impl Widget for Text {
             orientation: Vertical,
             #[name="text_entry"]
             gtk::Entry {
+                name: "text_entry",
                 changed(entry) => Change(entry.get_text().unwrap()),
             },
             gtk::Label {
@@ -112,10 +115,12 @@ impl Widget for Win {
         gtk::Window {
             gtk::Box {
                 orientation: Vertical,
+                #[name="button"]
                 gtk::Button {
                     clicked => Reset,
                     label: "Reset",
                 },
+                #[name="text"]
                 Text {
                     // Send the message SetText(self.model.text.clone()) at initialization and when
                     // the model attribute is updated.
@@ -129,4 +134,29 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Entry, EntryExt};
+
+    use relm;
+    use relm_test::{click, find_child_by_name, wait};
+
+    use Win;
+
+    #[test]
+    fn root_widget() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let button = &widgets.button;
+        let entry: Entry = find_child_by_name(widgets.text.widget(), "text_entry").expect("entry");
+
+        wait(200);
+
+        assert_text!(entry, "Test");
+
+        click(button);
+
+        assert_text!(entry, "");
+    }
 }
