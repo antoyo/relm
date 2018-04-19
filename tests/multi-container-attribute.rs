@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,6 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+extern crate relm_test;
 
 use gtk::{
     BoxExt,
@@ -152,17 +153,22 @@ impl Widget for Win {
     view! {
         gtk::Window {
             SplitBox {
+                #[name="button1"]
                 gtk::Button {
                     clicked => Increment,
                     label: "+",
                 },
+                #[name="label"]
                 gtk::Label {
                     text: &self.model.counter.to_string(),
                 },
+                #[name="right_button"]
                 Button {
                 },
+                #[name="center_button"]
                 CenterButton {
                 },
+                #[name="button2"]
                 gtk::Button {
                     clicked => Decrement,
                     label: "-",
@@ -175,4 +181,35 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::WidgetExt;
+
+    use relm;
+
+    use Win;
+
+    #[test]
+    fn model_params() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let button1 = &widgets.button1;
+        let label = &widgets.label;
+        let button2 = &widgets.button2;
+        let right_button = widgets.right_button.widget();
+        let center_button = widgets.center_button.widget();
+
+        let button1_allocation = button1.get_allocation();
+        let label_allocation = label.get_allocation();
+        let button2_allocation = button2.get_allocation();
+        let right_allocation = right_button.get_allocation();
+        let center_allocation = center_button.get_allocation();
+
+        assert!(button1_allocation.y < label_allocation.y);
+        assert!(label_allocation.y < button2_allocation.y);
+        assert!(button1_allocation.x < center_allocation.x);
+        assert!(center_allocation.x < right_allocation.x);
+        assert!(center_allocation.y == right_allocation.y);
+    }
 }

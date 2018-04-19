@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,6 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+extern crate relm_test;
 
 use gtk::{
     Cast,
@@ -47,6 +48,7 @@ use relm::{
     Relm,
     Update,
     Widget,
+    WidgetTest,
 };
 
 use self::Msg::*;
@@ -252,9 +254,13 @@ pub enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
 struct Win {
-    _button: Component<Button>,
-    _center_button: Component<CenterButton>,
+    button1: gtk::Button,
+    label: Label,
+    button2: gtk::Button,
+    right_button: Component<Button>,
+    center_button: Component<CenterButton>,
     _vbox: ContainerComponent<SplitBox>,
     window: Window,
 }
@@ -284,25 +290,67 @@ impl Widget for Win {
     fn view(relm: &Relm<Self>, _model: ()) -> Self {
         let window = Window::new(Toplevel);
         let vbox = window.add_container::<SplitBox>(());
-        let plus_button = gtk::Button::new_with_label("+");
-        vbox.add(&plus_button);
+        let button1 = gtk::Button::new_with_label("+");
+        vbox.add(&button1);
         let label = Label::new(Some("0"));
         vbox.add(&label);
         let button = vbox.add_widget::<Button>(());
         let center_button = vbox.add_widget::<CenterButton>(());
-        let minus_button = gtk::Button::new_with_label("-");
-        vbox.add(&minus_button);
+        let button2 = gtk::Button::new_with_label("-");
+        vbox.add(&button2);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
         window.show_all();
         Win {
-            _button: button,
-            _center_button: center_button,
+            button1,
+            label,
+            button2,
+            right_button: button,
+            center_button: center_button,
             _vbox: vbox,
             window: window,
         }
     }
 }
 
+impl WidgetTest for Win {
+    type Widgets = Win;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.clone()
+    }
+}
+
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::WidgetExt;
+
+    use relm;
+
+    use Win;
+
+    #[test]
+    fn model_params() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let button1 = &widgets.button1;
+        let label = &widgets.label;
+        let button2 = &widgets.button2;
+        let right_button = widgets.right_button.widget();
+        let center_button = widgets.center_button.widget();
+
+        let button1_allocation = button1.get_allocation();
+        let label_allocation = label.get_allocation();
+        let button2_allocation = button2.get_allocation();
+        let right_allocation = right_button.get_allocation();
+        let center_allocation = center_button.get_allocation();
+
+        assert!(button1_allocation.y < label_allocation.y);
+        assert!(label_allocation.y < button2_allocation.y);
+        assert!(button1_allocation.x < center_allocation.x);
+        assert!(center_allocation.x < right_allocation.x);
+        assert!(center_allocation.y == right_allocation.y);
+    }
 }
