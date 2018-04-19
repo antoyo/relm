@@ -15,5 +15,8 @@ path = "../../relm-attributes"
 [dependencies.relm-derive]
 path = "../../relm-derive"
 
+[dependencies.relm-test]
+path = "../../relm-test"
+
 [features]
 default = ["relm/unstable", "relm-attributes/unstable", "relm-derive/unstable"]
