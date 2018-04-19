@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -26,6 +26,7 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+extern crate relm_test;
 
 use gtk::{
     ContainerExt,
@@ -45,6 +46,7 @@ use relm::{
     Relm,
     Update,
     Widget,
+    WidgetTest,
     create_container,
 };
 
@@ -75,6 +77,7 @@ impl Widget for Button {
 
     fn view(_relm: &Relm<Self>, _model: Self::Model) -> Self {
         let button = gtk::Button::new_with_label("+");
+        button.set_name("button");
         Button {
             button: button,
         }
@@ -158,14 +161,17 @@ impl Widget for MyVBox {
         let vbox = create_container::<VBox>(());
 
         let plus_button = gtk::Button::new_with_label("+");
+        plus_button.set_name("inc_button");
         vbox.add(&plus_button);
 
         let counter_label = Label::new("0");
+        counter_label.set_name("label");
         vbox.add(&counter_label);
 
         let widget = vbox.add_widget::<Button>(());
 
         let minus_button = gtk::Button::new_with_label("-");
+        minus_button.set_name("dec_button");
         vbox.add(&minus_button);
 
         MyVBox {
@@ -180,8 +186,9 @@ pub enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
 struct Win {
-    _vbox: Component<MyVBox>,
+    vbox: Component<MyVBox>,
     window: Window,
 }
 
@@ -215,12 +222,48 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
 
         Win {
-            _vbox: vbox,
+            vbox: vbox,
             window: window,
         }
     }
 }
 
+impl WidgetTest for Win {
+    type Widgets = Win;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.clone()
+    }
+}
+
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Button, Label, WidgetExt};
+
+    use relm;
+    use relm_test::find_child_by_name;
+
+    use Win;
+
+    #[test]
+    fn root_widget() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let vbox = &widgets.vbox;
+        let inc_button: Button = find_child_by_name(vbox.widget(), "inc_button").expect("inc button");
+        let label: Label = find_child_by_name(vbox.widget(), "label").expect("label");
+        let button: Button = find_child_by_name(vbox.widget(), "button").expect("button");
+        let dec_button: Button = find_child_by_name(vbox.widget(), "dec_button").expect("dec button");
+        let inc_allocation = inc_button.get_allocation();
+        let label_allocation = label.get_allocation();
+        let button_allocation = button.get_allocation();
+        let dec_button_allocation = dec_button.get_allocation();
+
+        assert!(inc_allocation.y < label_allocation.y);
+        assert!(label_allocation.y < button_allocation.y);
+        assert!(button_allocation.y < dec_button_allocation.y);
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,6 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+extern crate relm_test;
 
 use gtk::{
     ButtonExt,
@@ -86,14 +87,18 @@ impl Widget for MyVBox {
     view! {
         VBox {
             gtk::Button {
+                name: "inc_button",
                 label: "+",
             },
             gtk::Label {
+                name: "label",
                 text: "0",
             },
             Button {
+                name: "button",
             },
             gtk::Button {
+                name: "dec_button",
                 label: "-",
             },
         }
@@ -118,6 +123,7 @@ impl Widget for Win {
 
     view! {
         gtk::Window {
+            #[name="vbox"]
             MyVBox,
             delete_event(_, _) => (Quit, Inhibit(false)),
         }
@@ -126,4 +132,32 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Button, Label, WidgetExt};
+
+    use relm;
+    use relm_test::find_child_by_name;
+
+    use Win;
+
+    #[test]
+    fn root_widget() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let vbox = &widgets.vbox;
+        let inc_button: Button = find_child_by_name(vbox.widget(), "inc_button").expect("inc button");
+        let label: Label = find_child_by_name(vbox.widget(), "label").expect("label");
+        let button: Button = find_child_by_name(vbox.widget(), "button").expect("button");
+        let dec_button: Button = find_child_by_name(vbox.widget(), "dec_button").expect("dec button");
+        let inc_allocation = inc_button.get_allocation();
+        let label_allocation = label.get_allocation();
+        let button_allocation = button.get_allocation();
+        let dec_button_allocation = dec_button.get_allocation();
+
+        assert!(inc_allocation.y < label_allocation.y);
+        assert!(label_allocation.y < button_allocation.y);
+        assert!(button_allocation.y < dec_button_allocation.y);
+    }
 }
