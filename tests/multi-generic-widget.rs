@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -24,6 +24,8 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use std::fmt::Display;
 use std::marker::PhantomData;
@@ -40,7 +42,14 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, Relm, Update, Widget};
+use relm::{
+    Component,
+    ContainerWidget,
+    Relm,
+    Update,
+    Widget,
+    WidgetTest,
+};
 
 use self::CounterMsg::*;
 use self::Msg::*;
@@ -131,6 +140,7 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
         vbox.add(&plus_button);
 
         let counter_label = Label::new(Some(model.counter1.to_string().as_ref()));
+        counter_label.set_name("label");
         vbox.add(&counter_label);
 
         let minus_button = Button::new_with_label("-");
@@ -154,9 +164,10 @@ enum Msg {
     Quit,
 }
 
+#[derive(Clone)]
 struct Win {
-    _counter1: Component<Counter<i32, i64>>,
-    _counter2: Component<Counter<i32, i64>>,
+    counter1: Component<Counter<i32, i64>>,
+    counter2: Component<Counter<i32, i64>>,
     window: Window,
 }
 
@@ -197,13 +208,41 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         Win {
-            _counter1: counter1,
-            _counter2: counter2,
+            counter1: counter1,
+            counter2: counter2,
             window: window,
         }
     }
 }
 
+impl WidgetTest for Win {
+    type Widgets = Win;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.clone()
+    }
+}
+
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Label, LabelExt};
+
+    use relm;
+    use relm_test::find_child_by_name;
+
+    use Win;
+
+    #[test]
+    fn model_params() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label");
+        let label2: Label = find_child_by_name(widgets.counter2.widget(), "label").expect("label");
+
+        assert_text!(label1, 2);
+        assert_text!(label2, 3);
+    }
 }

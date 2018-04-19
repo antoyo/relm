@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use std::fmt::Display;
 
@@ -108,6 +110,7 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
                 clicked => Increment,
             },
             gtk::Label {
+                name: "label",
                 text: &self.model.counter1.to_string(),
             },
             gtk::Button {
@@ -139,7 +142,9 @@ impl Widget for Win {
         gtk::Window {
             gtk::Box {
                 orientation: Horizontal,
+                #[name="counter1"]
                 Counter<i32, i64>(2, 3),
+                #[name="counter2"]
                 Counter<i32, i64>(3, 4),
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
@@ -149,4 +154,24 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Label, LabelExt};
+
+    use relm;
+    use relm_test::find_child_by_name;
+
+    use Win;
+
+    #[test]
+    fn model_params() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label");
+        let label2: Label = find_child_by_name(widgets.counter2.widget(), "label").expect("label");
+
+        assert_text!(label1, 2);
+        assert_text!(label2, 3);
+    }
 }
