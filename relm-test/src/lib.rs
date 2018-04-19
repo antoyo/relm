@@ -47,8 +47,10 @@ use gtk::{
     Entry,
     IsA,
     Object,
+    StaticType,
     Widget,
     WidgetExt,
+    Window,
     test_widget_wait_for_draw,
 };
 use relm_core::EventStream;
@@ -69,12 +71,13 @@ macro_rules! assert_text {
 
 /// Simulate a click on a widget.
 pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    test_widget_wait_for_draw(widget);
-    let allocation = widget.get_allocation();
-    mouse_move(widget, allocation.width / 2, allocation.height / 2);
-    let mut enigo = Enigo::new();
-    enigo.mouse_click(MouseButton::Left);
-    run_loop();
+    wait_for_draw(widget, || {
+        let allocation = widget.get_allocation();
+        mouse_move(widget, allocation.width / 2, allocation.height / 2);
+        let mut enigo = Enigo::new();
+        enigo.mouse_click(MouseButton::Left);
+        run_loop();
+    });
 }
 
 /// Simulate a double-click on a widget.
@@ -85,54 +88,59 @@ pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W
 
 /// Move the mouse relative to the widget position.
 pub fn mouse_move<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, x: i32, y: i32) {
-    test_widget_wait_for_draw(widget);
-    let toplevel_window = widget.get_toplevel().and_then(|toplevel| toplevel.get_window());
-    if let (Some(toplevel), Some(toplevel_window)) = (widget.get_toplevel(), toplevel_window) {
-        let (_, window_x, window_y) = toplevel_window.get_origin();
-        if let Some((x, y)) = widget.translate_coordinates(&toplevel, x, y) {
-            let x = window_x + x;
-            let y = window_y + y;
-            let mut enigo = Enigo::new();
-            enigo.mouse_move_to(x, y);
-            run_loop();
+    wait_for_draw(widget, || {
+        let toplevel_window = widget.get_toplevel().and_then(|toplevel| toplevel.get_window());
+        if let (Some(toplevel), Some(toplevel_window)) = (widget.get_toplevel(), toplevel_window) {
+            let (_, window_x, window_y) = toplevel_window.get_origin();
+            if let Some((x, y)) = widget.translate_coordinates(&toplevel, x, y) {
+                let x = window_x + x;
+                let y = window_y + y;
+                let mut enigo = Enigo::new();
+                enigo.mouse_move_to(x, y);
+                run_loop();
+            }
         }
-    }
+    });
 }
 
 pub fn mouse_press<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    test_widget_wait_for_draw(widget);
-    let allocation = widget.get_allocation();
-    mouse_move(widget, allocation.width / 2, allocation.height / 2);
-    let mut enigo = Enigo::new();
-    enigo.mouse_down(MouseButton::Left);
-    run_loop();
+    wait_for_draw(widget, || {
+        let allocation = widget.get_allocation();
+        mouse_move(widget, allocation.width / 2, allocation.height / 2);
+        let mut enigo = Enigo::new();
+        enigo.mouse_down(MouseButton::Left);
+        run_loop();
+    });
 }
 
 pub fn mouse_release<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    test_widget_wait_for_draw(widget);
-    let allocation = widget.get_allocation();
-    mouse_move(widget, allocation.width / 2, allocation.height / 2);
-    let mut enigo = Enigo::new();
-    enigo.mouse_up(MouseButton::Left);
-    run_loop();
+    wait_for_draw(widget, || {
+        let allocation = widget.get_allocation();
+        mouse_move(widget, allocation.width / 2, allocation.height / 2);
+        let mut enigo = Enigo::new();
+        enigo.mouse_up(MouseButton::Left);
+        run_loop();
+    });
 }
 
 pub fn enter_key<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
-    test_widget_wait_for_draw(widget);
-    focus(widget);
-    let mut enigo = Enigo::new();
-    enigo.key_click(gdk_key_to_enigo_key(key));
-    run_loop();
+    wait_for_draw(widget, || {
+        focus(widget);
+        let mut enigo = Enigo::new();
+        enigo.key_click(gdk_key_to_enigo_key(key));
+        run_loop();
+    });
 }
 
 pub fn enter_keys<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, text: &str) {
-    test_widget_wait_for_draw(widget);
-    focus(widget);
-    let mut enigo = Enigo::new();
-    for char in text.chars() {
-        enigo.key_sequence(&char.to_string());
-        run_loop();
-    }
+    wait_for_draw(widget, || {
+        focus(widget);
+        let mut enigo = Enigo::new();
+        for char in text.chars() {
+            enigo.key_sequence(&char.to_string());
+            run_loop();
+        }
+    });
 }
 
 pub fn find_child_by_name<C: IsA<Widget>, W: Clone + IsA<Object> + IsA<Widget>>(parent: &W, name: &str) -> Option<C> {
@@ -169,31 +177,34 @@ pub fn find_widget_by_name<W: Clone + IsA<Object> + IsA<Widget>>(parent: &W, nam
 }
 
 pub fn focus<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    test_widget_wait_for_draw(widget);
-    if !widget.has_focus() {
-        widget.grab_focus();
-        if let Ok(entry) = widget.clone().dynamic_cast::<Entry>() {
-            // Hack to make it work on Travis.
-            // Should use grab_focus_without_selecting() instead.
-            entry.set_position(-1);
+    wait_for_draw(widget, || {
+        if !widget.has_focus() {
+            widget.grab_focus();
+            if let Ok(entry) = widget.clone().dynamic_cast::<Entry>() {
+                // Hack to make it work on Travis.
+                // Should use grab_focus_without_selecting() instead.
+                entry.set_position(-1);
+            }
         }
-    }
+    });
 }
 
 pub fn key_press<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
-    test_widget_wait_for_draw(widget);
-    focus(widget);
-    let mut enigo = Enigo::new();
-    enigo.key_down(gdk_key_to_enigo_key(key));
-    run_loop();
+    wait_for_draw(widget, || {
+        focus(widget);
+        let mut enigo = Enigo::new();
+        enigo.key_down(gdk_key_to_enigo_key(key));
+        run_loop();
+    });
 }
 
 pub fn key_release<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
-    test_widget_wait_for_draw(widget);
-    focus(widget);
-    let mut enigo = Enigo::new();
-    enigo.key_up(gdk_key_to_enigo_key(key));
-    run_loop();
+    wait_for_draw(widget, || {
+        focus(widget);
+        let mut enigo = Enigo::new();
+        enigo.key_up(gdk_key_to_enigo_key(key));
+        run_loop();
+    });
 }
 
 /// Wait for events the specified amount the milliseconds.
@@ -210,6 +221,14 @@ pub fn run_loop() {
     while gtk::events_pending() {
         gtk::main_iteration();
     }
+}
+
+pub fn wait_for_draw<W: IsA<Object> + IsA<Widget> + WidgetExt, F: FnOnce()>(widget: &W, callback: F) {
+    if widget.get_ancestor(Window::static_type()).is_none() {
+        return;
+    }
+    test_widget_wait_for_draw(widget);
+    callback();
 }
 
 pub struct Observer<MSG> {

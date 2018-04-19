@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -19,178 +19,215 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#![feature(proc_macro)]
+
 extern crate gtk;
 #[macro_use]
 extern crate relm;
+extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{
-    Button,
     ButtonExt,
-    ContainerExt,
     Inhibit,
-    Label,
     LabelExt,
+    OrientableExt,
     WidgetExt,
-    Window,
-    WindowType,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, Relm, Update, Widget};
+use relm::{Component, ContainerWidget, Widget};
+use relm_attributes::widget;
 
 use self::CounterMsg::*;
 use self::Msg::*;
 
-struct Model {
+pub struct CounterModel {
     counter: i32,
 }
 
 #[derive(Msg)]
-enum CounterMsg {
+pub enum CounterMsg {
     Decrement,
     Increment,
 }
 
-struct Counter {
-    counter_label: Label,
-    model: Model,
-    vbox: gtk::Box,
-}
-
-impl Update for Counter {
-    type Msg = CounterMsg;
-    type Model = Model;
-    type ModelParam = ();
-
-    fn model(_: &Relm<Self>, _: ()) -> Model {
-        Model {
+#[widget]
+impl Widget for Counter {
+    fn model() -> CounterModel {
+        CounterModel {
             counter: 0,
         }
     }
 
     fn update(&mut self, event: CounterMsg) {
-        let label = &self.counter_label;
-
         match event {
-            Decrement => {
-                self.model.counter -= 1;
-                label.set_text(&self.model.counter.to_string());
-            },
-            Increment => {
-                self.model.counter += 1;
-                label.set_text(&self.model.counter.to_string());
-            },
+            Decrement => self.model.counter -= 1,
+            Increment => self.model.counter += 1,
         }
     }
-}
 
-impl Widget for Counter {
-    type Root = gtk::Box;
-
-    fn root(&self) -> Self::Root {
-        self.vbox.clone()
-    }
-
-    fn view(relm: &Relm<Self>, model: Model) -> Self {
-        let vbox = gtk::Box::new(Vertical, 0);
-
-        let plus_button = Button::new_with_label("+");
-        vbox.add(&plus_button);
-
-        let counter_label = Label::new("0");
-        vbox.add(&counter_label);
-
-        let minus_button = Button::new_with_label("-");
-        vbox.add(&minus_button);
-
-        vbox.show_all();
-
-        connect!(relm, plus_button, connect_clicked(_), Increment);
-        connect!(relm, minus_button, connect_clicked(_), Decrement);
-
-        Counter {
-            counter_label: counter_label,
-            model,
-            vbox: vbox,
+    view! {
+        gtk::Box {
+            orientation: Vertical,
+            gtk::Button {
+                label: "+",
+                name: "inc_button",
+                clicked => Increment,
+            },
+            gtk::Label {
+                label: "0",
+                name: "label",
+                text: &self.model.counter.to_string(),
+            },
+            gtk::Button {
+                label: "-",
+                clicked => Decrement,
+            },
         }
     }
 }
 
 #[derive(Msg)]
-enum Msg {
+pub enum Msg {
     Add,
     Quit,
     Remove,
 }
 
-struct Win {
+pub struct Model {
     counters: Vec<Component<Counter>>,
-    hbox: gtk::Box,
-    window: Window,
 }
 
-impl Update for Win {
-    type Model = ();
-    type ModelParam = ();
-    type Msg = Msg;
-
-    fn model(_: &Relm<Self>, _: ()) -> () {
-        ()
+#[widget]
+impl Widget for Win {
+    fn model() -> Model {
+        Model {
+            counters: vec![],
+        }
     }
 
     fn update(&mut self, event: Msg) {
         match event {
             Add => {
                 let widget = self.hbox.add_widget::<Counter>(());
-                self.counters.push(widget);
+                self.model.counters.push(widget);
             },
             Quit => gtk::main_quit(),
             Remove => {
-                if let Some(counter) = self.counters.pop() {
+                if let Some(counter) = self.model.counters.pop() {
                     self.hbox.remove_widget(counter);
                 }
             },
         }
     }
-}
 
-impl Widget for Win {
-    type Root = Window;
-
-    fn root(&self) -> Self::Root {
-        self.window.clone()
-    }
-
-    fn view(relm: &Relm<Self>, _model: ()) -> Self {
-        let window = Window::new(WindowType::Toplevel);
-
-        let vbox = gtk::Box::new(Vertical, 0);
-        let add_button = Button::new_with_label("Add");
-        let remove_button = Button::new_with_label("Remove");
-
-        let hbox = gtk::Box::new(Horizontal, 0);
-        vbox.add(&hbox);
-
-        vbox.add(&add_button);
-        vbox.add(&remove_button);
-
-        window.add(&vbox);
-
-        window.show_all();
-
-        connect!(relm, add_button, connect_clicked(_), Add);
-        connect!(relm, remove_button, connect_clicked(_), Remove);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
-
-        Win {
-            counters: vec![],
-            hbox: hbox,
-            window: window,
+    view! {
+        gtk::Window {
+            gtk::Box {
+                orientation: Vertical,
+                #[name="hbox"]
+                gtk::Box {
+                    orientation: Horizontal,
+                },
+                #[name="add_button"]
+                gtk::Button {
+                    label: "Add",
+                    clicked => Add,
+                },
+                #[name="remove_button"]
+                gtk::Button {
+                    label: "Remove",
+                    clicked => Remove,
+                },
+            },
+            delete_event(_, _) => (Quit, Inhibit(false)),
         }
     }
 }
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Button, ContainerExt, Label, LabelExt};
+
+    use relm;
+    use relm_test::{click, find_child_by_name};
+
+    use Win;
+
+    #[test]
+    fn root_widget() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let hbox = &widgets.hbox;
+        let add_button = &widgets.add_button;
+        let remove_button = &widgets.remove_button;
+
+        assert_eq!(hbox.get_children().len(), 0);
+
+        click(add_button);
+        assert_eq!(hbox.get_children().len(), 1);
+
+        let widget1 = &hbox.get_children()[0];
+        let inc_button1: Button = find_child_by_name(widget1, "inc_button").expect("inc button");
+        let label1: Label = find_child_by_name(widget1, "label").expect("label");
+        assert_text!(label1, 0);
+
+        click(&inc_button1);
+        assert_text!(label1, 1);
+
+        click(add_button);
+        assert_eq!(hbox.get_children().len(), 2);
+
+        let widget2 = &hbox.get_children()[1];
+        let inc_button2: Button = find_child_by_name(widget2, "inc_button").expect("inc button");
+        let label2: Label = find_child_by_name(widget2, "label").expect("label");
+        assert_text!(label2, 0);
+
+        click(&inc_button2);
+        assert_text!(label2, 1);
+
+        click(&inc_button1);
+        assert_text!(label1, 2);
+
+        click(add_button);
+        assert_eq!(hbox.get_children().len(), 3);
+
+        let widget3 = &hbox.get_children()[2];
+        let inc_button3: Button = find_child_by_name(widget3, "inc_button").expect("inc button");
+        let label3: Label = find_child_by_name(widget3, "label").expect("label");
+        assert_text!(label3, 0);
+
+        click(&inc_button3);
+        assert_text!(label3, 1);
+
+        click(&inc_button2);
+        assert_text!(label2, 2);
+
+        click(&inc_button1);
+        assert_text!(label1, 3);
+
+        click(remove_button);
+        assert_eq!(hbox.get_children().len(), 2);
+
+        click(&inc_button1);
+        assert_text!(label1, 4);
+
+        click(&inc_button2);
+        assert_text!(label2, 3);
+
+        click(remove_button);
+        assert_eq!(hbox.get_children().len(), 1);
+
+        click(&inc_button1);
+        assert_text!(label1, 5);
+
+        click(remove_button);
+        assert_eq!(hbox.get_children().len(), 0);
+    }
 }
