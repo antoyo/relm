@@ -47,19 +47,11 @@
 )]
 
 /*
- * TODO: relm-test: copy the widgets structure only for testing (old: add function find_widget_by_name()).
- *
  * TODO: maybe remove SimpleMsg.
  * TODO: remove log of formatted code.
  *
  * TODO: improve README so that examples can be copy/pasted.
  * TODO: add tests for relm-derive-state.
- *
- * TODO: look at these projects for a new design:
- * https://github.com/alexflint/gallium
- * https://github.com/lxn/walk
- * https://github.com/schibsted/layout
- *
  *
  * FIXME: some relm widgets requires { and } (see the rusic music-player) while other do not.
  * FIXME: should not require to import WidgetExt because it calls show().
@@ -112,7 +104,6 @@ extern crate glib;
 extern crate glib_sys;
 extern crate gobject_sys;
 extern crate gtk;
-extern crate gtk_sys;
 extern crate libc;
 extern crate relm_core;
 extern crate relm_state;
@@ -149,7 +140,7 @@ use relm_state::init_component;
 
 pub use component::Component;
 pub use container::{Container, ContainerComponent, ContainerWidget};
-pub use widget::Widget;
+pub use widget::{Widget, WidgetTest};
 
 extern "C" {
     pub fn g_object_new_with_properties(object_type: GType, n_properties: c_uint, names: *mut *const c_char,
@@ -193,13 +184,14 @@ macro_rules! use_impl_self_type {
     };
 }
 
-fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> Component<WIDGET>
-    where WIDGET: Widget + 'static,
+fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WIDGET>, WIDGET::Widgets)
+    where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, relm) = create_widget(model_param);
+    let (widget, component, relm): (_, WIDGET, _) = create_widget(model_param);
+    let widgets = component.get_widgets();
     init_component::<WIDGET>(widget.stream(), component, &relm);
-    widget
+    (widget, widgets)
 }
 
 /// Create a new relm widget without adding it to an existing widget.
@@ -245,15 +237,6 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
     (Component::new(stream, root), widget, relm)
 }
 
-// TODO: remove this workaround.
-fn init_gtk() {
-    let mut argc = 0;
-    unsafe {
-        gtk_sys::gtk_init(&mut argc, std::ptr::null_mut());
-        gtk::set_initialized();
-    }
-}
-
 /// Initialize a widget for a test.
 ///
 /// It is to be used this way:
@@ -266,8 +249,9 @@ fn init_gtk() {
 /// # extern crate relm_derive;
 /// #
 /// # use gtk::{Window, WindowType};
-/// # use relm::{Relm, Update, Widget};
+/// # use relm::{Relm, Update, Widget, WidgetTest};
 /// #
+/// # #[derive(Clone)]
 /// # struct Win {
 /// #     window: Window,
 /// # }
@@ -282,6 +266,14 @@ fn init_gtk() {
 /// #     }
 /// #
 /// #     fn update(&mut self, event: Msg) {
+/// #     }
+/// # }
+/// #
+/// # impl WidgetTest for Win {
+/// #     type Widgets = Win;
+/// #
+/// #     fn get_widgets(&self) -> Self::Widgets {
+/// #         self.clone()
 /// #     }
 /// # }
 /// #
@@ -304,15 +296,15 @@ fn init_gtk() {
 /// # #[derive(Msg)]
 /// # enum Msg {}
 /// # fn main() {
-/// let component = relm::init_test::<Win>(()).unwrap();
-/// let widgets = component.widget();
+/// let (component, widgets) = relm::init_test::<Win>(()).unwrap();
 /// # }
 /// ```
-pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
-    where WIDGET: Widget + 'static,
-          WIDGET::Msg: DisplayVariant + 'static
+pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
+    Result<(Component<WIDGET>, WIDGET::Widgets), ()>
+    where WIDGET: Widget + WidgetTest + 'static,
+          WIDGET::Msg: DisplayVariant + 'static,
 {
-    init_gtk();
+    gtk::init().map_err(|_| ())?;
 
     let component = create_widget_test::<WIDGET>(model_param);
     Ok(component)

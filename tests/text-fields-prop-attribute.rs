@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,11 +27,13 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
+#[macro_use]
 extern crate relm_test;
 
 use gtk::{
     ButtonExt,
+    EditableSignals,
+    EntryExt,
     Inhibit,
     LabelExt,
     OrientableExt,
@@ -41,37 +43,70 @@ use gtk::Orientation::Vertical;
 use relm::Widget;
 use relm_attributes::widget;
 
-use self::Msg::*;
+use Msg::*;
+use TextMsg::*;
 
-// Define the structure of the model.
-pub struct Model {
-    counter: i32,
+pub struct TextModel {
+    content: String,
 }
 
-// The messages that can be sent to the update function.
+#[derive(Msg)]
+pub enum TextMsg {
+    Change(String),
+    SetText(String),
+}
+
+#[widget]
+impl Widget for Text {
+    fn model() -> TextModel {
+        TextModel {
+            content: String::new(),
+        }
+    }
+
+    fn update(&mut self, event: TextMsg) {
+        match event {
+            Change(text) => self.model.content = text.chars().rev().collect(),
+            SetText(text) => self.text_entry.set_text(&text),
+        }
+    }
+
+    view! {
+        gtk::Box {
+            orientation: Vertical,
+            #[name="text_entry"]
+            gtk::Entry {
+                name: "text_entry",
+                changed(entry) => Change(entry.get_text().unwrap()),
+            },
+            gtk::Label {
+                text: &self.model.content,
+            },
+        }
+    }
+}
+
+pub struct Model {
+    text: String,
+}
+
 #[derive(Msg)]
 pub enum Msg {
-    #[cfg(test)] Test,
-    Decrement,
-    Increment,
+    Reset,
     Quit,
 }
 
 #[widget]
 impl Widget for Win {
-    // The initial model.
     fn model() -> Model {
         Model {
-            counter: 0,
+            text: "Test".to_string(),
         }
     }
 
-    // Update the model according to the message received.
     fn update(&mut self, event: Msg) {
         match event {
-            #[cfg(test)] Test => (),
-            Decrement => self.model.counter -= 1,
-            Increment => self.model.counter += 1,
+            Reset => self.model.text = String::new(),
             Quit => gtk::main_quit(),
         }
     }
@@ -79,25 +114,17 @@ impl Widget for Win {
     view! {
         gtk::Window {
             gtk::Box {
-                // Set the orientation property of the Box.
                 orientation: Vertical,
-                // Create a Button inside the Box.
-                #[name="inc_button"]
+                #[name="button"]
                 gtk::Button {
-                    // Send the message Increment when the button is clicked.
-                    clicked => Increment,
-                    // TODO: check if using two events of the same name work.
-                    label: "+",
+                    clicked => Reset,
+                    label: "Reset",
                 },
-                #[name="label"]
-                gtk::Label {
-                    // Bind the text property of the label to the counter attribute of the model.
-                    text: &self.model.counter.to_string(),
-                },
-                #[name="dec_button"]
-                gtk::Button {
-                    clicked => Decrement,
-                    label: "-",
+                #[name="text"]
+                Text {
+                    // Send the message SetText(self.model.text.clone()) at initialization and when
+                    // the model attribute is updated.
+                    SetText: self.model.text.clone(),
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
@@ -111,42 +138,25 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{ButtonExt, LabelExt};
+    use gtk::{Entry, EntryExt};
 
     use relm;
-    use relm_test::click;
+    use relm_test::{click, find_child_by_name, wait};
 
     use Win;
 
     #[test]
-    fn label_change() {
+    fn root_widget() {
         let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
-        let inc_button = &widgets.inc_button;
-        let dec_button = &widgets.dec_button;
-        let label = &widgets.label;
+        let button = &widgets.button;
+        let entry: Entry = find_child_by_name(widgets.text.widget(), "text_entry").expect("entry");
 
-        assert_label!(inc_button, "+");
-        assert_label!(dec_button, "-");
+        wait(200);
 
-        assert_text!(label, 0);
-        click(inc_button);
-        assert_text!(label, 1);
-        click(inc_button);
-        assert_text!(label, 2);
-        click(inc_button);
-        assert_text!(label, 3);
-        click(inc_button);
-        assert_text!(label, 4);
+        assert_text!(entry, "Test");
 
-        click(dec_button);
-        assert_text!(label, 3);
-        click(dec_button);
-        assert_text!(label, 2);
-        click(dec_button);
-        assert_text!(label, 1);
-        click(dec_button);
-        assert_text!(label, 0);
-        click(dec_button);
-        assert_text!(label, -1);
+        click(button);
+
+        assert_text!(entry, "");
     }
 }

@@ -671,6 +671,7 @@ fn gen_other_containers(generator: &Generator, widget_type: &Tokens, widget_iden
         let names = &names;
         (quote! {
             #[allow(dead_code)]
+            #[derive(Clone)]
             pub struct #containers_ident {
                 #(#names: #types,)*
             }

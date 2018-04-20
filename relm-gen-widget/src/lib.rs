@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -45,7 +45,7 @@ mod walker;
 
 use std::collections::{HashMap, HashSet};
 
-use quote::Tokens;
+use quote::{Tokens, ToTokens};
 use syn::{
     ArgCaptured,
     Generics,
@@ -172,9 +172,21 @@ impl Driver {
         let where_clause = gen_where_clause(generics);
         let widgets = self.widgets.iter().filter(|&(ident, _)| !relm_widgets.contains_key(ident));
         let (idents, types): (Vec<Ident>, Vec<_>) = widgets.unzip();
+        let idents = &idents;
+        let types = &types;
         let relm_idents = relm_widgets.keys();
         let relm_types = relm_widgets.values();
         let widget_model_type = self.widget_model_type.as_ref().expect("missing model method");
+        let widgets = {
+            let relm_idents = relm_widgets.keys();
+            let relm_types = relm_widgets.values();
+            let name = Ident::from(format!("__{}Widgets", get_name(&typ)));
+            quote! {
+                pub struct #name {
+                    #(pub #relm_idents: #relm_types,)*
+                }
+            }
+        };
         quote_spanned! { typ.span() =>
             #[allow(dead_code, missing_docs)]
             pub struct #typ #where_clause {
@@ -182,6 +194,8 @@ impl Driver {
                 #(#relm_idents: #relm_types,)*
                 model: #widget_model_type,
             }
+
+            #widgets
         }
     }
 
@@ -246,6 +260,7 @@ impl Driver {
             new_items.push(self.get_root());
             let other_methods = self.get_other_methods(&self_ty, &generics);
             let update_impl = self.update_impl(&self_ty, &generics, update_items);
+            let widget_test_impl = self.widget_test_impl(&self_ty, &generics, &view.relm_widgets);
             let item = Impl(ItemImpl { attrs, defaultness, unsafety, generics, impl_token, trait_, self_ty, brace_token,
                 items: new_items });
             ast = item;
@@ -255,6 +270,7 @@ impl Driver {
                 #ast
                 #container_impl
                 #update_impl
+                #widget_test_impl
 
                 #other_methods
             }
@@ -443,6 +459,29 @@ impl Driver {
                 #model_param
                 #update
                 #(#items)*
+            }
+        }
+    }
+
+    fn widget_test_impl(&self, typ: &Type, generics: &Generics, relm_widgets: &HashMap<Ident, Path>) -> Tokens {
+        let name = Ident::from(format!("__{}Widgets", get_name(&typ)));
+        let where_clause = gen_where_clause(generics);
+        let mut relm_idents = quote! { };
+        for token in relm_widgets.keys().map(|ident| ident.clone().into_tokens()) {
+            relm_idents = quote_spanned! { typ.span() =>
+                #relm_idents
+                #token: self.#token.clone(),
+            };
+        }
+        quote_spanned! { typ.span() =>
+            impl #generics ::relm::WidgetTest for #typ #where_clause {
+                type Widgets = #name;
+
+                fn get_widgets(&self) -> #name {
+                    #name {
+                        #relm_idents
+                    }
+                }
             }
         }
     }

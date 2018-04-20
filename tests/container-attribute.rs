@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,10 +27,10 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
 extern crate relm_test;
 
 use gtk::{
+    BoxExt,
     ButtonExt,
     Inhibit,
     LabelExt,
@@ -43,15 +43,64 @@ use relm_attributes::widget;
 
 use self::Msg::*;
 
-// Define the structure of the model.
+#[derive(Msg)]
+pub enum ButtonMsg {
+}
+
+#[widget]
+impl Widget for GtkButton {
+    fn model() -> () {
+    }
+
+    fn update(&mut self, _msg: ButtonMsg) {
+    }
+
+    view! {
+        gtk::Button {
+            label: "+",
+        },
+    }
+}
+
+#[widget]
+impl Widget for Button {
+    fn model() -> () {
+    }
+
+    fn update(&mut self, _msg: ButtonMsg) {
+    }
+
+    view! {
+        GtkButton
+    }
+}
+
+#[widget]
+impl Widget for VBox {
+    fn model() -> () {
+        ()
+    }
+
+    fn update(&mut self, _event: Msg) {
+    }
+
+    view! {
+        gtk::EventBox {
+            // Specify where the widgets will be added in this container.
+            #[container]
+            gtk::Box {
+                orientation: Vertical,
+            }
+        }
+    }
+}
+
 pub struct Model {
     counter: i32,
 }
 
-// The messages that can be sent to the update function.
 #[derive(Msg)]
 pub enum Msg {
-    #[cfg(test)] Test,
     Decrement,
     Increment,
     Quit,
@@ -59,17 +108,14 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
-    // The initial model.
     fn model() -> Model {
         Model {
             counter: 0,
         }
     }
 
-    // Update the model according to the message received.
     fn update(&mut self, event: Msg) {
         match event {
-            #[cfg(test)] Test => (),
             Decrement => self.model.counter -= 1,
             Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
@@ -78,21 +124,20 @@ impl Widget for Win {
 
     view! {
         gtk::Window {
-            gtk::Box {
-                // Set the orientation property of the Box.
-                orientation: Vertical,
-                // Create a Button inside the Box.
+            VBox {
                 #[name="inc_button"]
                 gtk::Button {
-                    // Send the message Increment when the button is clicked.
+                    child: {
+                        padding: 20,
+                    },
                     clicked => Increment,
-                    // TODO: check if using two events of the same name work.
                     label: "+",
                 },
                 #[name="label"]
                 gtk::Label {
-                    // Bind the text property of the label to the counter attribute of the model.
                     text: &self.model.counter.to_string(),
+                },
+                Button {
                 },
                 #[name="dec_button"]
                 gtk::Button {
@@ -111,42 +156,24 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{ButtonExt, LabelExt};
+    use gtk::WidgetExt;
 
     use relm;
-    use relm_test::click;
 
     use Win;
 
     #[test]
-    fn label_change() {
+    fn widget_position() {
         let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
         let inc_button = &widgets.inc_button;
         let dec_button = &widgets.dec_button;
         let label = &widgets.label;
 
-        assert_label!(inc_button, "+");
-        assert_label!(dec_button, "-");
-
-        assert_text!(label, 0);
-        click(inc_button);
-        assert_text!(label, 1);
-        click(inc_button);
-        assert_text!(label, 2);
-        click(inc_button);
-        assert_text!(label, 3);
-        click(inc_button);
-        assert_text!(label, 4);
-
-        click(dec_button);
-        assert_text!(label, 3);
-        click(dec_button);
-        assert_text!(label, 2);
-        click(dec_button);
-        assert_text!(label, 1);
-        click(dec_button);
-        assert_text!(label, 0);
-        click(dec_button);
-        assert_text!(label, -1);
+        let inc_allocation = inc_button.get_allocation();
+        let dec_allocation = dec_button.get_allocation();
+        let label_allocation = label.get_allocation();
+        assert!(inc_allocation.y < dec_allocation.y);
+        assert!(inc_allocation.y < label_allocation.y);
+        assert!(label_allocation.y < dec_allocation.y);
     }
 }

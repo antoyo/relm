@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -65,4 +65,14 @@ pub trait Widget
 
     /// Create the initial view.
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self;
+}
+
+/// Trait implemented by the generator to ease the creation of tests of relm widgets using the
+/// view! macro.
+pub trait WidgetTest : Widget {
+    /// Represents the structure holding all the widgets. Useful for tests.
+    type Widgets;
+
+    /// Get the structure containing all the widgets. Useful for tests.
+    fn get_widgets(&self) -> Self::Widgets;
 }

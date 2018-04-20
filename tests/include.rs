@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,7 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
+#[macro_use]
 extern crate relm_test;
 
 use gtk::{
@@ -51,7 +51,6 @@ pub struct Model {
 // The messages that can be sent to the update function.
 #[derive(Msg)]
 pub enum Msg {
-    #[cfg(test)] Test,
     Decrement,
     Increment,
     Quit,
@@ -69,40 +68,14 @@ impl Widget for Win {
     // Update the model according to the message received.
     fn update(&mut self, event: Msg) {
         match event {
-            #[cfg(test)] Test => (),
             Decrement => self.model.counter -= 1,
             Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
         }
     }
 
-    view! {
-        gtk::Window {
-            gtk::Box {
-                // Set the orientation property of the Box.
-                orientation: Vertical,
-                // Create a Button inside the Box.
-                #[name="inc_button"]
-                gtk::Button {
-                    // Send the message Increment when the button is clicked.
-                    clicked => Increment,
-                    // TODO: check if using two events of the same name work.
-                    label: "+",
-                },
-                #[name="label"]
-                gtk::Label {
-                    // Bind the text property of the label to the counter attribute of the model.
-                    text: &self.model.counter.to_string(),
-                },
-                #[name="dec_button"]
-                gtk::Button {
-                    clicked => Decrement,
-                    label: "-",
-                },
-            },
-            delete_event(_, _) => (Quit, Inhibit(false)),
-        }
-    }
+    // Specify a view written in another file.
+    view!("tests/buttons.relm");
 }
 
 fn main() {

@@ -25,6 +25,7 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+extern crate relm_test;
 
 use chrono::Local;
 use gtk::{
@@ -36,7 +37,7 @@ use gtk::{
     Window,
     WindowType,
 };
-use relm::{Relm, Update, Widget, interval};
+use relm::{Relm, Update, Widget, WidgetTest, interval};
 
 use self::Msg::*;
 
@@ -46,6 +47,7 @@ enum Msg {
     Tick,
 }
 
+#[derive(Clone)]
 struct Win {
     label: Label,
     window: Window,
@@ -103,6 +105,48 @@ impl Widget for Win {
     }
 }
 
+impl WidgetTest for Win {
+    type Widgets = Win;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.clone()
+    }
+}
+
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::{Local, NaiveTime};
+    use gtk::LabelExt;
+
+    use relm;
+    use relm_test::wait;
+
+    use Win;
+
+    #[test]
+    fn label_change() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let label = &widgets.label;
+
+        fn time_close(time1: String, time2: String) -> bool {
+            println!("{}", time1);
+            println!("{}", time2);
+            let date1 = NaiveTime::parse_from_str(&time1, "%H:%M:%S").expect("parse time1");
+            let date2 = NaiveTime::parse_from_str(&time2, "%H:%M:%S").expect("parse time2");
+            (date1.signed_duration_since(date2)).num_seconds() <= 1
+        }
+
+        let time = Local::now();
+        assert!(time_close(label.get_text().expect("text"), time.format("%H:%M:%S").to_string()));
+
+        wait(2000);
+
+        let time2 = Local::now();
+        assert_ne!(time, time2);
+        assert!(time_close(label.get_text().expect("text"), time2.format("%H:%M:%S").to_string()));
+    }
 }

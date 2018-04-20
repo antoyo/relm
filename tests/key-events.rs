@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -19,40 +19,45 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gdk;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
+#[macro_use]
 extern crate relm_test;
+
+use std::cell::Cell;
+use std::rc::Rc;
 
 use gtk::{
     ContainerExt,
-    EditableSignals,
     Entry,
-    EntryExt,
     Inhibit,
-    Label,
-    LabelExt,
     WidgetExt,
     Window,
     WindowType,
 };
-use gtk::Orientation::Vertical;
 use relm::{Relm, Update, Widget, WidgetTest};
 
 use self::Msg::*;
 
-struct Model {
-    content: String,
+#[derive(Msg)]
+pub enum Msg {
+    KeyPress,
+    Press,
+    Release,
+    Quit,
 }
 
-#[derive(Msg)]
-enum Msg {
-    Change,
-    Quit,
+pub struct Model {
+    press_count: Rc<Cell<i32>>,
+}
+
+#[derive(Clone)]
+struct Widgets {
+    entry: Entry,
+    window: Window,
 }
 
 struct Win {
@@ -60,29 +65,26 @@ struct Win {
     widgets: Widgets,
 }
 
-#[derive(Clone)]
-struct Widgets {
-    input: Entry,
-    label: Label,
-    window: Window,
-}
-
 impl Update for Win {
     type Model = Model;
     type ModelParam = ();
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> Model {
+    fn model(_relm: &Relm<Self>, _: ()) -> Model {
         Model {
-            content: String::new(),
+            press_count: Rc::new(Cell::new(0)),
         }
     }
 
     fn update(&mut self, event: Msg) {
         match event {
-            Change => {
-                self.model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();
-                self.widgets.label.set_text(&self.model.content);
+            KeyPress => (),
+            Press => {
+                self.model.press_count.set(self.model.press_count.get() + 1);
+                println!("Press");
+            },
+            Release => {
+                println!("Release");
             },
             Quit => gtk::main_quit(),
         }
@@ -96,29 +98,25 @@ impl Widget for Win {
         self.widgets.window.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
-        let vbox = gtk::Box::new(Vertical, 0);
-
-        let input = Entry::new();
-        vbox.add(&input);
-
-        let label = Label::new(None);
-        vbox.add(&label);
-
+    fn view(relm: &Relm<Win>, model: Self::Model) -> Self {
         let window = Window::new(WindowType::Toplevel);
+        let entry = Entry::new();
+        window.add(&entry);
 
-        window.add(&vbox);
+        let press_count = model.press_count.clone();
+        let cloned_relm = relm.clone();
+        connect!(relm, entry, connect_key_press_event(_, _), return (KeyPress, inhibit_press_event(&press_count, &cloned_relm)));
 
         window.show_all();
 
-        connect!(relm, input, connect_changed(_), Change);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_key_press_event(_, _), return (Press, Inhibit(false)));
+        connect!(relm, window, connect_key_release_event(_, _), return (Release, Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Quit, Inhibit(false)));
 
         Win {
             model,
             widgets: Widgets {
-                input,
-                label,
+                entry,
                 window,
             },
         }
@@ -133,41 +131,44 @@ impl WidgetTest for Win {
     }
 }
 
+fn inhibit_press_event(press_count: &Rc<Cell<i32>>, _relm: &Relm<Win>) -> Inhibit {
+    Inhibit(press_count.get() > 3)
+}
+
 fn main() {
     Win::run(()).unwrap();
 }
 
 #[cfg(test)]
 mod tests {
-    use gdk::enums::key;
-    use gtk::LabelExt;
+    use gtk::EntryExt;
 
     use relm;
-    use relm_test::{enter_key, enter_keys};
+    use relm_test::enter_keys;
 
     use Win;
 
     #[test]
-    fn label_change() {
+    fn inhibit_event() {
         let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
-        let entry = &widgets.input;
-        let label = &widgets.label;
+        let entry = &widgets.entry;
 
-        assert_text!(label, "");
-
-        enter_keys(entry, "test");
-        assert_text!(label, "tset");
-
-        enter_key(entry, key::BackSpace);
-        assert_text!(label, "set");
-
-        enter_key(entry, key::Home);
-        //enter_key(entry, key::Delete); // TODO: when supported by enigo.
         enter_keys(entry, "a");
-        assert_text!(label, "seta");
+        assert_text!(entry, "a");
 
-        enter_key(entry, key::End);
-        enter_keys(entry, "a");
-        assert_text!(label, "aseta");
+        enter_keys(entry, "b");
+        assert_text!(entry, "ab");
+
+        enter_keys(entry, "c");
+        assert_text!(entry, "abc");
+
+        enter_keys(entry, "d");
+        assert_text!(entry, "abcd");
+
+        enter_keys(entry, "e");
+        assert_text!(entry, "abcd");
+
+        enter_keys(entry, "f");
+        assert_text!(entry, "abcd");
     }
 }

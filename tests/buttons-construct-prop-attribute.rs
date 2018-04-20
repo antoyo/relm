@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,7 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
+#[macro_use]
 extern crate relm_test;
 
 use gtk::{
@@ -46,12 +46,12 @@ use self::Msg::*;
 // Define the structure of the model.
 pub struct Model {
     counter: i32,
+    use_underline: bool,
 }
 
 // The messages that can be sent to the update function.
 #[derive(Msg)]
 pub enum Msg {
-    #[cfg(test)] Test,
     Decrement,
     Increment,
     Quit,
@@ -63,13 +63,13 @@ impl Widget for Win {
     fn model() -> Model {
         Model {
             counter: 0,
+            use_underline: true,
         }
     }
 
     // Update the model according to the message received.
     fn update(&mut self, event: Msg) {
         match event {
-            #[cfg(test)] Test => (),
             Decrement => self.model.counter -= 1,
             Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
@@ -82,19 +82,15 @@ impl Widget for Win {
                 // Set the orientation property of the Box.
                 orientation: Vertical,
                 // Create a Button inside the Box.
-                #[name="inc_button"]
-                gtk::Button {
+                #[name="button"]
+                gtk::Button({ label: "_inc", use_underline: self.model.use_underline }) {
                     // Send the message Increment when the button is clicked.
                     clicked => Increment,
-                    // TODO: check if using two events of the same name work.
-                    label: "+",
                 },
-                #[name="label"]
                 gtk::Label {
                     // Bind the text property of the label to the counter attribute of the model.
                     text: &self.model.counter.to_string(),
                 },
-                #[name="dec_button"]
                 gtk::Button {
                     clicked => Decrement,
                     label: "-",
@@ -111,42 +107,17 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{ButtonExt, LabelExt};
+    use gtk::ButtonExt;
 
     use relm;
-    use relm_test::click;
 
     use Win;
 
     #[test]
-    fn label_change() {
+    fn button_position() {
         let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
-        let inc_button = &widgets.inc_button;
-        let dec_button = &widgets.dec_button;
-        let label = &widgets.label;
-
-        assert_label!(inc_button, "+");
-        assert_label!(dec_button, "-");
-
-        assert_text!(label, 0);
-        click(inc_button);
-        assert_text!(label, 1);
-        click(inc_button);
-        assert_text!(label, 2);
-        click(inc_button);
-        assert_text!(label, 3);
-        click(inc_button);
-        assert_text!(label, 4);
-
-        click(dec_button);
-        assert_text!(label, 3);
-        click(dec_button);
-        assert_text!(label, 2);
-        click(dec_button);
-        assert_text!(label, 1);
-        click(dec_button);
-        assert_text!(label, 0);
-        click(dec_button);
-        assert_text!(label, -1);
+        let button = &widgets.button;
+        assert_label!(button, "_inc");
+        assert!(button.get_use_underline());
     }
 }

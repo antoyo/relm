@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[cfg_attr(test, macro_use)]
+extern crate relm_test;
 
 use std::thread;
 use std::time::Duration;
@@ -43,14 +45,12 @@ use relm_attributes::widget;
 
 use self::Msg::*;
 
-// Define the structure of the model.
 pub struct Model {
     _channel: Channel<i32>,
     text: String,
 }
 
-// The messages that can be sent to the update function.
-#[derive(Msg)]
+#[derive(Clone, Msg)]
 pub enum Msg {
     Quit,
     Value(i32),
@@ -58,14 +58,18 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
-    // The initial model.
     fn model(relm: &Relm<Self>, _: ()) -> Model {
         let stream = relm.stream().clone();
+        // Create a channel to be able to send a message from another thread.
         let (channel, sender) = Channel::new(move |num| {
+            // This closure is executed whenever a message is received from the sender.
+            // We send a message to the current widget.
             stream.emit(Value(num));
         });
         thread::spawn(move || {
-            thread::sleep(Duration::from_secs(2));
+            thread::sleep(Duration::from_millis(200));
+            // Send a message from the other thread.
+            // The value 42 will be received as the num parameter in the above closure.
             sender.send(42).expect("send message");
         });
         Model {
@@ -74,7 +78,6 @@ impl Widget for Win {
         }
     }
 
-    // Update the model according to the message received.
     fn update(&mut self, event: Msg) {
         match event {
             Quit => gtk::main_quit(),
@@ -97,4 +100,20 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use relm;
+
+    use Msg::Value;
+    use Win;
+
+    #[test]
+    fn channel() {
+        let (component, _widgets) = relm::init_test::<Win>(()).unwrap();
+        let observer = observer_new!(component, Value(_));
+        observer_wait!(let Value(value) = observer);
+        assert_eq!(value, 42);
+    }
 }

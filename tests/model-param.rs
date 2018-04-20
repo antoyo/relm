@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -19,20 +19,18 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gdk;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
+#[macro_use]
 extern crate relm_test;
 
 use gtk::{
+    Button,
+    ButtonExt,
     ContainerExt,
-    EditableSignals,
-    Entry,
-    EntryExt,
     Inhibit,
     Label,
     LabelExt,
@@ -43,67 +41,83 @@ use gtk::{
 use gtk::Orientation::Vertical;
 use relm::{Relm, Update, Widget, WidgetTest};
 
-use self::Msg::*;
-
 struct Model {
-    content: String,
+    counter: i32,
 }
 
 #[derive(Msg)]
 enum Msg {
-    Change,
+    Decrement,
+    Increment,
     Quit,
 }
 
+#[derive(Clone)]
+struct Widgets {
+    counter_label: Label,
+    dec_button: Button,
+    window: Window,
+}
+
+// Create the structure that holds the widgets used in the view.
 struct Win {
     model: Model,
     widgets: Widgets,
 }
 
-#[derive(Clone)]
-struct Widgets {
-    input: Entry,
-    label: Label,
-    window: Window,
-}
-
 impl Update for Win {
+    // Specify the model used for this widget.
     type Model = Model;
-    type ModelParam = ();
+    // Specify the model parameter used to init the model.
+    type ModelParam = i32;
+    // Specify the type of the messages sent to the update function.
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> Model {
+    fn model(_: &Relm<Self>, counter: i32) -> Model {
         Model {
-            content: String::new(),
+            counter: counter,
         }
     }
 
     fn update(&mut self, event: Msg) {
+        let label = &self.widgets.counter_label;
+
         match event {
-            Change => {
-                self.model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();
-                self.widgets.label.set_text(&self.model.content);
+            Msg::Decrement => {
+                self.model.counter -= 1;
+                // Manually update the view.
+                label.set_text(&self.model.counter.to_string());
             },
-            Quit => gtk::main_quit(),
+            Msg::Increment => {
+                self.model.counter += 1;
+                label.set_text(&self.model.counter.to_string());
+            },
+            Msg::Quit => gtk::main_quit(),
         }
     }
 }
 
 impl Widget for Win {
+    // Specify the type of the root widget.
     type Root = Window;
 
+    // Return the root widget.
     fn root(&self) -> Self::Root {
         self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
+        // Create the view using the normal GTK+ method calls.
         let vbox = gtk::Box::new(Vertical, 0);
 
-        let input = Entry::new();
-        vbox.add(&input);
+        let plus_button = Button::new_with_label("+");
+        vbox.add(&plus_button);
 
-        let label = Label::new(None);
-        vbox.add(&label);
+        let counter_label = Label::new(model.counter.to_string().as_ref());
+        vbox.add(&counter_label);
+
+        let dec_button = Button::new_with_label("-");
+        vbox.add(&dec_button);
 
         let window = Window::new(WindowType::Toplevel);
 
@@ -111,14 +125,16 @@ impl Widget for Win {
 
         window.show_all();
 
-        connect!(relm, input, connect_changed(_), Change);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        // Send the message Increment when the button is clicked.
+        connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
+        connect!(relm, dec_button, connect_clicked(_), Msg::Decrement);
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
 
         Win {
             model,
             widgets: Widgets {
-                input,
-                label,
+                counter_label,
+                dec_button,
                 window,
             },
         }
@@ -134,40 +150,27 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(42).unwrap();
 }
 
 #[cfg(test)]
 mod tests {
-    use gdk::enums::key;
     use gtk::LabelExt;
 
     use relm;
-    use relm_test::{enter_key, enter_keys};
+    use relm_test::click;
 
     use Win;
 
     #[test]
-    fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
-        let entry = &widgets.input;
-        let label = &widgets.label;
+    fn model_param() {
+        let (_component, widgets) = relm::init_test::<Win>(5).unwrap();
+        let dec_button = &widgets.dec_button;
+        let label = &widgets.counter_label;
 
-        assert_text!(label, "");
+        assert_text!(label, 5);
 
-        enter_keys(entry, "test");
-        assert_text!(label, "tset");
-
-        enter_key(entry, key::BackSpace);
-        assert_text!(label, "set");
-
-        enter_key(entry, key::Home);
-        //enter_key(entry, key::Delete); // TODO: when supported by enigo.
-        enter_keys(entry, "a");
-        assert_text!(label, "seta");
-
-        enter_key(entry, key::End);
-        enter_keys(entry, "a");
-        assert_text!(label, "aseta");
+        click(dec_button);
+        assert_text!(label, 4);
     }
 }

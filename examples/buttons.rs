@@ -24,6 +24,8 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+#[cfg_attr(test, macro_use)]
+extern crate relm_test;
 
 use gtk::{
     Button,
@@ -37,7 +39,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Update, Widget};
+use relm::{Relm, Update, Widget, WidgetTest};
 
 struct Model {
     counter: i32,
@@ -51,10 +53,17 @@ enum Msg {
 }
 
 // Create the structure that holds the widgets used in the view.
-struct Win {
+#[derive(Clone)]
+struct Widgets {
     counter_label: Label,
-    model: Model,
+    minus_button: Button,
+    plus_button: Button,
     window: Window,
+}
+
+struct Win {
+    model: Model,
+    widgets: Widgets,
 }
 
 impl Update for Win {
@@ -72,7 +81,7 @@ impl Update for Win {
     }
 
     fn update(&mut self, event: Msg) {
-        let label = &self.counter_label;
+        let label = &self.widgets.counter_label;
 
         match event {
             Msg::Decrement => {
@@ -95,7 +104,7 @@ impl Widget for Win {
 
     // Return the root widget.
     fn root(&self) -> Self::Root {
-        self.window.clone()
+        self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
@@ -123,13 +132,64 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
 
         Win {
-            counter_label: counter_label,
             model,
-            window: window,
+            widgets: Widgets {
+                counter_label,
+                minus_button,
+                plus_button,
+                window: window,
+            },
         }
+    }
+}
+
+impl WidgetTest for Win {
+    type Widgets = Widgets;
+
+    fn get_widgets(&self) -> Self::Widgets {
+        self.widgets.clone()
     }
 }
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::LabelExt;
+
+    use relm;
+    use relm_test::click;
+
+    use Win;
+
+    #[test]
+    fn label_change() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let plus_button = &widgets.plus_button;
+        let minus_button = &widgets.minus_button;
+        let label = &widgets.counter_label;
+
+        assert_text!(label, 0);
+        click(plus_button);
+        assert_text!(label, 1);
+        click(plus_button);
+        assert_text!(label, 2);
+        click(plus_button);
+        assert_text!(label, 3);
+        click(plus_button);
+        assert_text!(label, 4);
+
+        click(minus_button);
+        assert_text!(label, 3);
+        click(minus_button);
+        assert_text!(label, 2);
+        click(minus_button);
+        assert_text!(label, 1);
+        click(minus_button);
+        assert_text!(label, 0);
+        click(minus_button);
+        assert_text!(label, -1);
+    }
 }

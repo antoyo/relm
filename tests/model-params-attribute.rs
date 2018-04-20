@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -27,7 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
+#[macro_use]
 extern crate relm_test;
 
 use gtk::{
@@ -51,7 +51,6 @@ pub struct Model {
 // The messages that can be sent to the update function.
 #[derive(Msg)]
 pub enum Msg {
-    #[cfg(test)] Test,
     Decrement,
     Increment,
     Quit,
@@ -60,16 +59,15 @@ pub enum Msg {
 #[widget]
 impl Widget for Win {
     // The initial model.
-    fn model() -> Model {
+    fn model((counter1, counter2): (i32, i32)) -> Model {
         Model {
-            counter: 0,
+            counter: counter1 + counter2,
         }
     }
 
     // Update the model according to the message received.
     fn update(&mut self, event: Msg) {
         match event {
-            #[cfg(test)] Test => (),
             Decrement => self.model.counter -= 1,
             Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
@@ -82,7 +80,6 @@ impl Widget for Win {
                 // Set the orientation property of the Box.
                 orientation: Vertical,
                 // Create a Button inside the Box.
-                #[name="inc_button"]
                 gtk::Button {
                     // Send the message Increment when the button is clicked.
                     clicked => Increment,
@@ -106,12 +103,12 @@ impl Widget for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run((40, 2)).unwrap();
 }
 
 #[cfg(test)]
 mod tests {
-    use gtk::{ButtonExt, LabelExt};
+    use gtk::LabelExt;
 
     use relm;
     use relm_test::click;
@@ -119,34 +116,14 @@ mod tests {
     use Win;
 
     #[test]
-    fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
-        let inc_button = &widgets.inc_button;
+    fn model_params() {
+        let (_component, widgets) = relm::init_test::<Win>((2, 3)).unwrap();
         let dec_button = &widgets.dec_button;
         let label = &widgets.label;
 
-        assert_label!(inc_button, "+");
-        assert_label!(dec_button, "-");
+        assert_text!(label, 5);
 
-        assert_text!(label, 0);
-        click(inc_button);
-        assert_text!(label, 1);
-        click(inc_button);
-        assert_text!(label, 2);
-        click(inc_button);
-        assert_text!(label, 3);
-        click(inc_button);
+        click(dec_button);
         assert_text!(label, 4);
-
-        click(dec_button);
-        assert_text!(label, 3);
-        click(dec_button);
-        assert_text!(label, 2);
-        click(dec_button);
-        assert_text!(label, 1);
-        click(dec_button);
-        assert_text!(label, 0);
-        click(dec_button);
-        assert_text!(label, -1);
     }
 }

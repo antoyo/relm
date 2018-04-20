@@ -27,6 +27,8 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
+#[macro_use]
+extern crate relm_test;
 
 use gtk::{
     ButtonExt,
@@ -36,7 +38,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::Widget;
+use relm::{Relm, Widget, timeout};
 use relm_attributes::widget;
 
 use self::Msg::*;
@@ -52,12 +54,14 @@ pub enum Msg {
     Decrement,
     Increment,
     Quit,
+    Show,
 }
 
 #[widget]
 impl Widget for Win {
     // The initial model.
-    fn model() -> Model {
+    fn model(relm: &Relm<Self>, _: ()) -> Model {
+        timeout(relm.stream(), 1000, || Show);
         Model {
             counter: 0,
         }
@@ -69,6 +73,7 @@ impl Widget for Win {
             Decrement => self.model.counter -= 1,
             Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
+            Show => self.dec_button.set_visible(true),
         }
     }
 
@@ -84,13 +89,16 @@ impl Widget for Win {
                     // TODO: check if using two events of the same name work.
                     label: "+",
                 },
+                #[name="label"]
                 gtk::Label {
                     // Bind the text property of the label to the counter attribute of the model.
                     text: &self.model.counter.to_string(),
                 },
+                #[name="dec_button"]
                 gtk::Button {
                     clicked => Decrement,
                     label: "-",
+                    visible: false,
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
@@ -100,4 +108,26 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::LabelExt;
+
+    use relm;
+    use relm_test::click;
+
+    use Win;
+
+    #[test]
+    fn label_change() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let dec_button = &widgets.dec_button;
+        let label = &widgets.label;
+
+        click(dec_button);
+        assert_text!(label, -1);
+        click(dec_button);
+        assert_text!(label, -2);
+    }
 }

@@ -1,0 +1,24 @@
+gtk::Window {
+    gtk::Box {
+        // Set the orientation property of the Box.
+        orientation: Vertical,
+        // Create a Button inside the Box.
+        #[name="inc_button"]
+        gtk::Button {
+            // Send the message Increment when the button is clicked.
+            clicked => Increment,
+            label: "+",
+        },
+        #[name="label"]
+        gtk::Label {
+            // Bind the text property of the label to the counter attribute of the model.
+            text: &self.model.counter.to_string(),
+        },
+        #[name="dec_button"]
+        gtk::Button {
+            clicked => Decrement,
+            label: "-",
+        },
+    },
+    delete_event(_, _) => (Quit, Inhibit(false)),
+}

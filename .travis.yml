@@ -10,6 +10,9 @@ addons:
       - binutils-dev
       - libgtk-3-dev
       - libsoup2.4-dev
+      - libxtst-dev
+      - at-spi2-core
+      - openbox
 
 env:
   - RUST_BACKTRACE=1
@@ -28,11 +31,13 @@ before_script:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
+  - openbox & # needs a window manager for the tests (to get focus to work)
 
 script:
   - cargo build
-  - cargo test --no-run -v
-  - cargo build --manifest-path examples/buttons-attribute/Cargo.toml
+  - cargo test
+  - cargo test --examples
+  - cargo test --manifest-path examples/buttons-attribute/Cargo.toml
   #- cargo build --manifest-path examples/http/Cargo.toml
   #- cargo build --manifest-path examples/async/Cargo.toml
   - cargo build --manifest-path examples/webkit-test/Cargo.toml

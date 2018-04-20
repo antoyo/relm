@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -24,6 +24,8 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
+#[cfg_attr(test, macro_use)]
+extern crate relm_test;
 
 use gtk::{
     ButtonExt,
@@ -55,19 +57,23 @@ relm_widget! {
 
         view! {
             gtk::Window {
+                #[name="tabs"]
                 gtk::Notebook {
+                    #[name="inc_button"]
                     gtk::Button {
                         child: {
                             tab_label: Some("First Button"),
                         },
                         label: "+",
                     },
+                    #[name="label"]
                     gtk::Label {
                         tab: {
                             label: &gtk::Label::new("Second page"),
                         },
                         text: "0",
                     },
+                    #[name="dec_button"]
                     gtk::Button {
                         label: "-",
                     },
@@ -80,4 +86,29 @@ relm_widget! {
 
 fn main() {
     Win::run(()).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{Cast, Label, LabelExt, NotebookExt};
+
+    use relm;
+
+    use Win;
+
+    #[test]
+    fn root_widget() {
+        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let tabs = &widgets.tabs;
+        let inc_button = &widgets.inc_button;
+        let label = &widgets.label;
+        let dec_button = &widgets.dec_button;
+
+        assert_eq!(tabs.get_tab_label_text(inc_button).expect("inc button label"), "First Button");
+        let label_widget: Label = tabs.get_tab_label(label).expect("label widget").downcast::<Label>()
+            .expect("downcast");
+        assert_text!(label_widget, "Second page");
+        assert_eq!(tabs.get_tab_label(dec_button), None);
+        assert_eq!(tabs.get_tab_label_text(dec_button), None);
+    }
 }

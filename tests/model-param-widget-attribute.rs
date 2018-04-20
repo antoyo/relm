@@ -27,7 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
+#[macro_use]
 extern crate relm_test;
 
 use gtk::{
@@ -43,6 +43,28 @@ use relm_attributes::widget;
 
 use self::Msg::*;
 
+pub struct ButtonModel {
+    text: String,
+}
+
+#[widget]
+impl Widget for Button {
+    fn model(text: String) -> ButtonModel {
+        ButtonModel {
+            text: text,
+        }
+    }
+
+    fn update(&mut self, _event: Msg) {
+    }
+
+    view! {
+        gtk::Button {
+            label: &self.model.text,
+        },
+    }
+}
+
 // Define the structure of the model.
 pub struct Model {
     counter: i32,
@@ -51,7 +73,6 @@ pub struct Model {
 // The messages that can be sent to the update function.
 #[derive(Msg)]
 pub enum Msg {
-    #[cfg(test)] Test,
     Decrement,
     Increment,
     Quit,
@@ -60,16 +81,15 @@ pub enum Msg {
 #[widget]
 impl Widget for Win {
     // The initial model.
-    fn model() -> Model {
+    fn model(counter: i32) -> Model {
         Model {
-            counter: 0,
+            counter: counter,
         }
     }
 
     // Update the model according to the message received.
     fn update(&mut self, event: Msg) {
         match event {
-            #[cfg(test)] Test => (),
             Decrement => self.model.counter -= 1,
             Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
@@ -82,7 +102,6 @@ impl Widget for Win {
                 // Set the orientation property of the Box.
                 orientation: Vertical,
                 // Create a Button inside the Box.
-                #[name="inc_button"]
                 gtk::Button {
                     // Send the message Increment when the button is clicked.
                     clicked => Increment,
@@ -94,11 +113,12 @@ impl Widget for Win {
                     // Bind the text property of the label to the counter attribute of the model.
                     text: &self.model.counter.to_string(),
                 },
-                #[name="dec_button"]
                 gtk::Button {
                     clicked => Decrement,
                     label: "-",
                 },
+                #[name="button"]
+                Button("Button text attribute".to_string()),
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
         }
@@ -106,7 +126,7 @@ impl Widget for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(42).unwrap();
 }
 
 #[cfg(test)]
@@ -114,39 +134,16 @@ mod tests {
     use gtk::{ButtonExt, LabelExt};
 
     use relm;
-    use relm_test::click;
 
     use Win;
 
     #[test]
-    fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
-        let inc_button = &widgets.inc_button;
-        let dec_button = &widgets.dec_button;
+    fn model_params() {
+        let (_component, widgets) = relm::init_test::<Win>(5).unwrap();
         let label = &widgets.label;
+        let button = widgets.button.widget();
 
-        assert_label!(inc_button, "+");
-        assert_label!(dec_button, "-");
-
-        assert_text!(label, 0);
-        click(inc_button);
-        assert_text!(label, 1);
-        click(inc_button);
-        assert_text!(label, 2);
-        click(inc_button);
-        assert_text!(label, 3);
-        click(inc_button);
-        assert_text!(label, 4);
-
-        click(dec_button);
-        assert_text!(label, 3);
-        click(dec_button);
-        assert_text!(label, 2);
-        click(dec_button);
-        assert_text!(label, 1);
-        click(dec_button);
-        assert_text!(label, 0);
-        click(dec_button);
-        assert_text!(label, -1);
+        assert_text!(label, 5);
+        assert_label!(button, "Button text attribute");
     }
 }

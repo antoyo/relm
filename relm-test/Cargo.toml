@@ -9,8 +9,14 @@ repository = "https://github.com/antoyo/relm"
 version = "0.14.4"
 
 [dependencies]
-gdk-sys = "^0.6.0"
-glib = "^0.5.0"
+enigo = "^0.0.11"
+gdk = "^0.8.0"
 glib-sys = "^0.6.0"
 gtk = "^0.4.0"
-gtk-sys = "^0.6.0"
+
+[dependencies.relm-core]
+path = "../relm-core"
+version = "^0.14.0"
+
+[features]
+default = ["gtk/v3_10"]

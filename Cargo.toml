@@ -22,7 +22,6 @@ glib = "^0.5.0"
 glib-sys = "^0.6.0"
 gobject-sys = "^0.6.0"
 gtk = "^0.4.0"
-gtk-sys = "^0.6.0"
 libc = "^0.2.22"
 
 [dependencies.relm-core]
@@ -35,6 +34,7 @@ version = "^0.14.0"
 
 [dev-dependencies]
 chrono = "0.4"
+gdk = "^0.8.0"
 
 [dev-dependencies.gio]
 version = "^0.4.0"
@@ -55,6 +55,7 @@ version = "^0.14.0"
 default = ["unstable"]
 nightly = []
 unstable = []
+
 [[metadata.release.pre-release-replacements]]
 file = "README.adoc"
 replace = "relm = \"{{version}}\""

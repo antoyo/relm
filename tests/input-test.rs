@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -21,17 +21,19 @@
 
 #![feature(proc_macro)]
 
+extern crate gdk;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
+#[macro_use]
 extern crate relm_test;
 
 use gtk::{
-    ButtonExt,
+    EditableSignals,
+    EntryExt,
     Inhibit,
     LabelExt,
     OrientableExt,
@@ -43,35 +45,29 @@ use relm_attributes::widget;
 
 use self::Msg::*;
 
-// Define the structure of the model.
 pub struct Model {
-    counter: i32,
+    content: String,
 }
 
-// The messages that can be sent to the update function.
 #[derive(Msg)]
 pub enum Msg {
-    #[cfg(test)] Test,
-    Decrement,
-    Increment,
+    Change(String),
     Quit,
 }
 
 #[widget]
 impl Widget for Win {
-    // The initial model.
     fn model() -> Model {
         Model {
-            counter: 0,
+            content: String::new(),
         }
     }
 
-    // Update the model according to the message received.
     fn update(&mut self, event: Msg) {
         match event {
-            #[cfg(test)] Test => (),
-            Decrement => self.model.counter -= 1,
-            Increment => self.model.counter += 1,
+            Change(text) => {
+                self.model.content = text.chars().rev().collect();
+            },
             Quit => gtk::main_quit(),
         }
     }
@@ -79,25 +75,17 @@ impl Widget for Win {
     view! {
         gtk::Window {
             gtk::Box {
-                // Set the orientation property of the Box.
                 orientation: Vertical,
-                // Create a Button inside the Box.
-                #[name="inc_button"]
-                gtk::Button {
-                    // Send the message Increment when the button is clicked.
-                    clicked => Increment,
-                    // TODO: check if using two events of the same name work.
-                    label: "+",
+                #[name = "entry"]
+                gtk::Entry {
+                    changed(entry) => Change(entry.get_text().unwrap()),
+                    placeholder_text: "Text to reverse",
                 },
-                #[name="label"]
+                #[name = "entry2"]
+                gtk::Entry { },
+                #[name = "label"]
                 gtk::Label {
-                    // Bind the text property of the label to the counter attribute of the model.
-                    text: &self.model.counter.to_string(),
-                },
-                #[name="dec_button"]
-                gtk::Button {
-                    clicked => Decrement,
-                    label: "-",
+                    text: &self.model.content,
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
@@ -105,48 +93,40 @@ impl Widget for Win {
     }
 }
 
-fn main() {
-    Win::run(()).unwrap();
-}
-
 #[cfg(test)]
 mod tests {
-    use gtk::{ButtonExt, LabelExt};
+    use gdk::enums::key;
+    use gtk::{EntryExt, LabelExt};
 
     use relm;
-    use relm_test::click;
+    use relm_test::{
+        enter_key,
+        enter_keys,
+        key_press,
+        key_release,
+    };
 
     use Win;
 
     #[test]
     fn label_change() {
         let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
-        let inc_button = &widgets.inc_button;
-        let dec_button = &widgets.dec_button;
+        let entry = &widgets.entry;
+        let entry2 = &widgets.entry2;
         let label = &widgets.label;
 
-        assert_label!(inc_button, "+");
-        assert_label!(dec_button, "-");
-
-        assert_text!(label, 0);
-        click(inc_button);
-        assert_text!(label, 1);
-        click(inc_button);
-        assert_text!(label, 2);
-        click(inc_button);
-        assert_text!(label, 3);
-        click(inc_button);
-        assert_text!(label, 4);
-
-        click(dec_button);
-        assert_text!(label, 3);
-        click(dec_button);
-        assert_text!(label, 2);
-        click(dec_button);
-        assert_text!(label, 1);
-        click(dec_button);
-        assert_text!(label, 0);
-        click(dec_button);
-        assert_text!(label, -1);
+        // TODO: add test with uppercase letter (shift) when this issue (https://github.com/enigo-rs/enigo/issues/49) is fixed.
+        //key_press(entry, key::Shift_L);
+        key_press(entry, key::A);
+        assert_text!(label, "a");
+        key_release(entry, key::A);
+        assert_text!(label, "a");
+        enter_key(entry, key::B);
+        enter_key(entry2, key::C);
+        assert_text!(label, "ba");
+        assert_text!(entry2, "c");
+        enter_keys(entry, "CD");
+        //key_release(entry, key::Shift_L);
+        assert_text!(label, "DCba");
     }
 }
