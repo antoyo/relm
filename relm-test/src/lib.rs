@@ -21,7 +21,6 @@
 
 extern crate enigo;
 extern crate gdk;
-extern crate glib_sys;
 extern crate gtk;
 extern crate relm_core;
 
@@ -217,7 +216,6 @@ pub fn wait(ms: u32) {
 }
 
 pub fn run_loop() {
-    unsafe { glib_sys::g_usleep(1000) };
     while gtk::events_pending() {
         gtk::main_iteration();
     }

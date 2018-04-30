@@ -11,7 +11,6 @@ version = "0.14.4"
 [dependencies]
 enigo = "^0.0.11"
 gdk = "^0.8.0"
-glib-sys = "^0.6.0"
 gtk = "^0.4.0"
 
 [dependencies.relm-core]
