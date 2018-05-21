@@ -5,10 +5,10 @@ license = "MIT"
 name = "relm-derive-common"
 repository = "https://github.com/antoyo/relm"
 version = "0.14.4"
-
 [dependencies]
-quote = "0.5"
-syn = "0.13"
+proc-macro2 = "^0.4.3"
+quote = "0.6"
+syn = "0.14"
 
 [dependencies.relm-gen-widget]
 path = "../relm-gen-widget"

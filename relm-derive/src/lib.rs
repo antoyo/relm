@@ -12,7 +12,6 @@ extern crate relm_gen_widget;
 extern crate syn;
 
 use proc_macro::TokenStream;
-use quote::Tokens;
 use relm_gen_widget::gen_widget;
 use relm_derive_common::{impl_msg, impl_simple_msg};
 use syn::{
@@ -45,17 +44,17 @@ pub fn widget(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-fn impl_widget(ast: &Item) -> Tokens {
+fn impl_widget(ast: &Item) -> TokenStream {
     if let Item::Struct(ItemStruct { ref fields, ..}) = *ast {
         for field in fields {
             if let Some(ref ident) = field.ident {
-                if ident.as_ref() == "widget" {
+                if ident == "widget" {
                     if let Macro(ref mac) = field.ty {
                         let tts = &mac.mac.tts;
                         let tokens = quote! {
                             #tts
                         };
-                        return gen_widget(tokens);
+                        return gen_widget(tokens.into()).into();
                     }
                 }
             }

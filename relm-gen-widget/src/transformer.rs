@@ -21,6 +21,7 @@
 
 //! Transformer to transform the self.model by the actual model identifier.
 
+use proc_macro2::Span;
 use syn::{
     Expr,
     ExprField,
@@ -50,10 +51,12 @@ impl Fold for Transformer {
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         if let Expr::Field(ExprField { ref base, ref member, .. }) = expr {
             if let Named(ref ident) = *member {
-                if ident.as_ref() == "model" {
+                if ident == "model" {
                     if let Expr::Path(ExprPath { path: Path { ref segments, .. }, .. }) = **base {
-                        if segments.first().map(|segment| segment.value().ident.as_ref()) == Some("self") {
-                            let model_ident = Ident::from(self.model_ident.as_str()); // TODO: check if the position is needed.
+                        if segments.first().map(|segment| segment.value().ident.to_string()) ==
+                            Some("self".to_string())
+                        {
+                            let model_ident = Ident::new(self.model_ident.as_str(), Span::call_site()); // TODO: check if the position is needed.
                             let tokens = quote_spanned! { expr.span() => {
                                 let model = &#model_ident;
                                 model

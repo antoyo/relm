@@ -21,8 +21,7 @@
 
 use std::collections::HashMap;
 
-use proc_macro2::Span;
-use quote::Tokens;
+use proc_macro2::{Span, TokenStream};
 use syn::{
     Expr,
     Generics,
@@ -81,7 +80,7 @@ enum WidgetType {
     IsRelm,
 }
 
-pub fn gen(name: &Ident, widget: &Widget, driver: &mut Driver) -> (Tokens, HashMap<Ident, Path>, Tokens) {
+pub fn gen(name: &Ident, widget: &Widget, driver: &mut Driver) -> (TokenStream, HashMap<Ident, Path>, TokenStream) {
     let mut generator = Generator::new(driver);
     let widget_tokens = generator.widget(widget, None, IsGtk);
     let driver = generator.driver.take().expect("driver");
@@ -95,7 +94,7 @@ pub fn gen(name: &Ident, widget: &Widget, driver: &mut Driver) -> (Tokens, HashM
     let widget_names2 = widget_names1;
     let events = &generator.events;
     let properties = &generator.properties;
-    let model_ident = Ident::from(MODEL_IDENT);
+    let model_ident = Ident::new(MODEL_IDENT, Span::call_site());
     let code = quote_spanned! { name.span() =>
         #widget_tokens
 
@@ -115,8 +114,8 @@ pub fn gen(name: &Ident, widget: &Widget, driver: &mut Driver) -> (Tokens, HashM
 struct Generator<'a> {
     container_names: HashMap<Option<String>, (Ident, Path)>,
     driver: Option<&'a mut Driver>,
-    events: Vec<Tokens>,
-    properties: Vec<Tokens>,
+    events: Vec<TokenStream>,
+    properties: Vec<TokenStream>,
     relm_widgets: HashMap<Ident, Path>,
     widget_names: Vec<Ident>,
 }
@@ -134,7 +133,7 @@ impl<'a> Generator<'a> {
     }
 
     fn add_child_or_show_all(&mut self, widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType)
-        -> Tokens
+        -> TokenStream
     {
         let widget_name = &widget.name;
         if let Some(name) = parent {
@@ -165,7 +164,7 @@ impl<'a> Generator<'a> {
     }
 
     fn add_or_create_widget(&mut self, parent: Option<&Ident>, parent_widget_type: WidgetType, widget_name: &Ident,
-        widget_type_ident: &Path, init_parameters: &[Expr], is_container: bool) -> Tokens
+        widget_type_ident: &Path, init_parameters: &[Expr], is_container: bool) -> TokenStream
     {
         let init_parameters = gen_model_param(init_parameters, WithParens);
         if let Some(parent) = parent {
@@ -213,7 +212,7 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn collect_event(&mut self, widget_name: Tokens, name: &Ident, event: &Event) {
+    fn collect_event(&mut self, widget_name: TokenStream, name: &Ident, event: &Event) {
         let event_ident = Ident::new(&format!("connect_{}", name), name.span());
         let event_params = &event.params;
         let shared_values = gen_shared_values(&event.shared_values);
@@ -293,7 +292,7 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn gtk_set_prop_calls(&self, widget: &Widget, ident: Tokens) -> (Vec<Tokens>, Vec<Tokens>) {
+    fn gtk_set_prop_calls(&self, widget: &Widget, ident: TokenStream) -> (Vec<TokenStream>, Vec<TokenStream>) {
         let mut properties = vec![];
         let mut visible_properties = vec![];
         for (key, value) in &widget.properties {
@@ -314,7 +313,7 @@ impl<'a> Generator<'a> {
     }
 
     fn gtk_widget(&mut self, widget: &Widget, gtk_widget: &GtkWidget, parent: Option<&Ident>,
-        parent_widget_type: WidgetType) -> Tokens
+        parent_widget_type: WidgetType) -> TokenStream
     {
         let struct_name = &widget.typ;
         let widget_name = &widget.name;
@@ -349,7 +348,7 @@ impl<'a> Generator<'a> {
     }
 
     fn relm_widget(&mut self, widget: &Widget, relm_widget: &RelmWidget, parent: Option<&Ident>,
-        parent_widget_type: WidgetType) -> Tokens
+        parent_widget_type: WidgetType) -> TokenStream
     {
         self.widget_names.push(widget.name.clone());
         let widget_name = &widget.name;
@@ -381,7 +380,7 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn messages(&self, widget: &Widget, relm_widget: &RelmWidget) -> Tokens {
+    fn messages(&self, widget: &Widget, relm_widget: &RelmWidget) -> TokenStream {
         let mut tokens = quote! {};
         let name = &widget.name;
         for (variant, value) in &relm_widget.messages {
@@ -395,7 +394,7 @@ impl<'a> Generator<'a> {
         tokens
     }
 
-    fn widget(&mut self, widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> Tokens {
+    fn widget(&mut self, widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> TokenStream {
         match widget.widget {
             Gtk(ref gtk_widget) => self.gtk_widget(widget, gtk_widget, parent, parent_widget_type),
             Relm(ref relm_widget) => self.relm_widget(widget, relm_widget, parent, parent_widget_type),
@@ -403,7 +402,7 @@ impl<'a> Generator<'a> {
     }
 }
 
-fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
+fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream {
     let struct_name = &widget.typ;
 
     let properties_count = gtk_widget.construct_properties.len() as u32;
@@ -466,7 +465,7 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> Tokens {
     }
 }
 
-fn gen_event_metadata(event: &Event) -> Tokens {
+fn gen_event_metadata(event: &Event) -> TokenStream {
     if let CurrentWidget(CallReturn(_)) = event.value {
         quote! {
             return
@@ -477,8 +476,8 @@ fn gen_event_metadata(event: &Event) -> Tokens {
     }
 }
 
-fn gen_shared_values(shared_values: &[Ident]) -> Tokens {
-    let model_ident = Ident::from(MODEL_IDENT);
+fn gen_shared_values(shared_values: &[Ident]) -> TokenStream {
+    let model_ident = Ident::new(MODEL_IDENT, Span::call_site());
     let fields = shared_values.iter()
         .map(|ident| {
              let typ =
@@ -501,7 +500,7 @@ fn gen_shared_values(shared_values: &[Ident]) -> Tokens {
     }
 }
 
-fn gen_widget_ident(widget: &Widget) -> (Tokens, Span) {
+fn gen_widget_ident(widget: &Widget) -> (TokenStream, Span) {
     match widget.widget {
         Gtk(ref gtk_widget) => {
             if let Some(Type::Path(TypePath { path: Path { ref segments, .. }, .. })) = gtk_widget.relm_name {
@@ -523,7 +522,7 @@ fn gen_widget_ident(widget: &Widget) -> (Tokens, Span) {
     }
 }
 
-fn gen_widget_type(widget: &Widget) -> Tokens {
+fn gen_widget_type(widget: &Widget) -> TokenStream {
     match widget.widget {
         Gtk(ref gtk_widget) => {
             let ident = gtk_widget.relm_name.as_ref().unwrap();
@@ -540,11 +539,11 @@ fn gen_widget_type(widget: &Widget) -> Tokens {
     }
 }
 
-fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)>) -> Tokens {
+fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)>) -> TokenStream {
     if container_names.len() > 1 {
         let span = container_names.values().next().expect("at least one container name").0.span();
-        let mut default_container = Tokens::new();
-        let mut other_containers = Tokens::new();
+        let mut default_container = quote! {};
+        let mut other_containers = quote! {};
         for (parent_id, &(ref name, _)) in container_names {
             if parent_id.is_none() {
                 default_container = quote_spanned! { span =>
@@ -553,7 +552,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                 };
             }
             else {
-                if other_containers == quote! {} {
+                if other_containers.is_empty() {
                     other_containers = quote_spanned! { span =>
                         if WIDGET::parent_id() == Some(#parent_id) {
                             ::gtk::ContainerExt::add(&container.containers.#name, widget.widget());
@@ -572,7 +571,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                 }
             }
         }
-        if other_containers != quote! {} {
+        if !other_containers.is_empty() {
             default_container = quote! {
                 else {
                     #default_container
@@ -594,7 +593,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
     }
 }
 
-fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Generics) -> Tokens {
+fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Generics) -> TokenStream {
     let where_clause = gen_where_clause(generic_types);
     let widget_type = gen_widget_type(widget);
     if generator.container_names.is_empty() {
@@ -638,8 +637,8 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
     }
 }
 
-fn gen_other_containers(generator: &Generator, widget_type: &Tokens, widget_ident_span: Span) ->
-    (Tokens, Tokens, Tokens)
+fn gen_other_containers(generator: &Generator, widget_type: &TokenStream, widget_ident_span: Span) ->
+    (TokenStream, TokenStream, TokenStream)
 {
     if generator.container_names.len() > 1 {
         let containers_ident = Ident::new(&format!("{}Containers", widget_type), widget_ident_span);
@@ -696,7 +695,7 @@ fn gen_other_containers(generator: &Generator, widget_type: &Tokens, widget_iden
     }
 }
 
-fn gen_model_param(init_parameters: &[Expr], with_parens: WithParentheses) -> Tokens {
+fn gen_model_param(init_parameters: &[Expr], with_parens: WithParentheses) -> TokenStream {
     let mut params = vec![];
     for param in init_parameters {
         let mut remover = Transformer::new(MODEL_IDENT);
@@ -731,7 +730,7 @@ fn gen_relm_component_type(is_container: bool, name: &Path) -> Path {
 }
 
 fn gen_set_child_prop_calls(widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType,
-    widget_type: WidgetType) -> Vec<Tokens>
+    widget_type: WidgetType) -> Vec<TokenStream>
 {
     let widget_name = &widget.name;
     let mut child_properties = vec![];
@@ -766,7 +765,7 @@ fn gen_set_child_prop_calls(widget: &Widget, parent: Option<&Ident>, parent_widg
     child_properties
 }
 
-pub fn gen_where_clause(generics: &Generics) -> Tokens {
+pub fn gen_where_clause(generics: &Generics) -> TokenStream {
     let where_clause = &generics.where_clause;
     // TODO: check that it is okay (vs what we did before).
     quote! {

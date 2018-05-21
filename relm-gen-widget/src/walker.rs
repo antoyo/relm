@@ -49,8 +49,9 @@ impl<'ast> Visit<'ast> for ModelVariableVisitor {
             if let Expr::Field(ExprField { base: ref expr, member: ref model_ident, .. }) = **obj {
                 if let Expr::Path(ExprPath { path: Path { ref segments, .. }, .. }) = **expr {
                     if let Named(ref model_ident) = *model_ident {
-                        if model_ident.as_ref() == "model" &&
-                            segments.first().map(|segment| segment.value().ident.as_ref()) == Some("self")
+                        if model_ident == "model" &&
+                            segments.first().map(|segment| segment.value().ident.to_string()) ==
+                                Some("self".to_string())
                         {
                             if let Named(ref field) = *field {
                                 self.idents.push(field.clone());

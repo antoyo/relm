@@ -498,9 +498,9 @@ named! { relm_property_or_event -> ChildItem, do_parse!(
     item: alt!
     ( do_parse!(
         punct!(:) >>
-        result: call!(value_or_child_properties, ident) >>
+        result: call!(value_or_child_properties, ident.clone()) >>
         (
-            if ident.as_ref().chars().next().map(|char| char.is_lowercase()) == Some(false) {
+            if ident.to_string().chars().next().map(|char| char.is_lowercase()) == Some(false) {
                 // Uppercase is a msg to send.
                 match result {
                     Property(ident, value) => RelmMsg(ident, value),
@@ -517,10 +517,10 @@ named! { relm_property_or_event -> ChildItem, do_parse!(
         punct!(.) >>
         event_name: syn!(Ident) >>
         event: event >>
-        (ChildEvent(event_name, ident, event))
+        (ChildEvent(event_name, ident.clone(), event))
       )
     | map!(event, |mut event| {
-        if ident.as_ref().chars().next().map(|char| char.is_lowercase()) == Some(false) {
+        if ident.to_string().chars().next().map(|char| char.is_lowercase()) == Some(false) {
             // Uppercase is a msg.
             RelmMsgEvent(ident, event)
         }
@@ -541,7 +541,7 @@ named! { gtk_child_property_or_event -> ChildItem, do_parse!(
     item: alt!
     ( do_parse!(
         punct!(:) >>
-        value: call!(value_or_child_properties, ident) >>
+        value: call!(value_or_child_properties, ident.clone()) >>
         (value)
       )
     | do_parse!(
@@ -552,7 +552,7 @@ named! { gtk_child_property_or_event -> ChildItem, do_parse!(
             if event.params.is_empty() {
                 event.params.push(wild_pat());
             }
-            ChildEvent(event_name, ident, event)
+            ChildEvent(event_name, ident.clone(), event)
         })
     )
     | map!(event, |mut event| {
@@ -579,8 +579,8 @@ named! { value_or_child_properties(ident: Ident) -> ChildItem, alt!
 
 named! { tag(expected_ident: String) -> (), do_parse!(
     ident: syn!(Ident) >>
-    cond!(ident.as_ref() != expected_ident, map!(reject!(), |()| ())) >>
-    cond!(ident.as_ref() == expected_ident, epsilon!()) >>
+    cond!(ident != expected_ident, map!(reject!(), |()| ())) >>
+    cond!(ident == expected_ident, epsilon!()) >>
     ()
 )}
 
@@ -600,8 +600,8 @@ fn expr_use_self(expr: &Expr) -> bool {
     let mut tokens = quote! {};
     expr.to_tokens(&mut tokens);
     tokens.into_iter().any(|token| {
-        if let TokenTree::Term(term) = token {
-            return term.as_str() == "self";
+        if let TokenTree::Ident(ident) = token {
+            return ident == "self";
         }
         false
     })
@@ -751,7 +751,7 @@ fn gen_widget_name(path: &Path) -> Ident {
 fn path_to_string(path: &Path) -> String {
     let mut string = String::new();
     for segment in &path.segments {
-        string.push_str(segment.ident.as_ref());
+        string.push_str(&segment.ident.to_string());
     }
     string
 }

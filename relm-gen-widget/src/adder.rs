@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use quote::Tokens;
+use quote::TokenStreamExt;
 use syn::{
     Expr,
     ExprAssign,
@@ -120,7 +120,7 @@ fn create_stmts_for_msgs(ident: &Ident, msg_map: &MsgModelMap) -> Vec<Stmt> {
     if let Some(messages) = msg_map.get(ident) {
         for msg in messages {
             let widget_name = &msg.widget_name;
-            let mut value = Tokens::new();
+            let mut value = quote! {};
             value.append_all(&[&msg.expr]);
             let variant = &msg.name;
             let stmt = quote_spanned! { ident.span() =>
@@ -142,7 +142,7 @@ fn create_stmts_for_props(ident: &Ident, property_map: &PropertyModelMap) -> Vec
         for property in properties {
             let widget_name = &property.widget_name;
             let prop_name = Ident::new(&format!("set_{}", property.name), property.name.span());
-            let mut tokens = Tokens::new();
+            let mut tokens = quote! {};
             tokens.append_all(&[&property.expr]);
             let stmt =
                 if property.is_relm_widget {
@@ -167,8 +167,8 @@ fn create_stmts_for_props(ident: &Ident, property_map: &PropertyModelMap) -> Vec
 fn is_model_path(expr: &Expr) -> bool {
     if let Field(ExprField { ref base, ref member, .. }) = *expr {
         if let Expr::Path(ExprPath { path: Path { ref segments, .. }, ..}) = **base {
-            if let Named(member_name) = *member {
-                return segments.len() == 1 && segments[0].ident.as_ref() == "self" && member_name.as_ref() == "model";
+            if let Named(member_name) = member {
+                return segments.len() == 1 && segments[0].ident == "self" && member_name == "model";
             }
         }
     }

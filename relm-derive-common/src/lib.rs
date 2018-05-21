@@ -1,9 +1,10 @@
+extern crate proc_macro2;
 #[macro_use]
 extern crate quote;
 extern crate relm_gen_widget;
 extern crate syn;
 
-use quote::Tokens;
+use proc_macro2::TokenStream;
 use relm_gen_widget::gen_where_clause;
 use syn::{
     Fields,
@@ -15,7 +16,7 @@ use syn::{
     TypeParam,
 };
 
-pub fn impl_msg(ast: &Item, krate: Ident) -> Tokens {
+pub fn impl_msg(ast: &Item, krate: Ident) -> TokenStream {
     let display = derive_display_variant(ast, &krate);
     let into_option = derive_into_option(ast, &krate);
 
@@ -25,7 +26,7 @@ pub fn impl_msg(ast: &Item, krate: Ident) -> Tokens {
     }
 }
 
-pub fn impl_simple_msg(ast: &Item, krate: Ident) -> Tokens {
+pub fn impl_simple_msg(ast: &Item, krate: Ident) -> TokenStream {
     if let Item::Enum(ref enum_item) = *ast {
         let name = &enum_item.ident;
 
@@ -70,7 +71,7 @@ pub fn impl_simple_msg(ast: &Item, krate: Ident) -> Tokens {
     }
 }
 
-fn derive_partial_clone(ast: &Item) -> Tokens {
+fn derive_partial_clone(ast: &Item) -> TokenStream {
     if let Item::Enum(ref enum_item) = *ast {
         let name = &enum_item.ident;
         let mut patterns = vec![];
@@ -97,7 +98,7 @@ fn derive_partial_clone(ast: &Item) -> Tokens {
     }
 }
 
-fn derive_display_variant(ast: &Item, krate: &Ident) -> Tokens {
+fn derive_display_variant(ast: &Item, krate: &Ident) -> TokenStream {
     if let Item::Enum(ref enum_item) = *ast {
         let generics = &enum_item.generics;
         let name = &enum_item.ident;
@@ -134,7 +135,7 @@ fn derive_display_variant(ast: &Item, krate: &Ident) -> Tokens {
     }
 }
 
-fn derive_into_option(ast: &Item, krate: &Ident) -> Tokens {
+fn derive_into_option(ast: &Item, krate: &Ident) -> TokenStream {
     if let Item::Enum(ref enum_item) = *ast {
         let generics = &enum_item.generics;
         let name = &enum_item.ident;

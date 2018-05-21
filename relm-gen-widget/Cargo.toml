@@ -9,12 +9,12 @@ version = "0.14.4"
 
 [dependencies]
 lazy_static = "1.0"
-proc-macro2 = "0.3"
-quote = "0.5"
+proc-macro2 = "0.4"
+quote = "0.6"
 
 [dependencies.syn]
 features = ["extra-traits", "fold", "full", "visit"]
-version = "^0.13"
+version = "^0.14"
 
 [features]
 unstable = ["proc-macro2/nightly"]

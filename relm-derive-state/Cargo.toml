@@ -10,7 +10,7 @@ version = "0.14.4"
 proc-macro = true
 
 [dependencies]
-syn = "0.13"
+syn = "0.14"
 
 [dependencies.relm-derive-common]
 path = "../relm-derive-common"
