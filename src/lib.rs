@@ -48,7 +48,6 @@
 
 /*
  * TODO: maybe remove SimpleMsg.
- * TODO: remove log of formatted code.
  *
  * TODO: improve README so that examples can be copy/pasted.
  * TODO: add tests for relm-derive-state.
