@@ -4,7 +4,7 @@ description = "Custom derive required by the relm-state crate."
 license = "MIT"
 name = "relm-derive-state"
 repository = "https://github.com/antoyo/relm"
-version = "0.14.4"
+version = "0.14.6"
 
 [lib]
 proc-macro = true

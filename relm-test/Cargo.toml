@@ -6,7 +6,7 @@ documentation = "https://docs.rs/relm-test/"
 license = "MIT"
 name = "relm-test"
 repository = "https://github.com/antoyo/relm"
-version = "0.14.4"
+version = "0.14.6"
 
 [dependencies]
 enigo = "^0.0.11"

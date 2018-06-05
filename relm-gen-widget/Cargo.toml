@@ -5,7 +5,7 @@ documentation = "https://docs.rs/relm-gen-widget/"
 license = "MIT"
 name = "relm-gen-widget"
 repository = "https://github.com/antoyo/relm"
-version = "0.14.4"
+version = "0.14.6"
 
 [dependencies]
 lazy_static = "1.0"
