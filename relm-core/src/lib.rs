@@ -42,7 +42,7 @@ use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::rc::Rc;
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Receiver, SendError};
 
 use source::{SourceFuncs, new_source, source_get};
 
@@ -66,6 +66,24 @@ struct ChannelData<MSG> {
     receiver: Receiver<MSG>,
 }
 
+/// A wrapper over a `std::sync::mpsc::Sender` to wakeup the glib event loop when sending a
+/// message.
+#[derive(Clone)]
+pub struct Sender<MSG> {
+    sender: mpsc::Sender<MSG>,
+}
+
+impl<MSG> Sender<MSG> {
+    /// Send a message and wakeup the event loop.
+    pub fn send(&self, msg: MSG) -> Result<(), SendError<MSG>> {
+        let result = self.sender.send(msg);
+        if let Some(context) = MainContext::default() {
+            context.wakeup();
+        }
+        result
+    }
+}
+
 /// A channel to send a message to a relm widget from another thread.
 pub struct Channel<MSG> {
     _source: Source,
@@ -86,7 +104,9 @@ impl<MSG> Channel<MSG> {
         (Self {
             _source: source,
             _phantom: PhantomData,
-        }, sender)
+        }, Sender {
+            sender,
+        })
     }
 }
 
