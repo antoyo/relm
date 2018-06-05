@@ -39,3 +39,4 @@ cp relm-state/src/macros.rs src/macros.rs
 git commit . -m "Temporary fix to publish the crate"
 cargo release --no-dev-version
 git revert HEAD --no-edit
+git push
