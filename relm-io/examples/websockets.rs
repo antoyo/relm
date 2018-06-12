@@ -201,7 +201,10 @@ fn ws_handshake(handle: &Handle) -> impl Future<Item=WSService> {
     protocol.client(true);
     let client = TcpClient::new(protocol);
     let url = "echo.websocket.org:80";
-    client.connect(&url.to_socket_addrs().unwrap().next().unwrap(), handle)
+    client.connect(&url.to_socket_addrs()
+                       .expect("to_socket_addrs failed")
+                       .next()
+                       .expect("to_socket_addrs.next failed"), handle)
         .and_then(|service| {
             let nonce = gen_nonce();
             let mut handshake_frame = WebSocketFrame::default();
@@ -229,12 +232,15 @@ fn ws_send(service: &WSService, message: &str) -> impl Future<Item=String> {
     frame.set_base(base);
     service.call(frame)
         .and_then(|socket| {
-            let bytes = socket.base().unwrap().application_data().unwrap();
+            let bytes = socket.base()
+                              .expect("socket.base failed")
+                              .application_data()
+                              .expect("application_data failed");
             let string = String::from_utf8_lossy(bytes).to_string();
             Ok(string)
         })
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }

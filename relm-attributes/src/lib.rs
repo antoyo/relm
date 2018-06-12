@@ -33,7 +33,7 @@ use syn::{Item, parse};
 
 #[proc_macro_attribute]
 pub fn widget(_attributes: TokenStream, input: TokenStream) -> TokenStream {
-    let ast: Item = parse(input).unwrap();
+    let ast: Item = parse(input).expect("widget.parse failed");
     let tokens = quote! {
         #ast
     };

@@ -25,21 +25,21 @@ use syn::spanned::Spanned;
 
 #[proc_macro_derive(SimpleMsg)]
 pub fn simple_msg(input: TokenStream) -> TokenStream {
-    let ast: Item = parse(input).unwrap();
+    let ast: Item = parse(input).expect("simple_msg > parse failed");
     let gen = impl_simple_msg(&ast, Ident::new("relm", ast.span()));
     gen.into()
 }
 
 #[proc_macro_derive(Msg)]
 pub fn msg(input: TokenStream) -> TokenStream {
-    let ast: Item = parse(input).unwrap();
+    let ast: Item = parse(input).expect("msg > parse failed");
     let gen = impl_msg(&ast, Ident::new("relm", ast.span()));
     gen.into()
 }
 
 #[proc_macro_derive(Widget)]
 pub fn widget(input: TokenStream) -> TokenStream {
-    let ast: Item = parse(input).unwrap();
+    let ast: Item = parse(input).expect("widget > parse failed");
     let expanded = impl_widget(&ast);
     expanded.into()
 }

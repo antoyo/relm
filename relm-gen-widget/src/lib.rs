@@ -661,7 +661,8 @@ mod tests {
         let macro_text = "foo! {
             gtk::Window {}
         }";
-        let parsed_expr: ExprKind = parse_expr(macro_text).unwrap().node;
+        let parsed_expr: ExprKind = parse_expr(macro_text)
+                                        .expect("incorrect_view_macro_name > parse_expr failed").node;
         let mac = match parsed_expr {
             ExprKind::Mac(mac) => mac,
             _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
@@ -676,7 +677,8 @@ mod tests {
     fn empty_view_macro() {
         let macro_text = "view! {
         }";
-        let parsed_expr: ExprKind = parse_expr(macro_text).unwrap().node;
+        let parsed_expr: ExprKind = parse_expr(macro_text)
+                                        .expect("empty_view_macro > parse_expr failed").node;
         let mac = match parsed_expr {
             ExprKind::Mac(mac) => mac,
             _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
@@ -693,7 +695,8 @@ mod tests {
             gtk::Window {},
             gtk::Window {}
         }";
-        let parsed_expr: ExprKind = parse_expr(macro_text).unwrap().node;
+        let parsed_expr: ExprKind = parse_expr(macro_text)
+                                        .expect("multiple_top_level_items > parse_expr failed").node;
         let mac = match parsed_expr {
             ExprKind::Mac(mac) => mac,
             _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
