@@ -110,7 +110,7 @@ impl Widget for Text {
         vbox.add(&label);
 
         let input2 = input.clone();
-        connect!(relm, input, connect_changed(_), Change(input2.get_text().unwrap()));
+        connect!(relm, input, connect_changed(_), Change(input2.get_text().expect("get_text failed")));
 
         Text {
             label: label,
@@ -300,7 +300,7 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let dec_button = &widgets.dec_button;
         let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label1");
         let inc_button1: Button = find_child_by_name(widgets.counter1.widget(), "inc_button").expect("button1");

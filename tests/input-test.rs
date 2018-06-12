@@ -78,7 +78,7 @@ impl Widget for Win {
                 orientation: Vertical,
                 #[name = "entry"]
                 gtk::Entry {
-                    changed(entry) => Change(entry.get_text().unwrap()),
+                    changed(entry) => Change(entry.get_text().expect("get_text failed")),
                     placeholder_text: "Text to reverse",
                 },
                 #[name = "entry2"]
@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let entry = &widgets.entry;
         let entry2 = &widgets.entry2;
         let label = &widgets.label;

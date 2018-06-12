@@ -162,7 +162,7 @@ impl Widget for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     fn widget_position() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let button7 = &widgets.button7;
         let button8 = &widgets.button8;
         let button9 = &widgets.button9;

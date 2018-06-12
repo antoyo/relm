@@ -126,7 +126,7 @@ impl Widget for Win {
 }
 
 fn main() {
-    Win::run(42).unwrap();
+    Win::run(42).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn model_params() {
-        let (_component, widgets) = relm::init_test::<Win>(5).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(5).expect("init_test failed");
         let label = &widgets.label;
         let button = widgets.button.widget();
 

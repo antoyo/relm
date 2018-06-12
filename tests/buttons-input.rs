@@ -158,7 +158,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let cancel_button = &widgets.cancel_button;
         let concat_button = &widgets.concat_button;
         let label = &widgets.label;

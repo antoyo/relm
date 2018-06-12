@@ -99,7 +99,7 @@ fn inhibit_press_event(press_count: &Rc<Cell<i32>>, _relm: &Relm<Win>) -> Inhibi
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -113,7 +113,7 @@ mod tests {
 
     #[test]
     fn inhibit_event() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let entry = &widgets.entry;
 
         enter_keys(entry, "a");
