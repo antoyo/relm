@@ -341,7 +341,6 @@ impl<'a> Generator<'a> {
             #(#properties)*
             #(#children)*
             #add_child_or_show_all
-            ::gtk::WidgetExt::show(&#widget_name);
             #(#visible_properties)*
             #(#child_properties)*
         }

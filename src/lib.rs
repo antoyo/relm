@@ -114,6 +114,7 @@ mod drawing;
 mod macros;
 mod widget;
 
+use gtk::WidgetExt;
 #[doc(hidden)]
 pub use glib::Cast;
 #[doc(hidden)]
@@ -308,6 +309,7 @@ pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
 {
     gtk::init().map_err(|_| ())?;
     let component = create_widget_test::<WIDGET>(model_param);
+    &component.0.widget().clone().upcast::<gtk::Widget>().show_all();
     Ok(component)
 }
 
@@ -318,6 +320,7 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
 {
     let (widget, component, relm) = create_widget::<WIDGET>(model_param);
     init_component::<WIDGET>(widget.stream(), component, &relm);
+    widget.widget().clone().upcast::<gtk::Widget>().show_all();
     Ok(widget)
 }
 
