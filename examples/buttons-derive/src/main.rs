@@ -92,5 +92,5 @@ relm_widget! {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }

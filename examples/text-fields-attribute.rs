@@ -80,7 +80,7 @@ impl Widget for Win {
                 #[name="entry"]
                 gtk::Entry {
                     changed(entry) => {
-                        let text = entry.get_text().unwrap();
+                        let text = entry.get_text().expect("get_text failed");
                         let len = text.len();
                         Change(text, len)
                     },
@@ -97,7 +97,7 @@ impl Widget for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let entry = &widgets.entry;
         let label = &widgets.label;
 

@@ -81,7 +81,11 @@ impl Update for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Change => {
-                self.model.content = self.widgets.input.get_text().unwrap().chars().rev().collect();
+                self.model.content = self.widgets.input.get_text()
+                                                       .expect("get_text failed")
+                                                       .chars()
+                                                       .rev()
+                                                       .collect();
                 self.widgets.label.set_text(&self.model.content);
             },
             Quit => gtk::main_quit(),
@@ -134,7 +138,7 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -149,7 +153,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let entry = &widgets.input;
         let label = &widgets.label;
 

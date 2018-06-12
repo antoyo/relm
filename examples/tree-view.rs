@@ -87,13 +87,13 @@ impl Update for Win {
                     let is_dir: bool = list_model
                         .get_value(&iter, IS_DIR_COL)
                         .get::<bool>()
-                        .unwrap();
+                        .expect("get_value.get<bool> failed");
 
                     if is_dir {
                         let dir_name = list_model
                             .get_value(&iter, VALUE_COL)
                             .get::<String>()
-                            .unwrap();
+                            .expect("get_value.get<String> failed");
 
                         println!("{:?} selected", dir_name);
                         let new_dir = if dir_name == ".." {
@@ -106,7 +106,9 @@ impl Update for Win {
                             self.model.current_dir.join(dir_name)
                         };
                         self.model.current_dir = new_dir;
-                        let new_model = create_and_fill_model(&self.model.current_dir).unwrap();
+                        let new_model =
+                            create_and_fill_model(&self.model.current_dir)
+                                .expect("create_and_fill_model failed");
 
                         self.tree_view.set_model(Some(&new_model));
                     }
@@ -141,7 +143,8 @@ impl Widget for Win {
         column.add_attribute(&cell, "text", 0);
         tree_view.append_column(&column);
 
-        let store_model = create_and_fill_model(&model.current_dir).unwrap();
+        let store_model = create_and_fill_model(&model.current_dir)
+                              .expect("create_and_fill_model failed");
         tree_view.set_model(Some(&store_model));
 
         vbox.add(&tree_view);
@@ -190,5 +193,5 @@ fn create_and_fill_model(dir_str: &PathBuf) -> io::Result<gtk::ListStore> {
 
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }

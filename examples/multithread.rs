@@ -99,7 +99,7 @@ impl Widget for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn channel() {
-        let (component, _widgets) = relm::init_test::<Win>(()).unwrap();
+        let (component, _widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let observer = observer_new!(component, Value(_));
         observer_wait!(let Value(value) = observer);
         assert_eq!(value, 42);

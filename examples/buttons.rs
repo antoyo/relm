@@ -152,7 +152,7 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let plus_button = &widgets.plus_button;
         let minus_button = &widgets.minus_button;
         let label = &widgets.counter_label;
