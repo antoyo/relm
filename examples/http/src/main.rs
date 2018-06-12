@@ -117,7 +117,7 @@ impl Widget for Win {
             DownloadCompleted => {
                 self.model.button_enabled = true;
                 self.button.grab_focus();
-                self.model.loader.close().unwrap();
+                self.model.loader.close().ok();
                 self.image.set_from_pixbuf(self.model.loader.get_pixbuf().as_ref());
                 self.model.loader = PixbufLoader::new();
             },
@@ -138,15 +138,15 @@ impl Widget for Win {
                 self.label.override_color(StateFlags::NORMAL, RED);
             },
             ImageChunk(chunk) => {
-                //self.model.loader.write(&chunk).unwrap();
+                //self.model.loader.write(&chunk).expect("write failure");
                 if let Err(error) = self.model.loader.write(&chunk) {
                     println!("{}", error);
                 }
             },
             NewGif(buffer) => {
                 if let Ok(body) = String::from_utf8(buffer) {
-                    let mut json = json::parse(&body).unwrap();
-                    let url = json["data"]["image_url"].take_string().unwrap();
+                    let mut json = json::parse(&body).expect("invalid json");
+                    let url = json["data"]["image_url"].take_string().expect("take_string failed");
                     let http = execute::<Http>(url);
                     connect_stream!(http@DataRead(ref buffer), self.model.relm.stream(), ImageChunk(buffer.take()));
                     connect_stream!(http@ReadDone(_), self.model.relm.stream(), DownloadCompleted);
@@ -323,6 +323,6 @@ fn find_crlf(buffer: &[u8]) -> Option<usize> {
 }
 
 fn main() {
-    TermLogger::init(Warn, Config::default()).unwrap();
-    Win::run(()).unwrap();
+    TermLogger::init(Warn, Config::default()).expect("TermLogger::init failed");
+    Win::run(()).expect("Win::run failed");
 }
