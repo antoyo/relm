@@ -306,6 +306,7 @@ pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
+    gtk::init().map_err(|_| ())?;
     let component = create_widget_test::<WIDGET>(model_param);
     Ok(component)
 }
