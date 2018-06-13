@@ -99,6 +99,7 @@
  * TODO: optionnaly multi-threaded.
  */
 
+extern crate cairo;
 extern crate glib;
 extern crate glib_sys;
 extern crate gobject_sys;
@@ -109,6 +110,7 @@ extern crate relm_state;
 
 mod component;
 mod container;
+mod drawing;
 mod macros;
 mod widget;
 
@@ -139,6 +141,7 @@ use relm_state::init_component;
 
 pub use component::Component;
 pub use container::{Container, ContainerComponent, ContainerWidget};
+pub use drawing::DrawHandler;
 pub use widget::{Widget, WidgetTest};
 
 extern "C" {
