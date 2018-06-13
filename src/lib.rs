@@ -306,8 +306,6 @@ pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    gtk::init().map_err(|_| ())?;
-
     let component = create_widget_test::<WIDGET>(model_param);
     Ok(component)
 }
@@ -317,8 +315,6 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static
 {
-    gtk::init().map_err(|_| ())?;
-
     let (widget, component, relm) = create_widget::<WIDGET>(model_param);
     init_component::<WIDGET>(widget.stream(), component, &relm);
     Ok(widget)
@@ -381,6 +377,7 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
 pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>
     where WIDGET: Widget + 'static,
 {
+    gtk::init().map_err(|_| ())?;
     let _component = init::<WIDGET>(model_param)?;
     gtk::main();
     Ok(())
