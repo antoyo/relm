@@ -52,17 +52,12 @@ impl Widget for SecondaryWin {
     }
 }
 
-// Define the structure of the model.
 pub struct Model {
-    counter: i32,
     _win: Component<SecondaryWin>,
 }
 
-// The messages that can be sent to the update function.
 #[derive(Msg)]
 pub enum Msg {
-    Decrement,
-    Increment,
     Quit,
 }
 
@@ -70,15 +65,12 @@ pub enum Msg {
 impl Widget for Win {
     fn model() -> Model {
         Model {
-            counter: 0,
             _win: init::<SecondaryWin>(()).expect("secondary window"),
         }
     }
 
     fn update(&mut self, event: Msg) {
         match event {
-            Decrement => self.model.counter -= 1,
-            Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
         }
     }
