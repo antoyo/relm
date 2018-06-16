@@ -85,7 +85,7 @@ impl Update for Text {
     fn update(&mut self, event: TextMsg) {
         match event {
             Change => {
-                self.model.content = self.input.get_text().unwrap().chars().rev().collect();
+                self.model.content = self.input.get_text().expect("get_text failed").chars().rev().collect();
                 self.label.set_text(&self.model.content);
             },
         }
@@ -264,7 +264,7 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -278,7 +278,7 @@ mod tests {
 
     #[test]
     fn model_params() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let counter1 = &widgets.counter1;
         let text = &widgets.text;
         let inc_button1: Button = find_child_by_name(counter1.widget(), "inc_button").expect("button");

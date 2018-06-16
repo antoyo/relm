@@ -156,5 +156,5 @@ impl Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }

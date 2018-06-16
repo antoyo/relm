@@ -237,7 +237,7 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -251,7 +251,7 @@ mod tests {
 
     #[test]
     fn root_widget() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let vbox = &widgets.vbox;
         let inc_button: Button = find_child_by_name(vbox.widget(), "inc_button").expect("inc button");
         let label: Label = find_child_by_name(vbox.widget(), "label").expect("label");

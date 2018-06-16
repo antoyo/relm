@@ -70,7 +70,7 @@ struct Model {
 }
 
 fn main() {
-    gtk::init().unwrap();
+    gtk::init().expect("gtk::init failed");
 
     // This is a layout container that will stack widgets vertically.
     let vbox = gtk::Box::new(Vertical, 0);

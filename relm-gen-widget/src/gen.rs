@@ -525,7 +525,7 @@ fn gen_widget_ident(widget: &Widget) -> (TokenStream, Span) {
 fn gen_widget_type(widget: &Widget) -> TokenStream {
     match widget.widget {
         Gtk(ref gtk_widget) => {
-            let ident = gtk_widget.relm_name.as_ref().unwrap();
+            let ident = gtk_widget.relm_name.as_ref().expect("as_ref failed");
             quote! {
                 #ident
             }

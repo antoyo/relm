@@ -77,7 +77,7 @@ impl Widget for Text {
             #[name="text_entry"]
             gtk::Entry {
                 name: "text_entry",
-                changed(entry) => Change(entry.get_text().unwrap()),
+                changed(entry) => Change(entry.get_text().expect("get_text failed")),
             },
             gtk::Label {
                 text: &self.model.content,
@@ -133,7 +133,7 @@ impl Widget for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn root_widget() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let button = &widgets.button;
         let entry: Entry = find_child_by_name(widgets.text.widget(), "text_entry").expect("entry");
 

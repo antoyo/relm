@@ -298,7 +298,7 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
 /// # #[derive(Msg)]
 /// # enum Msg {}
 /// # fn main() {
-/// let (component, widgets) = relm::init_test::<Win>(()).unwrap();
+/// let (component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
 /// # }
 /// ```
 pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
@@ -372,7 +372,7 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
 /// #
 /// # fn run() {
 /// /// `Win` is a relm `Widget`.
-/// Win::run(()).unwrap();
+/// Win::run(()).expect("Win::run failed");
 /// # }
 /// ```
 pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>

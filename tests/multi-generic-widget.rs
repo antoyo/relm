@@ -224,7 +224,7 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -238,7 +238,7 @@ mod tests {
 
     #[test]
     fn model_params() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label");
         let label2: Label = find_child_by_name(widgets.counter2.widget(), "label").expect("label");
 

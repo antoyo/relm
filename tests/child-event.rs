@@ -143,7 +143,7 @@ impl Widget for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn child_event() {
-        let (component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let tree_view = &widgets.tree_view;
 
         let selection_observer = observer_new!(component, SelectionChanged(_));

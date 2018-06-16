@@ -167,7 +167,7 @@ fn update_component<COMPONENT>(component: &mut COMPONENT, event: COMPONENT::Msg)
         component.update(event);
         if let Ok(duration) = time.elapsed() {
             let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
-            if ms >= 200 {
+            if ms >= 16 {
                 warn!("The update function was slow to execute for message {}: {}ms", debug, ms);
             }
         }

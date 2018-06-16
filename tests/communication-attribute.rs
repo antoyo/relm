@@ -74,7 +74,7 @@ impl Widget for Text {
         gtk::Box {
             orientation: Vertical,
             gtk::Entry {
-                changed(entry) => Change(entry.get_text().unwrap()),
+                changed(entry) => Change(entry.get_text().expect("get_text failed")),
                 name: "entry",
             },
             gtk::Label {
@@ -199,7 +199,7 @@ fn log_increment() {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -213,7 +213,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let dec_button = &widgets.dec_button;
         let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label1");
         let inc_button1: Button = find_child_by_name(widgets.counter1.widget(), "inc_button").expect("button1");

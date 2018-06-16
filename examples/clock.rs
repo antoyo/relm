@@ -114,7 +114,7 @@ impl WidgetTest for Win {
 }
 
 fn main() {
-    Win::run(()).unwrap();
+    Win::run(()).expect("Win::run failed");
 }
 
 #[cfg(test)]
@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).unwrap();
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let label = &widgets.label;
 
         fn time_close(time1: String, time2: String) -> bool {
