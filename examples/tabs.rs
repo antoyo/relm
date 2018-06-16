@@ -64,18 +64,18 @@ relm_widget! {
                         child: {
                             tab_label: Some("First Button"),
                         },
-                        label: "+",
+                        label: "Button",
                     },
                     #[name="label"]
                     gtk::Label {
                         tab: {
                             label: &gtk::Label::new("Second page"),
                         },
-                        text: "0",
+                        text: "Hello",
                     },
                     #[name="dec_button"]
                     gtk::Button {
-                        label: "-",
+                        label: "Another Button",
                     },
                 },
                 delete_event(_, _) => (Quit, Inhibit(false)),
