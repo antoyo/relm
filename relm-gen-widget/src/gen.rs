@@ -335,12 +335,21 @@ impl<'a> Generator<'a> {
         let ident = quote! { #widget_name };
         let (properties, visible_properties) = self.gtk_set_prop_calls(widget, ident);
         let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type, IsGtk);
+        /*let show_all = if let None = parent {
+            quote! {
+                ::gtk::WidgetExt::show_all(&#widget_name);
+            }
+        } else {
+            quote! {}
+        };*/
 
         quote_spanned! { widget_name.span() =>
             let #widget_name: #struct_name = #construct_widget;
             #(#properties)*
             #(#children)*
             #add_child_or_show_all
+            ::gtk::WidgetExt::show(&#widget_name);
+            //#show_all
             #(#visible_properties)*
             #(#child_properties)*
         }
