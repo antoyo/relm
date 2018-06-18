@@ -160,13 +160,13 @@ mod tests {
         let (component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let tree_view = &widgets.tree_view;
 
-        let selection_observer = observer_new!(component, SelectionChanged(_));
+        let selection_observer = relm_observer_new!(component, SelectionChanged(_));
 
         let selection = tree_view.get_selection();
         let model = tree_view.get_model().expect("model");
         let iter = model.get_iter_first().expect("first row");
         selection.select_iter(&iter);
 
-        observer_wait!(let SelectionChanged(_selection) = selection_observer);
+        relm_observer_wait!(let SelectionChanged(_selection) = selection_observer);
     }
 }

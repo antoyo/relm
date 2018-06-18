@@ -25,7 +25,7 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 #[macro_use]
-extern crate relm_test;
+extern crate gtk_test;
 
 use gtk::{
     Button,
@@ -158,7 +158,7 @@ mod tests {
     use gtk::LabelExt;
 
     use relm;
-    use relm_test::click;
+    use gtk_test::click;
 
     use Win;
 

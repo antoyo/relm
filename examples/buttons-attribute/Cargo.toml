@@ -5,6 +5,7 @@ authors = ["Antoni Boucher <bouanto@zoho.com>"]
 
 [dependencies]
 gtk = "^0.4.0"
+gtk-test = "^0.1"
 
 [dependencies.relm]
 path = "../.."

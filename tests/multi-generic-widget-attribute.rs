@@ -28,7 +28,7 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 #[macro_use]
-extern crate relm_test;
+extern crate gtk_test;
 
 use std::fmt::Display;
 
@@ -161,7 +161,7 @@ mod tests {
     use gtk::{Label, LabelExt};
 
     use relm;
-    use relm_test::find_child_by_name;
+    use gtk_test::find_child_by_name;
 
     use Win;
 

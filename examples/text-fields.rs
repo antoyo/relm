@@ -26,7 +26,7 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 #[cfg_attr(test, macro_use)]
-extern crate relm_test;
+extern crate gtk_test;
 
 use gtk::{
     ContainerExt,
@@ -147,7 +147,7 @@ mod tests {
     use gtk::LabelExt;
 
     use relm;
-    use relm_test::{enter_key, enter_keys};
+    use gtk_test::{enter_key, enter_keys};
 
     use Win;
 

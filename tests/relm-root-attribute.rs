@@ -27,7 +27,7 @@ extern crate relm;
 extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
-extern crate relm_test;
+extern crate gtk_test;
 
 use gtk::{
     ButtonExt,
@@ -139,7 +139,7 @@ mod tests {
     use gtk::{Button, Label, WidgetExt};
 
     use relm;
-    use relm_test::find_child_by_name;
+    use gtk_test::find_child_by_name;
 
     use Win;
 

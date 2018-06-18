@@ -25,7 +25,7 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 #[macro_use]
-extern crate relm_test;
+extern crate gtk_test;
 
 use std::fmt::Display;
 
@@ -222,7 +222,7 @@ mod tests {
     use gtk::{Button, Label, LabelExt};
 
     use relm;
-    use relm_test::{click, find_child_by_name};
+    use gtk_test::{click, find_child_by_name};
 
     use Win;
 

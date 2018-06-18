@@ -25,7 +25,7 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 #[cfg_attr(test, macro_use)]
-extern crate relm_test;
+extern crate gtk_test;
 
 use gtk::{
     ButtonExt,
