@@ -439,6 +439,14 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream 
     if widget.init_parameters.is_empty() {
         quote_spanned! { struct_name.span() =>
             unsafe {
+                if !gtk::is_initialized_main_thread() {
+                    if gtk::is_initialized() {
+                        panic!("GTK may only be used from the main thread.");
+                    }
+                    else {
+                        panic!("GTK has not been initialized. Call `gtk::init` first.");
+                    }
+                }
                 use gtk::StaticType;
                 use relm::{Downcast, FromGlibPtrNone};
                 let values: &[::gtk::Value] = &[#(#values),*];
