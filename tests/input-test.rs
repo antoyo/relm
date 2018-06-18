@@ -29,7 +29,7 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 #[macro_use]
-extern crate relm_test;
+extern crate gtk_test;
 
 use gtk::{
     EditableSignals,
@@ -99,7 +99,7 @@ mod tests {
     use gtk::{EntryExt, LabelExt};
 
     use relm;
-    use relm_test::{
+    use gtk_test::{
         enter_key,
         enter_keys,
         key_press,

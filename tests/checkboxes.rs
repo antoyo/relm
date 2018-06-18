@@ -24,7 +24,7 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-extern crate relm_test;
+extern crate gtk_test;
 
 use gtk::{
     ButtonExt,
@@ -212,7 +212,7 @@ mod tests {
     use gtk::ToggleButtonExt;
 
     use relm;
-    use relm_test::click;
+    use gtk_test::click;
 
     use Win;
 

@@ -29,6 +29,8 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 #[macro_use]
+extern crate gtk_test;
+#[macro_use]
 extern crate relm_test;
 
 use gdk::EventType::DoubleButtonPress;
@@ -230,12 +232,14 @@ mod tests {
     };
 
     use relm;
-    use relm_test::{
-        Observer,
+    use gtk_test::{
         click,
         double_click,
         find_widget_by_name,
         wait,
+    };
+    use relm_test::{
+        Observer,
     };
 
     use Msg::{self, FiveInc, GetModel, RecvModel, TwoInc};
@@ -260,10 +264,10 @@ mod tests {
                 false
             }
         );
-        let label_observer = observer_new!(inc_label, Text(_));
+        let label_observer = relm_observer_new!(inc_label, Text(_));
 
         // Shortcut for the previous call to Observer::new().
-        let two_observer = observer_new!(component, TwoInc(_, _));
+        let two_observer = relm_observer_new!(component, TwoInc(_, _));
 
         let model_observer = Observer::new(component.stream(), |msg|
             if let RecvModel(_) = msg {
@@ -281,7 +285,7 @@ mod tests {
         assert_text!(widgets.label, 2);
 
         // Shortcut for the call to wait() below.
-        observer_wait!(let TwoInc(one, two) = two_observer);
+        relm_observer_wait!(let TwoInc(one, two) = two_observer);
         assert_eq!(one, 1);
         assert_eq!(two, 2);
 
@@ -290,7 +294,7 @@ mod tests {
         click(inc_button);
         assert_text!(widgets.label, 2);
 
-        observer_wait!(let Msg::TwoInc(one, two) = two_observer);
+        relm_observer_wait!(let Msg::TwoInc(one, two) = two_observer);
         assert_eq!(one, 1);
         assert_eq!(two, 2);
 
@@ -320,7 +324,7 @@ mod tests {
         }
 
         component.stream().emit(GetModel);
-        observer_wait!(let RecvModel(model) = model_observer);
+        relm_observer_wait!(let RecvModel(model) = model_observer);
         assert_eq!(model.counter, 5);
 
         let action_menu: MenuItem = widgets.menu_bar.get_children()[0].clone().downcast().expect("menu item 2");
@@ -346,7 +350,7 @@ mod tests {
 
         let inc_label = find_widget_by_name(inc_label, "label").expect("find label");
         double_click(&inc_label);
-        observer_wait!(let Text(text) = label_observer);
+        relm_observer_wait!(let Text(text) = label_observer);
         assert_eq!(text, "Double click");
         assert_text!(widgets.label, 10);
     }

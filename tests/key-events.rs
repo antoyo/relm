@@ -25,7 +25,7 @@ extern crate relm;
 #[macro_use]
 extern crate relm_derive;
 #[macro_use]
-extern crate relm_test;
+extern crate gtk_test;
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -144,7 +144,7 @@ mod tests {
     use gtk::EntryExt;
 
     use relm;
-    use relm_test::enter_keys;
+    use gtk_test::enter_keys;
 
     use Win;
 

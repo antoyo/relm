@@ -25,7 +25,7 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-extern crate relm_test;
+extern crate gtk_test;
 
 use chrono::Local;
 use gtk::{
@@ -123,7 +123,7 @@ mod tests {
     use gtk::LabelExt;
 
     use relm;
-    use relm_test::wait;
+    use gtk_test::wait;
 
     use Win;
 

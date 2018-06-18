@@ -29,6 +29,8 @@ extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 #[macro_use]
+extern crate gtk_test;
+#[macro_use]
 extern crate relm_test;
 
 use gtk::{
@@ -147,7 +149,7 @@ mod tests {
     };
 
     use relm;
-    use relm_test::{
+    use gtk_test::{
         enter_key,
         enter_keys,
         focus,
@@ -166,8 +168,8 @@ mod tests {
         let right_entry = &widgets.right_entry;
         let window = &widgets.window;
 
-        let available_observer = observer_new!(component, DataAvailable(_));
-        let cleared_observer = observer_new!(component, DataCleared);
+        let available_observer = relm_observer_new!(component, DataAvailable(_));
+        let cleared_observer = relm_observer_new!(component, DataCleared);
 
         assert_text!(label, "");
         enter_keys(&window.get_focus().expect("focused widget"), "left");
@@ -192,9 +194,9 @@ mod tests {
         focus(right_entry);
         assert!(right_entry.has_focus());
 
-        observer_wait!(let DataAvailable(text) = available_observer);
+        relm_observer_wait!(let DataAvailable(text) = available_observer);
         assert_eq!(text, "leftright");
 
-        observer_wait!(let DataCleared = cleared_observer);
+        relm_observer_wait!(let DataCleared = cleared_observer);
     }
 }

@@ -26,7 +26,7 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-extern crate relm_test;
+extern crate gtk_test;
 
 use gtk::{
     BoxExt,
