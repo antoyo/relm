@@ -100,7 +100,6 @@
  */
 
 extern crate cairo;
-extern crate gdk;
 extern crate glib;
 extern crate glib_sys;
 extern crate gobject_sys;

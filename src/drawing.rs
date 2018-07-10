@@ -11,14 +11,12 @@ use cairo::{
     Context,
     Format,
     ImageSurface,
-    RectangleVec,
+    Rectangle,
 };
 use gtk::{
     Inhibit,
     WidgetExt,
 };
-
-use EventStream;
 
 #[derive(Clone)]
 struct Surface {
@@ -42,7 +40,7 @@ impl Surface {
 }
 
 pub struct DrawContext<W: WidgetExt> {
-    clip_rectangles: RectangleVec,
+    //clip_rectangles: RectangleVec,
     context: Context,
     draw_surface: Surface,
     edit_surface: ImageSurface,
@@ -50,29 +48,26 @@ pub struct DrawContext<W: WidgetExt> {
 }
 
 impl<W: Clone + WidgetExt> DrawContext<W> {
-    fn new(draw_surface: &Surface, edit_surface: &ImageSurface, widget: &W, clip_rectangles: RectangleVec) -> Self {
+    fn new(draw_surface: &Surface, edit_surface: &ImageSurface, widget: &W, clip_rectangles: &[Rectangle]) -> Self {
         let context = Context::new(&edit_surface);
         //context.identity_matrix(); // FIXME: not sure it's needed.
         // FIXME: don't call queue_draw(), provide an API to do manual clipping and draw whenever
         // it's required (i.e. in the motion_notify signal, for instance).
-        {
-            let rects = &clip_rectangles.rectangles;
-            //println!("{}", rects.len());
-            for i in 0..rects.len() {
-                let rect = rects.get(i).expect("rectangle");
-                //println!("1. {}, {}", rect.width, rect.height);
-                context.rectangle(rect.x, rect.y, rect.width, rect.height);
-                /*context.move_to(rect.x, rect.y);
-                  context.rel_line_to(rect.width, 0.0);
-                  context.rel_line_to(0.0, rect.height);
-                  context.rel_line_to(-rect.width, 0.0);
-                  context.rel_line_to(0.0, -rect.height);
-                  context.close_path();*/
-            }
+        for rect in clip_rectangles {
+            //println!("1. {}, {}", rect.width, rect.height);
+            context.rectangle(rect.x, rect.y, rect.width, rect.height);
+            /*context.move_to(rect.x, rect.y);
+              context.rel_line_to(rect.width, 0.0);
+              context.rel_line_to(0.0, rect.height);
+              context.rel_line_to(-rect.width, 0.0);
+              context.rel_line_to(0.0, -rect.height);
+              context.close_path();*/
         }
-        context.clip();
+        if !clip_rectangles.is_empty() {
+            context.clip();
+        }
         Self {
-            clip_rectangles,
+            //clip_rectangles,
             context,
             draw_surface: draw_surface.clone(),
             edit_surface: edit_surface.clone(),
@@ -92,6 +87,7 @@ impl<W: WidgetExt> Deref for DrawContext<W> {
 impl<W: WidgetExt> Drop for DrawContext<W> {
     fn drop(&mut self) {
         self.draw_surface.set(&self.edit_surface);
+        self.widget.queue_draw();
         // FIXME: maybe should not call queue_draw() so that the user can only draw a sub-region?
         /*let rects = &self.clip_rectangles.rectangles;
         let window = self.widget.get_window().expect("window");
@@ -128,7 +124,7 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
     }
 
     /// Get the drawing context to draw on a widget.
-    pub fn get_context(&mut self, clip_rectangles: RectangleVec) -> DrawContext<W> {
+    pub fn get_context(&mut self, clip_rectangles: &[Rectangle]) -> DrawContext<W> {
         if let Some(ref widget) = self.widget {
             let allocation = widget.get_allocation();
             let width = allocation.width;
@@ -149,20 +145,20 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
 
     /// Initialize the draw handler.
     /// The widget is the one on which drawing will occur.
-    pub fn init<CALLBACK, MSG>(&mut self, widget: &W, stream: &EventStream<MSG>, msg: CALLBACK)
-    where CALLBACK: Fn(RectangleVec) -> MSG + 'static,
-          MSG: 'static,
+    pub fn init(&mut self, widget: &W/*, stream: &EventStream<MSG>, msg: CALLBACK*/)
+    /*where CALLBACK: Fn(RectangleVec) -> MSG + 'static,
+          MSG: 'static,*/
     {
         widget.set_app_paintable(true);
         //widget.set_double_buffered(false);
         self.widget = Some(widget.clone());
         let draw_surface = self.draw_surface.clone();
-        let stream = stream.clone();
+        //let stream = stream.clone();
         widget.connect_draw(move |_, context| {
             // TODO: only copy the area that was exposed?
             context.set_source_surface(&draw_surface.get(), 0.0, 0.0);
             context.paint();
-            stream.emit(msg(context.copy_clip_rectangle_list()));
+            //stream.emit(msg(context.copy_clip_rectangle_list()));
             /*if clip_rectangles.borrow().is_none() {
                 // FIXME: it seems the clip rectangles are out of sync between here and where the
                 // actual drawing happens.

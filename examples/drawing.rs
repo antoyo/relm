@@ -21,6 +21,7 @@
 
 #![feature(proc_macro)]
 
+extern crate cairo;
 extern crate gdk;
 extern crate gtk;
 extern crate rand;
@@ -32,6 +33,7 @@ extern crate relm_derive;
 
 use std::f64::consts::PI;
 
+use cairo::{Context, Rectangle};
 use gdk::{EventMask, RGBA};
 use gtk::{
     BoxExt,
@@ -84,6 +86,7 @@ pub struct Model {
     draw_handler: DrawHandler<DrawingArea>,
     circles: Vec<Circle>,
     cursor_pos: (f64, f64),
+    old_cursor_pos: (f64, f64),
 }
 
 #[derive(Msg)]
@@ -91,8 +94,8 @@ pub enum Msg {
     Generate,
     Move,
     MoveCursor((f64, f64)),
+    Resize,
     Quit,
-    UpdateDrawBuffer,
 }
 
 #[widget]
@@ -100,6 +103,8 @@ impl Widget for Win {
     fn init_view(&mut self) {
         self.model.draw_handler.init(&self.drawing_area);
         self.drawing_area.add_events(EventMask::POINTER_MOTION_MASK.bits() as i32);
+        let context = self.model.draw_handler.get_context(&[]);
+        self.draw(&context);
     }
 
     fn model() -> Model {
@@ -107,6 +112,7 @@ impl Widget for Win {
             draw_handler: DrawHandler::new().expect("draw handler"),
             circles: vec![Circle::generate()],
             cursor_pos: (-1000.0, -1000.0),
+            old_cursor_pos: (-1000.0, -1000.0),
         }
     }
 
@@ -138,24 +144,50 @@ impl Widget for Win {
                         circle.vy *= -1.0;
                     }
                 }
+                let context = self.model.draw_handler.get_context(&[]);
+                self.draw(&context);
             },
-            MoveCursor(pos) => self.model.cursor_pos = pos,
+            MoveCursor(pos) => {
+                self.model.old_cursor_pos = self.model.cursor_pos;
+                self.model.cursor_pos = pos;
+                let context = self.model.draw_handler.get_context(&[
+                    Rectangle {
+                        x: self.model.old_cursor_pos.0 - SIZE,
+                        y: self.model.old_cursor_pos.1 - SIZE,
+                        width: 2.0 * SIZE,
+                        height: 2.0 * SIZE,
+                    },
+                    Rectangle {
+                        x: self.model.cursor_pos.0 - SIZE,
+                        y: self.model.cursor_pos.1 - SIZE,
+                        width: 2.0 * SIZE,
+                        height: 2.0 * SIZE,
+                    },
+                ]);
+                self.draw(&context);
+            },
+            Resize => {
+                let context = self.model.draw_handler.get_context(&[]);
+                self.draw(&context);
+            },
             Quit => gtk::main_quit(),
-            UpdateDrawBuffer => {
-                let context = self.model.draw_handler.get_context();
-                context.set_source_rgb(1.0, 1.0, 1.0);
-                context.paint();
-                for circle in &self.model.circles {
-                    context.set_source_rgb(circle.color.red, circle.color.green, circle.color.blue);
-                    context.arc(circle.x, circle.y, SIZE, 0.0, 2.0 * PI);
-                    context.fill();
-                }
-                context.set_source_rgb(0.1, 0.2, 0.3);
-                context.rectangle(self.model.cursor_pos.0 - SIZE / 2.0, self.model.cursor_pos.1 - SIZE / 2.0, SIZE,
-                    SIZE);
-                context.fill();
-            },
         }
+    }
+
+    fn draw(&self, context: &Context) {
+        context.set_source_rgb(1.0, 1.0, 1.0);
+        context.paint();
+
+        for circle in &self.model.circles {
+            context.set_source_rgb(circle.color.red, circle.color.green, circle.color.blue);
+            context.arc(circle.x, circle.y, SIZE, 0.0, 2.0 * PI);
+            context.fill();
+        }
+
+        context.set_source_rgb(0.1, 0.2, 0.3);
+        context.rectangle(self.model.cursor_pos.0 - SIZE / 2.0, self.model.cursor_pos.1 - SIZE / 2.0, SIZE,
+                          SIZE);
+        context.fill();
     }
 
     view! {
@@ -167,8 +199,8 @@ impl Widget for Win {
                     child: {
                         expand: true,
                     },
-                    draw(_, _) => (UpdateDrawBuffer, Inhibit(false)),
-                    motion_notify_event(_, event) => (MoveCursor(event.get_position()), Inhibit(false))
+                    motion_notify_event(_, event) => (MoveCursor(event.get_position()), Inhibit(false)),
+                    configure_event(_, _) => (Resize, false),
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),
