@@ -25,7 +25,7 @@
  * TODO: think about conditions and loops (widget-list).
  */
 
-#![cfg_attr(feature = "unstable", feature(proc_macro))]
+#![cfg_attr(feature = "unstable", feature(use_extern_macros))]
 #![recursion_limit="128"]
 
 #[macro_use]

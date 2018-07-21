@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(proc_macro, unboxed_closures)]
+#![feature(use_extern_macros, unboxed_closures)]
 
 extern crate chrono;
 extern crate gtk;
