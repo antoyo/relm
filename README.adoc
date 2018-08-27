@@ -179,8 +179,6 @@ and to add the following code:
 
 [source,rust]
 ----
-#![feature(use_extern_macros)]
-
 extern crate relm_attributes;
 
 use relm_attributes::widget;
