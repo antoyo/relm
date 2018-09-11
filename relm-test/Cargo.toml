@@ -6,11 +6,11 @@ documentation = "https://docs.rs/relm-test/"
 license = "MIT"
 name = "relm-test"
 repository = "https://github.com/antoyo/relm"
-version = "0.14.6"
+version = "0.15.0"
 
 [dependencies]
-gtk-test = "^0.1"
+gtk-test = "^0.2"
 
 [dependencies.relm-core]
 path = "../relm-core"
-version = "^0.14.0"
+version = "^0.15.0"

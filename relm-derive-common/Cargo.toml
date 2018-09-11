@@ -4,7 +4,7 @@ description = "Common derive implementation internally used by relm crates"
 license = "MIT"
 name = "relm-derive-common"
 repository = "https://github.com/antoyo/relm"
-version = "0.14.6"
+version = "0.15.0"
 
 [dependencies]
 proc-macro2 = "^0.4.3"
@@ -13,7 +13,7 @@ syn = "0.14"
 
 [dependencies.relm-gen-widget]
 path = "../relm-gen-widget"
-version = "^0.14.0"
+version = "^0.15.0"
 
 [features]
 unstable = ["relm-gen-widget/unstable"]
