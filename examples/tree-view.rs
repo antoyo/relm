@@ -34,7 +34,7 @@ use gtk::{
     ContainerExt,
     GtkWindowExt,
     Inhibit,
-    ListStoreExtManual,
+    GtkListStoreExtManual,
     StaticType,
     TreeModelExt,
     TreeSelectionExt,
