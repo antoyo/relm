@@ -1,5 +1,7 @@
 #!/bin/bash
 
+rustup default nightly
+
 git pull
 git push
 
