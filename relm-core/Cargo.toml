@@ -9,11 +9,10 @@ repository = "https://github.com/antoyo/relm"
 version = "0.15.0"
 
 [dependencies]
-glib = "^0.6.0"
-glib-sys = "^0.7.0"
-gtk = "^0.5.0"
+glib = { git = "https://github.com/gtk-rs/glib" }
+glib-sys = { git = "https://github.com/gtk-rs/sys" }
+gtk = { git = "https://github.com/gtk-rs/gtk" }
 libc = "^0.2.39"
 
 [dev-dependencies]
 chrono = "0.4"
-glib = "^0.5.0"

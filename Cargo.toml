@@ -17,11 +17,11 @@ branch = "master"
 repository = "antoyo/relm"
 
 [dependencies]
-cairo-rs = "^0.5.0"
-glib = "^0.6.0"
-glib-sys = "^0.7.0"
-gobject-sys = "^0.7.0"
-gtk = "^0.5.0"
+cairo-rs = { git = "https://github.com/gtk-rs/cairo" }
+glib = { git = "https://github.com/gtk-rs/glib" }
+glib-sys = { git = "https://github.com/gtk-rs/sys" }
+gobject-sys = { git = "https://github.com/gtk-rs/sys" }
+gtk = { git = "https://github.com/gtk-rs/gtk" }
 libc = "^0.2.22"
 
 [dependencies.relm-core]
@@ -34,12 +34,10 @@ version = "^0.15.0"
 
 [dev-dependencies]
 chrono = "0.4"
-gdk = "^0.9.0"
+gdk = { git = "https://github.com/gtk-rs/gdk" }
+gio = { git = "https://github.com/gtk-rs/gio", features=["futures"]}
 rand = "^0.5.1"
-gtk-test = "^0.2"
-
-[dev-dependencies.gio]
-version = "^0.5.0"
+gtk-test = { git = "https://github.com/gtk-rs/gtk-test" }
 
 [dev-dependencies.relm-attributes]
 path = "relm-attributes"
