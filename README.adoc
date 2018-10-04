@@ -34,7 +34,15 @@ Next, add this to your crate:
 
 [source,rust]
 ----
-include::examples/readme.rs[lines=1..7]
+extern crate gtk;
+#[macro_use]
+extern crate relm;
+#[macro_use]
+extern crate relm_derive;
+
+use relm::{Relm, Update, Widget};
+use gtk::prelude::*;
+use gtk::{Window, Inhibit, WindowType};
 ----
 
 Then, create your model:
@@ -92,24 +100,11 @@ impl Update for Win {
 
     // The model may be updated when a message is received.
     // Widgets may also be updated in this function.
-    // Futures and streams can be connected to send a message when a value is ready.
     fn update(&mut self, event: Msg) {
         match event {
-            Msg::SomeEvent => {
-                let future = create_future();
-                relm.connect_exec_ignore_err(future, SomeEvent);
-            },
             Msg::Quit => gtk::main_quit(),
         }
     }
-
-    // The next method is optional.
-    // Futures and streams can be connected when the `Widget` is created in the
-    // `subscriptions()` method.
-    // fn subscriptions(&mut self, relm: &Relm<Self>) {
-    //     let stream = Interval::new(Duration::from_secs(1));
-    //     relm.connect_exec_ignore_err(stream, Tick);
-    // }
 }
 
 impl Widget for Win {
@@ -182,6 +177,17 @@ Here is an example using this attribute:
 
 [source,rust]
 ----
+#[derive(Msg)]
+pub enum Msg {
+    Decrement,
+    Increment,
+    Quit,
+}
+
+pub struct Model {
+    counter: u32,
+}
+
 #[widget]
 impl Widget for Win {
     fn model() -> Model {
@@ -206,7 +212,7 @@ impl Widget for Win {
                 orientation: Vertical,
                 gtk::Button {
                     // By default, an event with one paramater is assumed.
-                    clicked => Increment,
+                    clicked => Msg::Increment,
                     // Hence, the previous line is equivalent to:
                     // clicked(_) => Increment,
                     label: "+",
@@ -219,13 +225,13 @@ impl Widget for Win {
                     text: &self.model.counter.to_string(),
                 },
                 gtk::Button {
-                    clicked => Decrement,
+                    clicked => Msg::Decrement,
                     label: "-",
                 },
             },
             // Use a tuple when you want to both send a message and return a value to
             // the GTK+ callback.
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Msg::Quit, Inhibit(false)),
         }
     }
 }
