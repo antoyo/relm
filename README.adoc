@@ -34,13 +34,7 @@ Next, add this to your crate:
 
 [source,rust]
 ----
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-
-use relm::{Relm, Widget};
+include::examples/readme.rs[lines=1..7]
 ----
 
 Then, create your model:
