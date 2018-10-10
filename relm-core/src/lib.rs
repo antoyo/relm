@@ -77,9 +77,8 @@ impl<MSG> Sender<MSG> {
     /// Send a message and wakeup the event loop.
     pub fn send(&self, msg: MSG) -> Result<(), SendError<MSG>> {
         let result = self.sender.send(msg);
-        if let Some(context) = MainContext::default() {
-            context.wakeup();
-        }
+        let context = MainContext::default();
+        context.wakeup();
         result
     }
 }
@@ -99,7 +98,7 @@ impl<MSG> Channel<MSG> {
             peeked_value: None,
             receiver,
         }));
-        let main_context = MainContext::default().expect("no main context");
+        let main_context = MainContext::default();
         source.attach(&main_context);
         (Self {
             _source: source,
@@ -197,7 +196,7 @@ impl<MSG> EventStream<MSG> {
             callback: Rc::new(RefCell::new(None)),
             stream: Rc::new(RefCell::new(event_stream)),
         });
-        let main_context = MainContext::default().expect("no main context");
+        let main_context = MainContext::default();
         source.attach(&main_context);
         EventStream {
             source,

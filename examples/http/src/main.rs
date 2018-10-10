@@ -19,8 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(use_extern_macros)]
-
 extern crate glib_sys;
 
 extern crate gdk;

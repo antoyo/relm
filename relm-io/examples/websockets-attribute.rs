@@ -19,8 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(use_extern_macros)]
-
 extern crate base64;
 extern crate blake2;
 extern crate byteorder;

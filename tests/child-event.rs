@@ -19,8 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#![feature(use_extern_macros)]
-
 extern crate gtk;
 #[macro_use]
 extern crate relm;
@@ -35,8 +33,8 @@ use gtk::{
     CellRendererText,
     Inhibit,
     ListStore,
-    ListStoreExt,
-    ListStoreExtManual,
+    GtkListStoreExt,
+    GtkListStoreExtManual,
     ToValue,
     TreeSelection,
     TreeSelectionExt,
