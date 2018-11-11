@@ -68,9 +68,16 @@ struct ChannelData<MSG> {
 
 /// A wrapper over a `std::sync::mpsc::Sender` to wakeup the glib event loop when sending a
 /// message.
-#[derive(Clone)]
 pub struct Sender<MSG> {
     sender: mpsc::Sender<MSG>,
+}
+
+impl<MSG> Clone for Sender<MSG> {
+    fn clone(&self) -> Self {
+        Self {
+            sender: self.sender.clone(),
+        }
+    }
 }
 
 impl<MSG> Sender<MSG> {
