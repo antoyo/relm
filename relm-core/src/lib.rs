@@ -167,9 +167,10 @@ struct SourceData<MSG> {
 }
 
 /// A stream of messages to be used for widget/signal communication and inter-widget communication.
+/// EventStream cannot be send to another thread. Use a `Channel` `Sender` instead.
 pub struct EventStream<MSG> {
     source: Source,
-    _phantom: PhantomData<MSG>,
+    _phantom: PhantomData<*mut MSG>,
 }
 
 impl<MSG> Clone for EventStream<MSG> {
