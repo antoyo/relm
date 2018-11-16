@@ -31,7 +31,6 @@ use proc_macro;
 use proc_macro2::{TokenTree, TokenStream};
 use quote::ToTokens;
 use syn::{
-    self,
     Expr,
     Ident,
     LitStr,
@@ -40,7 +39,9 @@ use syn::{
     Type,
     parse,
     parse2,
+    token,
 };
+use syn::parse::{Error, Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 
@@ -55,6 +56,14 @@ use self::SaveWidget::*;
 
 lazy_static! {
     static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
+}
+
+macro_rules! catch_return {
+    ($expr:expr) => {
+        (|| {
+            Ok($expr)
+        })()
+    };
 }
 
 type ChildEvents = HashMap<(Ident, Ident), Event>;
@@ -200,7 +209,7 @@ impl RelmWidget {
     }
 }
 
-pub fn parse_widget(tokens: TokenStream) -> Widget {
+pub fn parse_widget(tokens: TokenStream) -> Result<Widget> {
     if let Ok(literal) = parse2::<LitStr>(tokens.clone()) {
         // TODO: also support glade file.
         let mut file = File::open(literal.value()).expect("File::open() in parse()");
@@ -209,10 +218,10 @@ pub fn parse_widget(tokens: TokenStream) -> Widget {
         let tokens = proc_macro::TokenStream::from_str(&file_content).expect("convert string to TokenStream");
         #[cfg(feature = "unstable")]
         let tokens = respan_with(tokens, literal.span().unstable());
-        parse(tokens).expect("parse() Widget")
+        parse(tokens)
     }
     else {
-        parse2(tokens).expect("parse() Widget")
+        parse2(tokens)
     }
 }
 
@@ -222,76 +231,65 @@ enum InitProperties {
     NoInitProperties,
 }
 
-macro_rules! separated_by0 {
-    ($i:expr, $sep:ident!($($sep_args:tt)*), $submac:ident!( $($args:tt)* )) => {{
-        let ret;
-        let mut res   = ::std::vec::Vec::new();
-        let mut input = $i;
-
-        loop {
-            if input.eof() {
-                ret = ::std::result::Result::Ok((res, input));
-                break;
-            }
-
-            match $submac!(input, $($args)*) {
-                ::std::result::Result::Err(_) => {
-                    ret = ::std::result::Result::Ok((res, input));
-                    break;
-                }
-                ::std::result::Result::Ok((o, i)) => {
-                    // loop trip must always consume (otherwise infinite loops)
-                    if i == input {
-                        ret = ::syn::parse_error();
-                        break;
-                    }
-
-                    res.push(o);
-                    input = i;
-                }
-            }
-
-            match $sep!(input, $($sep_args)*) {
-                ::std::result::Result::Err(_) => {
-                    ret = ::std::result::Result::Ok((res, input));
-                    break;
-                },
-                ::std::result::Result::Ok((_, i)) => {
-                    // loop trip must always consume (otherwise infinite loops)
-                    if i == input {
-                        ret = ::syn::parse_error();
-                        break;
-                    }
-
-                    input = i;
-                },
-            }
-        }
-
-        ret
-    }};
+struct HashKeyValue {
+    ident: Ident,
+    expr: Expr,
 }
 
-named! { parse_hash -> InitProperties, map!(braces!(map!(separated_by0!(
-    punct!(,),
-    do_parse!(
-        ident: syn!(Ident) >>
-        punct!(:) >>
-        expr: syn!(Expr) >>
-        (ident, expr)
-    )), |data| ConstructProperties(data.into_iter().collect()))),
-    |(_, hash)| hash)
+impl Parse for HashKeyValue {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ident = input.parse()?;
+        let _colon: Token![:] = input.parse()?;
+        Ok(HashKeyValue {
+            ident,
+            expr: input.parse()?,
+        })
+    }
 }
 
-named! { init_properties -> InitProperties,
-    alt!
-    ( map!(parens!(alt!
-        ( parse_hash
-        | map!(expr_list, InitParameters)
-        )
-      ), |(_, hash)| hash)
-    | epsilon!() => { |_| NoInitProperties }
-    )
+struct Hash {
+    key_values: InitProperties,
+}
+
+impl Parse for Hash {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        let _brace = braced!(content in input);
+        let key_values: Punctuated<HashKeyValue, Token![,]> = content.parse_terminated(HashKeyValue::parse)?;
+        let key_values = ConstructProperties(key_values.into_iter()
+            .map(|key_value| (key_value.ident, key_value.expr)).collect());
+        Ok(Hash {
+            key_values,
+        })
+    }
+}
+
+struct InitPropertiesParser {
+    properties: InitProperties,
+}
+
+impl Parse for InitPropertiesParser {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        let properties =
+            if lookahead.peek(token::Paren) {
+                let content;
+                let _parens = parenthesized!(content in input);
+                let lookahead = content.lookahead1();
+                if lookahead.peek(token::Brace) {
+                    Hash::parse(&content)?.key_values
+                }
+                else {
+                    InitParameters(ExprList::parse(&content)?.exprs)
+                }
+            }
+            else {
+                NoInitProperties
+            };
+        Ok(InitPropertiesParser {
+            properties,
+        })
+    }
 }
 
 enum ChildItem {
@@ -318,28 +316,76 @@ impl ChildItem {
     }
 }
 
-named! { attributes -> HashMap<String, Option<LitStr>>, map!(many0!(do_parse!(
-    punct!(#) >>
-    values: map!(brackets!(separated_by0!(punct!(,), do_parse!(
-        name: syn!(Ident) >>
-        value: option!(do_parse!(
-            punct!(=) >>
-            value: syn!(LitStr) >>
-            (value)
-        )) >>
-        (name.to_string(), value)
-    ))), |(_, values)|
-        values
-    ) >>
-    (values))), |maps| {
-        let mut attrs = HashMap::new();
-        for map in maps {
-            for (key, values) in map {
-                attrs.insert(key, values);
+struct AttributeValue {
+    value: LitStr,
+}
+
+impl Parse for AttributeValue {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _equal: Token![=] = input.parse()?;
+        Ok(AttributeValue {
+            value: input.parse()?,
+        })
+    }
+}
+
+struct NameValue {
+    name: Ident,
+    value: Option<AttributeValue>,
+}
+
+impl Parse for NameValue {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(NameValue {
+            name: input.parse()?,
+            value: AttributeValue::parse(&input).ok(),
+        })
+    }
+}
+
+struct Attribute {
+    name_values: HashMap<String, Option<LitStr>>, // TODO: Use Ident instead?
+}
+
+impl Parse for Attribute {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let _hash: Token![#] = input.parse()?;
+        let content;
+        let _bracket = bracketed!(content in input);
+        let name_values: Punctuated<NameValue, Token![,]> = content.parse_terminated(NameValue::parse)?;
+        let name_values = name_values.into_iter()
+            .map(|name_value| (name_value.name.to_string(), name_value.value.map(|value| value.value)))
+            .collect();
+
+        Ok(Attribute {
+            name_values,
+        })
+    }
+}
+
+struct Attributes {
+    name_values: HashMap<String, Option<LitStr>>,
+}
+
+impl Parse for Attributes {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut name_values = HashMap::new();
+        loop {
+            let lookahead = input.lookahead1();
+
+            if lookahead.peek(Token![#]) {
+                let attribute: Attribute = input.parse()?;
+                name_values.extend(attribute.name_values);
+            }
+            else {
+                break;
             }
         }
-        attrs
-    })
+
+        Ok(Attributes {
+            name_values
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -364,93 +410,141 @@ impl PathOrIdent {
     }
 }
 
-named! { path_or_ident -> PathOrIdent,
-    map!(syn!(Path), |path| {
-        if path.segments.len() == 1 {
-            WidgetIdent(path)
-        }
-        else {
-            WidgetPath(path)
-        }
-    })
+struct PathOrIdentParser {
+    path_or_ident: PathOrIdent,
 }
 
-named! { child_widget(root: SaveWidget) -> (ChildItem, Option<String>), do_parse!(
-    attributes: map!(option!(attributes), |attributes| attributes.unwrap_or_else(HashMap::new)) >>
-    typ: path_or_ident >>
-    relm_widget: cond!(match typ {
-        WidgetIdent(_) => true,
-        WidgetPath(_) => false,
-    }, call!(relm_widget, typ.get_ident().clone())) >>
-    gtk_widget: cond!(match typ {
-        WidgetIdent(_) => false,
-        WidgetPath(_) => true,
-    }, call!(gtk_widget, typ.get_path().clone(), attributes.contains_key("name") || root == Save)) >>
-    (match typ {
-        WidgetIdent(_) => {
-            let mut widget = relm_widget.expect("relm widget");
-            adjust_widget_with_attributes(widget, &attributes)
-        },
-        WidgetPath(_) => {
-            let mut widget = gtk_widget.expect("gtk widget");
-            adjust_widget_with_attributes(widget, &attributes)
-        },
-    })
-    )
+impl Parse for PathOrIdentParser {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let path: Path = input.parse()?;
+        let path_or_ident =
+            if path.segments.len() == 1 {
+                WidgetIdent(path)
+            }
+            else {
+                WidgetPath(path)
+            };
+        Ok(PathOrIdentParser {
+            path_or_ident,
+        })
+    }
 }
 
-named! { gtk_widget(typ: Path, save: bool) -> ChildItem, map!(do_parse!(
-        init_properties: init_properties >>
-        gtk_widget: braces!(do_parse!(
-            child_items: separated_by0!(punct!(,), call!(child_gtk_item)) >>
-            ({
-                let mut gtk_widget = GtkWidget::new();
-                gtk_widget.save = save;
-                let mut init_parameters = vec![];
-                let mut children = vec![];
-                let mut properties = HashMap::new();
-                let mut child_events = HashMap::new();
-                let mut child_properties = HashMap::new();
-                for item in child_items.into_iter() {
-                    match item {
-                        ChildEvent(event_name, child_name, event) => {
-                            let _ = child_events.insert((child_name, event_name), event);
-                        },
-                        ItemChildProperties(child_props) => {
-                            for (key, value) in child_props {
-                                child_properties.insert(key, value);
-                            }
-                        },
-                        ItemEvent(ident, event) => { let _ = gtk_widget.events.insert(ident, event); },
-                        ChildWidget(widget) => children.push(widget),
-                        Property(ident, value) => { let _ = properties.insert(ident, value.value); },
-                        RelmMsg(_, _) | RelmMsgEvent(_, _) => panic!("Unexpected relm msg in gtk widget"),
+struct ChildWidgetParser {
+    widget: ChildItem,
+    parent_id: Option<String>,
+}
+
+impl ChildWidgetParser {
+    fn parse(root: SaveWidget, input: ParseStream) -> Result<Self> {
+        let attributes = Attributes::parse(&input)?.name_values;
+        let typ: PathOrIdentParser = input.parse()?;
+        let typ = typ.path_or_ident;
+        match typ {
+            WidgetIdent(_) => {
+                let relm_widget = RelmWidgetParser::parse(typ.get_ident().clone(), input)?.relm_widget;
+                Ok(adjust_widget_with_attributes(relm_widget, &attributes))
+            },
+            WidgetPath(_) => {
+                let gtk_widget = GtkWidgetParser::parse(typ.get_path().clone(),
+                    attributes.contains_key("name") || root == Save, input)?.gtk_widget;
+                Ok(adjust_widget_with_attributes(gtk_widget, &attributes))
+            },
+        }
+    }
+}
+
+struct GtkWidgetParser {
+    gtk_widget: ChildItem,
+}
+
+impl GtkWidgetParser {
+    fn parse(typ: Path, save: bool, input: ParseStream) -> Result<Self> {
+        let init_properties = InitPropertiesParser::parse(input)?.properties;
+        let content;
+        let _brace = braced!(content in input);
+        let child_items: Punctuated<ChildGtkItem, Token![,]> = content.parse_terminated(ChildGtkItem::parse)?;
+
+        let mut gtk_widget = GtkWidget::new();
+        gtk_widget.save = save;
+        let mut init_parameters = vec![];
+        let mut children = vec![];
+        let mut properties = HashMap::new();
+        let mut child_events = HashMap::new();
+        let mut child_properties = HashMap::new();
+        for item in child_items.into_iter() {
+            let item = item.item;
+            match item {
+                ChildEvent(event_name, child_name, event) => {
+                    let _ = child_events.insert((child_name, event_name), event);
+                },
+                ItemChildProperties(child_props) => {
+                    for (key, value) in child_props {
+                        child_properties.insert(key, value);
                     }
-                }
-                match init_properties {
-                    ConstructProperties(construct_properties) => gtk_widget.construct_properties = construct_properties,
-                    InitParameters(init_params) => init_parameters = init_params,
-                    NoInitProperties => (),
-                }
-                ChildWidget(Widget::new_gtk(gtk_widget, typ, init_parameters, children, properties, child_properties,
-                                     child_events))
-            })
-        )) >>
-        (gtk_widget)
-        ), |(_, widget)| widget)
+                },
+                ItemEvent(ident, event) => { let _ = gtk_widget.events.insert(ident, event); },
+                ChildWidget(widget) => children.push(widget),
+                Property(ident, value) => { let _ = properties.insert(ident, value.value); },
+                RelmMsg(_, _) | RelmMsgEvent(_, _) => panic!("Unexpected relm msg in gtk widget"),
+            }
+        }
+        match init_properties {
+            ConstructProperties(construct_properties) => gtk_widget.construct_properties = construct_properties,
+            InitParameters(init_params) => init_parameters = init_params,
+            NoInitProperties => (),
+        }
+        Ok(GtkWidgetParser {
+            gtk_widget: ChildWidget(Widget::new_gtk(gtk_widget, typ, init_parameters, children, properties,
+                            child_properties, child_events)),
+        })
+    }
 }
 
-named! { child_relm_item -> ChildItem, alt!
-    ( relm_property_or_event
-    | map!(call!(child_widget, DontSave), |(widget, _)| widget)
-    )
+struct ChildRelmItem {
+    child_item: ChildItem,
 }
 
-named! { relm_widget(typ: Path) -> ChildItem, do_parse!(
-        init_parameters: option!(map!(parens!(expr_list), |(_, exprs)| exprs)) >>
-        relm_widget: map!(option!(braces!(do_parse!(
-            child_items: separated_by0!(punct!(,), call!(child_relm_item)) >>
-            ({
+impl Parse for ChildRelmItem {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let parser = input.fork();
+        let child_item =
+            if RelmPropertyOrEvent::parse(&parser).is_ok() {
+                RelmPropertyOrEvent::parse(input)?.child_item
+            }
+            else {
+                ChildWidgetParser::parse(DontSave, input)?.widget
+            };
+        Ok(ChildRelmItem {
+            child_item,
+        })
+    }
+}
+
+struct RelmWidgetParser {
+    relm_widget: ChildItem,
+}
+
+impl RelmWidgetParser {
+    fn parse(typ: Path, input: ParseStream) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        let init_parameters =
+            if lookahead.peek(token::Paren) {
+                let content;
+                let _parens = parenthesized!(content in input);
+                Some(ExprList::parse(&content)?.exprs)
+            }
+            else {
+                None
+            };
+        let relm_widget =
+            if lookahead.peek(token::Brace) {
+                let content;
+                let _brace = braced!(content in input);
+                let child_items = Punctuated::<ChildRelmItem, Token![,]>::parse_terminated(&content)?
+                    .into_iter()
+                    .map(|relm_item| relm_item.child_item);
+
                 let init_parameters = init_parameters.clone().unwrap_or_else(Vec::new);
                 let mut relm_widget = RelmWidget::new();
                 let mut children = vec![];
@@ -477,118 +571,167 @@ named! { relm_widget(typ: Path) -> ChildItem, do_parse!(
                         },
                     }
                 }
-                ChildWidget(Widget::new_relm(relm_widget, typ.clone(), init_parameters, children, properties, child_properties,
-                                      child_events))
-            })
-        ))), |widget| {
-            widget
-                .map(|(_, widget)| widget)
-                .unwrap_or_else(|| {
-                    let init_parameters = init_parameters.unwrap_or_else(Vec::new);
-                    ChildWidget(Widget::new_relm(RelmWidget::new(), typ, init_parameters, vec![], HashMap::new(),
-                        HashMap::new(), HashMap::new()))
-                })
-        }) >>
-        (relm_widget)
-    )
-}
-
-named! { relm_property_or_event -> ChildItem, do_parse!(
-    ident: syn!(Ident) >>
-    item: alt!
-    ( do_parse!(
-        punct!(:) >>
-        result: call!(value_or_child_properties, ident.clone()) >>
-        (
-            if ident.to_string().chars().next().map(|char| char.is_lowercase()) == Some(false) {
-                // Uppercase is a msg to send.
-                match result {
-                    Property(ident, value) => RelmMsg(ident, value),
-                    _ => panic!("Expecting property"),
-                }
+                ChildWidget(Widget::new_relm(relm_widget, typ.clone(), init_parameters, children, properties,
+                    child_properties, child_events))
             }
             else {
-                // Lowercase is a gtk property.
-                result
+                let init_parameters = init_parameters.unwrap_or_else(Vec::new);
+                ChildWidget(Widget::new_relm(RelmWidget::new(), typ, init_parameters, vec![], HashMap::new(),
+                    HashMap::new(), HashMap::new()))
+            };
+        Ok(RelmWidgetParser {
+            relm_widget,
+        })
+    }
+}
+
+struct RelmPropertyOrEvent {
+    child_item: ChildItem,
+}
+
+impl Parse for RelmPropertyOrEvent {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ident: Ident = input.parse()?;
+        let lookahead = input.lookahead1();
+        let child_item =
+            if lookahead.peek(Token![:]) {
+                let _colon: Token![:] = input.parse()?;
+                let result = ValueOrChildProperties::parse(input, &ident)?.child_item;
+
+                if ident.to_string().chars().next().map(|char| char.is_lowercase()) == Some(false) {
+                    // Uppercase is a msg to send.
+                    match result {
+                        Property(ident, value) => RelmMsg(ident, value),
+                        _ => panic!("Expecting property"),
+                    }
+                }
+                else {
+                    // Lowercase is a gtk property.
+                    result
+                }
             }
-        )
-      )
-    | do_parse!(
-        punct!(.) >>
-        event_name: syn!(Ident) >>
-        event: event >>
-        (ChildEvent(event_name, ident.clone(), event))
-      )
-    | map!(event, |mut event| {
-        if ident.to_string().chars().next().map(|char| char.is_lowercase()) == Some(false) {
-            // Uppercase is a msg.
-            RelmMsgEvent(ident, event)
+            else if lookahead.peek(Token![.]) {
+                let _colon: Token![.] = input.parse()?;
+                let event_name: Ident = input.parse()?;
+                let event = Event::parse(input)?;
+                ChildEvent(event_name, ident.clone(), event)
+            }
+            else {
+                let mut event = Event::parse(input)?;
+                if ident.to_string().chars().next().map(|char| char.is_lowercase()) == Some(false) {
+                    // Uppercase is a msg.
+                    RelmMsgEvent(ident, event)
+                }
+                else {
+                    // Lowercase is a gtk event.
+                    if event.params.is_empty() {
+                        event.params.push(wild_pat());
+                    }
+                    ItemEvent(ident, event)
+                }
+            };
+        Ok(RelmPropertyOrEvent {
+            child_item,
+        })
+    }
+}
+
+struct GtkChildPropertyOrEvent {
+    child_item: ChildItem,
+}
+
+impl Parse for GtkChildPropertyOrEvent {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ident: Ident = input.parse()?;
+        let lookahead = input.lookahead1();
+        let child_item =
+            if lookahead.peek(Token![:]) {
+                let _colon: Token![:] = input.parse()?;
+                ValueOrChildProperties::parse(input, &ident)?.child_item
+            }
+            else if lookahead.peek(Token![.]) {
+                let _colon: Token![.] = input.parse()?;
+                let event_name: Ident = input.parse()?;
+                let mut event = Event::parse(input)?;
+
+                if event.params.is_empty() {
+                    event.params.push(wild_pat());
+                }
+                ChildEvent(event_name, ident.clone(), event)
+            }
+            else {
+                let mut event = Event::parse(input)?;
+                if event.params.is_empty() {
+                    event.params.push(wild_pat());
+                }
+                ItemEvent(ident, event)
+            };
+        Ok(GtkChildPropertyOrEvent {
+            child_item,
+        })
+    }
+}
+
+struct ValueOrChildProperties {
+    child_item: ChildItem,
+}
+
+impl ValueOrChildProperties {
+    fn parse(input: ParseStream, ident: &Ident) -> Result<Self> {
+        let lookahead = input.lookahead1();
+        let child_item =
+            if lookahead.peek(token::Brace) {
+                let properties;
+                let _brace = braced!(properties in input);
+                let properties = ChildPropertiesParser::parse(&properties)?.properties;
+                let properties = properties.into_iter()
+                    .map(|(key, value)| ((ident.clone(), key), value))
+                    .collect();
+                ItemChildProperties(properties)
+            }
+            else {
+                let value = Value::parse(input)?;
+                Property(ident.clone(), value)
+            };
+        Ok(ValueOrChildProperties {
+            child_item,
+        })
+    }
+}
+
+struct Tag;
+
+impl Tag {
+    fn parse(input: ParseStream, expected_ident: &str) -> Result<()> {
+        let parser = input.fork();
+        let ident: Ident = parser.parse()?;
+        if ident != expected_ident {
+            Err(Error::new(ident.span(), format!("Expected ident {}, but found {}", expected_ident, ident)))
         }
         else {
-            // Lowercase is a gtk event.
-            if event.params.is_empty() {
-                event.params.push(wild_pat());
-            }
-            ItemEvent(ident, event)
+            let _ident: Ident = input.parse()?;
+            Ok(())
         }
-    })
-    ) >>
-    (item)
-)}
+    }
+}
 
-named! { gtk_child_property_or_event -> ChildItem, do_parse!(
-    ident: syn!(Ident) >>
-    item: alt!
-    ( do_parse!(
-        punct!(:) >>
-        value: call!(value_or_child_properties, ident.clone()) >>
-        (value)
-      )
-    | do_parse!(
-        punct!(.) >>
-        event_name: syn!(Ident) >>
-        mut event: event >>
-        ({
-            if event.params.is_empty() {
-                event.params.push(wild_pat());
-            }
-            ChildEvent(event_name, ident.clone(), event)
+struct SharedValues {
+    shared_values: Option<Vec<Ident>>,
+}
+
+impl Parse for SharedValues {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let shared_values = catch_return! {{
+            Tag::parse(input, "with")?;
+            let content;
+            let _parens = parenthesized!(content in input);
+            let idents = IdentList::parse(&content)?.idents;
+            idents
+        }}.ok();
+        Ok(SharedValues {
+            shared_values,
         })
-    )
-    | map!(event, |mut event| {
-        if event.params.is_empty() {
-            event.params.push(wild_pat());
-        }
-        ItemEvent(ident, event)
-    })
-    ) >>
-    (item)
-    )
-}
-
-named! { value_or_child_properties(ident: Ident) -> ChildItem, alt!
-    ( map!(braces!(child_properties), |(_, properties)| {
-        let properties = properties.into_iter()
-            .map(|(key, value)| ((ident.clone(), key), value))
-            .collect();
-        ItemChildProperties(properties)
-    })
-    | map!(value, |value| Property(ident, value))
-    )
-}
-
-named! { tag(expected_ident: String) -> (), do_parse!(
-    ident: syn!(Ident) >>
-    cond!(ident != expected_ident, map!(reject!(), |()| ())) >>
-    cond!(ident == expected_ident, epsilon!()) >>
-    ()
-)}
-
-named! { shared_values -> Option<Vec<Ident>>, option!(do_parse!(
-    call!(tag, "with".to_string()) >>
-    idents: map!(parens!(ident_list), |(_, idents)| idents) >>
-    (idents)
-    ))
+    }
 }
 
 enum IdentOrEventValue {
@@ -612,70 +755,128 @@ struct Value {
     use_self: bool,
 }
 
-named! { value -> Value, do_parse!(
-    expr: syn!(Expr) >>
-    ({
+impl Parse for Value {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let expr = Expr::parse(input)?;
         let use_self = expr_use_self(&expr);
-        Value {
+        Ok(Value {
             value: expr,
             use_self,
+        })
+    }
+}
+
+struct EventValueParser {
+    value_return: EventValueReturn,
+    use_self: bool,
+}
+
+impl Parse for EventValueParser {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let tag = Tag::parse(input, "return");
+        let lookahead = input.lookahead1();
+        if tag.is_ok() {
+            let value = Value::parse(input)?;
+            Ok(EventValueParser {
+                value_return: CallReturn(value.value),
+                use_self: value.use_self,
+            })
         }
-    })
-)}
-
-named! { event_value -> (EventValueReturn, bool),
-    alt!
-    ( do_parse!(
-        call!(tag, "return".to_string()) >>
-        value: value >>
-        (CallReturn(value.value), value.use_self)
-      )
-    | map!(parens!(do_parse!(
-        value1: value >>
-        punct!(,) >>
-        value2: value >>
-        (Return(value1.value, value2.value), value1.use_self || value2.use_self)
-      )), |(_, value)| value)
-    | do_parse!(
-        value: value >>
-        (WithoutReturn(value.value), value.use_self)
-      )
-    )
+        else if lookahead.peek(token::Paren) {
+            let content;
+            let _parens = parenthesized!(content in input);
+            let value1: Value = content.parse()?;
+            let _comma: token::Comma = content.parse()?;
+            let value2: Value = content.parse()?;
+            Ok(EventValueParser {
+                value_return: Return(value1.value, value2.value),
+                use_self: value1.use_self || value2.use_self,
+            })
+        }
+        else {
+            let value = Value::parse(input)?;
+            Ok(EventValueParser {
+                value_return: WithoutReturn(value.value),
+                use_self: value.use_self,
+            })
+        }
+    }
 }
 
-named! { message_sent -> IdentOrEventValue, do_parse!(
-    value: alt!
-        ( map!(do_parse!(
-            ident: syn!(Ident) >>
-            punct!(@) >>
-            event_value: event_value >>
-            ((ident, event_value))
-          ), |(ident, (value, use_self))| MessageEventValue(ident, value, use_self))
-        | event_value => { |(value, use_self)| MessageIdent(value, use_self) }
-        ) >>
-    (value)
-    )
+struct MessageSent {
+    ident_or_event_value: IdentOrEventValue,
 }
 
-named! { expr_list -> Vec<Expr>,
-    map!(call!(Punctuated::parse_terminated), |exprs: Punctuated<Expr, Token![,]>|
-         exprs.into_iter().collect())
+impl Parse for MessageSent {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let ident: Result<Ident> = catch_return! {{
+            let parser = input.fork();
+            let ident: Ident = parser.parse()?;
+            let _token: token::At = parser.parse()?;
+            ident
+        }};
+        if ident.is_ok() {
+            let ident: Ident = input.parse()?;
+            let _token: token::At = input.parse()?;
+            let event_value = EventValueParser::parse(input)?;
+            Ok(MessageSent {
+                ident_or_event_value: MessageEventValue(ident, event_value.value_return, event_value.use_self),
+            })
+        }
+        else {
+            let event_value = EventValueParser::parse(input)?;
+            Ok(MessageSent {
+                ident_or_event_value: MessageIdent(event_value.value_return, event_value.use_self),
+            })
+        }
+    }
 }
 
-named! { ident_list -> Vec<Ident>,
-    map!(call!(Punctuated::parse_terminated), |idents: Punctuated<Ident, Token![,]>|
-         idents.into_iter().collect())
+struct ExprList {
+    exprs: Vec<Expr>,
 }
 
-named! { event -> Event, do_parse!(
-    params: option!(map!(parens!(separated_by0!(punct!(,), syn!(syn::Pat))), |(_, params)| params)) >>
-    shared_values: shared_values >>
-    punct!(=>) >>
-    message_sent: message_sent >>
-    ({
+impl Parse for ExprList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let exprs: Punctuated<Expr, Token![,]> = input.parse_terminated(Expr::parse)?;
+        Ok(ExprList {
+            exprs: exprs.into_iter().collect(),
+        })
+    }
+}
+
+struct IdentList {
+    idents: Vec<Ident>,
+}
+
+impl Parse for IdentList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let idents: Punctuated<Ident, Token![,]> = input.parse_terminated(Ident::parse)?;
+        Ok(IdentList {
+            idents: idents.into_iter().collect(),
+        })
+    }
+}
+
+impl Parse for Event {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let content;
+        let lookahead = input.lookahead1();
+        let params =
+            if lookahead.peek(token::Paren) {
+                let _parens = parenthesized!(content in input);
+                Punctuated::<Pat, Token![,]>::parse_separated_nonempty(&content).ok()
+            }
+            else {
+                None
+            };
+        let shared_values = SharedValues::parse(input)?.shared_values;
+        let _token: Token![=>] = input.parse()?;
+        let message_sent = MessageSent::parse(input)?.ident_or_event_value;
+
         let mut event = Event::new();
         if let Some(params) = params {
-            event.params = params;
+            event.params = params.into_iter().collect();
         }
         if let Some(shared_values) = shared_values {
             event.shared_values = shared_values;
@@ -690,25 +891,62 @@ named! { event -> Event, do_parse!(
                 event.value = ForeignWidget(ident, event_value);
             },
         }
-        event
-    })
-)}
-
-named! { child_gtk_item -> ChildItem,
-    alt!
-    ( gtk_child_property_or_event
-    | map!(call!(child_widget, DontSave), |(widget, _)| widget)
-    )
+        Ok(event)
+    }
 }
 
-named! { child_properties -> HashMap<Ident, Expr>, map!(
-    separated_by0!(punct!(,), do_parse!(
-        ident: syn!(Ident) >>
-        punct!(:) >>
-        value: value >>
-        ((ident, value.value))
-    )),
-    |properties| properties.into_iter().collect())
+struct ChildGtkItem {
+    item: ChildItem,
+}
+
+impl Parse for ChildGtkItem {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let parser = input.fork();
+        let item: Result<GtkChildPropertyOrEvent> = parser.parse();
+        if item.is_ok() {
+            let item: GtkChildPropertyOrEvent = input.parse()?;
+            Ok(ChildGtkItem {
+                item: item.child_item,
+            })
+        }
+        else {
+            Ok(ChildGtkItem {
+                item: ChildWidgetParser::parse(DontSave, input)?.widget
+            })
+        }
+    }
+}
+
+struct ChildProp {
+    name: Ident,
+    value: Value,
+}
+
+impl Parse for ChildProp {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let name: Ident = input.parse()?;
+        let _token: Token![:] = input.parse()?;
+        let value = Value::parse(input)?;
+        Ok(ChildProp {
+            name,
+            value,
+        })
+    }
+}
+
+struct ChildPropertiesParser {
+    properties: HashMap<Ident, Expr>,
+}
+
+impl Parse for ChildPropertiesParser {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let properties = Punctuated::<ChildProp, Token![,]>::parse_terminated(input)?;
+        Ok(ChildPropertiesParser {
+            properties: properties.into_iter()
+                .map(|child_prop| (child_prop.name, child_prop.value.value))
+                .collect(),
+        })
+    }
 }
 
 fn wild_pat() -> Pat {
@@ -718,18 +956,14 @@ fn wild_pat() -> Pat {
         .expect("wildcard pattern")
 }
 
-impl syn::synom::Synom for Widget {
-    named! { parse -> Self,
-        do_parse!(
-            widget: call!(child_widget, Save) >>
-            option!(punct!(,)) >>
-            ({
-                let (widget, parent_id) = widget;
-                let mut widget = widget.unwrap_widget();
-                widget.parent_id = parent_id;
-                widget
-            })
-        )
+impl Parse for Widget {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let child_widget = ChildWidgetParser::parse(Save, input)?;
+        let _token: Option<Token![,]> = input.parse().ok();
+
+        let mut widget = child_widget.widget.unwrap_widget();
+        widget.parent_id = child_widget.parent_id;
+        Ok(widget)
     }
 }
 
@@ -757,7 +991,7 @@ fn path_to_string(path: &Path) -> String {
 }
 
 fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<String, Option<LitStr>>)
-    -> (ChildItem, Option<String>)
+    -> ChildWidgetParser
 {
     let parent_id;
     match widget {
@@ -774,7 +1008,10 @@ fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<Str
         },
         _ => panic!("Expecting widget"),
     }
-    (widget, parent_id)
+    ChildWidgetParser {
+        widget,
+        parent_id,
+    }
 }
 
 #[cfg(feature = "unstable")]

@@ -62,8 +62,9 @@ use syn::{
 };
 use syn::FnArg::{self, Captured};
 use syn::fold::Fold;
-use syn::ImplItem::{Const, Method, Verbatim};
+use syn::ImplItem::{Const, Existential, Method, Verbatim};
 use syn::Item::{self, Impl};
+use syn::parse::Result;
 use syn::spanned::Spanned;
 use syn::Type;
 use syn::visit::Visit;
@@ -213,6 +214,7 @@ impl Driver {
                 let mut i = item.clone();
                 match item {
                     Const(..) => panic!("Unexpected const item"),
+                    Existential(..) => panic!("Unexpected existential item"),
                     ImplItem::Macro(mac) => self.view_macro = Some(mac.mac),
                     Method(ImplItemMethod { sig, .. }) => {
                         match sig.ident.to_string().as_ref() {
@@ -244,7 +246,11 @@ impl Driver {
                     Verbatim(..) => panic!("Unexpected verbatim item"),
                 }
             }
-            let view = self.get_view(&name, &self_ty);
+            let view =
+                match self.get_view(&name, &self_ty) {
+                    Ok(view) => view,
+                    Err(error) => return error.to_compile_error(),
+                };
             if let Some(on_add) = gen_set_child_prop_calls(&view.widget) {
                 new_items.push(on_add);
             }
@@ -366,7 +372,7 @@ impl Driver {
         func
     }
 
-    fn get_view(&mut self, name: &Ident, typ: &Type) -> View {
+    fn get_view(&mut self, name: &Ident, typ: &Type) -> Result<View> {
         // This method should probably just be replaced with `impl_view` and
         // `view_validation_before_impl` should be put inside `impl_view`
         self.view_validation_before_impl();
@@ -415,9 +421,9 @@ impl Driver {
         */
     }
 
-    fn impl_view(&mut self, name: &Ident, typ: &Type) -> View {
+    fn impl_view(&mut self, name: &Ident, typ: &Type) -> Result<View> {
         let tts = self.view_macro.take().expect("view_macro in impl_view()").tts;
-        let mut widget = parse_widget(tts);
+        let mut widget = parse_widget(tts)?;
         if let Gtk(ref mut widget) = widget.widget {
             widget.relm_name = Some(typ.clone());
         }
@@ -436,14 +442,14 @@ impl Driver {
             }
         };
         let item = block_to_impl_item(code);
-        View {
+        Ok(View {
             container_impl,
             item,
             msg_model_map,
             properties_model_map,
             relm_widgets,
             widget,
-        }
+        })
     }
 
     fn update_impl(&mut self, typ: &Type, generics: &Generics, items: Vec<ImplItem>) -> TokenStream {

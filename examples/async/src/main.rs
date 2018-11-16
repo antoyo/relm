@@ -31,7 +31,6 @@ extern crate relm_derive;
 use gio::{
     AppInfo,
     AppLaunchContext,
-    CancellableExt,
     File,
     FileExt,
 };

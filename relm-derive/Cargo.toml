@@ -12,7 +12,7 @@ proc-macro = true
 
 [dependencies]
 quote = "0.6"
-syn = "0.14"
+syn = "0.15"
 
 [dependencies.relm-derive-common]
 path = "../relm-derive-common"
