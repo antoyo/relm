@@ -127,7 +127,7 @@ use gobject_sys::{GObject, GValue};
 use gtk::Continue;
 use libc::{c_char, c_uint};
 #[doc(hidden)]
-pub use relm_core::{Channel, EventStream};
+pub use relm_core::{Channel, EventStream, Sender};
 pub use relm_state::{
     DisplayVariant,
     IntoOption,
