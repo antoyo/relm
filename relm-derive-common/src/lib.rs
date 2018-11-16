@@ -39,7 +39,7 @@ pub fn impl_simple_msg(ast: &Item, krate: Ident) -> TokenStream {
         let typ = quote! {
             #name #generics_without_bound
         };
-        let where_clause = gen_where_clause(&generics);
+        let where_clause = gen_where_clause(generics);
 
         quote! {
             #display
@@ -143,7 +143,7 @@ fn derive_into_option(ast: &Item, krate: &Ident) -> TokenStream {
         let typ = quote! {
             #name #generics_without_bound
         };
-        let where_clause = gen_where_clause(&generics);
+        let where_clause = gen_where_clause(generics);
 
         quote_spanned! { krate.span() =>
             impl #generics ::#krate::IntoOption<#typ> for #typ #where_clause {
