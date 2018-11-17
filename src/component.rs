@@ -26,9 +26,9 @@ use super::{EventStream, Widget};
 /// ## Warning
 /// You must keep your components as long as you want them to send/receive events.
 /// Common practice is to store `Component`s in the `Widget` struct (see the [communication
-/// example](https://github.com/antoyo/relm/blob/master/examples/communication.rs#L182-L188)).
+/// example](https://github.com/antoyo/relm/blob/master/tests/communication.rs#L216-L220)).
 /// The `#[widget]` attribute takes care of storing them in the struct automatically (see the
-/// [communication-attribute example](https://github.com/antoyo/relm/blob/master/examples/communication-attribute.rs)).
+/// [communication-attribute example](https://github.com/antoyo/relm/blob/master/tests/communication-attribute.rs)).
 #[must_use]
 pub struct Component<WIDGET: Widget> {
     stream: EventStream<WIDGET::Msg>,

@@ -150,8 +150,6 @@ extern "C" {
 }
 
 /// Dummy macro to be used with `#[derive(Widget)]`.
-///
-/// An example can be found [here](https://github.com/antoyo/relm/blob/master/examples/buttons-derive/src/main.rs#L52).
 #[macro_export]
 macro_rules! impl_widget {
     ($($tt:tt)*) => {
@@ -160,6 +158,8 @@ macro_rules! impl_widget {
 }
 
 /// Macro to be used as a stable alternative to the `#[widget]` attribute.
+///
+/// An example can be found [here](https://github.com/antoyo/relm/blob/master/examples/buttons-derive/src/main.rs#L50).
 #[macro_export]
 macro_rules! relm_widget {
     ($($tts:tt)*) => {
