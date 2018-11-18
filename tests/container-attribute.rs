@@ -60,16 +60,24 @@ impl Widget for GtkButton {
     }
 }
 
-#[widget]
-impl Widget for Button {
-    fn model() -> () {
-    }
+mod module {
+    use relm::Widget;
+    use relm_attributes::widget;
 
-    fn update(&mut self, _msg: ButtonMsg) {
-    }
+    use ButtonMsg;
+    use GtkButton;
 
-    view! {
-        GtkButton
+    #[widget]
+    impl Widget for Button {
+        fn model() -> () {
+        }
+
+        fn update(&mut self, _msg: ButtonMsg) {
+        }
+
+        view! {
+            GtkButton
+        }
     }
 }
 
@@ -135,7 +143,7 @@ impl Widget for Win {
                 gtk::Label {
                     text: &self.model.counter.to_string(),
                 },
-                Button {
+                $module::Button {
                 },
                 #[name="dec_button"]
                 gtk::Button {

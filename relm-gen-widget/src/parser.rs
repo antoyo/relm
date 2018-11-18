@@ -51,7 +51,7 @@ use self::EventValueReturn::*;
 use self::EitherWidget::*;
 use self::IdentOrEventValue::*;
 use self::InitProperties::*;
-use self::PathOrIdent::*;
+use self::WidgetPath::*;
 use self::SaveWidget::*;
 
 lazy_static! {
@@ -389,43 +389,51 @@ impl Parse for Attributes {
 }
 
 #[derive(Debug)]
-enum PathOrIdent {
-    WidgetIdent(Path),
-    WidgetPath(Path),
+enum WidgetPath {
+    RelmPath(Path),
+    GtkPath(Path),
 }
 
-impl PathOrIdent {
-    fn get_ident(&self) -> &Path {
+impl WidgetPath {
+    fn get_relm_path(&self) -> &Path {
         match *self {
-            WidgetIdent(ref ident) => ident,
-            WidgetPath(_) => panic!("Expected ident"),
+            RelmPath(ref ident) => ident,
+            GtkPath(_) => panic!("Expected ident"),
         }
     }
 
-    fn get_path(&self) -> &Path {
+    fn get_gtk_path(&self) -> &Path {
         match *self {
-            WidgetIdent(_) => panic!("Expected path"),
-            WidgetPath(ref path) => path,
+            RelmPath(_) => panic!("Expected path"),
+            GtkPath(ref path) => path,
         }
     }
 }
 
-struct PathOrIdentParser {
-    path_or_ident: PathOrIdent,
+struct WidgetPathParser {
+    widget_path: WidgetPath,
 }
 
-impl Parse for PathOrIdentParser {
+impl Parse for WidgetPathParser {
     fn parse(input: ParseStream) -> Result<Self> {
-        let path: Path = input.parse()?;
-        let path_or_ident =
-            if path.segments.len() == 1 {
-                WidgetIdent(path)
+        let lookahead = input.lookahead1();
+        let widget_path =
+            if lookahead.peek(token::Dollar) {
+                let _token: token::Dollar = input.parse()?;
+                let path: Path = input.parse()?;
+                RelmPath(path)
             }
             else {
-                WidgetPath(path)
+                let path: Path = input.parse()?;
+                if path.segments.len() == 1 {
+                    RelmPath(path)
+                }
+                else {
+                    GtkPath(path)
+                }
             };
-        Ok(PathOrIdentParser {
-            path_or_ident,
+        Ok(WidgetPathParser {
+            widget_path,
         })
     }
 }
@@ -438,15 +446,15 @@ struct ChildWidgetParser {
 impl ChildWidgetParser {
     fn parse(root: SaveWidget, input: ParseStream) -> Result<Self> {
         let attributes = Attributes::parse(&input)?.name_values;
-        let typ: PathOrIdentParser = input.parse()?;
-        let typ = typ.path_or_ident;
+        let typ: WidgetPathParser = input.parse()?;
+        let typ = typ.widget_path;
         match typ {
-            WidgetIdent(_) => {
-                let relm_widget = RelmWidgetParser::parse(typ.get_ident().clone(), input)?.relm_widget;
+            RelmPath(_) => {
+                let relm_widget = RelmWidgetParser::parse(typ.get_relm_path().clone(), input)?.relm_widget;
                 Ok(adjust_widget_with_attributes(relm_widget, &attributes))
             },
-            WidgetPath(_) => {
-                let gtk_widget = GtkWidgetParser::parse(typ.get_path().clone(),
+            GtkPath(_) => {
+                let gtk_widget = GtkWidgetParser::parse(typ.get_gtk_path().clone(),
                     attributes.contains_key("name") || root == Save, input)?.gtk_widget;
                 Ok(adjust_widget_with_attributes(gtk_widget, &attributes))
             },
