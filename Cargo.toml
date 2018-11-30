@@ -57,11 +57,13 @@ version = "^0.15.0"
 default = ["unstable"]
 nightly = []
 unstable = []
-[[metadata.release.pre-release-replacements]]
+
+[[package.metadata.release.pre-release-replacements]]
 file = "README.adoc"
 replace = "relm = \"{{version}}\""
 search = "relm = \"[a-z0-9^\\.-]+\""
-[[metadata.release.pre-release-replacements]]
+
+[[package.metadata.release.pre-release-replacements]]
 file = "src/lib.rs"
 replace = "relm = \"{{version}}\""
 search = "relm = \"[a-z0-9^\\.-]+\""
