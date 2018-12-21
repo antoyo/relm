@@ -21,7 +21,7 @@ See http://gtk-rs.org/docs-src/requirements[this page] for information on how to
 
 == Usage
 
-First, add this to you `Cargo.toml`:
+First, add this to your `Cargo.toml`:
 
 [source,toml]
 ----
