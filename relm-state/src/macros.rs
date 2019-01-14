@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2019 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -131,10 +131,11 @@ macro_rules! connect_async {
         connect_async!($object, $async_method(), $relm, $msg)
     };
     ($object:expr, $async_method:ident ( $($args:expr),* ), $relm:expr, $msg:expr) => {{
-        let stream = $relm.stream().clone();
+        // TODO: remove any use of Fragile when gio callbacks stop requiring Send.
+        let stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
         $object.$async_method($($args,)* None, move |result| {
             if let Ok(result) = result {
-                stream.emit($msg(result));
+                stream.into_inner().emit($msg(result));
             }
         });
     }};
@@ -142,12 +143,12 @@ macro_rules! connect_async {
         connect_async!($object, $async_method(), $relm, $msg, $fail_msg)
     };
     ($object:expr, $async_method:ident ( $($args:expr),* ), $relm:expr, $msg:expr, $fail_msg:expr) => {{
-        let event_stream = $relm.stream().clone();
-        let fail_event_stream = $relm.stream().clone();
+        let event_stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
+        let fail_event_stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
         $object.$async_method($($args,)* None, move |result| {
-            match result {
-                Ok(value) => event_stream.emit($msg(value)),
-                Err(error) => fail_event_stream.emit($fail_msg(error)),
+            match result.into_inner() {
+                Ok(value) => event_stream.into_inner().emit($msg(value)),
+                Err(error) => fail_event_stream.into_inner().emit($fail_msg(error)),
             }
         });
     }};
@@ -162,10 +163,10 @@ macro_rules! connect_async_func {
         connect_async_func!($class::$async_func(), $relm, $msg)
     };
     ($class:ident :: $async_func:ident ( $($args:expr),* ), $relm:expr, $msg:expr) => {{
-        let stream = $relm.stream().clone();
+        let stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
         $class::$async_func($($args,)* None, move |result| {
             if let Ok(result) = result {
-                stream.emit($msg(result));
+                stream.into_inner().emit($msg(result));
             }
         });
     }};
@@ -173,12 +174,12 @@ macro_rules! connect_async_func {
         connect_async_func!($class::$async_func(), $relm, $msg, $fail_msg)
     };
     ($class:ident :: $async_func:ident ( $($args:expr),* ), $relm:expr, $msg:expr, $fail_msg:expr) => {{
-        let event_stream = $relm.stream().clone();
-        let fail_event_stream = $relm.stream().clone();
+        let event_stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
+        let fail_event_stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
         $class::$async_func($($args,)* None, move |result| {
             match result {
-                Ok(value) => event_stream.emit($msg(value)),
-                Err(error) => fail_event_stream.emit($fail_msg(error)),
+                Ok(value) => event_stream.into_inner().emit($msg(value)),
+                Err(error) => fail_event_stream.into_inner().emit($fail_msg(error)),
             }
         });
 
@@ -193,10 +194,10 @@ macro_rules! connect_async_full {
     };
     ($object:expr, $async_method:ident ( $($args:expr),* ), $relm:expr, $msg:expr) => {{
         let cancellable = ::gio::Cancellable::new();
-        let stream = $relm.stream().clone();
+        let stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
         $object.$async_method($($args,)* Some(&cancellable), move |result| {
             if let Ok(result) = result {
-                stream.emit($msg(result));
+                stream.into_inner().emit($msg(result));
             }
         });
         cancellable
@@ -206,12 +207,12 @@ macro_rules! connect_async_full {
     };
     ($object:expr, $async_method:ident ( $($args:expr),* ), $relm:expr, $msg:expr, $fail_msg:expr) => {{
         let cancellable = ::gio::Cancellable::new();
-        let event_stream = $relm.stream().clone();
-        let fail_event_stream = $relm.stream().clone();
+        let event_stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
+        let fail_event_stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
         $object.$async_method($($args,)* Some(&cancellable), move |result| {
             match result {
-                Ok(value) => event_stream.emit($msg(value)),
-                Err(error) => fail_event_stream.emit($fail_msg(error)),
+                Ok(value) => event_stream.into_inner().emit($msg(value)),
+                Err(error) => fail_event_stream.into_inner().emit($fail_msg(error)),
             }
         });
 
@@ -227,10 +228,10 @@ macro_rules! connect_async_func_full {
     };
     ($class:ident :: $async_func:ident ( $($args:expr),* ), $relm:expr, $msg:expr) => {{
         let cancellable = ::gio::Cancellable::new();
-        let stream = $relm.stream().clone();
+        let stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
         $class::$async_func($($args,)* Some(&cancellable), move |result| {
             if let Ok(result) = result {
-                stream.emit($msg(result));
+                stream.into_inner().emit($msg(result));
             }
         });
         cancellable
@@ -240,12 +241,12 @@ macro_rules! connect_async_func_full {
     };
     ($class:ident :: $async_func:ident ( $($args:expr),* ), $relm:expr, $msg:expr, $fail_msg:expr) => {{
         let cancellable = ::gio::Cancellable::new();
-        let event_stream = $relm.stream().clone();
-        let fail_event_stream = $relm.stream().clone();
+        let event_stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
+        let fail_event_stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
         $class::$async_func($($args,)* Some(&cancellable), move |result| {
             match result {
-                Ok(value) => event_stream.emit($msg(value)),
-                Err(error) => fail_event_stream.emit($fail_msg(error)),
+                Ok(value) => event_stream.into_inner().emit($msg(value)),
+                Err(error) => fail_event_stream.into_inner().emit($fail_msg(error)),
             }
         });
 
