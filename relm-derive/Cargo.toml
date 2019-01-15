@@ -5,7 +5,7 @@ documentation = "https://docs.rs/relm-derive/"
 license = "MIT"
 name = "relm-derive"
 repository = "https://github.com/antoyo/relm"
-version = "0.15.1"
+version = "0.15.2"
 
 [lib]
 proc-macro = true

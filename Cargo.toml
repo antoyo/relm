@@ -7,7 +7,7 @@ license = "MIT"
 name = "relm"
 readme = "README.adoc"
 repository = "https://github.com/antoyo/relm"
-version = "0.15.1"
+version = "0.15.2"
 [badges.appveyor]
 branch = "master"
 repository = "antoyo/relm"
