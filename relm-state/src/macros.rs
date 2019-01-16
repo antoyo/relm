@@ -146,7 +146,7 @@ macro_rules! connect_async {
         let event_stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
         let fail_event_stream = ::relm::vendor::fragile::Fragile::new($relm.stream().clone());
         $object.$async_method($($args,)* None, move |result| {
-            match result.into_inner() {
+            match result {
                 Ok(value) => event_stream.into_inner().emit($msg(value)),
                 Err(error) => fail_event_stream.into_inner().emit($fail_msg(error)),
             }
