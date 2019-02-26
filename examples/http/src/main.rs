@@ -70,7 +70,7 @@ use relm::{
 };
 use relm_attributes::widget;
 use simplelog::{Config, TermLogger};
-use simplelog::LogLevelFilter::Warn;
+use simplelog::LevelFilter::Warn;
 use uhttp_uri::HttpUri;
 
 use self::Msg::*;

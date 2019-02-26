@@ -11,7 +11,7 @@ glib = "^0.6.0"
 glib-sys = "^0.7.0"
 gtk = "^0.5.0"
 json = "^0.11.5"
-simplelog = "^0.4.2"
+simplelog = "^0.5.3"
 uhttp_uri = "^0.5.1"
 
 [dependencies.relm]
