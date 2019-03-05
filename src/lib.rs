@@ -123,7 +123,7 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
 use gtk::Continue;
-#[doc(hidden)]
+
 pub use relm_core::{Channel, EventStream, Sender};
 pub use relm_state::{
     DisplayVariant,
