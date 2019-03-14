@@ -37,6 +37,7 @@ use gtk::{
     Inhibit,
     OrientableExt,
     WidgetExt,
+    WidgetExtManual,
 };
 use gtk::Orientation::Vertical;
 use rand::Rng;
@@ -97,7 +98,7 @@ pub enum Msg {
 impl Widget for Win {
     fn init_view(&mut self) {
         self.model.draw_handler.init(&self.drawing_area);
-        self.drawing_area.add_events(EventMask::POINTER_MOTION_MASK.bits() as i32);
+        self.drawing_area.add_events(EventMask::POINTER_MOTION_MASK);
     }
 
     fn model() -> Model {
