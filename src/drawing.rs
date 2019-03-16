@@ -114,7 +114,6 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
     /// The widget is the one on which drawing will occur.
     pub fn init(&mut self, widget: &W) {
         widget.set_app_paintable(true);
-        // widget.set_double_buffered(false);
         self.widget = Some(widget.clone());
         let draw_surface = self.draw_surface.clone();
         widget.connect_draw(move |_, context| {

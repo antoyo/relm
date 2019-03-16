@@ -115,7 +115,7 @@ pub mod vendor;
 mod widget;
 
 #[doc(hidden)]
-pub use glib::object::Cast;
+pub use glib::Cast;
 #[doc(hidden)]
 pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 #[doc(hidden)]
