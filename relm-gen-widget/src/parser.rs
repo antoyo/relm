@@ -545,6 +545,7 @@ impl RelmWidgetParser {
             else {
                 None
             };
+        let lookahead = input.lookahead1();
         let relm_widget =
             if lookahead.peek(token::Brace) {
                 let content;
