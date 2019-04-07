@@ -331,6 +331,15 @@ fn update(&mut self, event: Msg, model: &mut Model) {
 
 For more information about how you can use relm, you can take a look at the https://github.com/antoyo/relm/tree/master/examples[examples].
 
+== Donations
+
+If you appreciate this project and want new features to be
+implemented, please support me on Patreon.
+
+++++
+<a href="https://www.patreon.com/bePatron?u=19025421" data-patreon-widget-type="become-patron-button">Become a Patron!</a><script async src="https://c6.patreon.com/becomePatronButton.bundle.js"></script>
+++++
+
 == Projects using `relm`
 
  * https://github.com/sanpii/yellow-pitaya[Yellow Pitaya]
