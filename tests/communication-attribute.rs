@@ -51,7 +51,7 @@ pub struct TextModel {
 
 #[derive(Msg)]
 pub enum TextMsg {
-    Change(String),
+    Change(glib::GString),
 }
 
 #[widget]
@@ -180,7 +180,7 @@ impl Widget for Win {
                 #[name="text"]
                 Text {
                     Change(_) => counter1@Increment,
-                    Change(ref text) => TextChange(text.clone()),
+                    Change(ref text) => TextChange(text.to_string()),
                 },
                 #[name="label"]
                 gtk::Label {

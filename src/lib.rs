@@ -117,8 +117,6 @@ mod widget;
 #[doc(hidden)]
 pub use glib::Cast;
 #[doc(hidden)]
-pub use glib::object::Downcast;
-#[doc(hidden)]
 pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};

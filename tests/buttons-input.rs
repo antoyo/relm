@@ -103,12 +103,12 @@ impl Widget for Win {
                     #[name="left_entry"]
                     gtk::Entry {
                         text: &self.model.left_text,
-                        changed(entry) => LeftChanged(entry.get_text().unwrap_or_default()),
+                        changed(entry) => LeftChanged(entry.get_text().expect("get_text failed").to_string()),
                     },
                     #[name="right_entry"]
                     gtk::Entry {
                         text: &self.model.right_text,
-                        changed(entry) => RightChanged(entry.get_text().unwrap_or_default()),
+                        changed(entry) => RightChanged(entry.get_text().expect("get_text failed").to_string()),
                     },
                     orientation: Horizontal,
                 },

@@ -51,7 +51,7 @@ pub struct TextModel {
 
 #[derive(Msg)]
 pub enum TextMsg {
-    Change(String),
+    Change(glib::GString),
 }
 
 #[widget]

@@ -38,10 +38,10 @@ use gtk::{
     LabelExt,
     Menu,
     MenuItem,
-    MenuItemExt,
     MenuShellExt,
     OrientableExt,
     ToolButtonExt,
+    GtkMenuItemExt,
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
@@ -226,7 +226,7 @@ mod tests {
         LabelExt,
         Menu,
         MenuItem,
-        MenuItemExt,
+        GtkMenuItemExt,
     };
 
     use relm;

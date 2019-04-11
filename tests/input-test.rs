@@ -49,7 +49,7 @@ pub struct Model {
 
 #[derive(Msg)]
 pub enum Msg {
-    Change(String),
+    Change(glib::GString),
     Quit,
 }
 

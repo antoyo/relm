@@ -9,7 +9,7 @@ repository = "https://github.com/antoyo/relm"
 version = "0.15.3"
 
 [dependencies]
-gtk-test = "^0.2"
+gtk-test = "^0.3"
 
 [dependencies.relm-core]
 path = "../relm-core"

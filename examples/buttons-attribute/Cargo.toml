@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 
 [dependencies]
-gtk = "^0.5.0"
-gtk-test = "^0.2"
+gtk = "^0.6.0"
+gtk-test = "^0.3"
 
 [dependencies.relm]
 path = "../.."

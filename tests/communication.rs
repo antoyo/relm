@@ -61,7 +61,7 @@ struct TextModel {
 
 #[derive(Msg)]
 enum TextMsg {
-    Change(String),
+    Change(glib::GString),
 }
 
 struct Text {
@@ -266,7 +266,7 @@ impl Widget for Win {
         let text = hbox.add_widget::<Text>(());
         hbox.add(&label);
 
-        connect!(text@Change(ref text), relm, TextChange(text.clone()));
+        connect!(text@Change(ref text), relm, TextChange(text.to_string()));
         connect!(text@Change(_), counter1, Increment);
         connect!(counter1@Increment, counter2, Decrement);
         connect!(dec_button, connect_clicked(_), counter1, Decrement);
