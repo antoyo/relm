@@ -94,12 +94,23 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
     pub fn get_context(&mut self) -> DrawContext<W> {
         if let Some(ref widget) = self.widget {
             let allocation = widget.get_allocation();
-            let width = allocation.width;
-            let height = allocation.height;
+            let scale = if cfg!(feature = "hidpi") {
+                widget.get_scale_factor()
+            } else {
+                1
+            };
+            let width = allocation.width * scale;
+            let height = allocation.height * scale;
             if (width, height) != (self.edit_surface.get_width(), self.edit_surface.get_height()) {
                 // TODO: also copy the old small surface to the new bigger one?
                 match ImageSurface::create(Format::ARgb32, width, height) {
-                    Ok(surface) => self.edit_surface = surface,
+                    Ok(surface) => {
+                        {
+                            #[cfg(feature = "hidpi")]
+                            surface.set_device_scale(scale as f64, scale as f64);
+                        }
+                        self.edit_surface = surface
+                    }
                     Err(error) => eprintln!("Cannot resize image surface: {:?}", error),
                 }
             }
