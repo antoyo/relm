@@ -51,7 +51,7 @@ pub struct TextModel {
 
 #[derive(Msg)]
 pub enum TextMsg {
-    Change(String),
+    Change(glib::GString),
 }
 
 #[widget]
@@ -73,7 +73,7 @@ impl Widget for Text {
             orientation: Vertical,
             gtk::Entry {
                 name: "entry",
-                changed(entry) => Change(entry.get_text().expect("get_text failed").as_str().to_owned()),
+                changed(entry) => Change(entry.get_text().expect("get_text failed")),
             },
             gtk::Label {
                 name: "label",

@@ -50,7 +50,7 @@ pub struct TextModel {
 
 #[derive(Msg)]
 pub enum TextMsg {
-    Change(String),
+    Change(glib::GString),
     SetText(String),
 }
 
@@ -75,7 +75,7 @@ impl Widget for Text {
             #[name="text_entry"]
             gtk::Entry {
                 name: "text_entry",
-                changed(entry) => Change(entry.get_text().expect("get_text failed").as_str().to_owned()),
+                changed(entry) => Change(entry.get_text().expect("get_text failed")),
             },
             gtk::Label {
                 text: &self.model.content,

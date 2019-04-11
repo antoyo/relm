@@ -51,7 +51,7 @@ pub struct TextModel {
 
 #[derive(Msg)]
 pub enum TextMsg {
-    Change(String),
+    Change(glib::GString),
 }
 
 #[widget]
@@ -72,7 +72,7 @@ impl Widget for Text {
         gtk::Box {
             orientation: Vertical,
             gtk::Entry {
-                changed(entry) => Change(entry.get_text().expect("get_text failed").as_str().to_owned()),
+                changed(entry) => Change(entry.get_text().expect("get_text failed")),
                 name: "entry",
             },
             gtk::Label {
@@ -180,7 +180,7 @@ impl Widget for Win {
                 #[name="text"]
                 Text {
                     Change(_) => counter1@Increment,
-                    Change(ref text) => TextChange(text.clone()),
+                    Change(ref text) => TextChange(text.to_string()),
                 },
                 #[name="label"]
                 gtk::Label {

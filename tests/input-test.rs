@@ -49,7 +49,7 @@ pub struct Model {
 
 #[derive(Msg)]
 pub enum Msg {
-    Change(String),
+    Change(glib::GString),
     Quit,
 }
 
@@ -76,7 +76,7 @@ impl Widget for Win {
                 orientation: Vertical,
                 #[name = "entry"]
                 gtk::Entry {
-                    changed(entry) => Change(entry.get_text().expect("get_text failed").as_str().to_owned()),
+                    changed(entry) => Change(entry.get_text().expect("get_text failed")),
                     placeholder_text: "Text to reverse",
                 },
                 #[name = "entry2"]
