@@ -13,6 +13,7 @@ addons:
       - libxtst-dev
       - at-spi2-core
       - openbox
+      - xvfb
       - libmount-dev
 
 env:
