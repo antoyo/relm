@@ -4,7 +4,7 @@ name = "webkit-test"
 version = "0.1.0"
 
 [dependencies]
-gtk = "^0.5"
+gtk = "^0.6"
 webkit2gtk = "^0.5"
 
 [dependencies.relm]
