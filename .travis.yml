@@ -1,5 +1,5 @@
 sudo: required
-dist: trusty
+dist: xenial
 language: rust
 addons:
   apt:
@@ -13,6 +13,7 @@ addons:
       - libxtst-dev
       - at-spi2-core
       - openbox
+      - libmount-dev
 
 env:
   - RUST_BACKTRACE=1
