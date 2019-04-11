@@ -101,7 +101,8 @@ impl Widget for Win {
             gtk::Box {
                 // Set the orientation property of the Box.
                 orientation: Vertical,
-                Button(self.model.initial_text),
+                Button(self.model.initial_text){
+                },
                 #[name="label"]
                 gtk::Label {
                     // Bind the text property of the label to the counter attribute of the model.
