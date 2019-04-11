@@ -98,7 +98,7 @@ mod tests {
         let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let label = &widgets.label;
 
-        fn time_close(time1: String, time2: String) -> bool {
+        fn time_close(time1: glib::GString, time2: String) -> bool {
             println!("{}", time1);
             println!("{}", time2);
             let date1 = NaiveTime::parse_from_str(&time1, "%H:%M:%S").expect("parse time1");
