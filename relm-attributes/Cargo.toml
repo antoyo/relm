@@ -16,7 +16,7 @@ version = "0.15"
 
 [dependencies.relm-gen-widget]
 path = "../relm-gen-widget"
-version = "^0.16.0"
+version = "^0.15.0"
 
 [lib]
 proc-macro = true

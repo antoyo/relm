@@ -11,4 +11,4 @@ log = "0.4"
 
 [dependencies.relm-core]
 path = "../relm-core"
-version = "^0.16.0"
+version = "^0.15.0"

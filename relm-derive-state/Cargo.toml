@@ -14,7 +14,7 @@ syn = "0.15"
 
 [dependencies.relm-derive-common]
 path = "../relm-derive-common"
-version = "^0.16.0"
+version = "^0.15.0"
 
 [features]
 unstable = ["relm-derive-common/unstable"]
