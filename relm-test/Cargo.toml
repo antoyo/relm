@@ -13,4 +13,4 @@ gtk-test = "^0.3"
 
 [dependencies.relm-core]
 path = "../relm-core"
-version = "^0.15.0"
+version = "^0.16.0"
