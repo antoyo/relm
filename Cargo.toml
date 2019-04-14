@@ -53,6 +53,7 @@ version = "^0.15.0"
 
 [features]
 default = ["unstable"]
+hidpi = ["cairo-rs/v1_14"]
 nightly = []
 unstable = []
 
