@@ -28,6 +28,7 @@ extern crate relm_derive;
 
 use gtk::{
     Inhibit,
+    ButtonExt,
     WidgetExt,
 };
 use relm::{Component, Widget, init};
@@ -46,6 +47,9 @@ impl Widget for SecondaryWin {
     view! {
         gtk::Window {
             delete_event(_, _) => (Quit, Inhibit(false)),
+            gtk::Button {
+                label: "button",
+            },
         }
     }
 }
@@ -76,6 +80,9 @@ impl Widget for Win {
     view! {
         gtk::Window {
             delete_event(_, _) => (Quit, Inhibit(false)),
+            gtk::Button {
+                label: "first button",
+            },
         }
     }
 }
