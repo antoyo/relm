@@ -30,9 +30,9 @@
 //!
 //! ```toml
 //! [dependencies]
-//! gtk = "^0.3.0"
-//! relm = "^0.11.0"
-//! relm-derive = "^0.11.0"
+//! gtk = "^0.6.0"
+//! relm = "^0.16.0"
+//! relm-derive = "^0.16.0"
 //! ```
 //!
 //! More info can be found in the [readme](https://github.com/antoyo/relm#relm).
