@@ -25,17 +25,6 @@
  * TODO: think about conditions and loops (widget-list).
  */
 
-#![recursion_limit="128"]
-
-#[macro_use]
-extern crate lazy_static;
-extern crate proc_macro;
-extern crate proc_macro2;
-#[macro_use]
-extern crate quote;
-#[macro_use]
-extern crate syn;
-
 mod adder;
 mod gen;
 mod parser;
@@ -69,12 +58,11 @@ use syn::spanned::Spanned;
 use syn::Type;
 use syn::visit::Visit;
 
-use adder::{Adder, Message, Property};
-use gen::gen;
-pub use gen::gen_where_clause;
-use parser::EitherWidget::{Gtk, Relm};
-use parser::{Widget, parse_widget};
-use walker::ModelVariableVisitor;
+use self::adder::{Adder, Message, Property};
+pub use self::gen::gen_where_clause;
+use self::parser::EitherWidget::{Gtk, Relm};
+use self::parser::{Widget, parse_widget};
+use self::walker::ModelVariableVisitor;
 
 const MODEL_IDENT: &str = "__relm_model";
 
@@ -433,7 +421,7 @@ impl Driver {
         get_properties_model_map(&widget, &mut properties_model_map);
         get_msg_model_map(&widget, &mut msg_model_map);
         self.add_widgets(&widget, &properties_model_map);
-        let (view, relm_widgets, container_impl) = gen(name, &widget, self);
+        let (view, relm_widgets, container_impl) = gen::gen(name, &widget, self);
         let model_ident = Ident::new(MODEL_IDENT, Span::call_site()); // TODO: maybe need to set Span here.
         let code = quote_spanned! { name.span() =>
             #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.

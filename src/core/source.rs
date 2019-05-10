@@ -20,13 +20,13 @@
  */
 
 use std::mem;
-use std::ffi::c_void;
 use std::os::raw::c_int;
 use std::ptr;
 
 use glib::Source;
 use glib::translate::{ToGlibPtr, from_glib_none};
 use glib_sys::{GSource, GSourceFunc, GSourceFuncs, g_source_new};
+use libc;
 
 pub trait SourceFuncs {
     fn check(&self) -> bool {
@@ -67,7 +67,7 @@ unsafe extern "C" fn check<T: SourceFuncs>(source: *mut GSource) -> c_int {
     bool_to_int((*object).data.check())
 }
 
-unsafe extern "C" fn dispatch<T: SourceFuncs>(source: *mut GSource, _callback: GSourceFunc, _user_data: *mut c_void)
+unsafe extern "C" fn dispatch<T: SourceFuncs>(source: *mut GSource, _callback: GSourceFunc, _user_data: *mut libc::c_void)
     -> c_int
 {
     let object = source as *mut SourceData<T>;

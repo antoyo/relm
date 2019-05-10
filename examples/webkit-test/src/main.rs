@@ -22,7 +22,6 @@
 extern crate gtk;
 #[macro_use]
 extern crate relm;
-extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 extern crate webkit2gtk;
@@ -31,7 +30,7 @@ use gtk::{
     Inhibit,
     WidgetExt,
 };
-use relm_attributes::widget;
+use relm_derive::widget;
 use relm::Widget;
 use webkit2gtk::WebViewExt;
 

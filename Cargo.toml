@@ -8,6 +8,7 @@ name = "relm"
 readme = "README.adoc"
 repository = "https://github.com/antoyo/relm"
 version = "0.16.0"
+
 [badges.appveyor]
 branch = "master"
 repository = "antoyo/relm"
@@ -22,7 +23,13 @@ glib = "^0.7.0"
 glib-sys = "^0.8.0"
 gobject-sys = "^0.8.0"
 gtk = "^0.6.0"
+libc = "^0.2.54"
 log = "^0.4.6"
+quote = "0.6"
+
+[dependencies.syn]
+features = ["full"]
+version = "0.15"
 
 [dev-dependencies]
 chrono = "0.4"
@@ -32,10 +39,6 @@ gtk-test = "^0.3"
 
 [dev-dependencies.gio]
 version = "^0.6.0"
-
-[dev-dependencies.relm-attributes]
-path = "relm-attributes"
-version = "^0.16.0"
 
 [dev-dependencies.relm-derive]
 path = "relm-derive"

@@ -24,7 +24,6 @@ extern crate gtk;
 extern crate gtk_sys;
 #[macro_use]
 extern crate relm;
-extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 
@@ -48,7 +47,7 @@ use gtk::{
 use gtk_sys::{GTK_RESPONSE_ACCEPT, GTK_RESPONSE_CANCEL};
 use gtk::Orientation::Vertical;
 use relm::{Relm, Widget};
-use relm_attributes::widget;
+use relm_derive::widget;
 
 use self::Msg::*;
 

@@ -11,16 +11,13 @@ version = "0.16.0"
 proc-macro = true
 
 [dependencies]
+lazy_static = "1.0"
+proc-macro2 = "0.4"
 quote = "0.6"
-syn = "0.15"
 
-[dependencies.relm-derive-common]
-path = "../relm-derive-common"
-version = "^0.16.0"
-
-[dependencies.relm-gen-widget]
-path = "../relm-gen-widget"
-version = "^0.16.0"
+[dependencies.syn]
+features = ["extra-traits", "fold", "full", "visit"]
+version = "^0.15"
 
 [features]
-unstable = ["relm-derive-common/unstable", "relm-gen-widget/unstable"]
+unstable = ["proc-macro2/nightly"]

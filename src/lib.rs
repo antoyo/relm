@@ -50,7 +50,6 @@
  * TODO: maybe remove SimpleMsg.
  *
  * TODO: improve README so that examples can be copy/pasted.
- * TODO: add tests for relm-derive-state.
  *
  * FIXME: some relm widgets requires { and } (see the rusic music-player) while other do not.
  * FIXME: should not require to import WidgetExt because it calls show().
@@ -104,6 +103,7 @@ extern crate glib;
 extern crate glib_sys;
 extern crate gobject_sys;
 extern crate gtk;
+extern crate libc;
 #[macro_use]
 extern crate log;
 
@@ -147,27 +147,6 @@ pub use widget::{Widget, WidgetTest};
 macro_rules! impl_widget {
     ($($tt:tt)*) => {
         ()
-    };
-}
-
-/// Macro to be used as a stable alternative to the `#[widget]` attribute.
-///
-/// An example can be found [here](https://github.com/antoyo/relm/blob/master/examples/buttons-derive/src/main.rs#L50).
-#[macro_export]
-macro_rules! relm_widget {
-    ($($tts:tt)*) => {
-        mod __relm_gen_private {
-            use super::*;
-
-            #[derive(Widget)]
-            struct __RelmPrivateWidget {
-                widget: impl_widget! {
-                    $($tts)*
-                }
-            }
-        }
-
-        use_impl_self_type!($($tts)*);
     };
 }
 

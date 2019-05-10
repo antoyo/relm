@@ -158,20 +158,11 @@ This attribute does the following:
  * Automatically create the `Widget` `struct`.
  * Both traits can be implemented at once.
 
-To be able to use this attribute, you need to add the `relm-attributes` crate in your `Cargo.toml`:
-
-[source,toml]
-----
-relm-attributes = "^0.11.0"
-----
-
-and to add the following code:
+To use this attribute, add the following code:
 
 [source,rust]
 ----
-extern crate relm_attributes;
-
-use relm_attributes::widget;
+use relm_derive::widget;
 ----
 
 Here is an example using this attribute:
@@ -246,7 +237,6 @@ You can still provide the method and the associated types if needed, but you can
 To benefit from better error messages, enable the following features:
 
  * relm/unstable
- * relm-attributes/unstable
  * relm-derive/unstable
 
 To do so, add the following lines to your `Cargo.toml`:
@@ -254,7 +244,7 @@ To do so, add the following lines to your `Cargo.toml`:
 [source,toml]
 ----
 [features]
-default = ["relm/unstable", "relm-attributes/unstable", "relm-derive/unstable"]
+default = ["relm/unstable", "relm-derive/unstable"]
 ----
 ====
 

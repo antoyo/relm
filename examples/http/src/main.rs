@@ -29,7 +29,6 @@ extern crate gtk;
 extern crate json;
 #[macro_use]
 extern crate relm;
-extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 extern crate simplelog;
@@ -68,7 +67,7 @@ use relm::{
     Widget,
     execute,
 };
-use relm_attributes::widget;
+use relm_derive::widget;
 use simplelog::{Config, TermLogger};
 use simplelog::LevelFilter::Warn;
 use uhttp_uri::HttpUri;
