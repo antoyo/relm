@@ -22,7 +22,6 @@
 extern crate gtk;
 #[macro_use]
 extern crate relm;
-extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 #[macro_use]
@@ -30,7 +29,7 @@ extern crate gtk_test;
 
 use gtk::{Inhibit, LabelExt, WidgetExt};
 use relm::Widget;
-use relm_attributes::widget;
+use relm_derive::widget;
 
 use self::Msg::*;
 

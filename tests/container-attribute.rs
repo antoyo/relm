@@ -22,7 +22,6 @@
 extern crate gtk;
 #[macro_use]
 extern crate relm;
-extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 extern crate gtk_test;
@@ -37,7 +36,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use relm::Widget;
-use relm_attributes::widget;
+use relm_derive::widget;
 
 use self::Msg::*;
 
@@ -62,7 +61,6 @@ impl Widget for GtkButton {
 
 mod module {
     use relm::Widget;
-    use relm_attributes::widget;
 
     use ButtonMsg;
     use GtkButton;

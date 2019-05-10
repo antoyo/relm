@@ -23,7 +23,7 @@ use glib::Cast;
 use gtk;
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 
-use relm_state::EventStream;
+use state::EventStream;
 use super::{Component, DisplayVariant, create_widget, init_component};
 use widget::Widget;
 

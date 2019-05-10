@@ -22,8 +22,6 @@
 extern crate gtk;
 #[macro_use]
 extern crate relm;
-extern crate relm_attributes;
-#[macro_use]
 extern crate relm_derive;
 #[cfg_attr(test, macro_use)]
 extern crate gtk_test;
@@ -37,7 +35,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use relm::Widget;
-use relm_attributes::widget;
+use relm_derive::{Msg, widget};
 
 use self::Msg::*;
 

@@ -43,43 +43,42 @@ pub enum Msg {
     Quit,
 }
 
-relm_widget! {
-    impl ::relm::Widget for Win {
-        fn model() -> () {
-            ()
-        }
+#[widget]
+impl Widget for Win {
+    fn model() -> () {
+        ()
+    }
 
-        fn update(&mut self, event: Msg) {
-            match event {
-                Quit => gtk::main_quit(),
-            }
+    fn update(&mut self, event: Msg) {
+        match event {
+            Quit => gtk::main_quit(),
         }
+    }
 
-        view! {
-            gtk::Window {
-                #[name="tabs"]
-                gtk::Notebook {
-                    #[name="inc_button"]
-                    gtk::Button {
-                        child: {
-                            tab_label: Some("First Button"),
-                        },
-                        label: "Button",
+    view! {
+        gtk::Window {
+            #[name="tabs"]
+            gtk::Notebook {
+                #[name="inc_button"]
+                gtk::Button {
+                    child: {
+                        tab_label: Some("First Button"),
                     },
-                    #[name="label"]
-                    gtk::Label {
-                        tab: {
-                            label: &gtk::Label::new("Second page"),
-                        },
-                        text: "Hello",
-                    },
-                    #[name="dec_button"]
-                    gtk::Button {
-                        label: "Another Button",
-                    },
+                    label: "Button",
                 },
-                delete_event(_, _) => (Quit, Inhibit(false)),
-            }
+                #[name="label"]
+                gtk::Label {
+                    tab: {
+                        label: &gtk::Label::new("Second page"),
+                    },
+                    text: "Hello",
+                },
+                #[name="dec_button"]
+                gtk::Button {
+                    label: "Another Button",
+                },
+            },
+            delete_event(_, _) => (Quit, Inhibit(false)),
         }
     }
 }

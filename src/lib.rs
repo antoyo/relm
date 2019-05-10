@@ -50,7 +50,6 @@
  * TODO: maybe remove SimpleMsg.
  *
  * TODO: improve README so that examples can be copy/pasted.
- * TODO: add tests for relm-derive-state.
  *
  * FIXME: some relm widgets requires { and } (see the rusic music-player) while other do not.
  * FIXME: should not require to import WidgetExt because it calls show().
@@ -101,15 +100,19 @@
 
 extern crate cairo;
 extern crate glib;
+extern crate glib_sys;
 extern crate gobject_sys;
 extern crate gtk;
-extern crate relm_core;
-extern crate relm_state;
+extern crate libc;
+#[macro_use]
+extern crate log;
 
 mod component;
 mod container;
+mod core;
 mod drawing;
 mod macros;
+mod state;
 #[doc(hidden)]
 pub mod vendor;
 mod widget;
@@ -122,8 +125,8 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 pub use gobject_sys::{GParameter, g_object_newv};
 use gtk::Continue;
 
-pub use relm_core::{Channel, EventStream, Sender};
-pub use relm_state::{
+pub use core::{Channel, EventStream, Sender};
+pub use state::{
     DisplayVariant,
     IntoOption,
     IntoPair,
@@ -132,7 +135,7 @@ pub use relm_state::{
     UpdateNew,
     execute,
 };
-use relm_state::init_component;
+use state::init_component;
 
 pub use component::Component;
 pub use container::{Container, ContainerComponent, ContainerWidget};
@@ -144,27 +147,6 @@ pub use widget::{Widget, WidgetTest};
 macro_rules! impl_widget {
     ($($tt:tt)*) => {
         ()
-    };
-}
-
-/// Macro to be used as a stable alternative to the `#[widget]` attribute.
-///
-/// An example can be found [here](https://github.com/antoyo/relm/blob/master/examples/buttons-derive/src/main.rs#L50).
-#[macro_export]
-macro_rules! relm_widget {
-    ($($tts:tt)*) => {
-        mod __relm_gen_private {
-            use super::*;
-
-            #[derive(Widget)]
-            struct __RelmPrivateWidget {
-                widget: impl_widget! {
-                    $($tts)*
-                }
-            }
-        }
-
-        use_impl_self_type!($($tts)*);
     };
 }
 

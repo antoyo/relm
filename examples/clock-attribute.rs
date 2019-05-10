@@ -23,7 +23,6 @@ extern crate chrono;
 extern crate gtk;
 #[macro_use]
 extern crate relm;
-extern crate relm_attributes;
 #[macro_use]
 extern crate relm_derive;
 extern crate gtk_test;
@@ -35,7 +34,7 @@ use gtk::{
     WidgetExt,
 };
 use relm::{Relm, Widget, interval};
-use relm_attributes::widget;
+use relm_derive::widget;
 
 use self::Msg::*;
 

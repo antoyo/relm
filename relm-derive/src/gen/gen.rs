@@ -34,16 +34,16 @@ use syn::{
 use syn::fold::Fold;
 use syn::spanned::Spanned;
 
-use parser::{
+use super::parser::{
     Event,
     GtkWidget,
     RelmWidget,
     Widget,
 };
-use parser::EventValue::{CurrentWidget, ForeignWidget, NoEventValue};
-use parser::EventValueReturn::{CallReturn, Return, WithoutReturn};
-use parser::EitherWidget::{Gtk, Relm};
-use transformer::Transformer;
+use super::parser::EventValue::{CurrentWidget, ForeignWidget, NoEventValue};
+use super::parser::EventValueReturn::{CallReturn, Return, WithoutReturn};
+use super::parser::EitherWidget::{Gtk, Relm};
+use super::transformer::Transformer;
 use super::{Driver, MODEL_IDENT};
 
 use self::WidgetType::*;
@@ -656,7 +656,7 @@ fn gen_other_containers(generator: &Generator, widget_type: &TokenStream, widget
         let mut suffixes = vec![];
         for (_, &(ref name, ref typ)) in &generator.container_names {
             names.push(name.clone());
-            let mut original_type = typ.clone();
+            let original_type = typ.clone();
             let typ =
                 if typ.segments.len() > 1 {
                     // GTK+ widget

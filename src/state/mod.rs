@@ -32,18 +32,14 @@
     unused_results,
 )]
 
-#[macro_use]
-extern crate log;
-extern crate relm_core;
-
 mod into;
 mod macros;
 
 use std::time::SystemTime;
 
-pub use relm_core::EventStream;
+pub use core::EventStream;
 
-pub use into::{IntoOption, IntoPair};
+pub use self::into::{IntoOption, IntoPair};
 
 /// Handle event stream to send messages to the [`update()`](trait.Update.html#tymethod.update) method.
 pub struct Relm<UPDATE: Update> {

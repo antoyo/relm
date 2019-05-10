@@ -11,8 +11,5 @@ webkit2gtk = "^0.6"
 default-features = false
 path = "../.."
 
-[dependencies.relm-attributes]
-path = "../../relm-attributes"
-
 [dependencies.relm-derive]
 path = "../../relm-derive"

@@ -17,8 +17,5 @@ uhttp_uri = "^0.5.1"
 [dependencies.relm]
 path = "../.."
 
-[dependencies.relm-attributes]
-path = "../../relm-attributes"
-
 [dependencies.relm-derive]
 path = "../../relm-derive"

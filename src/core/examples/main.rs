@@ -22,7 +22,7 @@
 extern crate chrono;
 extern crate glib;
 extern crate gtk;
-extern crate relm_core;
+extern crate relm;
 
 use std::time::Duration;
 
@@ -39,7 +39,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm_core::EventStream;
+use relm::EventStream;
 
 use Msg::*;
 
@@ -53,7 +53,7 @@ struct Widgets {
 
 // This enum holds the various messages that will be passed between our
 // widgets. Note that we aren't deriving `Msg` because this example uses
-// the `relm-core` crate, which is the basic event-handling library that
+// the `core` module, which is the basic event-handling library that
 // `relm` depends on.
 #[derive(Clone, Debug)]
 enum Msg {

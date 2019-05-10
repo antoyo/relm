@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use std::cell::UnsafeCell;
 use std::cmp;
 use std::fmt;

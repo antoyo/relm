@@ -20,6 +20,7 @@
  */
 
 use std::mem;
+use std::os::raw::c_int;
 use std::ptr;
 
 use glib::Source;
@@ -61,13 +62,13 @@ pub fn source_get<T: SourceFuncs>(source: &Source) -> &T {
     unsafe { &( *(source.to_glib_none().0 as *const SourceData<T>) ).data }
 }
 
-unsafe extern "C" fn check<T: SourceFuncs>(source: *mut GSource) -> libc::c_int {
+unsafe extern "C" fn check<T: SourceFuncs>(source: *mut GSource) -> c_int {
     let object = source as *mut SourceData<T>;
     bool_to_int((*object).data.check())
 }
 
 unsafe extern "C" fn dispatch<T: SourceFuncs>(source: *mut GSource, _callback: GSourceFunc, _user_data: *mut libc::c_void)
-    -> libc::c_int
+    -> c_int
 {
     let object = source as *mut SourceData<T>;
     bool_to_int((*object).data.dispatch())
@@ -80,7 +81,7 @@ unsafe extern "C" fn finalize<T: SourceFuncs>(source: *mut GSource) {
     ptr::read(&(*source).data);
 }
 
-extern "C" fn prepare<T: SourceFuncs>(source: *mut GSource, timeout: *mut libc::c_int) -> libc::c_int {
+extern "C" fn prepare<T: SourceFuncs>(source: *mut GSource, timeout: *mut c_int) -> c_int {
     let object = source as *mut SourceData<T>;
     let (result, source_timeout) = unsafe { (*object).data.prepare() };
     if let Some(source_timeout) = source_timeout {
@@ -89,7 +90,7 @@ extern "C" fn prepare<T: SourceFuncs>(source: *mut GSource, timeout: *mut libc::
     bool_to_int(result)
 }
 
-fn bool_to_int(boolean: bool) -> libc::c_int {
+fn bool_to_int(boolean: bool) -> c_int {
     if boolean {
         1
     }

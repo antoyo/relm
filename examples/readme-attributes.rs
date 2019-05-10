@@ -3,13 +3,12 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-extern crate relm_attributes;
 
-use relm_attributes::widget;
+use relm_derive::widget;
 use relm::Widget;
 use gtk::prelude::*;
 use gtk::Inhibit;
-use gtk::Orientation::Vertical; 
+use gtk::Orientation::Vertical;
 
 #[derive(Msg)]
 pub enum Msg {

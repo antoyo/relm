@@ -10,9 +10,6 @@ gtk-test = "^0.3"
 [dependencies.relm]
 path = "../.."
 
-[dependencies.relm-attributes]
-path = "../../relm-attributes"
-
 [dependencies.relm-derive]
 path = "../../relm-derive"
 
@@ -20,4 +17,4 @@ path = "../../relm-derive"
 path = "../../relm-test"
 
 [features]
-default = ["relm/unstable", "relm-attributes/unstable", "relm-derive/unstable"]
+default = ["relm/unstable", "relm-derive/unstable"]
