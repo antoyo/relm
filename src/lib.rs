@@ -101,15 +101,18 @@
 
 extern crate cairo;
 extern crate glib;
+extern crate glib_sys;
 extern crate gobject_sys;
 extern crate gtk;
-extern crate relm_core;
-extern crate relm_state;
+#[macro_use]
+extern crate log;
 
 mod component;
 mod container;
+mod core;
 mod drawing;
 mod macros;
+mod state;
 #[doc(hidden)]
 pub mod vendor;
 mod widget;
@@ -122,8 +125,8 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 pub use gobject_sys::{GParameter, g_object_newv};
 use gtk::Continue;
 
-pub use relm_core::{Channel, EventStream, Sender};
-pub use relm_state::{
+pub use core::{Channel, EventStream, Sender};
+pub use state::{
     DisplayVariant,
     IntoOption,
     IntoPair,
@@ -132,7 +135,7 @@ pub use relm_state::{
     UpdateNew,
     execute,
 };
-use relm_state::init_component;
+use state::init_component;
 
 pub use component::Component;
 pub use container::{Container, ContainerComponent, ContainerWidget};

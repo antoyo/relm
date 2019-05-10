@@ -20,12 +20,12 @@
  */
 
 extern crate gtk_test;
-extern crate relm_core;
+extern crate relm;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use relm_core::EventStream;
+use relm::EventStream;
 
 pub struct Observer<MSG> {
     result: Rc<RefCell<Option<MSG>>>,

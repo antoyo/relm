@@ -32,10 +32,6 @@
     unused_qualifications,
 )]
 
-extern crate glib;
-extern crate glib_sys;
-extern crate libc;
-
 mod source;
 
 use std::cell::RefCell;
@@ -44,7 +40,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, SendError};
 
-use source::{SourceFuncs, new_source, source_get};
+use self::source::{SourceFuncs, new_source, source_get};
 
 use glib::{MainContext, Source};
 

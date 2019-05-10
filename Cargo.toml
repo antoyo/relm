@@ -19,16 +19,10 @@ repository = "antoyo/relm"
 [dependencies]
 cairo-rs = "^0.6.0"
 glib = "^0.7.0"
+glib-sys = "^0.8.0"
 gobject-sys = "^0.8.0"
 gtk = "^0.6.0"
-
-[dependencies.relm-core]
-path = "relm-core"
-version = "^0.16.0"
-
-[dependencies.relm-state]
-path = "relm-state"
-version = "^0.16.0"
+log = "^0.4.6"
 
 [dev-dependencies]
 chrono = "0.4"
