@@ -40,8 +40,8 @@ script:
   - cargo test
   - cargo test --examples
   - cargo test --manifest-path examples/buttons-attribute/Cargo.toml
-  #- cargo build --manifest-path examples/http/Cargo.toml
-  #- cargo build --manifest-path examples/async/Cargo.toml
+  - cargo build --manifest-path examples/http/Cargo.toml
+  - cargo build --manifest-path examples/async/Cargo.toml
   - cargo build --manifest-path examples/webkit-test/Cargo.toml
 
 matrix:
