@@ -1,7 +1,8 @@
-use relm_derive::Msg;
-use relm::{connect, Relm, Update, Widget};
 use gtk::prelude::*;
 use gtk::{Window, Inhibit, WindowType};
+
+use relm::{Loop, Relm, Update, Widget, connect};
+use relm_derive::Msg;
 
 #[derive(Msg)]
 enum Msg {
@@ -37,7 +38,7 @@ impl Update for Win {
     // Widgets may also be updated in this function.
     fn update(&mut self, event: Msg) {
         match event {
-            Msg::Quit => gtk::main_quit(),
+            Msg::Quit => Loop::quit(),
         }
     }
 }

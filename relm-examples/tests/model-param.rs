@@ -31,7 +31,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{connect, Relm, Update, Widget, WidgetTest};
+use relm::{Loop, Relm, Update, Widget, WidgetTest, connect};
 use relm_derive::Msg;
 
 struct Model {
@@ -85,7 +85,7 @@ impl Update for Win {
                 self.model.counter += 1;
                 label.set_text(&self.model.counter.to_string());
             },
-            Msg::Quit => gtk::main_quit(),
+            Msg::Quit => Loop::quit(),
         }
     }
 }
@@ -150,7 +150,8 @@ fn main() {
 mod tests {
     use gtk::LabelExt;
 
-    use gtk_test::{assert_text, click};
+    use relm;
+    use relm_test::{assert_text, click};
 
     use crate::Win;
 

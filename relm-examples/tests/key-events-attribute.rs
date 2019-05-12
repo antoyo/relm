@@ -26,7 +26,7 @@ use gtk::{
     Inhibit,
     WidgetExt,
 };
-use relm::{Relm, Widget};
+use relm::{Loop, Relm, Widget};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
@@ -63,7 +63,7 @@ impl Widget for Win {
             Release => {
                 println!("Release");
             },
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 
@@ -95,7 +95,8 @@ fn main() {
 mod tests {
     use gtk::EntryExt;
 
-    use gtk_test::{assert_text, enter_keys};
+    use relm;
+    use relm_test::{assert_text, enter_keys};
 
     use crate::Win;
 

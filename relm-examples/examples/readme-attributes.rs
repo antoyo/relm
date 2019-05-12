@@ -1,8 +1,9 @@
-use relm_derive::{Msg, widget};
-use relm::Widget;
 use gtk::prelude::*;
 use gtk::Inhibit;
 use gtk::Orientation::Vertical;
+
+use relm::{Loop, Widget};
+use relm_derive::{Msg, widget};
 
 #[derive(Msg)]
 pub enum Msg {
@@ -29,7 +30,7 @@ impl Widget for Win {
             // attribute every time the model.counter attribute is updated.
             Msg::Decrement => self.model.counter -= 1,
             Msg::Increment => self.model.counter += 1,
-            Msg::Quit => gtk::main_quit(),
+            Msg::Quit => Loop::quit(),
         }
     }
 

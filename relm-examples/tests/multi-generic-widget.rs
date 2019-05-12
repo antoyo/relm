@@ -38,6 +38,7 @@ use relm::{
     connect,
     Component,
     ContainerWidget,
+    Loop,
     Relm,
     Update,
     Widget,
@@ -176,7 +177,7 @@ impl Update for Win {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 }
@@ -225,7 +226,8 @@ fn main() {
 mod tests {
     use gtk::{Label, LabelExt};
 
-    use gtk_test::{assert_text, find_child_by_name};
+    use relm;
+    use relm_test::{assert_text, find_child_by_name};
 
     use crate::Win;
 

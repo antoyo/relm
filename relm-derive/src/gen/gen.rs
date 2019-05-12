@@ -452,6 +452,8 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream 
                 use relm::{Cast, FromGlibPtrNone};
                 let values: &[::gtk::Value] = &[#(#values),*];
                 let mut parameters = [#(#parameters),*];
+                // TODO: use the safe Object::new().
+                // TODO: switch to use Builders.
                 ::gtk::Widget::from_glib_none(::relm::g_object_newv(
                     ::relm::ToGlib::to_glib(&#struct_name::static_type()),
                     #properties_count, parameters.as_mut_ptr()) as *mut _)

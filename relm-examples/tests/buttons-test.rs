@@ -33,7 +33,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{connect, Relm, Widget, timeout};
+use relm::{Loop, Relm, Widget, connect, timeout};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
@@ -145,7 +145,7 @@ impl Widget for Win {
             },
             // To be listened to by the user.
             RecvModel(_) => (),
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
             // To be listened to by the user.
             TwoInc(_, _) => (),
             UpdateText => timeout(self.model.relm.stream(), 100, || UpdateTextNow),
@@ -217,7 +217,9 @@ mod tests {
         GtkMenuItemExt,
     };
 
-    use gtk_test::{
+    use relm;
+    use relm_test::{
+        RelmObserver,
         assert_text,
         click,
         double_click,
@@ -244,7 +246,7 @@ mod tests {
         let inc_label = &widgets.inc_label;
 
         // Observe for messages.
-        let observer = Observer::new(component.stream(), |msg|
+        let observer = RelmObserver::new(component.stream(), |msg|
             if let FiveInc = msg {
                 true
             }
@@ -254,10 +256,10 @@ mod tests {
         );
         let label_observer = relm_observer_new!(inc_label, Text(_));
 
-        // Shortcut for the previous call to Observer::new().
+        // Shortcut for the previous call to RelmObserver::new().
         let two_observer = relm_observer_new!(component, TwoInc(_, _));
 
-        let model_observer = Observer::new(component.stream(), |msg|
+        let model_observer = RelmObserver::new(component.stream(), |msg|
             if let RecvModel(_) = msg {
                 true
             }

@@ -27,7 +27,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::Widget;
+use relm::{Loop, Widget};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
@@ -59,7 +59,7 @@ impl Widget for Win {
         match event {
             Decrement => self.model.counter -= 1,
             Increment => self.model.counter += 1,
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 
@@ -99,7 +99,8 @@ fn main() {
 mod tests {
     use gtk::LabelExt;
 
-    use gtk_test::{assert_text, click};
+    use relm;
+    use relm_test::{assert_text, click};
 
     use crate::Win;
 

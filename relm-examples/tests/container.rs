@@ -35,6 +35,7 @@ use relm::{
     Container,
     ContainerComponent,
     ContainerWidget,
+    Loop,
     Relm,
     Update,
     Widget,
@@ -148,7 +149,7 @@ impl Update for Win {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 }

@@ -29,32 +29,39 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Channel, Relm, Widget};
+use relm::{
+    Channel,
+    Loop,
+    Relm,
+    Widget,
+};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
 
 pub struct Model {
-    _channel: Channel<i32>,
     text: String,
 }
 
 #[derive(Clone, Msg)]
 pub enum Msg {
     Quit,
-    Value(i32),
+    Value(i32, usize),
 }
 
 #[widget]
 impl Widget for Win {
     fn model(relm: &Relm<Self>, _: ()) -> Model {
         let stream = relm.stream().clone();
+        let event_loop = Loop::default();
+        let channel_entry = event_loop.reserve();
         // Create a channel to be able to send a message from another thread.
         let (channel, sender) = Channel::new(move |num| {
             // This closure is executed whenever a message is received from the sender.
             // We send a message to the current widget.
-            stream.emit(Value(num));
+            stream.emit(Value(num, channel_entry));
         });
+        event_loop.set_stream(channel_entry, channel);
         thread::spawn(move || {
             thread::sleep(Duration::from_millis(200));
             // Send a message from the other thread.
@@ -62,15 +69,18 @@ impl Widget for Win {
             sender.send(42).expect("send message");
         });
         Model {
-            _channel: channel,
             text: "Computing...".to_string(),
         }
     }
 
     fn update(&mut self, event: Msg) {
+        let event_loop = Loop::default();
         match event {
-            Quit => gtk::main_quit(),
-            Value(num) => self.model.text = num.to_string(),
+            Quit => Loop::quit(),
+            Value(num, channel_entry) => {
+                self.model.text = num.to_string();
+                event_loop.remove_stream(channel_entry);
+            },
         }
     }
 

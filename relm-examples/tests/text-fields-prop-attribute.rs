@@ -29,7 +29,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::Widget;
+use relm::{Loop, Widget};
 use relm_derive::{Msg, widget};
 
 use Msg::*;
@@ -96,7 +96,7 @@ impl Widget for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Reset => self.model.text = String::new(),
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 
@@ -129,7 +129,8 @@ fn main() {
 mod tests {
     use gtk::{Entry, EntryExt};
 
-    use gtk_test::{assert_text, click, find_child_by_name, wait};
+    use relm;
+    use relm_test::{assert_text, click, find_child_by_name, wait};
 
     use crate::Win;
 

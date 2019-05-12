@@ -116,7 +116,13 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 pub use gobject_sys::{GParameter, g_object_newv};
 use gtk::Continue;
 
-pub use crate::core::{Channel, EventStream, Sender};
+pub use crate::core::{
+    Channel,
+    EventStream,
+    Loop,
+    Sender,
+    StreamHandle,
+};
 pub use crate::state::{
     DisplayVariant,
     IntoOption,
@@ -124,7 +130,6 @@ pub use crate::state::{
     Relm,
     Update,
     UpdateNew,
-    execute,
 };
 use state::init_component;
 
@@ -141,24 +146,6 @@ macro_rules! impl_widget {
     };
 }
 
-#[doc(hidden)]
-#[macro_export]
-macro_rules! use_impl_self_type {
-    (impl $(::relm::)*Widget for $self_type:ident { $($tts:tt)* }) => {
-        pub use self::__relm_gen_private::$self_type;
-    };
-}
-
-fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WIDGET>, WIDGET::Widgets)
-    where WIDGET: Widget + WidgetTest + 'static,
-          WIDGET::Msg: DisplayVariant + 'static,
-{
-    let (widget, component, relm): (_, WIDGET, _) = create_widget(model_param);
-    let widgets = component.get_widgets();
-    init_component::<WIDGET>(widget.stream(), component, &relm);
-    (widget, widgets)
-}
-
 /// Create a new relm widget without adding it to an existing widget.
 /// This is useful when a relm widget is at the root of another relm widget.
 pub fn create_component<CHILDWIDGET>(model_param: CHILDWIDGET::ModelParam)
@@ -166,8 +153,10 @@ pub fn create_component<CHILDWIDGET>(model_param: CHILDWIDGET::ModelParam)
     where CHILDWIDGET: Widget + 'static,
           CHILDWIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
-    init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
+    let event_loop = Loop::default();
+    let (widget, component, child_relm, mut stream) = create_widget::<CHILDWIDGET>(model_param);
+    init_component::<CHILDWIDGET>(&mut stream, component, &child_relm);
+    event_loop.add_stream(stream);
     widget
 }
 
@@ -178,28 +167,69 @@ pub fn create_container<CHILDWIDGET>(model_param: CHILDWIDGET::ModelParam)
     where CHILDWIDGET: Container + Widget + 'static,
           CHILDWIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+    let event_loop = Loop::default();
+    let (widget, component, child_relm, mut stream) = create_widget::<CHILDWIDGET>(model_param);
     let container = component.container().clone();
     let containers = component.other_containers();
-    init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
+    init_component::<CHILDWIDGET>(&mut stream, component, &child_relm);
+    event_loop.add_stream(stream);
     ContainerComponent::new(widget, container, containers)
 }
 
 /// Create a new relm widget with `model_param` as initialization value.
-fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
-    -> (Component<WIDGET>, WIDGET, Relm<WIDGET>)
+pub fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
+    -> (Component<WIDGET>, WIDGET, Relm<WIDGET>, EventStream<WIDGET::Msg>)
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
     let stream = EventStream::new();
 
-    let relm = Relm::new(stream.clone());
+    let relm = Relm::new(&stream);
     let model = WIDGET::model(&relm, model_param);
     let mut widget = WIDGET::view(&relm, model);
     widget.init_view();
 
     let root = widget.root().clone();
-    (Component::new(stream, root), widget, relm)
+    (Component::new(stream.downgrade(), root), widget, relm, stream)
+}
+
+pub(crate) fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WIDGET>, WIDGET::Widgets)
+    where WIDGET: Widget + WidgetTest + 'static,
+          WIDGET::Msg: DisplayVariant + 'static,
+{
+    let event_loop = Loop::default();
+    let (widget, component, relm, mut stream) = create_widget::<WIDGET>(model_param);
+    let widgets = component.get_widgets();
+    init_component::<WIDGET>(&mut stream, component, &relm);
+    event_loop.add_stream(stream);
+    (widget, widgets)
+}
+
+/// Create a bare component, i.e. a component only implementing the Update trait, not the Widget
+/// trait.
+pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> EventStream<UPDATE::Msg>
+where UPDATE: Update + UpdateNew + 'static
+{
+    let mut stream = EventStream::new();
+
+    let relm = Relm::new(&stream);
+    let model = UPDATE::model(&relm, model_param);
+    let component = UPDATE::new(&relm, model);
+
+    init_component::<UPDATE>(&mut stream, component, &relm);
+    stream
+}
+
+/// Initialize a widget.
+pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
+    where WIDGET: Widget + 'static,
+          WIDGET::Msg: DisplayVariant + 'static
+{
+    let event_loop = Loop::default();
+    let (widget, component, relm, mut stream) = create_widget::<WIDGET>(model_param);
+    init_component::<WIDGET>(&mut stream, component, &relm);
+    event_loop.add_stream(stream);
+    Ok(widget)
 }
 
 /// Initialize a widget for a test.
@@ -208,7 +238,7 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
 ///
 /// ```
 /// # use gtk::{Window, WindowType};
-/// # use relm::{Relm, Update, Widget, WidgetTest};
+/// # use relm::{Loop, Relm, Update, Widget, WidgetTest, init_test};
 /// # use relm_derive::Msg;
 /// #
 /// # #[derive(Clone)]
@@ -256,7 +286,7 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
 /// # #[derive(Msg)]
 /// # enum Msg {}
 /// # fn main() {
-/// let (component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+/// let (component, widgets) = init_test::<Win>(()).expect("init_test failed");
 /// # }
 /// ```
 pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
@@ -265,18 +295,8 @@ pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
           WIDGET::Msg: DisplayVariant + 'static,
 {
     gtk::init().map_err(|_| ())?;
-    let component = create_widget_test::<WIDGET>(model_param);
-    Ok(component)
-}
-
-/// Initialize a widget.
-pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
-    where WIDGET: Widget + 'static,
-          WIDGET::Msg: DisplayVariant + 'static
-{
-    let (widget, component, relm) = create_widget::<WIDGET>(model_param);
-    init_component::<WIDGET>(widget.stream(), component, &relm);
-    Ok(widget)
+    let (component, widgets) = create_widget_test::<WIDGET>(model_param);
+    Ok((component, widgets))
 }
 
 /// Create the specified relm `Widget` and run the main event loops.
@@ -332,13 +352,14 @@ pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>
     where WIDGET: Widget + 'static,
 {
     gtk::init().map_err(|_| ())?;
+    let event_loop = Loop::default();
     let _component = init::<WIDGET>(model_param)?;
-    gtk::main();
+    event_loop.run();
     Ok(())
 }
 
 /// Emit the `msg` every `duration` ms.
-pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, duration: u32, constructor: F) {
+pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MSG>, duration: u32, constructor: F) {
     let stream = stream.clone();
     gtk::timeout_add(duration, move || {
         let msg = constructor();
@@ -348,7 +369,7 @@ pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG
 }
 
 /// After `duration` ms, emit `msg`.
-pub fn timeout<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, duration: u32, constructor: F) {
+pub fn timeout<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MSG>, duration: u32, constructor: F) {
     let stream = stream.clone();
     gtk::timeout_add(duration, move || {
         let msg = constructor();

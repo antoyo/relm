@@ -29,7 +29,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Relm, Widget};
+use relm::{Loop, Relm, Widget};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
@@ -79,7 +79,7 @@ impl Widget for Win {
             DataAvailable(_) | DataCleared => (),
             LeftChanged(text) => self.model.left_text = text,
             RightChanged(text) => self.model.right_text = text,
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 
@@ -134,8 +134,10 @@ mod tests {
         WidgetExt,
     };
 
-    use gtk_test::{
+    use relm;
+    use relm_test::{
         assert_text,
+        click,
         enter_key,
         enter_keys,
         focus,
@@ -167,6 +169,28 @@ mod tests {
         assert!(right_entry.has_focus());
 
         enter_keys(&window.get_focus().expect("focused widget"), "right");
+        // TODO: remove the following and uncomment the next block when https://github.com/enigo-rs/enigo/pull/63 is released.
+        click(concat_button);
+
+        use gtk::WidgetExtManual;
+    let running = std::rc::Rc::new(std::cell::Cell::new(true));
+    let run = running.clone();
+    label.add_tick_callback(move |_, _| {
+        run.set(false);
+        gtk::Continue(false)
+    });
+    let event_loop = relm::Loop::default();
+    while running.get() {
+        event_loop.iterate();
+    }
+        //relm_test::wait_for_draw(label);
+        println!("after click");
+        assert_text!(label, "leftright");
+        click(cancel_button);
+        assert_text!(label, "");
+        assert_text!(left_entry, "");
+        assert_text!(right_entry, "");
+        /*
         enter_key(window, key::Tab);
         assert!(concat_button.has_focus());
         enter_key(&window.get_focus().expect("focused widget"), key::space);
@@ -178,6 +202,7 @@ mod tests {
         assert_text!(label, "");
         assert_text!(left_entry, "");
         assert_text!(right_entry, "");
+        */
 
         focus(left_entry);
         assert!(left_entry.has_focus());

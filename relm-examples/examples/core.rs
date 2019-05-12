@@ -34,7 +34,7 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::EventStream;
+use relm::{EventStream, Loop};
 
 use Msg::*;
 
@@ -98,7 +98,7 @@ fn main() {
     // In this example we're just printing the messages to stdout, but in practice
     // you could take some other kind of action i.e. if stream 1 receives the message `Foo`,
     // send the message `Bar` to stream 2.
-    let main_stream = EventStream::new();
+    let mut main_stream = EventStream::new();
     let echo_stream = EventStream::new();
 
     // Here we add an observer (a closure) to the second event stream. Any message
@@ -119,7 +119,7 @@ fn main() {
 
     // Send the `Increment` message when `plus_button` emits the `clicked` signal.
     {
-        let stream = main_stream.clone();
+        let stream = main_stream.downgrade();
         plus_button.connect_clicked(move |_| {
             stream.emit(Increment);
         });
@@ -127,7 +127,7 @@ fn main() {
 
     // Send the `Decrement` message when `minus_button` emits the `clicked` signal.
     {
-        let stream = main_stream.clone();
+        let stream = main_stream.downgrade();
         minus_button.connect_clicked(move |_| {
             stream.emit(Decrement);
         });
@@ -137,7 +137,7 @@ fn main() {
 
     // Close the window and quit when the window close button is clicked.
     {
-        let stream = main_stream.clone();
+        let stream = main_stream.downgrade();
         window.connect_delete_event(move |_, _| {
             stream.emit(Quit);
             Inhibit(false)
@@ -164,7 +164,7 @@ fn main() {
                 model.counter += 1;
                 widgets.counter_label.set_text(&model.counter.to_string());
             },
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 

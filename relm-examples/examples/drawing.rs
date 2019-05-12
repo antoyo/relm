@@ -35,6 +35,7 @@ use rand::Rng;
 use relm_derive::Msg;
 use relm::{
     DrawHandler,
+    Loop,
     Relm,
     Widget,
     interval,
@@ -131,7 +132,7 @@ impl Widget for Win {
                 }
             },
             MoveCursor(pos) => self.model.cursor_pos = pos,
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
             UpdateDrawBuffer => {
                 let context = self.model.draw_handler.get_context();
                 context.set_source_rgb(1.0, 1.0, 1.0);

@@ -79,7 +79,7 @@ impl Widget for Win {
             },
             OpenApp => self.open_app(),
             OpenFile => self.open_file(),
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
             ReadError(error) => println!("Read error: {}", error),
         }
     }

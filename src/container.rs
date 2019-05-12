@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2019 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -22,8 +22,14 @@
 use glib::Cast;
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 
-use crate::state::EventStream;
-use super::{Component, DisplayVariant, create_widget, init_component};
+use crate::state::StreamHandle;
+use super::{
+    Component,
+    DisplayVariant,
+    Loop,
+    create_widget,
+    init_component,
+};
 use crate::widget::Widget;
 
 /// Struct for relm containers to add GTK+ and relm `Widget`s.
@@ -66,21 +72,25 @@ impl<WIDGET: Container + Widget> ContainerComponent<WIDGET> {
         where CHILDWIDGET: Widget + 'static,
               WIDGET::Container: ContainerExt + IsA<gtk::Widget> + IsA<Object>,
     {
-        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+        let event_loop = Loop::default();
+        let (widget, component, child_relm, mut stream) = create_widget::<CHILDWIDGET>(model_param);
         let container = WIDGET::add_widget(self, &widget);
         component.on_add(container);
-        init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
+        init_component::<CHILDWIDGET>(&mut stream, component, &child_relm);
+        event_loop.add_stream(stream);
         widget
     }
 
+    /*
     /// Emit a message of the widget stream.
     pub fn emit(&self, msg: WIDGET::Msg) {
         self.stream().emit(msg);
     }
+    */
 
     /// Get the event stream of the component.
     /// This is used internally by the library.
-    pub fn stream(&self) -> &EventStream<WIDGET::Msg> {
+    pub fn stream(&self) -> &StreamHandle<WIDGET::Msg> {
         self.component.stream()
     }
 
@@ -157,13 +167,15 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
               CHILDWIDGET::Msg: DisplayVariant + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
     {
-        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+        let event_loop = Loop::default();
+        let (widget, component, child_relm, mut stream) = create_widget::<CHILDWIDGET>(model_param);
         let container = component.container().clone();
         let containers = component.other_containers();
         let root = component.root().clone();
         self.add(&root);
         component.on_add(self.clone());
-        init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
+        init_component::<CHILDWIDGET>(&mut stream, component, &child_relm);
+        event_loop.add_stream(stream); // TODO: remove_stream() on remove_widget().
         ContainerComponent::new(widget, container, containers)
     }
 
@@ -173,10 +185,12 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
               CHILDWIDGET::Msg: DisplayVariant + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
     {
-        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+        let event_loop = Loop::default();
+        let (widget, component, child_relm, mut stream) = create_widget::<CHILDWIDGET>(model_param);
         self.add(widget.widget());
         component.on_add(self.clone());
-        init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
+        init_component::<CHILDWIDGET>(&mut stream, component, &child_relm);
+        event_loop.add_stream(stream);
         widget
     }
 

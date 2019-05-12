@@ -19,90 +19,54 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::cell::RefCell;
-use std::rc::Rc;
+// TODO: still depend on gtk-test?
 
-use relm::EventStream;
+#![warn(missing_docs)]
 
-pub struct Observer<MSG> {
-    result: Rc<RefCell<Option<MSG>>>,
-}
+//! Crate to test UI interactions with [gtk-rs] crates.
+//!
+//! [gtk-rs]: https://gtk-rs.org
+//!
+//! Small example:
+//!
+//! ```
+//! extern crate gtk;
+//! #[macro_use]
+//! extern crate relm_test;
+//!
+//! use gtk::{ButtonExt, ContainerExt, GtkWindowExt, LabelExt, WidgetExt};
+//!
+//! # fn main() {
+//! gtk::init().expect("GTK init failed");
+//!
+//! let win = gtk::Window::new(gtk::WindowType::Toplevel);
+//! let but = gtk::Button::new();
+//!
+//! but.set_label(""); // Otherwise, assert_label! call will fail.
+//! but.connect_clicked(|b| {
+//!     b.set_label("clicked!");
+//! });
+//!
+//! win.add(&but);
+//! win.show_all();
+//! win.activate_focus(); // Very important, otherwise tests will fail on OSX!
+//!
+//! assert_label!(but, "");
+//! relm_test::click(&but);
+//! relm_test::wait(1000); // To be sure that GTK has updated the label's text.
+//! assert_label!(but, "clicked!");
+//! # }
+//! ```
 
-impl<MSG: Clone + 'static> Observer<MSG> {
-    pub fn new<F: Fn(&MSG) -> bool + 'static>(stream: &EventStream<MSG>, predicate: F) -> Self {
-        let result = Rc::new(RefCell::new(None));
-        let res = result.clone();
-        stream.observe(move |msg| {
-            if predicate(msg) {
-                *res.borrow_mut() = Some(msg.clone());
-            }
-        });
-        Self {
-            result,
-        }
-    }
+extern crate enigo;
+extern crate gdk;
+extern crate gtk;
+extern crate relm;
 
-    pub fn wait(&self) -> MSG {
-        loop {
-            if let Ok(ref result) = self.result.try_borrow() {
-                if result.is_some() {
-                    break;
-                }
-            }
-            gtk_test::run_loop();
-        }
-        self.result.borrow_mut().take()
-            .expect("Message to take")
-    }
-}
+mod macros;
 
-#[macro_export]
-macro_rules! relm_observer_new {
-    ($component:expr, $pat:pat) => {
-        $crate::Observer::new($component.stream(), |msg|
-            if let $pat = msg {
-                true
-            }
-            else {
-                false
-            }
-        );
-    };
-}
+mod functions;
+mod observer;
 
-#[macro_export]
-macro_rules! relm_observer_wait {
-    (let $($variant:ident)::*($name1:ident, $name2:ident $(,$rest:ident)*) = $observer:expr) => {
-        let ($name1, $name2 $(, $rest)*) = {
-            let msg = $observer.wait();
-            if let $($variant)::*($name1, $name2 $(, $rest)*) = msg {
-                ($name1, $name2 $(, $rest)*)
-            }
-            else {
-                panic!("Wrong message type.");
-            }
-        };
-    };
-    (let $($variant:ident)::*($name:ident) = $observer:expr) => {
-        let $name = {
-            let msg = $observer.wait();
-            if let $($variant)::*($name) = msg {
-                $name
-            }
-            else {
-                panic!("Wrong message type.");
-            }
-        };
-    };
-    (let $($variant:ident)::* = $observer:expr) => {
-        let () = {
-            let msg = $observer.wait();
-            if let $($variant)::* = msg {
-                ()
-            }
-            else {
-                panic!("Wrong message type.");
-            }
-        };
-    };
-}
+pub use functions::*;
+pub use observer::{Observer, RelmObserver};

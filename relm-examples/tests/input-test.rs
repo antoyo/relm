@@ -28,7 +28,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::Widget;
+use relm::{Loop, Widget};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
@@ -56,7 +56,7 @@ impl Widget for Win {
             Change(text) => {
                 self.model.content = text.chars().rev().collect();
             },
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 
@@ -86,7 +86,8 @@ mod tests {
     use gdk::enums::key;
     use gtk::{EntryExt, LabelExt};
 
-    use gtk_test::{
+    use relm;
+    use relm_test::{
         assert_text,
         enter_key,
         enter_keys,

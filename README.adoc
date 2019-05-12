@@ -35,7 +35,7 @@ Next, add this to your crate:
 
 [source,rust]
 ----
-use relm::{Relm, Update, Widget};
+use relm::{Loop, Relm, Update, Widget};
 use gtk::prelude::*;
 use gtk::{Window, Inhibit, WindowType};
 ----
@@ -97,7 +97,7 @@ impl Update for Win {
     // Widgets may also be updated in this function.
     fn update(&mut self, event: Msg) {
         match event {
-            Msg::Quit => gtk::main_quit(),
+            Msg::Quit => Loop::quit(),
         }
     }
 }
@@ -188,7 +188,7 @@ impl Widget for Win {
             // attribute every time the model.counter attribute is updated.
             Msg::Decrement => self.model.counter -= 1,
             Msg::Increment => self.model.counter += 1,
-            Msg::Quit => gtk::main_quit(),
+            Msg::Quit => Loop::quit(),
         }
     }
 

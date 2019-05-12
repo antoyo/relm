@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2019 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -36,13 +36,71 @@ mod source;
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::marker::PhantomData;
-use std::rc::Rc;
+use std::mem;
+use std::rc::{Rc, Weak};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, SendError};
 
-use self::source::{SourceFuncs, new_source, source_get};
+use glib::MainContext;
+use slab::Slab;
 
-use glib::{MainContext, Source};
+static RUNNING: AtomicBool = AtomicBool::new(true);
+
+/// Handle to a EventStream to emit messages.
+pub struct StreamHandle<MSG> {
+    stream: Weak<RefCell<_EventStream<MSG>>>,
+}
+
+impl<MSG> Clone for StreamHandle<MSG> {
+    fn clone(&self) -> Self {
+        Self {
+            stream: self.stream.clone(),
+        }
+    }
+}
+
+impl<MSG> StreamHandle<MSG> {
+    fn new(stream: Weak<RefCell<_EventStream<MSG>>>) -> Self {
+        Self {
+            stream: stream,
+        }
+    }
+
+    /// Send the `event` message to the stream and the observers.
+    pub fn emit(&self, msg: MSG) {
+        if let Some(ref stream) = self.stream.upgrade() {
+            emit(stream, msg);
+        }
+        else {
+            panic!("Trying to call emit() on a dropped EventStream");
+        }
+    }
+
+    /// Lock the stream (don't emit message) until the `Lock` goes out of scope.
+    pub fn lock(&self) -> Lock<MSG> {
+        if let Some(ref stream) = self.stream.upgrade() {
+            stream.borrow_mut().locked = true;
+            Lock {
+                stream: stream.clone(),
+            }
+        }
+        else {
+            panic!("Trying to call lock() on a dropped EventStream");
+        }
+    }
+
+    /// Add an observer to the event stream.
+    /// This callback will be called every time a message is emmited.
+    pub fn observe<CALLBACK: Fn(&MSG) + 'static>(&self, callback: CALLBACK) {
+        if let Some(ref stream) = self.stream.upgrade() {
+            stream.borrow_mut().observers.push(Rc::new(callback));
+        }
+        else {
+            panic!("Trying to call observe() on a dropped EventStream");
+        }
+    }
+}
 
 /// A lock is used to temporarily stop emitting messages.
 #[must_use]
@@ -56,21 +114,17 @@ impl<MSG> Drop for Lock<MSG> {
     }
 }
 
-struct ChannelData<MSG> {
-    callback: Box<dyn FnMut(MSG)>,
-    peeked_value: Option<MSG>,
-    receiver: Receiver<MSG>,
-}
-
 /// A wrapper over a `std::sync::mpsc::Sender` to wakeup the glib event loop when sending a
 /// message.
 pub struct Sender<MSG> {
+    entry: Arc<AtomicUsize>,
     sender: mpsc::Sender<MSG>,
 }
 
 impl<MSG> Clone for Sender<MSG> {
     fn clone(&self) -> Self {
         Self {
+            entry: self.entry.clone(),
             sender: self.sender.clone(),
         }
     }
@@ -80,6 +134,7 @@ impl<MSG> Sender<MSG> {
     /// Send a message and wakeup the event loop.
     pub fn send(&self, msg: MSG) -> Result<(), SendError<MSG>> {
         let result = self.sender.send(msg);
+        Loop::default().register(self.entry.load(Ordering::SeqCst));
         let context = MainContext::default();
         context.wakeup();
         result
@@ -88,166 +143,223 @@ impl<MSG> Sender<MSG> {
 
 /// A channel to send a message to a relm widget from another thread.
 pub struct Channel<MSG> {
-    _source: Source,
-    _phantom: PhantomData<MSG>,
+    callback: Box<dyn FnMut(MSG)>,
+    entry: Arc<AtomicUsize>,
+    receiver: Receiver<MSG>,
 }
 
 impl<MSG> Channel<MSG> {
     /// Create a new channel with a callback that will be called when a message is received.
     pub fn new<CALLBACK: FnMut(MSG) + 'static>(callback: CALLBACK) -> (Self, Sender<MSG>) {
         let (sender, receiver) = mpsc::channel();
-        let source = new_source(RefCell::new(ChannelData {
-            callback: Box::new(callback),
-            peeked_value: None,
-            receiver,
-        }));
-        let main_context = MainContext::default();
-        source.attach(Some(&main_context));
+        let entry = Arc::new(AtomicUsize::new(0));
         (Self {
-            _source: source,
-            _phantom: PhantomData,
+            callback: Box::new(callback),
+            entry: entry.clone(),
+            receiver,
         }, Sender {
+            entry,
             sender,
         })
     }
 }
 
-impl<MSG> SourceFuncs for RefCell<ChannelData<MSG>> {
-    fn dispatch(&self) -> bool {
-        // TODO: show errors.
-        let msg = self.borrow_mut().peeked_value.take().or_else(|| {
-            self.borrow().receiver.try_recv().ok()
-        });
-        if let Some(msg) = msg {
-            let callback = &mut self.borrow_mut().callback;
+impl<MSG> Handle for Channel<MSG> {
+    fn handle(&mut self) {
+        if let Ok(msg) = self.receiver.try_recv() {
+            let callback = &mut self.callback;
             callback(msg);
         }
-        true
     }
 
-    fn prepare(&self) -> (bool, Option<u32>) {
-        if self.borrow().peeked_value.is_some() {
-            return (true, None);
-        }
-        let peek_val = self.borrow().receiver.try_recv().ok();
-        self.borrow_mut().peeked_value = peek_val;
-        (self.borrow().peeked_value.is_some(), None)
+    fn set_entry(&self, entry: usize) {
+        self.entry.store(entry, Ordering::SeqCst);
     }
-
 }
 
 struct _EventStream<MSG> {
+    entry: usize,
     events: VecDeque<MSG>,
     locked: bool,
     observers: Vec<Rc<dyn Fn(&MSG)>>,
 }
 
-impl<MSG> SourceFuncs for SourceData<MSG> {
-    fn dispatch(&self) -> bool {
-        let event = self.stream.borrow_mut().events.pop_front();
-        if let (Some(event), Some(callback)) = (event, self.callback.borrow_mut().as_mut()) {
-            callback(event);
+fn emit<MSG>(stream: &Rc<RefCell<_EventStream<MSG>>>, msg: MSG) {
+    if !stream.borrow().locked {
+        let len = stream.borrow().observers.len();
+        for i in 0..len {
+            let observer = stream.borrow().observers[i].clone();
+            observer(&msg);
         }
-        true
+
+        stream.borrow_mut().events.push_back(msg);
+        Loop::default().register(stream.borrow().entry);
+        MainContext::default().wakeup();
     }
-
-    fn prepare(&self) -> (bool, Option<u32>) {
-        (!self.stream.borrow().events.is_empty(), None)
-    }
-
-}
-
-struct SourceData<MSG> {
-    callback: Rc<RefCell<Option<Box<dyn FnMut(MSG)>>>>,
-    stream: Rc<RefCell<_EventStream<MSG>>>,
 }
 
 /// A stream of messages to be used for widget/signal communication and inter-widget communication.
 /// EventStream cannot be send to another thread. Use a `Channel` `Sender` instead.
 pub struct EventStream<MSG> {
-    source: Source,
-    _phantom: PhantomData<*mut MSG>,
-}
-
-impl<MSG> Clone for EventStream<MSG> {
-    fn clone(&self) -> Self {
-        EventStream {
-            source: self.source.clone(),
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<MSG> EventStream<MSG> {
-    fn get_callback(&self) -> Rc<RefCell<Option<Box<dyn FnMut(MSG)>>>> {
-        source_get::<SourceData<MSG>>(&self.source).callback.clone()
-    }
-
-    fn get_stream(&self) -> Rc<RefCell<_EventStream<MSG>>> {
-        source_get::<SourceData<MSG>>(&self.source).stream.clone()
-    }
+    callback: Option<Box<dyn FnMut(MSG)>>,
+    stream: Rc<RefCell<_EventStream<MSG>>>,
 }
 
 impl<MSG> EventStream<MSG> {
     /// Create a new event stream.
     pub fn new() -> Self {
         let event_stream: _EventStream<MSG> = _EventStream {
+            entry: 0,
             events: VecDeque::new(),
             locked: false,
             observers: vec![],
         };
-        let source = new_source(SourceData {
-            callback: Rc::new(RefCell::new(None)),
-            stream: Rc::new(RefCell::new(event_stream)),
-        });
-        let main_context = MainContext::default();
-        source.attach(Some(&main_context));
         EventStream {
-            source,
-            _phantom: PhantomData,
+            callback: None,
+            stream: Rc::new(RefCell::new(event_stream)),
         }
     }
 
-    /// Close the event stream, i.e. stop processing messages.
-    pub fn close(&self) {
-        self.source.destroy();
+    /// Create a Clone-able EventStream handle.
+    pub fn downgrade(&self) -> StreamHandle<MSG> {
+        StreamHandle::new(Rc::downgrade(&self.stream))
     }
 
     /// Send the `event` message to the stream and the observers.
     pub fn emit(&self, event: MSG) {
-        let stream = self.get_stream();
-        if !stream.borrow().locked {
-            let len = stream.borrow().observers.len();
-            for i in 0..len {
-                let observer = stream.borrow().observers[i].clone();
-                observer(&event);
-            }
-
-            stream.borrow_mut().events.push_back(event);
-        }
-    }
-
-    /// Lock the stream (don't emit message) until the `Lock` goes out of scope.
-    pub fn lock(&self) -> Lock<MSG> {
-        let stream = self.get_stream();
-        stream.borrow_mut().locked = true;
-        Lock {
-            stream: self.get_stream().clone(),
-        }
+        emit(&self.stream, event);
     }
 
     /// Add an observer to the event stream.
     /// This callback will be called every time a message is emmited.
     pub fn observe<CALLBACK: Fn(&MSG) + 'static>(&self, callback: CALLBACK) {
-        let stream = self.get_stream();
-        stream.borrow_mut().observers.push(Rc::new(callback));
+        self.stream.borrow_mut().observers.push(Rc::new(callback));
     }
 
     /// Add a callback to the event stream.
     /// This is the main callback and received a owned version of the message, in contrast to
     /// observe().
-    pub fn set_callback<CALLBACK: FnMut(MSG) + 'static>(&self, callback: CALLBACK) {
-        let source_callback = self.get_callback();
-        *source_callback.borrow_mut() = Some(Box::new(callback));
+    pub fn set_callback<CALLBACK: FnMut(MSG) + 'static>(&mut self, callback: CALLBACK) {
+        self.callback = Some(Box::new(callback));
+    }
+}
+
+pub trait Handle {
+    fn handle(&mut self);
+    fn set_entry(&self, entry: usize);
+}
+
+impl<MSG> Handle for EventStream<MSG> {
+    fn handle(&mut self) {
+        let event = self.stream.borrow_mut().events.pop_front();
+        if let (Some(event), Some(callback)) = (event, self.callback.as_mut()) {
+            callback(event);
+        }
+    }
+
+    fn set_entry(&self, entry: usize) {
+        self.stream.borrow_mut().entry = entry;
+    }
+}
+
+/// Event loop wrapper to handle relm message system.
+#[derive(Clone)]
+pub struct Loop {
+    context: MainContext,
+    registered_entries: Rc<RefCell<Vec<usize>>>,
+    streams: Rc<RefCell<Slab<Option<Box<dyn Handle>>>>>,
+}
+
+static mut MAIN_LOOP: usize = 0;
+
+impl Loop {
+    /// Get the default main loop.
+    pub fn default() -> Self {
+        if !gtk::is_initialized_main_thread() {
+            if gtk::is_initialized() {
+                panic!("GTK may only be used from the main thread.");
+            }
+            else {
+                panic!("GTK has not been initialized. Call `gtk::init` first.");
+            }
+        }
+        unsafe {
+            if MAIN_LOOP == 0 {
+                MAIN_LOOP = Box::into_raw(Box::new(Self::new())) as usize;
+            }
+            (&*(MAIN_LOOP as *const Self)).clone()
+        }
+    }
+
+    fn new() -> Self {
+        Self {
+            context: MainContext::default(),
+            registered_entries: Rc::new(RefCell::new(vec![])),
+            streams: Rc::new(RefCell::new(Slab::new())),
+        }
+    }
+
+    /// Add an EventStream to this event loop.
+    /// The messages of every EventStream will be processed at each iteration.
+    pub fn add_stream<HANDLE>(&self, stream: HANDLE) -> usize
+    where HANDLE: Handle + 'static,
+    {
+        self.streams.borrow_mut().insert(Some(Box::new(stream)))
+    }
+
+    /// Check if any events are pending.
+    pub fn events_pending(&self) -> bool {
+        gtk::events_pending() || !self.registered_entries.borrow().is_empty()
+    }
+
+    /// Do one iteration of the event loop.
+    pub fn iterate(&self, may_block: bool) {
+        self.context.iteration(may_block);
+        let registered_entries = mem::replace(&mut *self.registered_entries.borrow_mut(), vec![]);
+        for entry in registered_entries {
+            if !self.streams.borrow().contains(entry) {
+                continue;
+            }
+            let mut stream = mem::replace(&mut self.streams.borrow_mut()[entry], None);
+            self.streams.borrow_mut()[entry] = None;
+            if let Some(ref mut stream) = stream {
+                stream.handle();
+            }
+            self.streams.borrow_mut()[entry] = stream;
+        }
+    }
+
+    fn register(&self, entry: usize) {
+        self.registered_entries.borrow_mut().push(entry);
+    }
+
+    /// Remove an event stream from the event loop.
+    pub fn remove_stream(&self, entry: usize) {
+        self.streams.borrow_mut().remove(entry);
+    }
+
+    /// Reserve an entry in the event loop.
+    /// Call set_stream() with the returned entry afterwards.
+    pub fn reserve(&self) -> usize {
+        self.streams.borrow_mut().insert(None)
+    }
+
+    /// Set an EventStream at a specify entry.
+    pub fn set_stream<HANDLE>(&self, entry: usize, stream: HANDLE)
+    where HANDLE: Handle + 'static,
+    {
+        self.streams.borrow_mut()[entry] = Some(Box::new(stream));
+    }
+
+    /// End the main loop.
+    pub fn quit() {
+        RUNNING.store(false, Ordering::SeqCst);
+        MainContext::default().wakeup();
+    }
+
+    pub(crate) fn run(&self) {
+        while RUNNING.load(Ordering::SeqCst) {
+            self.iterate(true);
+        }
     }
 }

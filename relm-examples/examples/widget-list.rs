@@ -27,7 +27,12 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::{Horizontal, Vertical};
-use relm::{Component, ContainerWidget, Widget};
+use relm::{
+    Component,
+    ContainerWidget,
+    Loop,
+    Widget,
+};
 use relm_derive::{Msg, widget};
 
 use self::CounterMsg::*;
@@ -104,7 +109,7 @@ impl Widget for Win {
                 let widget = self.hbox.add_widget::<Counter>(());
                 self.model.counters.push(widget);
             },
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
             Remove => {
                 if let Some(counter) = self.model.counters.pop() {
                     self.hbox.remove_widget(counter);
@@ -145,7 +150,8 @@ fn main() {
 mod tests {
     use gtk::{Button, ContainerExt, Label, LabelExt};
 
-    use gtk_test::{assert_text, click, find_child_by_name};
+    use relm;
+    use relm_test::{assert_text, click, find_child_by_name};
 
     use crate::Win;
 

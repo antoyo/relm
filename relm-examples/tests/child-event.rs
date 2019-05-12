@@ -34,7 +34,7 @@ use gtk::{
     Type,
     WidgetExt,
 };
-use relm::Widget;
+use relm::{Loop, Widget};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
@@ -110,7 +110,7 @@ impl Widget for Win {
     fn update(&mut self, event: Msg) {
         match event {
             SelectionChanged(_selection) => println!("selection changed"),
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 

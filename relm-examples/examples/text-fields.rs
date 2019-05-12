@@ -33,7 +33,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use relm_derive::Msg;
-use relm::{connect, Relm, Update, Widget, WidgetTest};
+use relm::{Loop, Relm, Update, Widget, WidgetTest, connect};
 
 use self::Msg::*;
 
@@ -80,7 +80,7 @@ impl Update for Win {
                                                        .collect();
                 self.widgets.label.set_text(&self.model.content);
             },
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 }
@@ -138,7 +138,8 @@ mod tests {
     use gdk::enums::key;
     use gtk::LabelExt;
 
-    use gtk_test::{assert_text, enter_key, enter_keys};
+    use relm;
+    use relm_test::{assert_text, enter_key, enter_keys};
 
     use crate::Win;
 

@@ -26,8 +26,8 @@ use gtk::{
     NotebookExt,
     WidgetExt,
 };
+use relm::{Loop, Widget};
 use relm_derive::{widget, Msg};
-use relm::Widget;
 
 use self::Msg::*;
 
@@ -44,7 +44,7 @@ impl Widget for Win {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 

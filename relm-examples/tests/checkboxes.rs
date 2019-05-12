@@ -33,6 +33,7 @@ use relm::{
     connect,
     Component,
     ContainerWidget,
+    Loop,
     Relm,
     Update,
     Widget,
@@ -140,7 +141,7 @@ impl Update for Win {
 
     fn update(&mut self, event: Msg) {
         match event {
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
             MinusToggle => {
                 if self.minus_button.widget().get_active() {
                     self.plus_button.emit(Uncheck);
@@ -206,7 +207,8 @@ fn main() {
 mod tests {
     use gtk::ToggleButtonExt;
 
-    use gtk_test::click;
+    use relm;
+    use relm_test::click;
 
     use crate::Win;
 

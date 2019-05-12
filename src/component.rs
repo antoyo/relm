@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use super::{EventStream, Widget};
+use super::{StreamHandle, Widget};
 
 /// Widget that was added by the `ContainerWidget::add_widget()` method.
 ///
@@ -31,7 +31,7 @@ use super::{EventStream, Widget};
 /// [communication-attribute example](https://github.com/antoyo/relm/blob/master/tests/communication-attribute.rs)).
 #[must_use]
 pub struct Component<WIDGET: Widget> {
-    stream: EventStream<WIDGET::Msg>,
+    stream: StreamHandle<WIDGET::Msg>,
     widget: WIDGET::Root,
 }
 
@@ -44,15 +44,9 @@ impl<WIDGET: Widget> Clone for Component<WIDGET> {
     }
 }
 
-impl<WIDGET: Widget> Drop for Component<WIDGET> {
-    fn drop(&mut self) {
-        let _ = self.stream.close();
-    }
-}
-
 impl<WIDGET: Widget> Component<WIDGET> {
     #[doc(hidden)]
-    pub fn new(stream: EventStream<WIDGET::Msg>, widget: WIDGET::Root) -> Self {
+    pub fn new(stream: StreamHandle<WIDGET::Msg>, widget: WIDGET::Root) -> Self {
         Component {
             stream,
             widget,
@@ -66,8 +60,14 @@ impl<WIDGET: Widget> Component<WIDGET> {
 
     /// Get the event stream of the component.
     /// This is used internally by the library.
-    pub fn stream(&self) -> &EventStream<WIDGET::Msg> {
+    pub fn stream(&self) -> &StreamHandle<WIDGET::Msg> {
         &self.stream
+    }
+
+    /// Get the event stream of the component.
+    /// This is used internally by the library.
+    pub fn stream_mut(&mut self) -> &mut StreamHandle<WIDGET::Msg> {
+        &mut self.stream
     }
 
     /// Get the widget of the component.

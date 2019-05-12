@@ -30,8 +30,8 @@ use gtk::{
     Window,
     WindowType,
 };
+use relm::{Loop, Relm, Update, Widget, WidgetTest, connect};
 use relm_derive::Msg;
-use relm::{connect, Relm, Update, Widget, WidgetTest};
 
 use self::Msg::*;
 
@@ -79,7 +79,7 @@ impl Update for Win {
             Release => {
                 println!("Release");
             },
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 }
@@ -136,7 +136,8 @@ fn main() {
 mod tests {
     use gtk::EntryExt;
 
-    use gtk_test::{assert_text, enter_keys};
+    use relm;
+    use relm_test::{assert_text, enter_keys};
 
     use crate::Win;
 

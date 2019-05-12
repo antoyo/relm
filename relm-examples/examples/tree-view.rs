@@ -40,7 +40,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use relm_derive::Msg;
-use relm::{connect, Relm, Update, Widget};
+use relm::{Loop, Relm, Update, Widget, connect};
 
 // These two constants stand for the columns of the listmodel and the listview
 const VALUE_COL: i32 = 0;
@@ -109,7 +109,7 @@ impl Update for Win {
                     }
                 }
             },
-            Msg::Quit => gtk::main_quit(),
+            Msg::Quit => Loop::quit(),
         }
     }
 }

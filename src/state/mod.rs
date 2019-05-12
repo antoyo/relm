@@ -37,13 +37,17 @@ mod macros;
 
 use std::time::SystemTime;
 
-pub use crate::core::EventStream;
+pub use crate::core::{
+    EventStream,
+    Loop,
+    StreamHandle,
+};
 
 pub use self::into::{IntoOption, IntoPair};
 
 /// Handle event stream to send messages to the [`update()`](trait.Update.html#tymethod.update) method.
 pub struct Relm<UPDATE: Update> {
-    stream: EventStream<UPDATE::Msg>,
+    stream: StreamHandle<UPDATE::Msg>,
 }
 
 impl<UPDATE: Update> Clone for Relm<UPDATE> {
@@ -56,15 +60,15 @@ impl<UPDATE: Update> Clone for Relm<UPDATE> {
 
 impl<UPDATE: Update> Relm<UPDATE> {
     /// Create a new relm stream handler.
-    pub fn new(stream: EventStream<UPDATE::Msg>) -> Self {
+    pub fn new(stream: &EventStream<UPDATE::Msg>) -> Self {
         Relm {
-            stream,
+            stream: stream.downgrade(),
         }
     }
 
     /// Get the event stream of this stream.
     /// This is used internally by the library.
-    pub fn stream(&self) -> &EventStream<UPDATE::Msg> {
+    pub fn stream(&self) -> &StreamHandle<UPDATE::Msg> {
         &self.stream
     }
 }
@@ -119,30 +123,13 @@ impl DisplayVariant for () {
     }
 }
 
-/// Create a bare component, i.e. a component only implementing the Update trait, not the Widget
-/// trait.
-pub fn execute<UPDATE>(model_param: UPDATE::ModelParam) -> EventStream<UPDATE::Msg>
-where UPDATE: Update + UpdateNew + 'static
-{
-    let stream = EventStream::new();
-
-    let relm = Relm::new(stream.clone());
-    let model = UPDATE::model(&relm, model_param);
-    let component = UPDATE::new(&relm, model);
-
-    init_component::<UPDATE>(&stream, component, &relm);
-    stream
-}
-
 /// Initialize a component by creating its subscriptions and dispatching the messages from the
 /// stream.
-pub fn init_component<UPDATE>(stream: &EventStream<UPDATE::Msg>, mut component: UPDATE, relm: &Relm<UPDATE>)
+pub fn init_component<UPDATE>(stream: &mut EventStream<UPDATE::Msg>, mut component: UPDATE, relm: &Relm<UPDATE>)
     where UPDATE: Update + 'static,
           UPDATE::Msg: DisplayVariant + 'static,
 {
     component.subscriptions(relm);
-    // FIXME: This callback contains the component and the component contains a copy of the stream,
-    // so we have a reference cycle.
     stream.set_callback(move |event| {
         update_component(&mut component, event);
     });

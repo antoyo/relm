@@ -27,7 +27,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::Widget;
+use relm::{Loop, Widget};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
@@ -61,7 +61,7 @@ impl Widget for Win {
             #[cfg(test)] Test => (),
             Decrement => self.model.counter -= 1,
             Increment => self.model.counter += 1,
-            Quit => gtk::main_quit(),
+            Quit => Loop::quit(),
         }
     }
 
@@ -102,7 +102,8 @@ fn main() {
 mod tests {
     use gtk::{ButtonExt, LabelExt};
 
-    use gtk_test::{assert_label, assert_text, click};
+    use relm;
+    use relm_test::{assert_label, assert_text, click};
 
     use crate::Win;
 
