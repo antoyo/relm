@@ -113,7 +113,7 @@ impl Widget for Win {
         let plus_button = Button::new_with_label("+");
         vbox.add(&plus_button);
 
-        let counter_label = Label::new(model.counter.to_string().as_ref());
+        let counter_label = Label::new(Some(model.counter.to_string().as_ref()));
         vbox.add(&counter_label);
 
         let dec_button = Button::new_with_label("-");

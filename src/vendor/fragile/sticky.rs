@@ -15,7 +15,7 @@ fn next_item_id() -> usize {
     unsafe { COUNTER.fetch_add(1, Ordering::SeqCst) }
 }
 
-struct Registry(HashMap<usize, (UnsafeCell<*mut ()>, Box<Fn(&UnsafeCell<*mut ()>)>)>);
+struct Registry(HashMap<usize, (UnsafeCell<*mut ()>, Box<dyn Fn(&UnsafeCell<*mut ()>)>)>);
 
 impl Drop for Registry {
     fn drop(&mut self) {
