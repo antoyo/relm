@@ -132,7 +132,7 @@ impl Widget for Win {
             HttpError(error) => {
                 self.model.button_enabled = true;
                 self.model.text = format!("HTTP error: {}", error);
-                self.label.override_color(StateFlags::NORMAL, RED);
+                self.label.override_color(StateFlags::NORMAL, Some(RED));
             },
             ImageChunk(chunk) => {
                 //self.model.loader.write(&chunk).expect("write failure");

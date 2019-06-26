@@ -20,8 +20,8 @@
  */
 
 extern crate gio;
+extern crate glib;
 extern crate gtk;
-extern crate gtk_sys;
 #[macro_use]
 extern crate relm;
 #[macro_use]
@@ -30,9 +30,11 @@ extern crate relm_derive;
 use gio::{
     AppInfo,
     AppLaunchContext,
+    CancellableExt,
     File,
     FileExt,
 };
+use glib::GString;
 use gtk::{
     ButtonExt,
     DialogExt,
@@ -42,17 +44,14 @@ use gtk::{
     Inhibit,
     LabelExt,
     OrientableExt,
+    ResponseType,
     WidgetExt,
 };
-use gtk_sys::{GTK_RESPONSE_ACCEPT, GTK_RESPONSE_CANCEL};
 use gtk::Orientation::Vertical;
 use relm::{Relm, Widget};
 use relm_derive::widget;
 
 use self::Msg::*;
-
-const RESPONSE_ACCEPT: i32 = GTK_RESPONSE_ACCEPT as i32;
-const RESPONSE_CANCEL: i32 = GTK_RESPONSE_CANCEL as i32;
 
 pub struct Model {
     relm: Relm<Win>,
@@ -63,7 +62,7 @@ pub struct Model {
 pub enum Msg {
     AppError(gtk::Error),
     AppOpened(()),
-    FileRead((Vec<u8>, String)),
+    FileRead((Vec<u8>, GString)),
     OpenApp,
     OpenFile,
     Quit,
@@ -118,14 +117,14 @@ impl Widget for Win {
 impl Win {
     fn open_app(&mut self) {
         let dialog = FileChooserDialog::new(Some("Open a file"), Some(&self.window), FileChooserAction::Open);
-        dialog.add_button("Cancel", RESPONSE_CANCEL);
-        dialog.add_button("Accept", RESPONSE_ACCEPT);
+        dialog.add_button("Cancel", ResponseType::Cancel);
+        dialog.add_button("Accept", ResponseType::Accept);
         let result = dialog.run();
-        if result == RESPONSE_ACCEPT {
+        if result == ResponseType::Accept {
             if let Some(uri) = dialog.get_uri() {
                 let app_launch_context = AppLaunchContext::new();
                 //connect_async_func!(AppInfo::launch_default_for_uri_async(&uri, &app_launch_context), self.model.relm, AppOpened);
-                let cancellable = connect_async_func_full!(AppInfo::launch_default_for_uri_async(&uri, &app_launch_context), self.model.relm, AppOpened, AppError);
+                let cancellable = connect_async_func_full!(AppInfo::launch_default_for_uri_async(&uri, Some(&app_launch_context)), self.model.relm, AppOpened, AppError);
                 cancellable.cancel();
             }
         }
@@ -134,10 +133,10 @@ impl Win {
 
     fn open_file(&mut self) {
         let dialog = FileChooserDialog::new(Some("Open a file"), Some(&self.window), FileChooserAction::Open);
-        dialog.add_button("Cancel", RESPONSE_CANCEL);
-        dialog.add_button("Accept", RESPONSE_ACCEPT);
+        dialog.add_button("Cancel", ResponseType::Cancel);
+        dialog.add_button("Accept", ResponseType::Accept);
         let result = dialog.run();
-        if result == RESPONSE_ACCEPT {
+        if result == ResponseType::Accept {
             if let Some(filename) = dialog.get_filename() {
                 let file = File::new_for_path(filename);
                 //connect_async!(file, load_contents_async, self.model.relm, FileRead);

@@ -4,8 +4,8 @@ name = "async"
 version = "0.1.0"
 
 [dependencies]
+glib = "0.8.0"
 gtk = "^0.7.0"
-gtk-sys = "^0.9.0"
 
 [dependencies.gio]
 features = ["v2_50"]
