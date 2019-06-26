@@ -148,7 +148,7 @@ fn main() {
 
 === `#[widget]` attribute
 
-For the nightly users, a `#[widget]` attribute is provided to simplify the creation of a widget.
+A `#[widget]` attribute is provided to simplify the creation of a widget.
 
 This attribute does the following:
 
@@ -231,47 +231,6 @@ impl Widget for Win {
 
 NOTE: The `struct Win` is now automatically created by the attribute, as are the function `root()` and the associated types `Model`, `ModelParam`, `Msg` and `Container`.
 You can still provide the method and the associated types if needed, but you cannot create the `struct`.
-
-[NOTE]
-====
-To benefit from better error messages, enable the following features:
-
- * relm/unstable
- * relm-derive/unstable
-
-To do so, add the following lines to your `Cargo.toml`:
-
-[source,toml]
-----
-[features]
-default = ["relm/unstable", "relm-derive/unstable"]
-----
-====
-
-[NOTE]
-====
-It is possible to use this syntax from stable Rust.
-
-To do so, you need to replace the following:
-
-[source, rust]
-----
-#[widget]
-impl Widget for Win {
-}
-----
-
-by:
-
-[source, rust]
-----
-#[widget]
-relm_widget! {
-    impl Widget for Win {
-    }
-}
-----
-====
 
 WARNING: The `#[widget]` makes the generated `struct` public: hence, the corresponding model and message types must be public too.
 

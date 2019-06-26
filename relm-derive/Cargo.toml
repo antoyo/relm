@@ -18,6 +18,3 @@ quote = "0.6"
 [dependencies.syn]
 features = ["extra-traits", "fold", "full", "visit"]
 version = "^0.15"
-
-[features]
-unstable = ["proc-macro2/nightly"]
