@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [dependencies]
 gtk = "^0.7"
-webkit2gtk = "^0.6"
+webkit2gtk = "^0.8"
 
 [dependencies.relm]
 default-features = false
