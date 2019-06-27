@@ -22,7 +22,6 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
-#[cfg(feature = "unstable")]
 use std::iter::FromIterator;
 use std::str::FromStr;
 use std::sync::Mutex;
@@ -216,8 +215,7 @@ pub fn parse_widget(tokens: TokenStream) -> Result<Widget> {
         let mut file_content = String::new();
         file.read_to_string(&mut file_content).expect("read_to_string() in parse()");
         let tokens = proc_macro::TokenStream::from_str(&file_content).expect("convert string to TokenStream");
-        #[cfg(feature = "unstable")]
-        let tokens = respan_with(tokens, literal.span().unstable());
+        let tokens = respan_with(tokens, literal.span().unwrap());
         parse(tokens)
     }
     else {
@@ -1023,7 +1021,6 @@ fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<Str
     }
 }
 
-#[cfg(feature = "unstable")]
 pub fn respan_with(tokens: proc_macro::TokenStream, span: proc_macro::Span) -> proc_macro::TokenStream {
     let mut result = vec![];
     for mut token in tokens {

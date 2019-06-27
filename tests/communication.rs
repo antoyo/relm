@@ -177,7 +177,7 @@ impl Widget for Counter {
         plus_button.set_name("inc_button");
         vbox.add(&plus_button);
 
-        let counter_label = Label::new("0");
+        let counter_label = Label::new(Some("0"));
         counter_label.set_name("label");
         vbox.add(&counter_label);
 

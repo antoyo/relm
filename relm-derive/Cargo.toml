@@ -5,7 +5,7 @@ documentation = "https://docs.rs/relm-derive/"
 license = "MIT"
 name = "relm-derive"
 repository = "https://github.com/antoyo/relm"
-version = "0.16.0"
+version = "0.17.0"
 
 [lib]
 proc-macro = true
@@ -18,6 +18,3 @@ quote = "0.6"
 [dependencies.syn]
 features = ["extra-traits", "fold", "full", "visit"]
 version = "^0.15"
-
-[features]
-unstable = ["proc-macro2/nightly"]

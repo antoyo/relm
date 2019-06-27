@@ -76,7 +76,7 @@ impl Widget for Win {
                 #[name = "entry"]
                 gtk::Entry {
                     changed(entry) => Change(entry.get_text().expect("get_text failed")),
-                    placeholder_text: "Text to reverse",
+                    placeholder_text: Some("Text to reverse"),
                 },
                 #[name = "entry2"]
                 gtk::Entry { },

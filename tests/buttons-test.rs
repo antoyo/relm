@@ -177,7 +177,7 @@ impl Widget for Win {
                 gtk::Toolbar {
                     #[name="inc_tool_button"]
                     gtk::ToolButton {
-                        label: "Increment",
+                        label: Some("Increment"),
                         clicked => Increment,
                     },
                 },

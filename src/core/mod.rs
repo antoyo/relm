@@ -57,7 +57,7 @@ impl<MSG> Drop for Lock<MSG> {
 }
 
 struct ChannelData<MSG> {
-    callback: Box<FnMut(MSG)>,
+    callback: Box<dyn FnMut(MSG)>,
     peeked_value: Option<MSG>,
     receiver: Receiver<MSG>,
 }
@@ -102,7 +102,7 @@ impl<MSG> Channel<MSG> {
             receiver,
         }));
         let main_context = MainContext::default();
-        source.attach(&main_context);
+        source.attach(Some(&main_context));
         (Self {
             _source: source,
             _phantom: PhantomData,
@@ -139,7 +139,7 @@ impl<MSG> SourceFuncs for RefCell<ChannelData<MSG>> {
 struct _EventStream<MSG> {
     events: VecDeque<MSG>,
     locked: bool,
-    observers: Vec<Rc<Fn(&MSG)>>,
+    observers: Vec<Rc<dyn Fn(&MSG)>>,
 }
 
 impl<MSG> SourceFuncs for SourceData<MSG> {
@@ -158,7 +158,7 @@ impl<MSG> SourceFuncs for SourceData<MSG> {
 }
 
 struct SourceData<MSG> {
-    callback: Rc<RefCell<Option<Box<FnMut(MSG)>>>>,
+    callback: Rc<RefCell<Option<Box<dyn FnMut(MSG)>>>>,
     stream: Rc<RefCell<_EventStream<MSG>>>,
 }
 
@@ -179,7 +179,7 @@ impl<MSG> Clone for EventStream<MSG> {
 }
 
 impl<MSG> EventStream<MSG> {
-    fn get_callback(&self) -> Rc<RefCell<Option<Box<FnMut(MSG)>>>> {
+    fn get_callback(&self) -> Rc<RefCell<Option<Box<dyn FnMut(MSG)>>>> {
         source_get::<SourceData<MSG>>(&self.source).callback.clone()
     }
 
@@ -201,7 +201,7 @@ impl<MSG> EventStream<MSG> {
             stream: Rc::new(RefCell::new(event_stream)),
         });
         let main_context = MainContext::default();
-        source.attach(&main_context);
+        source.attach(Some(&main_context));
         EventStream {
             source,
             _phantom: PhantomData,

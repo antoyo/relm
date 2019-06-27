@@ -81,7 +81,7 @@ impl Widget for Win {
                         let len = text.len();
                         Change(text, len)
                     },
-                    placeholder_text: "Text to reverse",
+                    placeholder_text: Some("Text to reverse"),
                 },
                 #[name="label"]
                 gtk::Label {

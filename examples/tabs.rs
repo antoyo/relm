@@ -69,7 +69,7 @@ impl Widget for Win {
                 #[name="label"]
                 gtk::Label {
                     tab: {
-                        label: &gtk::Label::new("Second page"),
+                        label: Some(&gtk::Label::new(Some("Second page"))),
                     },
                     text: "Hello",
                 },
