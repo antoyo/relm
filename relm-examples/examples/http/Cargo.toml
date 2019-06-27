@@ -15,7 +15,7 @@ simplelog = "^0.5.3"
 uhttp_uri = "^0.5.1"
 
 [dependencies.relm]
-path = "../.."
+path = "../../.."
 
 [dependencies.relm-derive]
-path = "../../relm-derive"
+path = "../../../relm-derive"

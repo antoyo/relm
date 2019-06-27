@@ -9,7 +9,7 @@ webkit2gtk = "^0.8"
 
 [dependencies.relm]
 default-features = false
-path = "../.."
+path = "../../.."
 
 [dependencies.relm-derive]
-path = "../../relm-derive"
+path = "../../../relm-derive"

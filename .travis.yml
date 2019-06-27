@@ -37,12 +37,12 @@ before_script:
 
 script:
   - cargo build
-  - cargo test
-  - cargo test --examples
-  - cargo test --manifest-path examples/buttons-attribute/Cargo.toml
-  - cargo build --manifest-path examples/http/Cargo.toml
-  #- cargo build --manifest-path examples/async/Cargo.toml
-  - cargo build --manifest-path examples/webkit-test/Cargo.toml
+  - cargo test --manifest-path relm-examples/Cargo.toml
+  - cargo test --manifest-path relm-examples/Cargo.toml --examples
+  - cargo test --manifest-path relm-examples/examples/buttons-attribute/Cargo.toml
+  - cargo build --manifest-path relm-examples/examples/http/Cargo.toml
+  #- cargo build --manifest-path relm-examples/examples/async/Cargo.toml
+  - cargo build --manifest-path relm-examples/examples/webkit-test/Cargo.toml
 
 matrix:
   allow_failures:

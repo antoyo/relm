@@ -1,0 +1,30 @@
+[package]
+authors = ["Antoni Boucher <bouanto@zoho.com>"]
+categories = ["asynchronous", "gui"]
+description = "Examples for relm"
+license = "MIT"
+name = "relm-examples"
+version = "0.17.0"
+
+[dev-dependencies]
+chrono = "0.4"
+gdk = "^0.11.0"
+glib = "^0.8.0"
+gtk = "^0.7.0"
+gtk-test = "^0.4"
+rand = "^0.5.1"
+
+[dev-dependencies.gio]
+version = "^0.7.0"
+
+[dev-dependencies.relm]
+path = ".."
+version = "^0.17.0"
+
+[dev-dependencies.relm-derive]
+path = "../relm-derive"
+version = "^0.17.0"
+
+[dev-dependencies.relm-test]
+path = "../relm-test"
+version = "^0.17.0"
