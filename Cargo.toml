@@ -31,23 +31,6 @@ quote = "0.6"
 features = ["full"]
 version = "0.15"
 
-[dev-dependencies]
-chrono = "0.4"
-gdk = "^0.11.0"
-rand = "^0.5.1"
-gtk-test = "^0.4"
-
-[dev-dependencies.gio]
-version = "^0.7.0"
-
-[dev-dependencies.relm-derive]
-path = "relm-derive"
-version = "^0.17.0"
-
-[dev-dependencies.relm-test]
-path = "relm-test"
-version = "^0.17.0"
-
 [features]
 hidpi = ["cairo-rs/v1_14"]
 
