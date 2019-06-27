@@ -12,7 +12,7 @@ features = ["v2_50"]
 version = "^0.7.0"
 
 [dependencies.relm]
-path = "../.."
+path = "../../.."
 
 [dependencies.relm-derive]
-path = "../../relm-derive"
+path = "../../../relm-derive"

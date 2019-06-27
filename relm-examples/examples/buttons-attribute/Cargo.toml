@@ -8,10 +8,10 @@ gtk = "^0.7.0"
 gtk-test = "^0.4"
 
 [dependencies.relm]
-path = "../.."
+path = "../../.."
 
 [dependencies.relm-derive]
-path = "../../relm-derive"
+path = "../../../relm-derive"
 
 [dependencies.relm-test]
-path = "../../relm-test"
+path = "../../../relm-test"
