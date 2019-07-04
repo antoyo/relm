@@ -7,9 +7,9 @@ cd ./relm-derive
 cargo release --no-dev-version
 cd ..
 
+cargo release --no-dev-version
+git push
+
 cd ./relm-test
 cargo release --no-dev-version
 cd ..
-
-cargo release --no-dev-version
-git push
