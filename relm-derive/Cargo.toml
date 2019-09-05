@@ -6,6 +6,7 @@ license = "MIT"
 name = "relm-derive"
 repository = "https://github.com/antoyo/relm"
 version = "0.17.0"
+edition = "2018"
 
 [lib]
 proc-macro = true

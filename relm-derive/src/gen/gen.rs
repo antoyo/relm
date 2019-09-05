@@ -22,6 +22,7 @@
 use std::collections::HashMap;
 
 use proc_macro2::{Span, TokenStream};
+use quote::{quote, quote_spanned};
 use syn::{
     Expr,
     Generics,
@@ -221,20 +222,20 @@ impl<'a> Generator<'a> {
             match event.value {
                 CurrentWidget(WithoutReturn(ref event_value)) => quote_spanned! { widget_name.span() => {
                     #shared_values
-                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #metadata #event_value);
+                    relm::connect!(relm, #widget_name, #event_ident(#(#event_params),*), #metadata #event_value);
                 }},
                 ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {{
                     #shared_values
-                    connect!(#widget_name, #event_ident(#(#event_params),*), #foreign_widget_name, #event_value);
+                    relm::connect!(#widget_name, #event_ident(#(#event_params),*), #foreign_widget_name, #event_value);
                 }},
                 CurrentWidget(Return(ref event_value, ref return_value)) => quote_spanned! { widget_name.span() => {
                     #shared_values
-                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), return (#event_value, #return_value));
+                    relm::connect!(relm, #widget_name, #event_ident(#(#event_params),*), return (#event_value, #return_value));
                 }},
                 ForeignWidget(_, Return(_, _)) | ForeignWidget(_, CallReturn(_)) => unreachable!(),
                 CurrentWidget(CallReturn(ref func)) => quote_spanned! { widget_name.span() => {
                     #shared_values
-                    connect!(relm, #widget_name, #event_ident(#(#event_params),*), #metadata #func);
+                    relm::connect!(relm, #widget_name, #event_ident(#(#event_params),*), #metadata #func);
                 }},
                 NoEventValue => panic!("no event value"),
             };
@@ -270,10 +271,10 @@ impl<'a> Generator<'a> {
                 let connect =
                     match event.value {
                         CurrentWidget(WithoutReturn(ref event_value)) => quote_spanned! { widget_name.span() => {
-                            connect!(#widget_name@#event_ident #params, relm, #metadata #event_value);
+                            relm::connect!(#widget_name@#event_ident #params, relm, #metadata #event_value);
                         }},
                         ForeignWidget(ref foreign_widget_name, WithoutReturn(ref event_value)) => quote! {{
-                            connect!(#widget_name@#event_ident #params, #foreign_widget_name,
+                            relm::connect!(#widget_name@#event_ident #params, #foreign_widget_name,
                                      #metadata #event_value);
                         }},
                         CurrentWidget(Return(_, _)) | CurrentWidget(CallReturn(_)) | ForeignWidget(_, Return(_, _)) |

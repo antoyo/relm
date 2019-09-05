@@ -21,6 +21,7 @@
 
 //! Transformer to transform the self.model by the actual model identifier.
 
+use quote::quote_spanned;
 use proc_macro2::Span;
 use syn::{
     Expr,

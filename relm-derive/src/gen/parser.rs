@@ -26,9 +26,10 @@ use std::iter::FromIterator;
 use std::str::FromStr;
 use std::sync::Mutex;
 
+use lazy_static::lazy_static;
 use proc_macro;
 use proc_macro2::{TokenTree, TokenStream};
-use quote::ToTokens;
+use quote::{quote, ToTokens};
 use syn::{
     Expr,
     Ident,
@@ -36,9 +37,13 @@ use syn::{
     Pat,
     Path,
     Type,
+    braced,
+    bracketed,
+    parenthesized,
     parse,
     parse2,
     token,
+    Token,
 };
 use syn::parse::{Error, Parse, ParseStream, Result};
 use syn::punctuated::Punctuated;

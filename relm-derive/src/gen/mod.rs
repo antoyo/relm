@@ -34,7 +34,7 @@ mod walker;
 use std::collections::{HashMap, HashSet};
 
 use proc_macro2::{Span, TokenStream};
-use quote::ToTokens;
+use quote::{quote, quote_spanned, ToTokens};
 use syn::{
     ArgCaptured,
     Generics,
