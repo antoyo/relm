@@ -19,14 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gdk;
-extern crate gtk;
-extern crate rand;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-
 use std::f64::consts::PI;
 
 use gdk::{EventMask, RGBA};
@@ -40,6 +32,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use rand::Rng;
+use relm_derive::Msg;
 use relm::{
     DrawHandler,
     Relm,

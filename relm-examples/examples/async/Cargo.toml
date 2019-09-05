@@ -2,6 +2,7 @@
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 name = "async"
 version = "0.1.0"
+edition = "2018"
 
 [dependencies]
 glib = "0.8.0"

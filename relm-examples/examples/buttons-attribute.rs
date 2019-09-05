@@ -19,13 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
-extern crate gtk_test;
-
 use gtk::{
     ButtonExt,
     Inhibit,
@@ -109,10 +102,9 @@ fn main() {
 mod tests {
     use gtk::{ButtonExt, LabelExt};
 
-    use relm;
-    use gtk_test::click;
+    use gtk_test::{assert_label, assert_text, click};
 
-    use Win;
+    use crate::Win;
 
     #[test]
     fn label_change() {

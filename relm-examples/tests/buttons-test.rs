@@ -19,17 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gdk;
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-#[macro_use]
-extern crate gtk_test;
-#[macro_use]
-extern crate relm_test;
-
 use gdk::EventType::DoubleButtonPress;
 use gtk::{
     ButtonExt,
@@ -44,8 +33,8 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Widget, timeout};
-use relm_derive::widget;
+use relm::{connect, Relm, Widget, timeout};
+use relm_derive::{Msg, widget};
 
 use self::Msg::*;
 use self::LabelMsg::*;
@@ -228,8 +217,8 @@ mod tests {
         GtkMenuItemExt,
     };
 
-    use relm;
     use gtk_test::{
+        assert_text,
         click,
         double_click,
         find_widget_by_name,
@@ -237,11 +226,13 @@ mod tests {
     };
     use relm_test::{
         Observer,
+        relm_observer_new,
+        relm_observer_wait,
     };
 
-    use Msg::{self, FiveInc, GetModel, RecvModel, TwoInc};
-    use LabelMsg::Text;
-    use Win;
+    use crate::Msg::{self, FiveInc, GetModel, RecvModel, TwoInc};
+    use crate::LabelMsg::Text;
+    use crate::Win;
 
     #[test]
     fn label_change() {
@@ -291,7 +282,7 @@ mod tests {
         click(inc_button);
         assert_text!(widgets.label, 2);
 
-        relm_observer_wait!(let Msg::TwoInc(one, two) = two_observer);
+        relm_observer_wait!(let TwoInc(one, two) = two_observer);
         assert_eq!(one, 1);
         assert_eq!(two, 2);
 

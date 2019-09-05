@@ -19,14 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gio;
-extern crate glib;
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-
 use gio::{
     AppInfo,
     AppLaunchContext,
@@ -48,8 +40,8 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Widget};
-use relm_derive::widget;
+use relm::{connect_async_full, connect_async_func_full, Relm, Widget};
+use relm_derive::{Msg, widget};
 
 use self::Msg::*;
 

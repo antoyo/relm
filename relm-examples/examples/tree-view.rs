@@ -19,12 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-
 use std::fs;
 use std::io;
 use std::path::PathBuf;
@@ -45,7 +39,8 @@ use gtk::{
     WindowType
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Update, Widget};
+use relm_derive::Msg;
+use relm::{connect, Relm, Update, Widget};
 
 // These two constants stand for the columns of the listmodel and the listview
 const VALUE_COL: i32 = 0;

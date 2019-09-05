@@ -19,21 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate glib_sys;
-
-extern crate gdk;
-extern crate gdk_pixbuf;
-extern crate gio;
-extern crate glib;
-extern crate gtk;
-extern crate json;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-extern crate simplelog;
-extern crate uhttp_uri;
-
 use std::cell::RefCell;
 use std::mem;
 
@@ -61,13 +46,15 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use relm::{
+    connect_async,
+    connect_stream,
     Relm,
     Update,
     UpdateNew,
     Widget,
     execute,
 };
-use relm_derive::widget;
+use relm_derive::{Msg, widget};
 use simplelog::{Config, TermLogger};
 use simplelog::LevelFilter::Warn;
 use uhttp_uri::HttpUri;

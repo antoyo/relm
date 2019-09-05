@@ -19,11 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate chrono;
-extern crate glib;
-extern crate gtk;
-extern crate relm;
-
 use std::time::Duration;
 
 use chrono::Local;

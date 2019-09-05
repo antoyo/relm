@@ -19,14 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-#[macro_use]
-extern crate gtk_test;
-
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -35,7 +27,7 @@ use gtk::{
     WidgetExt,
 };
 use relm::{Relm, Widget};
-use relm_derive::widget;
+use relm_derive::{Msg, widget};
 
 use self::Msg::*;
 
@@ -103,10 +95,9 @@ fn main() {
 mod tests {
     use gtk::EntryExt;
 
-    use relm;
-    use gtk_test::enter_keys;
+    use gtk_test::{assert_text, enter_keys};
 
-    use Win;
+    use crate::Win;
 
     #[test]
     fn inhibit_event() {

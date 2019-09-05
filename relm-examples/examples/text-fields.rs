@@ -19,15 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gdk;
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
-extern crate gtk_test;
-
 use gtk::{
     ContainerExt,
     EditableSignals,
@@ -41,7 +32,8 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Update, Widget, WidgetTest};
+use relm_derive::Msg;
+use relm::{connect, Relm, Update, Widget, WidgetTest};
 
 use self::Msg::*;
 
@@ -146,10 +138,9 @@ mod tests {
     use gdk::enums::key;
     use gtk::LabelExt;
 
-    use relm;
-    use gtk_test::{enter_key, enter_keys};
+    use gtk_test::{assert_text, enter_key, enter_keys};
 
-    use Win;
+    use crate::Win;
 
     #[test]
     fn label_change() {

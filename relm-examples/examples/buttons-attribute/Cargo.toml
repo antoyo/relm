@@ -2,6 +2,7 @@
 name = "buttons-attribute"
 version = "0.1.0"
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
+edition = "2018"
 
 [dependencies]
 gtk = "^0.7.0"

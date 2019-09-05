@@ -19,14 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
-extern crate relm_test;
-
 use std::thread;
 use std::time::Duration;
 
@@ -38,7 +30,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use relm::{Channel, Relm, Widget};
-use relm_derive::widget;
+use relm_derive::{Msg, widget};
 
 use self::Msg::*;
 
@@ -101,10 +93,10 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use relm;
+    use relm_test::{relm_observer_new, relm_observer_wait};
 
-    use Msg::Value;
-    use Win;
+    use crate::Msg::Value;
+    use crate::Win;
 
     #[test]
     fn channel() {

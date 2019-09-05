@@ -19,14 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
-extern crate gtk_test;
-
 use gtk::{
     Button,
     ButtonExt,
@@ -39,7 +31,8 @@ use gtk::{
     WindowType,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Update, Widget, WidgetTest};
+use relm_derive::Msg;
+use relm::{connect, Relm, Update, Widget, WidgetTest};
 
 struct Model {
     counter: i32,
@@ -159,10 +152,9 @@ fn main() {
 mod tests {
     use gtk::LabelExt;
 
-    use relm;
-    use gtk_test::click;
+    use gtk_test::{assert_text, click};
 
-    use Win;
+    use crate::Win;
 
     #[test]
     fn label_change() {

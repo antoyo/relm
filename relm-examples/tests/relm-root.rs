@@ -19,13 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-extern crate gtk_test;
-
 use gtk::{
     ContainerExt,
     EventBox,
@@ -37,6 +30,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use relm::{
+    connect,
     Component,
     Container,
     ContainerComponent,
@@ -47,6 +41,7 @@ use relm::{
     WidgetTest,
     create_container,
 };
+use relm_derive::Msg;
 
 use self::Msg::*;
 
@@ -242,10 +237,9 @@ fn main() {
 mod tests {
     use gtk::{Button, Label, WidgetExt};
 
-    use relm;
     use gtk_test::find_child_by_name;
 
-    use Win;
+    use crate::Win;
 
     #[test]
     fn root_widget() {
