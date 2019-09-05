@@ -37,7 +37,7 @@
 macro_rules! connect {
     // Connect to a GTK+ widget event, sending a message to another widget.
     ($widget:expr, $event:ident($($args:pat),*), $other_component:expr, $msg:expr) => {
-        connect_stream!($widget, $event($($args),*), $other_component.stream(), $msg);
+        $crate::connect_stream!($widget, $event($($args),*), $other_component.stream(), $msg);
     };
 
     // Connect to a GTK+ widget event.
@@ -45,7 +45,7 @@ macro_rules! connect {
     // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
     // Option<MSG> can be None if no message needs to be emitted.
     ($relm:expr, $widget:expr, $event:ident($($args:pat),*), return $msg:expr) => {{
-        connect_stream!(return $relm.stream(), $widget, $event($($args),*), $msg);
+        $crate::connect_stream!(return $relm.stream(), $widget, $event($($args),*), $msg);
     }};
 
     // Connect to a GTK+ widget event.
@@ -63,7 +63,7 @@ macro_rules! connect {
     // TODO: create another macro rule accepting multiple patterns.
     ($src_component:ident @ $message:pat, $dst_component:expr, $msg:expr) => {
         let stream = $src_component.stream().clone();
-        connect_stream!(stream@$message, $dst_component.stream(), $msg);
+        $crate::connect_stream!(stream@$message, $dst_component.stream(), $msg);
     };
 }
 

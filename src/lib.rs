@@ -98,15 +98,6 @@
  * TODO: optionnaly multi-threaded.
  */
 
-extern crate cairo;
-extern crate glib;
-extern crate glib_sys;
-extern crate gobject_sys;
-extern crate gtk;
-extern crate libc;
-#[macro_use]
-extern crate log;
-
 mod component;
 mod container;
 mod core;
@@ -125,8 +116,8 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 pub use gobject_sys::{GParameter, g_object_newv};
 use gtk::Continue;
 
-pub use core::{Channel, EventStream, Sender};
-pub use state::{
+pub use crate::core::{Channel, EventStream, Sender};
+pub use crate::state::{
     DisplayVariant,
     IntoOption,
     IntoPair,
@@ -216,14 +207,9 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
 /// It is to be used this way:
 ///
 /// ```
-/// # extern crate gtk;
-/// # #[macro_use]
-/// # extern crate relm;
-/// # #[macro_use]
-/// # extern crate relm_derive;
-/// #
 /// # use gtk::{Window, WindowType};
 /// # use relm::{Relm, Update, Widget, WidgetTest};
+/// # use relm_derive::Msg;
 /// #
 /// # #[derive(Clone)]
 /// # struct Win {
@@ -296,14 +282,9 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
 /// Create the specified relm `Widget` and run the main event loops.
 ///
 /// ```
-/// # extern crate gtk;
-/// # #[macro_use]
-/// # extern crate relm;
-/// # #[macro_use]
-/// # extern crate relm_derive;
-/// #
 /// # use gtk::{Window, WindowType};
 /// # use relm::{Relm, Update, Widget};
+/// # use relm_derive::Msg;
 /// #
 /// # struct Win {
 /// #     window: Window,

@@ -35,12 +35,6 @@ Next, add this to your crate:
 
 [source,rust]
 ----
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-
 use relm::{Relm, Update, Widget};
 use gtk::prelude::*;
 use gtk::{Window, Inhibit, WindowType};
