@@ -1,10 +1,5 @@
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-
-use relm::{Relm, Update, Widget};
+use relm_derive::Msg;
+use relm::{connect, Relm, Update, Widget};
 use gtk::prelude::*;
 use gtk::{Window, Inhibit, WindowType};
 

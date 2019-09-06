@@ -19,14 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-#[cfg_attr(test, macro_use)]
-extern crate gtk_test;
-
 use gtk::{
     ButtonExt,
     Inhibit,
@@ -34,6 +26,7 @@ use gtk::{
     NotebookExt,
     WidgetExt,
 };
+use relm_derive::{widget, Msg};
 use relm::Widget;
 
 use self::Msg::*;
@@ -90,10 +83,9 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use gtk::{Cast, Label, LabelExt, NotebookExt};
+    use gtk_test::assert_text;
 
-    use relm;
-
-    use Win;
+    use crate::Win;
 
     #[test]
     fn root_widget() {

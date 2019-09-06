@@ -20,12 +20,11 @@
  */
 
 use glib::Cast;
-use gtk;
 use gtk::{ContainerExt, IsA, Object, WidgetExt};
 
-use state::EventStream;
+use crate::state::EventStream;
 use super::{Component, DisplayVariant, create_widget, init_component};
-use widget::Widget;
+use crate::widget::Widget;
 
 /// Struct for relm containers to add GTK+ and relm `Widget`s.
 pub struct ContainerComponent<WIDGET: Container + Widget> {

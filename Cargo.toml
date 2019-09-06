@@ -8,6 +8,7 @@ name = "relm"
 readme = "README.adoc"
 repository = "https://github.com/antoyo/relm"
 version = "0.17.0"
+edition = "2018"
 
 [badges.appveyor]
 branch = "master"

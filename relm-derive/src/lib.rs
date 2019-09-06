@@ -25,17 +25,11 @@
 
 #![recursion_limit="256"]
 
-#[macro_use]
-extern crate lazy_static;
 extern crate proc_macro;
-extern crate proc_macro2;
-#[macro_use]
-extern crate quote;
-#[macro_use]
-extern crate syn;
 
 mod gen;
 
+use quote::{quote, quote_spanned};
 use proc_macro2::TokenStream;
 use syn::{
     Fields,

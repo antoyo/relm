@@ -19,14 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-#[macro_use]
-extern crate relm_test;
-
 use gtk::{
     CellLayoutExt,
     CellRendererText,
@@ -43,7 +35,7 @@ use gtk::{
     WidgetExt,
 };
 use relm::Widget;
-use relm_derive::widget;
+use relm_derive::{Msg, widget};
 
 use self::Msg::*;
 
@@ -147,10 +139,14 @@ fn main() {
 mod tests {
     use gtk::{TreeSelectionExt, TreeModelExt, TreeViewExt};
 
-    use relm;
-    use Msg::SelectionChanged;
+    use relm_test::{
+        relm_observer_new,
+        relm_observer_wait,
+    };
 
-    use Win;
+    use crate::Msg::SelectionChanged;
+
+    use crate::Win;
 
     #[test]
     fn child_event() {

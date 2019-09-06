@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use quote::TokenStreamExt;
+use quote::{quote, quote_spanned, TokenStreamExt};
 use syn::{
     Expr,
     ExprAssign,

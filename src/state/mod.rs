@@ -37,7 +37,7 @@ mod macros;
 
 use std::time::SystemTime;
 
-pub use core::EventStream;
+pub use crate::core::EventStream;
 
 pub use self::into::{IntoOption, IntoPair};
 
@@ -165,7 +165,7 @@ fn update_component<COMPONENT>(component: &mut COMPONENT, event: COMPONENT::Msg)
         if let Ok(duration) = time.elapsed() {
             let ms = duration.subsec_nanos() as u64 / 1_000_000 + duration.as_secs() * 1000;
             if ms >= 16 {
-                warn!("The update function was slow to execute for message {}: {}ms", debug, ms);
+                log::warn!("The update function was slow to execute for message {}: {}ms", debug, ms);
             }
         }
     }

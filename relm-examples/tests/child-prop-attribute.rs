@@ -19,13 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-extern crate gtk_test;
-
 use gtk::{
     BoxExt,
     ButtonExt,
@@ -37,7 +30,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use relm::Widget;
-use relm_derive::widget;
+use relm_derive::{Msg, widget};
 
 use self::Msg::*;
 
@@ -125,9 +118,7 @@ fn main() {
 mod tests {
     use gtk::WidgetExt;
 
-    use relm;
-
-    use Win;
+    use crate::Win;
 
     #[test]
     fn button_position() {

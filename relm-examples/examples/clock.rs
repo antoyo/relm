@@ -19,14 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate chrono;
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-extern crate gtk_test;
-
 use chrono::Local;
 use gtk::{
     ContainerExt,
@@ -37,7 +29,8 @@ use gtk::{
     Window,
     WindowType,
 };
-use relm::{Relm, Update, Widget, WidgetTest, interval};
+use relm_derive::Msg;
+use relm::{connect,Relm, Update, Widget, WidgetTest, interval};
 
 use self::Msg::*;
 
@@ -122,10 +115,9 @@ mod tests {
     use chrono::{Local, NaiveTime};
     use gtk::LabelExt;
 
-    use relm;
     use gtk_test::wait;
 
-    use Win;
+    use crate::Win;
 
     #[test]
     fn label_change() {

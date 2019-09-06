@@ -19,9 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk_test;
-extern crate relm;
-
 use std::cell::RefCell;
 use std::rc::Rc;
 

@@ -22,7 +22,7 @@
 use gtk::{self, IsA, Object};
 
 use super::{Relm, run};
-use state::Update;
+use crate::state::Update;
 
 /// Trait to implement to manage widget's events.
 pub trait Widget

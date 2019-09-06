@@ -19,18 +19,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-extern crate gtk;
-#[macro_use]
-extern crate relm;
-#[macro_use]
-extern crate relm_derive;
-extern crate webkit2gtk;
-
 use gtk::{
     Inhibit,
     WidgetExt,
 };
-use relm_derive::widget;
+use relm_derive::{Msg, widget};
 use relm::Widget;
 use webkit2gtk::WebViewExt;
 
