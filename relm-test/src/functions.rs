@@ -1,6 +1,5 @@
 use std::cell::Cell;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use enigo::{
     self,
@@ -516,6 +515,7 @@ pub fn wait(ms: u32) {
         run.set(false);
         Continue(false)
     });
+    println!("after timeout: {}", running.get());
     let event_loop = Loop::default();
     while running.get() {
         event_loop.iterate(false);

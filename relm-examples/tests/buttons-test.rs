@@ -270,8 +270,11 @@ mod tests {
 
         assert_text!(widgets.label, 0);
         click(inc_button);
+        wait(10000);
         assert_text!(widgets.label, 1);
         click(inc_button);
+        println!("110000");
+        wait(10000);
         assert_text!(widgets.label, 2);
 
         // Shortcut for the call to wait() below.

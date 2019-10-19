@@ -34,12 +34,11 @@
 
 mod source;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::mem;
 use std::rc::{Rc, Weak};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, SendError};
 
 use glib::MainContext;
@@ -117,15 +116,30 @@ impl<MSG> Drop for Lock<MSG> {
 /// A wrapper over a `std::sync::mpsc::Sender` to wakeup the glib event loop when sending a
 /// message.
 pub struct Sender<MSG> {
-    entry: Arc<AtomicUsize>,
     sender: mpsc::Sender<MSG>,
+    wakeup_sender: glib::Sender<()>,
+}
+
+impl<MSG> Sender<MSG> {
+    fn new(entry: Rc<Cell<usize>>, sender: mpsc::Sender<MSG>) -> Self {
+        let (wakeup_sender, receiver) = MainContext::channel(glib::PRIORITY_DEFAULT);
+        receiver.attach(None, move |_| {
+            Loop::default().register(entry.get());
+            MainContext::default().wakeup();
+            glib::Continue(true)
+        });
+        Self {
+            sender,
+            wakeup_sender,
+        }
+    }
 }
 
 impl<MSG> Clone for Sender<MSG> {
     fn clone(&self) -> Self {
         Self {
-            entry: self.entry.clone(),
             sender: self.sender.clone(),
+            wakeup_sender: self.wakeup_sender.clone(),
         }
     }
 }
@@ -134,9 +148,7 @@ impl<MSG> Sender<MSG> {
     /// Send a message and wakeup the event loop.
     pub fn send(&self, msg: MSG) -> Result<(), SendError<MSG>> {
         let result = self.sender.send(msg);
-        Loop::default().register(self.entry.load(Ordering::SeqCst));
-        let context = MainContext::default();
-        context.wakeup();
+        self.wakeup_sender.send(()).expect("wakeup sender");
         result
     }
 }
@@ -144,7 +156,7 @@ impl<MSG> Sender<MSG> {
 /// A channel to send a message to a relm widget from another thread.
 pub struct Channel<MSG> {
     callback: Box<dyn FnMut(MSG)>,
-    entry: Arc<AtomicUsize>,
+    entry: Rc<Cell<usize>>,
     receiver: Receiver<MSG>,
 }
 
@@ -152,15 +164,12 @@ impl<MSG> Channel<MSG> {
     /// Create a new channel with a callback that will be called when a message is received.
     pub fn new<CALLBACK: FnMut(MSG) + 'static>(callback: CALLBACK) -> (Self, Sender<MSG>) {
         let (sender, receiver) = mpsc::channel();
-        let entry = Arc::new(AtomicUsize::new(0));
+        let entry = Rc::new(Cell::new(0));
         (Self {
             callback: Box::new(callback),
             entry: entry.clone(),
             receiver,
-        }, Sender {
-            entry,
-            sender,
-        })
+        }, Sender::new(entry, sender))
     }
 }
 
@@ -173,7 +182,7 @@ impl<MSG> Handle for Channel<MSG> {
     }
 
     fn set_entry(&self, entry: usize) {
-        self.entry.store(entry, Ordering::SeqCst);
+        self.entry.set(entry);
     }
 }
 
@@ -304,7 +313,12 @@ impl Loop {
     pub fn add_stream<HANDLE>(&self, stream: HANDLE) -> usize
     where HANDLE: Handle + 'static,
     {
-        self.streams.borrow_mut().insert(Some(Box::new(stream)))
+        let mut streams = self.streams.borrow_mut();
+        let entry = streams.vacant_entry();
+        let key = entry.key();
+        stream.set_entry(key);
+        entry.insert(Some(Box::new(stream)));
+        key
     }
 
     /// Check if any events are pending.
@@ -317,7 +331,12 @@ impl Loop {
         self.context.iteration(may_block);
         let registered_entries = mem::replace(&mut *self.registered_entries.borrow_mut(), vec![]);
         for entry in registered_entries {
-            if !self.streams.borrow().contains(entry) {
+            if let Some(ref stream) = self.streams.borrow().get(entry) {
+                if stream.is_none() {
+                    continue;
+                }
+            }
+            else {
                 continue;
             }
             let mut stream = mem::replace(&mut self.streams.borrow_mut()[entry], None);
