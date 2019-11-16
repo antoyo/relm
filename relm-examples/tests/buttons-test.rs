@@ -148,7 +148,7 @@ impl Widget for Win {
             Quit => Loop::quit(),
             // To be listened to by the user.
             TwoInc(_, _) => (),
-            UpdateText => timeout(self.model.relm.stream(), 100, || UpdateTextNow),
+            UpdateText => timeout(self.model.relm.stream(), 1000, || UpdateTextNow),
             UpdateTextNow => self.model.text = "Updated text".to_string(),
         }
     }
@@ -259,22 +259,19 @@ mod tests {
         // Shortcut for the previous call to RelmObserver::new().
         let two_observer = relm_observer_new!(component, TwoInc(_, _));
 
-        let model_observer = RelmObserver::new(component.stream(), |msg|
+        let model_observer = RelmObserver::new(component.stream(), |msg| {
             if let RecvModel(_) = msg {
                 true
             }
             else {
                 false
             }
-        );
+        });
 
         assert_text!(widgets.label, 0);
         click(inc_button);
-        wait(10000);
         assert_text!(widgets.label, 1);
         click(inc_button);
-        println!("110000");
-        wait(10000);
         assert_text!(widgets.label, 2);
 
         // Shortcut for the call to wait() below.
@@ -338,7 +335,10 @@ mod tests {
         click(update_button);
         assert_text!(widgets.text, "");
 
-        wait(200);
+        wait(100);
+        assert_text!(widgets.text, "");
+
+        wait(1000);
         assert_text!(widgets.text, "Updated text");
 
         let inc_label = find_widget_by_name(inc_label, "label").expect("find label");

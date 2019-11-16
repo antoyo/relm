@@ -22,7 +22,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use relm::StreamHandle;
+use relm::{Loop, StreamHandle};
 
 use crate::functions::run_loop;
 
@@ -148,7 +148,9 @@ impl<MSG: Clone + 'static> RelmObserver<MSG> {
 
     /// Wait for the message to be triggered.
     pub fn wait(&self) -> MSG {
+        let event_loop = Loop::default();
         loop {
+            event_loop.iterate(false);
             if let Ok(ref result) = self.result.try_borrow() {
                 if result.is_some() {
                     break;

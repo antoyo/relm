@@ -12,6 +12,7 @@ edition = "2018"
 [dependencies]
 enigo = "^0.0.13"
 gdk = "^0.11.0"
+glib = "0.8.0"
 gtk = "^0.7.0"
 
 [dependencies.relm]

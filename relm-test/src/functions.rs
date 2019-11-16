@@ -99,8 +99,16 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
 /// # }
 /// ```
 pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    click(widget);
-    click(widget);
+    wait_for_draw(widget, || {
+        let allocation = widget.get_allocation();
+        mouse_move(widget, allocation.width / 2, allocation.height / 2);
+        let mut enigo = Enigo::new();
+        enigo.mouse_click(MouseButton::Left);
+        run_loop();
+        enigo.mouse_click(MouseButton::Left);
+        run_loop();
+        wait(500);
+    });
 }
 
 /// Move the mouse relative to the widget position.
@@ -515,7 +523,6 @@ pub fn wait(ms: u32) {
         run.set(false);
         Continue(false)
     });
-    println!("after timeout: {}", running.get());
     let event_loop = Loop::default();
     while running.get() {
         event_loop.iterate(false);
@@ -540,9 +547,7 @@ pub fn wait(ms: u32) {
 /// ```
 pub fn run_loop() {
     let event_loop = Loop::default();
-    println!("run_loop");
     while event_loop.events_pending() {
-        println!("iterate");
         event_loop.iterate(false);
     }
 }
