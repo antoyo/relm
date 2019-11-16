@@ -20,7 +20,9 @@
  */
 
 use std::cell::RefCell;
+use std::usize;
 use std::mem;
+use std::str::FromStr;
 
 use gdk::RGBA;
 use gdk_pixbuf::{PixbufLoader, PixbufLoaderExt};
@@ -124,7 +126,7 @@ impl Widget for Win {
             ImageChunk(chunk) => {
                 //self.model.loader.write(&chunk).expect("write failure");
                 if let Err(error) = self.model.loader.write(&chunk) {
-                    println!("{}", error);
+                    eprintln!("{}", error);
                 }
             },
             NewGif(buffer) => {
@@ -172,6 +174,8 @@ impl Drop for Win {
 
 struct HttpModel {
     buffer: Vec<u8>,
+    chunked: bool,
+    content_length: Option<usize>,
     found_crlf: bool,
     relm: Relm<Http>,
     stream: Option<IOStream>,
@@ -217,6 +221,8 @@ impl Update for Http {
     fn model(relm: &Relm<Self>, url: String) -> HttpModel {
         HttpModel {
             buffer: vec![],
+            chunked: false,
+            content_length: None,
             found_crlf: false,
             stream: None,
             relm: relm.clone(),
@@ -241,7 +247,7 @@ impl Update for Http {
                 if let Ok(uri) = HttpUri::new(&self.model.url) {
                     let path = uri.resource.path;
                     let query = uri.resource.query.unwrap_or_default();
-                    let buffer = format!("GET {}?{}\r\nHost: {}\r\n\r\n", path, query, uri.authority);
+                    let buffer = format!("GET {}?{} HTTP/1.1\r\nHost: {}\r\n\r\n", path, query, uri.authority);
                     connect_async!(writer, write_async(buffer.into_bytes(), PRIORITY_DEFAULT), self.model.relm,
                         |_| Wrote);
                 }
@@ -260,6 +266,17 @@ impl Update for Http {
                     }
                 }
                 buffer.truncate(size);
+                let string = String::from_utf8_lossy(&buffer);
+                let content_length = "Content-Length: ";
+                if !self.model.found_crlf && string.contains("Transfer-Encoding: chunked") {
+                    self.model.chunked = true;
+                }
+                else if let Some(index) = string.find(content_length) {
+                    let length = &string[index + content_length.len()..];
+                    if let Some(end) = length.find("\r\n") {
+                        self.model.content_length = Some(usize::from_str(&length[..end]).expect("length"));
+                    }
+                }
                 let buffer =
                     if self.model.found_crlf {
                         buffer
@@ -273,6 +290,22 @@ impl Update for Http {
                     };
                 self.model.buffer.extend(&buffer);
                 self.model.relm.stream().emit(DataRead(Bytes::new(buffer)));
+
+                if self.model.chunked {
+                    if self.model.buffer.ends_with(b"\r\n0\r\n\r\n") {
+                        let buffer = mem::replace(&mut self.model.buffer, vec![]);
+                        let buffer = join_chunks(buffer);
+                        self.model.chunked = false;
+                        self.model.relm.stream().emit(ReadDone(Bytes::new(buffer)));
+                    }
+                }
+                else if let Some(length) = self.model.content_length {
+                    if length == self.model.buffer.len() {
+                        self.model.content_length = None;
+                        let buffer = mem::replace(&mut self.model.buffer, vec![]);
+                        self.model.relm.stream().emit(ReadDone(Bytes::new(buffer)));
+                    }
+                }
             },
             // To be listened by the user.
             ReadDone(_) => (),
@@ -304,6 +337,29 @@ fn find_crlf(buffer: &[u8]) -> Option<usize> {
         }
     }
     None
+}
+
+fn find_1crlf(buffer: &[u8]) -> Option<usize> {
+    for i in 0..buffer.len() {
+        if buffer[i..].len() < 2 {
+            return None;
+        }
+        if &buffer[i..i + 2] == b"\r\n" {
+            return Some(i);
+        }
+    }
+    None
+}
+
+fn join_chunks(buffer: Vec<u8>) -> Vec<u8> {
+    let mut buffer = &*buffer;
+    let mut result = vec![];
+    while let Some(index) = find_1crlf(buffer) {
+        let size = usize::from_str_radix(&String::from_utf8_lossy(&buffer[..index]), 16).expect("size");
+        result.extend(&buffer[index + 2..][..size]);
+        buffer = &buffer[index + 2 + size + 2..];
+    }
+    result
 }
 
 fn main() {
