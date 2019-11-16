@@ -234,19 +234,19 @@ Your program might be slower when using this attribute because the code generati
 For instance, the following code
 [source,rust]
 ----
-fn update(&mut self, event: Msg, model: &mut Model) {
+fn update(&mut self, event: Msg) {
     for _ in 0..100 {
-        model.counter += 1;
+        self.model.counter += 1;
     }
 }
 ----
 will generate this function:
 [source,rust]
 ----
-fn update(&mut self, event: Msg, model: &mut Model) {
+fn update(&mut self, event: Msg) {
     for _ in 0..100 {
-        model.counter += 1;
-        self.label1.set_text(&model.counter.to_string());
+        self.model.counter += 1;
+        self.label1.set_text(&self.model.counter.to_string());
     }
 }
 ----
@@ -258,8 +258,8 @@ Also, the `set_property()` calls are currently only inserted when assigning to a
 For instance, the following code
 [source,rust]
 ----
-fn update(&mut self, event: Msg, model: &mut Model) {
-    model.text.push_str("Text");
+fn update(&mut self, event: Msg) {
+    self.model.text.push_str("Text");
 }
 ----
 will not work as expected.
@@ -267,8 +267,8 @@ will not work as expected.
 Please use the following variation if needed.
 [source,rust]
 ----
-fn update(&mut self, event: Msg, model: &mut Model) {
-    model.text += "Text";
+fn update(&mut self, event: Msg) {
+    self.model.text += "Text";
 }
 ----
 ====
