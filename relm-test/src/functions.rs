@@ -601,7 +601,19 @@ where W: IsA<Object> + IsA<Widget> + WidgetExt {
     if widget.get_ancestor(Window::static_type()).is_none() {
         return;
     }
-    gtk::test_widget_wait_for_draw(widget);
+
+    // NOTE: this tick callback technique to wait for a widget to be drawn comes from the
+    // implementation of gtk_test_widget_wait_for_draw.
+    let running = Rc::new(Cell::new(true));
+    let run = running.clone();
+    widget.add_tick_callback(move |_, _| {
+        run.set(false);
+        false
+    });
+    let event_loop = Loop::default();
+    while running.get() {
+        event_loop.iterate(false);
+    }
     callback();
 }
 
