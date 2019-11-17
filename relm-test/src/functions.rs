@@ -619,6 +619,7 @@ fn gdk_key_to_enigo_key(key: Key) -> enigo::Key {
         key::Shift_Lock => CapsLock,
         key::Alt_L | key::Alt_R => Alt,
         key::Option => Option,
+        key::End => End,
         key::Home => Home,
         key::Page_Down => PageDown,
         key::Page_Up => PageUp,

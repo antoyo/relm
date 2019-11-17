@@ -265,17 +265,6 @@ fn test_mut() {
 }
 
 #[test]
-#[should_panic]
-fn test_access_other_thread() {
-    use std::thread;
-    let val = Fragile::new(true);
-    thread::spawn(move || {
-        val.get();
-    }).join()
-        .unwrap();
-}
-
-#[test]
 fn test_noop_drop_elsewhere() {
     use std::thread;
     let val = Fragile::new(true);
@@ -284,28 +273,6 @@ fn test_noop_drop_elsewhere() {
         val.try_get().ok();
     }).join()
         .unwrap();
-}
-
-#[test]
-fn test_panic_on_drop_elsewhere() {
-    use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::Arc;
-    use std::thread;
-    let was_called = Arc::new(AtomicBool::new(false));
-    struct X(Arc<AtomicBool>);
-    impl Drop for X {
-        fn drop(&mut self) {
-            self.0.store(true, Ordering::SeqCst);
-        }
-    }
-    let val = Fragile::new(X(was_called.clone()));
-    assert!(
-        thread::spawn(move || {
-            val.try_get().ok();
-        }).join()
-            .is_err()
-    );
-    assert_eq!(was_called.load(Ordering::SeqCst), false);
 }
 
 #[test]

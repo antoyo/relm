@@ -309,17 +309,6 @@ fn test_mut() {
 }
 
 #[test]
-#[should_panic]
-fn test_access_other_thread() {
-    use std::thread;
-    let val = Sticky::new(true);
-    thread::spawn(move || {
-        val.get();
-    }).join()
-        .unwrap();
-}
-
-#[test]
 fn test_drop_same_thread() {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
