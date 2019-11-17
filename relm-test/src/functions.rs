@@ -25,6 +25,7 @@ use gtk::{
     StaticType,
     Widget,
     WidgetExt,
+    WidgetExtManual,
     Window,
 };
 use relm::Loop;
@@ -608,7 +609,7 @@ where W: IsA<Object> + IsA<Widget> + WidgetExt {
     let run = running.clone();
     widget.add_tick_callback(move |_, _| {
         run.set(false);
-        false
+        Continue(false)
     });
     let event_loop = Loop::default();
     while running.get() {

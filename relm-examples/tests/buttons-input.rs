@@ -172,7 +172,7 @@ mod tests {
         // TODO: remove the following and uncomment the next block when https://github.com/enigo-rs/enigo/pull/63 is released.
         click(concat_button);
 
-        use gtk::WidgetExtManual;
+        /*use gtk::WidgetExtManual;
     let running = std::rc::Rc::new(std::cell::Cell::new(true));
     let run = running.clone();
     label.add_tick_callback(move |_, _| {
@@ -182,7 +182,7 @@ mod tests {
     let event_loop = relm::Loop::default();
     while running.get() {
         event_loop.iterate();
-    }
+    }*/
         //relm_test::wait_for_draw(label);
         println!("after click");
         assert_text!(label, "leftright");
