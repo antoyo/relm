@@ -15,6 +15,7 @@ addons:
       - openbox
       - xvfb
       - libmount-dev
+      - libxdo-dev
 
 env:
   - RUST_BACKTRACE=1
