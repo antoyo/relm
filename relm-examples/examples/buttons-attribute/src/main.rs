@@ -27,7 +27,7 @@ use gtk::{
     WidgetExt,
 };
 use gtk::Orientation::Vertical;
-use relm::{Relm, Widget, timeout};
+use relm::{Loop, Relm, Widget, timeout};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;

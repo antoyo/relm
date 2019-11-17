@@ -23,8 +23,8 @@ use gtk::{
     Inhibit,
     WidgetExt,
 };
+use relm::{Loop, Widget};
 use relm_derive::{Msg, widget};
-use relm::Widget;
 use webkit2gtk::WebViewExt;
 
 use self::Msg::*;

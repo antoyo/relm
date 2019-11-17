@@ -55,6 +55,7 @@ use relm::{
     Update,
     UpdateNew,
     Widget,
+    execute,
 };
 use relm_derive::{Msg, widget};
 use simplelog::{Config, TermLogger};
@@ -90,7 +91,7 @@ impl Widget for Win {
     fn model(relm: &Relm<Self>, (): ()) -> Model {
         Model {
             button_enabled: true,
-            event_loop: relm.event_loop().clone(),
+            event_loop: Loop::default(),
             loader: PixbufLoader::new(),
             relm: relm.clone(),
             text: String::new(),
@@ -114,7 +115,7 @@ impl Widget for Win {
                 self.model.button_enabled = false;
 
                 let url = format!("http://aws.random.cat/meow");
-                let http = self.model.event_loop.execute::<Http>(url);
+                let http = execute::<Http>(url);
                 let entry = self.model.event_loop.reserve();
                 connect_stream!(http@ReadDone(ref buffer), self.model.relm.stream(), NewGif(buffer.take(), entry));
                 self.model.event_loop.set_stream(entry, http);
@@ -135,7 +136,7 @@ impl Widget for Win {
                 if let Ok(body) = String::from_utf8(buffer) {
                     let mut json = json::parse(&body).expect("invalid json");
                     let url = json["file"].take_string().expect("take_string failed");
-                    let http = self.model.event_loop.execute::<Http>(url);
+                    let http = execute::<Http>(url);
                     let entry = self.model.event_loop.reserve();
                     connect_stream!(http@DataRead(ref buffer), self.model.relm.stream(), ImageChunk(buffer.take()));
                     connect_stream!(http@ReadDone(_), self.model.relm.stream(), DownloadCompleted(entry));

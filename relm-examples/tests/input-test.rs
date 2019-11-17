@@ -106,12 +106,12 @@ mod tests {
 
         // TODO: add test with uppercase letter (shift) when this issue (https://github.com/enigo-rs/enigo/issues/49) is fixed.
         //key_press(entry, key::Shift_L);
-        key_press(entry, key::A);
+        key_press(entry, key::a);
         assert_text!(label, "a");
-        key_release(entry, key::A);
+        key_release(entry, key::a);
         assert_text!(label, "a");
-        enter_key(entry, key::B);
-        enter_key(entry2, key::C);
+        enter_key(entry, key::b);
+        enter_key(entry2, key::c);
         assert_text!(label, "ba");
         assert_text!(entry2, "c");
         enter_keys(entry, "CD");
