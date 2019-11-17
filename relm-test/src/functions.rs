@@ -60,13 +60,14 @@ use relm::Loop;
 /// # }
 /// ```
 pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    wait_for_draw(widget, || {
+    wait_for_draw_callback(widget, || {
         let allocation = widget.get_allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
         let mut enigo = Enigo::new();
         enigo.mouse_click(MouseButton::Left);
         run_loop();
-        //wait(500);
+        wait(500); // FIXME: remove this hack.
+        //widget.wait_for_draw(); // FIXME: this seems hackish. Figure out why it was not needed when directly running the gtk main loop.
     });
 }
 
@@ -100,7 +101,7 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
 /// # }
 /// ```
 pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    wait_for_draw(widget, || {
+    wait_for_draw_callback(widget, || {
         let allocation = widget.get_allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
         let mut enigo = Enigo::new();
@@ -130,7 +131,7 @@ pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W
 /// # }
 /// ```
 pub fn mouse_move<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, x: i32, y: i32) {
-    wait_for_draw(widget, || {
+    wait_for_draw_callback(widget, || {
         let toplevel_window = widget.get_toplevel().and_then(|toplevel| toplevel.get_window());
         if let (Some(toplevel), Some(toplevel_window)) = (widget.get_toplevel(), toplevel_window) {
             let (_, window_x, window_y) = toplevel_window.get_origin();
@@ -176,7 +177,7 @@ pub fn mouse_move<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, x: i32, 
 /// # }
 /// ```
 pub fn mouse_press<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    wait_for_draw(widget, || {
+    wait_for_draw_callback(widget, || {
         let allocation = widget.get_allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
         let mut enigo = Enigo::new();
@@ -216,7 +217,7 @@ pub fn mouse_press<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
 /// # }
 /// ```
 pub fn mouse_release<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    wait_for_draw(widget, || {
+    wait_for_draw_callback(widget, || {
         let allocation = widget.get_allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
         let mut enigo = Enigo::new();
@@ -257,7 +258,7 @@ pub fn mouse_release<W: IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
 /// # }
 /// ```
 pub fn enter_key<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
-    wait_for_draw(widget, || {
+    wait_for_draw_callback(widget, || {
         focus(widget);
         let mut enigo = Enigo::new();
         enigo.key_click(gdk_key_to_enigo_key(key));
@@ -296,7 +297,7 @@ pub fn enter_key<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, k
 /// # }
 /// ```
 pub fn enter_keys<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, text: &str) {
-    wait_for_draw(widget, || {
+    wait_for_draw_callback(widget, || {
         focus(widget);
         let mut enigo = Enigo::new();
         for char in text.chars() {
@@ -408,7 +409,7 @@ pub fn find_widget_by_name<W: Clone + IsA<Object> + IsA<Widget>>(parent: &W, nam
 /// # }
 /// ```
 pub fn focus<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
-    wait_for_draw(widget, || {
+    wait_for_draw_callback(widget, || {
         if !widget.has_focus() {
             widget.grab_focus();
             if let Ok(entry) = widget.clone().dynamic_cast::<Entry>() {
@@ -453,7 +454,7 @@ pub fn focus<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
 /// # }
 /// ```
 pub fn key_press<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
-    wait_for_draw(widget, || {
+    wait_for_draw_callback(widget, || {
         focus(widget);
         let mut enigo = Enigo::new();
         enigo.key_down(gdk_key_to_enigo_key(key));
@@ -494,7 +495,7 @@ pub fn key_press<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, k
 /// # }
 /// ```
 pub fn key_release<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
-    wait_for_draw(widget, || {
+    wait_for_draw_callback(widget, || {
         focus(widget);
         let mut enigo = Enigo::new();
         enigo.key_up(gdk_key_to_enigo_key(key));
@@ -577,7 +578,7 @@ pub fn wait_until_done<F: FnMut() -> bool>(mut f: F) {
     }
 }
 
-/// Wait for a widget to be drawn.
+/// Wait for a widget to be drawn, and then call the callback.
 ///
 /// Example:
 ///
@@ -592,30 +593,43 @@ pub fn wait_until_done<F: FnMut() -> bool>(mut f: F) {
 /// let mut w = Window::new(WindowType::Toplevel);
 ///
 /// w.show_all();
-/// relm_test::wait_for_draw(&w, || {
+/// relm_test::wait_for_draw_callback(&w, || {
 ///     println!("drawn!");
 /// });
 /// # }
 /// ```
-pub fn wait_for_draw<W, F: FnOnce()>(widget: &W, callback: F)
-where W: IsA<Object> + IsA<Widget> + WidgetExt {
+pub fn wait_for_draw_callback<W, F: FnOnce()>(widget: &W, callback: F)
+where W: IsA<Widget> {
     if widget.get_ancestor(Window::static_type()).is_none() {
         return;
     }
 
-    // NOTE: this tick callback technique to wait for a widget to be drawn comes from the
-    // implementation of gtk_test_widget_wait_for_draw.
-    let running = Rc::new(Cell::new(true));
-    let run = running.clone();
-    widget.add_tick_callback(move |_, _| {
-        run.set(false);
-        Continue(false)
-    });
-    let event_loop = Loop::default();
-    while running.get() {
-        event_loop.iterate(false);
-    }
+    widget.wait_for_draw();
     callback();
+}
+
+/// Provide useful methods for testing widgets.
+pub trait WidgetRelmTest {
+    /// Wait for a widget to be drawn.
+    fn wait_for_draw(&self);
+}
+
+impl<W> WidgetRelmTest for W
+where W: IsA<Widget> {
+    fn wait_for_draw(&self) {
+        // NOTE: this tick callback technique to wait for a widget to be drawn comes from the
+        // implementation of gtk_test_widget_wait_for_draw.
+        let running = Rc::new(Cell::new(true));
+        let run = running.clone();
+        self.add_tick_callback(move |_, _| {
+            run.set(false);
+            Continue(false)
+        });
+        let event_loop = Loop::default();
+        while running.get() {
+            event_loop.iterate(false);
+        }
+    }
 }
 
 fn gdk_key_to_enigo_key(key: Key) -> enigo::Key {
