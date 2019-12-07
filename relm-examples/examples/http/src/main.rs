@@ -118,7 +118,7 @@ impl Widget for Win {
                 let http = execute::<Http>(url);
                 let entry = self.model.event_loop.reserve();
                 connect_stream!(http@ReadDone(ref buffer), self.model.relm.stream(), NewGif(buffer.take(), entry));
-                self.model.event_loop.set_stream(entry, http);
+                self.model.event_loop.set_stream(entry, http); // TODO: this is not a nice API. Could we do that in execute() and do the remove_stream() in Drop?
             },
             HttpError(error) => {
                 self.model.button_enabled = true;
