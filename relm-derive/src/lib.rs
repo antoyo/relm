@@ -32,7 +32,6 @@ mod gen;
 use quote::{quote, quote_spanned};
 use proc_macro2::TokenStream;
 use syn::{
-    Fields,
     GenericParam,
     Generics,
     Ident,
@@ -44,13 +43,6 @@ use syn::{
 use syn::spanned::Spanned;
 
 use gen::{gen_widget, gen_where_clause};
-
-#[proc_macro_derive(SimpleMsg)]
-pub fn simple_msg(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let ast: Item = parse(input).expect("simple_msg > parse failed");
-    let gen = impl_simple_msg(&ast, Ident::new("relm", ast.span()));
-    gen.into()
-}
 
 #[proc_macro_derive(Msg)]
 pub fn msg(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -76,78 +68,6 @@ fn impl_msg(ast: &Item, krate: Ident) -> TokenStream {
     quote! {
         #display
         #into_option
-    }
-}
-
-fn impl_simple_msg(ast: &Item, krate: Ident) -> TokenStream {
-    if let Item::Enum(ref enum_item) = *ast {
-        let name = &enum_item.ident;
-
-        let display = derive_display_variant(ast, &krate);
-        let into_option = derive_into_option(ast, &krate);
-        let match_clone = derive_partial_clone(ast);
-
-        let generics = &enum_item.generics;
-        let generics_without_bound = remove_generic_bounds(generics);
-        let typ = quote! {
-            #name #generics_without_bound
-        };
-        let where_clause = gen_where_clause(generics);
-
-        quote! {
-            #display
-            #into_option
-
-            impl #generics FnOnce<((),)> for #typ #where_clause {
-                type Output = #typ;
-
-                extern "rust-call" fn call_once(self, args: ((),)) -> Self::Output {
-                    self.call(args)
-                }
-            }
-
-            impl #generics FnMut<((),)> for #typ #where_clause {
-                extern "rust-call" fn call_mut(&mut self, args: ((),)) -> Self::Output {
-                    self.call(args)
-                }
-            }
-
-            impl #generics Fn<((),)> for #typ #where_clause {
-                extern "rust-call" fn call(&self, _: ((),)) -> Self::Output {
-                    #match_clone
-                }
-            }
-        }
-    }
-    else {
-        panic!("expected enum");
-    }
-}
-
-fn derive_partial_clone(ast: &Item) -> TokenStream {
-    if let Item::Enum(ref enum_item) = *ast {
-        let name = &enum_item.ident;
-        let mut patterns = vec![];
-        let mut values = vec![];
-        for variant in &enum_item.variants {
-            if variant.fields == Fields::Unit {
-                let ident = &variant.ident;
-                patterns.push(quote! {
-                    #name::#ident
-                });
-                values.push(&variant.ident);
-            }
-        }
-        quote! {
-            #[allow(unreachable_patterns)]
-            match *self {
-                #(#patterns => #values,)*
-                _ => panic!("Expected a variant without parameter"),
-            }
-        }
-    }
-    else {
-        panic!("Expected enum but found {:?}", ast);
     }
 }
 
