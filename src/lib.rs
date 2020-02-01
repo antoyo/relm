@@ -47,8 +47,6 @@
 )]
 
 /*
- * TODO: maybe remove SimpleMsg.
- *
  * TODO: improve README so that examples can be copy/pasted.
  *
  * FIXME: some relm widgets requires { and } (see the rusic music-player) while other do not.
@@ -91,8 +89,6 @@
  * TODO: refactor the code.
  *
  * TODO: chat client/server example.
- *
- * TODO: err if trying to use the SimpleMsg custom derive on stable.
  *
  * TODO: add default type of () for Model in Widget when it is stable.
  * TODO: optionnaly multi-threaded.
