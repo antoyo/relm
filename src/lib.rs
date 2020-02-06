@@ -110,7 +110,7 @@ pub use glib::Cast;
 pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
-use gtk::Continue;
+use glib::Continue;
 
 pub use crate::core::{Channel, EventStream, Sender};
 pub use crate::state::{

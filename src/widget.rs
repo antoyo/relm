@@ -19,7 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use gtk::{self, IsA, Object};
+use glib::{IsA, Object};
+use gtk;
 
 use super::{Relm, run};
 use crate::state::Update;

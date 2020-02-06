@@ -19,8 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use glib::Cast;
-use gtk::{ContainerExt, IsA, Object, WidgetExt};
+use glib::{Cast, IsA, Object};
+use gtk::{ContainerExt, WidgetExt};
 
 use crate::state::EventStream;
 use super::{Component, DisplayVariant, create_widget, init_component};
