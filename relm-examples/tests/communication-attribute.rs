@@ -64,11 +64,11 @@ impl Widget for Text {
             orientation: Vertical,
             gtk::Entry {
                 changed(entry) => Change(entry.get_text().expect("get_text failed")),
-                name: "entry",
+                widget_name: "entry",
             },
             gtk::Label {
                 text: &self.model.content,
-                name: "text_label",
+                widget_name: "text_label",
             },
         }
     }
@@ -104,16 +104,16 @@ impl Widget for Counter {
             orientation: Vertical,
             gtk::Button {
                 label: "+",
-                name: "inc_button",
+                widget_name: "inc_button",
                 clicked => Increment,
             },
             gtk::Label {
-                name: "label",
+                widget_name: "label",
                 text: &self.model.counter.to_string(),
             },
             gtk::Button {
                 label: "-",
-                name: "dec_button",
+                widget_name: "dec_button",
                 clicked => Decrement,
             },
         }

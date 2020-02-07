@@ -82,7 +82,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{Cast, Label, LabelExt, NotebookExt};
+    use glib::Cast;
+    use gtk::{Label, LabelExt, NotebookExt};
     use gtk_test::assert_text;
 
     use crate::Win;

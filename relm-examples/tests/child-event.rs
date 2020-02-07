@@ -19,20 +19,19 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use glib::{ToValue, Type};
 use gtk::{
     CellLayoutExt,
     CellRendererText,
     Inhibit,
     ListStore,
     GtkListStoreExt,
-    GtkListStoreExtManual,
-    ToValue,
     TreeSelection,
     TreeSelectionExt,
     TreeViewColumn,
     TreeViewExt,
-    Type,
     WidgetExt,
+    prelude::GtkListStoreExtManual,
 };
 use relm::Widget;
 use relm_derive::{Msg, widget};

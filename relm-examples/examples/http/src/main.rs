@@ -27,13 +27,12 @@ use std::str::FromStr;
 use gdk::RGBA;
 use gdk_pixbuf::{PixbufLoader, PixbufLoaderExt};
 use gio::{
-    InputStreamExtManual,
     IOStream,
     IOStreamExt,
-    OutputStreamExtManual,
     SocketClient,
     SocketClientExt,
     SocketConnection,
+    prelude::{InputStreamExtManual, OutputStreamExtManual},
 };
 use glib::Cast;
 use glib::source::PRIORITY_DEFAULT;

@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Cast,
     ContainerExt,
     Frame,
     Inhibit,
@@ -31,6 +30,7 @@ use gtk::{
 use gtk::Orientation::{Horizontal, Vertical};
 use gtk::WindowType::Toplevel;
 use relm::{
+    Cast,
     connect,
     Component,
     Container,
