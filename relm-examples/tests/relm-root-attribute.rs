@@ -77,18 +77,18 @@ impl Widget for MyVBox {
     view! {
         VBox {
             gtk::Button {
-                name: "inc_button",
+                widget_name: "inc_button",
                 label: "+",
             },
             gtk::Label {
-                name: "label",
+                widget_name: "label",
                 text: "0",
             },
             Button {
-                name: "button",
+                widget_name: "button",
             },
             gtk::Button {
-                name: "dec_button",
+                widget_name: "dec_button",
                 label: "-",
             },
         }

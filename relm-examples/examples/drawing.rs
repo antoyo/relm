@@ -28,7 +28,7 @@ use gtk::{
     Inhibit,
     OrientableExt,
     WidgetExt,
-    WidgetExtManual,
+    prelude::WidgetExtManual,
 };
 use gtk::Orientation::Vertical;
 use rand::Rng;

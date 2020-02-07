@@ -52,13 +52,13 @@ pub struct Model {
 
 #[derive(Msg)]
 pub enum Msg {
-    AppError(gtk::Error),
+    AppError(glib::Error),
     AppOpened(()),
     FileRead((Vec<u8>, GString)),
     OpenApp,
     OpenFile,
     Quit,
-    ReadError(gtk::Error),
+    ReadError(glib::Error),
 }
 
 #[widget]

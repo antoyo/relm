@@ -63,12 +63,12 @@ impl Widget for Counter {
             orientation: Vertical,
             gtk::Button {
                 label: "+",
-                name: "inc_button",
+                widget_name: "inc_button",
                 clicked => Increment,
             },
             gtk::Label {
                 label: "0",
-                name: "label",
+                widget_name: "label",
                 text: &self.model.counter.to_string(),
             },
             gtk::Button {

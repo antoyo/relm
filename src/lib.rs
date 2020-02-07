@@ -59,10 +59,6 @@
  *
  * TODO: add init() method to the Widget (or Update) trait as a shortcut for init::<Widget>()?
  *
- * TODO: alternative to tokio with a trait to get FD and add this FD to glib (perhaps using a
- * GSource).
- * For timers, add a connect_timeout!() macro or something.
- *
  * TODO: show a warning when a component is imediately destroyed.
  * FIXME: cannot add a trailing coma at the end of a initializer list.
  * TODO: switch from gtk::main() to MainLoop to avoid issues with nested loops.
@@ -105,12 +101,19 @@ pub mod vendor;
 mod widget;
 
 #[doc(hidden)]
-pub use glib::Cast;
+pub use glib::{
+    Cast,
+    IsA,
+    Object,
+    StaticType,
+    ToValue,
+    Value,
+};
 #[doc(hidden)]
 pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
-use gtk::Continue;
+use glib::Continue;
 
 pub use crate::core::{Channel, EventStream, Sender};
 pub use crate::state::{

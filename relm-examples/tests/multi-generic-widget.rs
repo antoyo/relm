@@ -134,7 +134,7 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
         vbox.add(&plus_button);
 
         let counter_label = Label::new(Some(model.counter1.to_string().as_ref()));
-        counter_label.set_name("label");
+        counter_label.set_widget_name("label");
         vbox.add(&counter_label);
 
         let minus_button = Button::new_with_label("-");
