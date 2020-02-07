@@ -66,11 +66,11 @@ impl<WIDGET: Container + Widget> ContainerComponent<WIDGET> {
         where CHILDWIDGET: Widget + 'static,
               WIDGET::Container: ContainerExt + IsA<gtk::Widget> + IsA<Object>,
     {
-        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
-        let container = WIDGET::add_widget(self, &widget);
-        component.on_add(container);
-        init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
-        widget
+        let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+        let container = WIDGET::add_widget(self, &component);
+        widget.on_add(container);
+        init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+        component
     }
 
     /// Emit a message of the widget stream.
@@ -157,14 +157,14 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
               CHILDWIDGET::Msg: DisplayVariant + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
     {
-        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
-        let container = component.container().clone();
-        let containers = component.other_containers();
-        let root = component.root().clone();
+        let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+        let container = widget.container().clone();
+        let containers = widget.other_containers();
+        let root = widget.root().clone();
         self.add(&root);
-        component.on_add(self.clone());
-        init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
-        ContainerComponent::new(widget, container, containers)
+        widget.on_add(self.clone());
+        init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+        ContainerComponent::new(component, container, containers)
     }
 
     fn add_widget<CHILDWIDGET>(&self, model_param: CHILDWIDGET::ModelParam)
@@ -173,11 +173,11 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
               CHILDWIDGET::Msg: DisplayVariant + 'static,
               CHILDWIDGET::Root: IsA<gtk::Widget> + IsA<Object> + WidgetExt,
     {
-        let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
-        self.add(widget.widget());
-        component.on_add(self.clone());
-        init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
-        widget
+        let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+        self.add(component.widget());
+        widget.on_add(self.clone());
+        init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+        component
     }
 
     fn remove_widget<WIDGET>(&self, component: Component<WIDGET>)

@@ -152,10 +152,10 @@ fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WID
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, relm): (_, WIDGET, _) = create_widget(model_param);
-    let widgets = component.get_widgets();
-    init_component::<WIDGET>(widget.stream(), component, &relm);
-    (widget, widgets)
+    let (component, widget, relm): (_, WIDGET, _) = create_widget(model_param);
+    let widgets = widget.get_widgets();
+    init_component::<WIDGET>(component.stream(), widget, &relm);
+    (component, widgets)
 }
 
 /// Create a new relm widget without adding it to an existing widget.
@@ -165,9 +165,9 @@ pub fn create_component<CHILDWIDGET>(model_param: CHILDWIDGET::ModelParam)
     where CHILDWIDGET: Widget + 'static,
           CHILDWIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
-    init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
-    widget
+    let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+    init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+    component
 }
 
 /// Create a new relm container widget without adding it to an existing widget.
@@ -177,11 +177,11 @@ pub fn create_container<CHILDWIDGET>(model_param: CHILDWIDGET::ModelParam)
     where CHILDWIDGET: Container + Widget + 'static,
           CHILDWIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
-    let container = component.container().clone();
-    let containers = component.other_containers();
-    init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
-    ContainerComponent::new(widget, container, containers)
+    let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+    let container = widget.container().clone();
+    let containers = widget.other_containers();
+    init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+    ContainerComponent::new(component, container, containers)
 }
 
 /// Create a new relm widget with `model_param` as initialization value.
@@ -273,9 +273,9 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static
 {
-    let (widget, component, relm) = create_widget::<WIDGET>(model_param);
-    init_component::<WIDGET>(widget.stream(), component, &relm);
-    Ok(widget)
+    let (component, widget, relm) = create_widget::<WIDGET>(model_param);
+    init_component::<WIDGET>(component.stream(), widget, &relm);
+    Ok(component)
 }
 
 /// Create the specified relm `Widget` and run the main event loops.
