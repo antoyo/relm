@@ -291,5 +291,6 @@ image:https://c5.patreon.com/external/logo/become_a_patron_button.png[link="http
  * https://github.com/niklasf/rust-chessground[Chessground]
  * https://github.com/sanpii/effitask[Effitask]
  * https://github.com/knack-supply/curve-tracer[KS Curve Tracer]
+ * https://github.com/emmanueltouzery/cigale[Cigale]
 
 If you want to add your project to this list, please https://github.com/antoyo/relm/pulls[create a pull request].
