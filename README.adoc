@@ -151,7 +151,7 @@ This attribute does the following:
  * Automatically create the `fn root()`, `type Msg`, `type Model`, `type ModelParam` and `type Root` items.
  * Automatically insert the call to `Widget::set_property()` in the `update()` function when assigning to an attribute of the model.
  * Automatically create the `Widget` `struct`.
- * Both traits can be implemented at once.
+ * `Update` and `Widget` traits can be implemented at once.
 
 To use this attribute, add the following code:
 
