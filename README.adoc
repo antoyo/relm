@@ -18,7 +18,7 @@ image:https://img.shields.io/badge/Donate-Patreon-orange.svg[link="https://www.p
 
 Since relm is based on GTK+, you need this library on your system in order to use it.
 
-See http://gtk-rs.org/docs-src/requirements[this page] for information on how to install GTK+.
+See http://gtk-rs.org/docs/requirements.html[this page] for information on how to install GTK+.
 
 == Usage
 
@@ -274,7 +274,7 @@ fn update(&mut self, event: Msg) {
 ----
 ====
 
-For more information about how you can use relm, you can take a look at the https://github.com/antoyo/relm/tree/master/relm-examples/examples[examples].
+For more information about how you can use relm, you can take a look at the https://github.com/antoyo/relm/tree/master/relm-examples/[examples].
 
 == Donations
 
