@@ -21,7 +21,7 @@
 
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{MAIN_SEPARATOR, PathBuf};
 
 use glib::StaticType;
 use gtk::{
@@ -177,7 +177,7 @@ fn create_and_fill_model(dir_str: &PathBuf) -> io::Result<gtk::ListStore> {
 
             if let Ok(file_name) = entry.file_name().into_string() {
                 let (final_name, is_dir) = if metadata.is_dir() {
-                    (format!("{}/", file_name), true)
+                    (format!("{}{}", file_name, MAIN_SEPARATOR), true)
                 } else {
                     (file_name, false)
                 };
