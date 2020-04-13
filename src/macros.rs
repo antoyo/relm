@@ -37,7 +37,8 @@
 macro_rules! connect {
     // Connect to a GTK+ widget event, sending a message to another widget.
     ($widget:expr, $event:ident($($args:pat),*), $other_component:expr, $msg:expr) => {
-        $crate::connect_stream!($widget, $event($($args),*), $other_component.stream(), $msg);
+        #[inline(always)] fn stream<WIDGET: relm::Widget>(c: &relm::Component<WIDGET>) -> &relm::EventStream<WIDGET::Msg> {c.stream()}
+        $crate::connect_stream!($widget, $event($($args),*), stream(&$other_component), $msg);
     };
 
     // Connect to a GTK+ widget event.

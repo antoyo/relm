@@ -52,7 +52,7 @@ impl Widget for Win {
         file_menu.append(&quit_item);
         self.menubar.show_all();
 
-        connect!(quit_item, connect_activate(_), self.model.relm, Quit);
+        connect!(self.model.relm, quit_item, connect_activate(_), Quit);
     }
 
     fn model(relm: &Relm<Self>, _: ()) -> Model {
