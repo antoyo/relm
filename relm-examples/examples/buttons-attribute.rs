@@ -30,6 +30,8 @@ use gtk::Orientation::Vertical;
 use relm::Widget;
 use relm_derive::{Msg, widget};
 
+use gtk::GtkWindowExt;
+
 use self::Msg::*;
 
 // Define the structure of the model.

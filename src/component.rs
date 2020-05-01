@@ -35,20 +35,14 @@ pub struct Component<WIDGET: Widget> {
     widget: WIDGET::Root,
 }
 
-impl<WIDGET: Widget> Clone for Component<WIDGET> {
+/*impl<WIDGET: Widget> Clone for Component<WIDGET> {
     fn clone(&self) -> Self {
         Self {
             stream: self.stream.clone(),
             widget: self.widget.clone(),
         }
     }
-}
-
-impl<WIDGET: Widget> Drop for Component<WIDGET> {
-    fn drop(&mut self) {
-        let _ = self.stream.close();
-    }
-}
+}*/
 
 impl<WIDGET: Widget> Component<WIDGET> {
     #[doc(hidden)]

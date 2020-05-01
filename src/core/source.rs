@@ -75,6 +75,7 @@ unsafe extern "C" fn dispatch<T: SourceFuncs>(source: *mut GSource, _callback: G
 }
 
 unsafe extern "C" fn finalize<T: SourceFuncs>(source: *mut GSource) {
+    println!("finalize");
     // TODO: needs a bomb to abort on panic
     let source = source as *mut SourceData<T>;
     ptr::read(&(*source).funcs);

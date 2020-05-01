@@ -37,13 +37,13 @@ mod macros;
 
 use std::time::SystemTime;
 
-pub use crate::core::EventStream;
+pub use crate::core::{EventStream, StreamHandle};
 
 pub use self::into::{IntoOption, IntoPair};
 
 /// Handle event stream to send messages to the [`update()`](trait.Update.html#tymethod.update) method.
 pub struct Relm<UPDATE: Update> {
-    stream: EventStream<UPDATE::Msg>,
+    stream: StreamHandle<UPDATE::Msg>,
 }
 
 impl<UPDATE: Update> Clone for Relm<UPDATE> {
@@ -56,15 +56,15 @@ impl<UPDATE: Update> Clone for Relm<UPDATE> {
 
 impl<UPDATE: Update> Relm<UPDATE> {
     /// Create a new relm stream handler.
-    pub fn new(stream: EventStream<UPDATE::Msg>) -> Self {
+    pub fn new(stream: &EventStream<UPDATE::Msg>) -> Self {
         Relm {
-            stream,
+            stream: stream.downgrade(),
         }
     }
 
     /// Get the event stream of this stream.
     /// This is used internally by the library.
-    pub fn stream(&self) -> &EventStream<UPDATE::Msg> {
+    pub fn stream(&self) -> &StreamHandle<UPDATE::Msg> {
         &self.stream
     }
 }
@@ -126,7 +126,7 @@ where UPDATE: Update + UpdateNew + 'static
 {
     let stream = EventStream::new();
 
-    let relm = Relm::new(stream.clone());
+    let relm = Relm::new(&stream);
     let model = UPDATE::model(&relm, model_param);
     let component = UPDATE::new(&relm, model);
 
@@ -143,6 +143,7 @@ pub fn init_component<UPDATE>(stream: &EventStream<UPDATE::Msg>, mut component: 
     component.subscriptions(relm);
     // FIXME: This callback contains the component and the component contains a copy of the stream,
     // so we have a reference cycle.
+    // Check if it is really the case.
     stream.set_callback(move |event| {
         update_component(&mut component, event);
     });

@@ -118,7 +118,7 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 pub use gobject_sys::{GParameter, g_object_newv};
 use glib::Continue;
 
-pub use crate::core::{Channel, EventStream, Sender};
+pub use crate::core::{Channel, EventStream, Sender, StreamHandle};
 pub use crate::state::{
     DisplayVariant,
     IntoOption,
@@ -155,7 +155,7 @@ fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WID
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    let (component, widget, relm): (_, WIDGET, _) = create_widget(model_param);
+    let (component, widget, relm) = create_widget::<WIDGET>(model_param);
     let widgets = widget.get_widgets();
     init_component::<WIDGET>(component.stream(), widget, &relm);
     (component, widgets)
@@ -195,7 +195,7 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
 {
     let stream = EventStream::new();
 
-    let relm = Relm::new(stream.clone());
+    let relm = Relm::new(&stream);
     let model = WIDGET::model(&relm, model_param);
     let mut widget = WIDGET::view(&relm, model);
     widget.init_view();
@@ -341,7 +341,7 @@ pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>
 
 /// Emit the `msg` every `duration` ms.
 pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, duration: u32, constructor: F) {
-    let stream = stream.clone();
+    let stream = stream.downgrade();
     gtk::timeout_add(duration, move || {
         let msg = constructor();
         stream.emit(msg);
@@ -351,7 +351,7 @@ pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG
 
 /// After `duration` ms, emit `msg`.
 pub fn timeout<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, duration: u32, constructor: F) {
-    let stream = stream.clone();
+    let stream = stream.downgrade();
     gtk::timeout_add(duration, move || {
         let msg = constructor();
         stream.emit(msg);

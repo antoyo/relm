@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -37,12 +37,71 @@ mod source;
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::marker::PhantomData;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::mpsc::{self, Receiver, SendError};
 
 use self::source::{SourceFuncs, new_source, source_get};
 
-use glib::{MainContext, Source};
+use glib::{
+    MainContext,
+    Source,
+    SourceId,
+};
+
+/// Handle to a EventStream to emit messages.
+pub struct StreamHandle<MSG> {
+    stream: Weak<RefCell<_EventStream<MSG>>>,
+}
+
+impl<MSG> Clone for StreamHandle<MSG> {
+    fn clone(&self) -> Self {
+        Self {
+            stream: self.stream.clone(),
+        }
+    }
+}
+
+impl<MSG> StreamHandle<MSG> {
+    fn new(stream: Weak<RefCell<_EventStream<MSG>>>) -> Self {
+        Self {
+            stream: stream,
+        }
+    }
+
+    /// Send the `event` message to the stream and the observers.
+    pub fn emit(&self, msg: MSG) {
+        if let Some(ref stream) = self.stream.upgrade() {
+            emit(stream, msg);
+        }
+        else {
+            panic!("Trying to call emit() on a dropped EventStream");
+        }
+    }
+
+    /// Lock the stream (don't emit message) until the `Lock` goes out of scope.
+    pub fn lock(&self) -> Lock<MSG> {
+        if let Some(ref stream) = self.stream.upgrade() {
+            stream.borrow_mut().locked = true;
+            Lock {
+                stream: stream.clone(),
+            }
+        }
+        else {
+            panic!("Trying to call lock() on a dropped EventStream");
+        }
+    }
+
+    /// Add an observer to the event stream.
+    /// This callback will be called every time a message is emmited.
+    pub fn observe<CALLBACK: Fn(&MSG) + 'static>(&self, callback: CALLBACK) {
+        if let Some(ref stream) = self.stream.upgrade() {
+            stream.borrow_mut().observers.push(Rc::new(callback));
+        }
+        else {
+            panic!("Trying to call observe() on a dropped EventStream");
+        }
+    }
+}
 
 /// A lock is used to temporarily stop emitting messages.
 #[must_use]
@@ -162,21 +221,50 @@ struct SourceData<MSG> {
     stream: Rc<RefCell<_EventStream<MSG>>>,
 }
 
+impl<MSG> Drop for SourceData<MSG> {
+    fn drop(&mut self) {
+        println!("Drop SourceData");
+    }
+}
+
+fn emit<MSG>(stream: &Rc<RefCell<_EventStream<MSG>>>, msg: MSG) {
+    if !stream.borrow().locked {
+        let len = stream.borrow().observers.len();
+        for i in 0..len {
+            let observer = stream.borrow().observers[i].clone();
+            observer(&msg);
+        }
+
+        stream.borrow_mut().events.push_back(msg);
+    }
+}
+
 /// A stream of messages to be used for widget/signal communication and inter-widget communication.
 /// EventStream cannot be send to another thread. Use a `Channel` `Sender` instead.
 pub struct EventStream<MSG> {
     source: Source,
+    source_id: Option<SourceId>,
     _phantom: PhantomData<*mut MSG>,
 }
 
-impl<MSG> Clone for EventStream<MSG> {
+/*impl<MSG> Clone for EventStream<MSG> {
     fn clone(&self) -> Self {
         EventStream {
+            source_id: self.source_id,
             source: self.source.clone(),
             _phantom: PhantomData,
         }
     }
+}*/
+
+impl<MSG> Drop for EventStream<MSG> {
+    fn drop(&mut self) {
+        println!("Drop EventStream");
+        Source::remove(self.source_id.take().expect("source id"));
+        self.close();
+    }
 }
+
 
 impl<MSG> EventStream<MSG> {
     fn get_callback(&self) -> Rc<RefCell<Option<Box<dyn FnMut(MSG)>>>> {
@@ -201,16 +289,23 @@ impl<MSG> EventStream<MSG> {
             stream: Rc::new(RefCell::new(event_stream)),
         });
         let main_context = MainContext::default();
-        source.attach(Some(&main_context));
+        let source_id = Some(source.attach(Some(&main_context)));
         EventStream {
             source,
+            source_id,
             _phantom: PhantomData,
         }
     }
 
     /// Close the event stream, i.e. stop processing messages.
     pub fn close(&self) {
+        println!("Destroy");
         self.source.destroy();
+    }
+
+    /// Create a Clone-able EventStream handle.
+    pub fn downgrade(&self) -> StreamHandle<MSG> {
+        StreamHandle::new(Rc::downgrade(&self.get_stream()))
     }
 
     /// Send the `event` message to the stream and the observers.

@@ -35,7 +35,7 @@ pub struct ContainerComponent<WIDGET: Container + Widget> {
     pub containers: WIDGET::Containers,
 }
 
-impl<WIDGET: Container + Widget> Clone for ContainerComponent<WIDGET> {
+/*impl<WIDGET: Container + Widget> Clone for ContainerComponent<WIDGET> {
     fn clone(&self) -> Self {
         Self {
             component: self.component.clone(),
@@ -43,7 +43,7 @@ impl<WIDGET: Container + Widget> Clone for ContainerComponent<WIDGET> {
             containers: self.containers.clone(),
         }
     }
-}
+}*/
 
 impl<WIDGET: Container + Widget> ContainerComponent<WIDGET> {
     #[doc(hidden)]
@@ -180,6 +180,8 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
         component
     }
 
+    // TODO: we're probably not calling remove_widget() when removing a relm widget from a gtk
+    // widget.
     fn remove_widget<WIDGET>(&self, component: Component<WIDGET>)
         where WIDGET: Widget,
               WIDGET::Root: IsA<gtk::Widget>,
