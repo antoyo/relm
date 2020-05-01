@@ -3,8 +3,8 @@ use std::fmt;
 
 use super::errors::InvalidThreadAccess;
 use super::fragile::Fragile;
-use std::mem;
 use super::sticky::Sticky;
+use std::mem;
 
 enum SemiStickyImpl<T> {
     Fragile(Fragile<T>),
@@ -224,8 +224,9 @@ fn test_basic() {
     assert!(val.try_get().is_ok());
     thread::spawn(move || {
         assert!(val.try_get().is_err());
-    }).join()
-        .unwrap();
+    })
+    .join()
+    .unwrap();
 }
 
 #[test]
@@ -243,8 +244,9 @@ fn test_access_other_thread() {
     let val = SemiSticky::new(true);
     thread::spawn(move || {
         val.get();
-    }).join()
-        .unwrap();
+    })
+    .join()
+    .unwrap();
 }
 
 #[test]
@@ -259,7 +261,7 @@ fn test_drop_same_thread() {
         }
     }
     let val = SemiSticky::new(X(was_called.clone()));
-    drop(val);
+    mem::drop(val);
     assert_eq!(was_called.load(Ordering::SeqCst), true);
 }
 
@@ -282,17 +284,17 @@ fn test_noop_drop_elsewhere() {
             }
 
             let val = SemiSticky::new(X(was_called.clone()));
-            assert!(
-                thread::spawn(move || {
-                    // moves it here but do not deallocate
-                    val.try_get().ok();
-                }).join()
-                    .is_ok()
-            );
+            assert!(thread::spawn(move || {
+                // moves it here but do not deallocate
+                val.try_get().ok();
+            })
+            .join()
+            .is_ok());
 
             assert_eq!(was_called.load(Ordering::SeqCst), false);
-        }).join()
-            .unwrap();
+        })
+        .join()
+        .unwrap();
     }
 
     assert_eq!(was_called.load(Ordering::SeqCst), true);
@@ -305,5 +307,7 @@ fn test_rc_sending() {
     let val = SemiSticky::new(Rc::new(true));
     thread::spawn(move || {
         assert!(val.try_get().is_err());
-    }).join().unwrap();
+    })
+    .join()
+    .unwrap();
 }

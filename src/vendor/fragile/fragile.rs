@@ -1,16 +1,13 @@
-#![allow(deprecated)]
-
-use std::cell::UnsafeCell;
 use std::cmp;
 use std::fmt;
 use std::mem;
-use std::mem::ManuallyDrop;
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::mem::MaybeUninit;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use super::errors::InvalidThreadAccess;
 
 fn next_thread_id() -> usize {
-    static mut COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
+    static mut COUNTER: AtomicUsize = AtomicUsize::new(0);
     unsafe { COUNTER.fetch_add(1, Ordering::SeqCst) }
 }
 
@@ -28,7 +25,7 @@ pub(crate) fn get_thread_id() -> usize {
 /// the destructor will panic.  Alternatively you can use `Sticky<T>` which is
 /// not going to panic but might temporarily leak the value.
 pub struct Fragile<T> {
-    value: ManuallyDrop<UnsafeCell<Box<T>>>,
+    value: MaybeUninit<Box<T>>,
     thread_id: usize,
 }
 
@@ -41,7 +38,7 @@ impl<T> Fragile<T> {
     /// only the original thread can interact with the value.
     pub fn new(value: T) -> Self {
         Fragile {
-            value: ManuallyDrop::new(UnsafeCell::new(Box::new(value))),
+            value: MaybeUninit::new(Box::new(value)),
             thread_id: get_thread_id(),
         }
     }
@@ -69,9 +66,9 @@ impl<T> Fragile<T> {
     pub fn into_inner(mut self) -> T {
         self.assert_thread();
         unsafe {
-            let value = mem::replace(&mut self.value, mem::uninitialized());
+            let rv = mem::replace(&mut self.value, MaybeUninit::uninit());
             mem::forget(self);
-            *ManuallyDrop::into_inner(value).into_inner()
+            *rv.assume_init()
         }
     }
 
@@ -96,7 +93,7 @@ impl<T> Fragile<T> {
     /// For a non-panicking variant, use [`try_get`](#method.try_get`).
     pub fn get(&self) -> &T {
         self.assert_thread();
-        unsafe { &*self.value.get() }
+        unsafe { &*self.value.as_ptr() }
     }
 
     /// Mutably borrows the wrapped value.
@@ -107,7 +104,7 @@ impl<T> Fragile<T> {
     /// For a non-panicking variant, use [`try_get_mut`](#method.try_get_mut`).
     pub fn get_mut(&mut self) -> &mut T {
         self.assert_thread();
-        unsafe { &mut *self.value.get() }
+        unsafe { &mut *self.value.as_mut_ptr() }
     }
 
     /// Tries to immutably borrow the wrapped value.
@@ -115,7 +112,7 @@ impl<T> Fragile<T> {
     /// Returns `None` if the calling thread is not the one that wrapped the value.
     pub fn try_get(&self) -> Result<&T, InvalidThreadAccess> {
         if get_thread_id() == self.thread_id {
-            unsafe { Ok(&*self.value.get()) }
+            unsafe { Ok(&*self.value.as_ptr()) }
         } else {
             Err(InvalidThreadAccess)
         }
@@ -126,7 +123,7 @@ impl<T> Fragile<T> {
     /// Returns `None` if the calling thread is not the one that wrapped the value.
     pub fn try_get_mut(&mut self) -> Result<&mut T, InvalidThreadAccess> {
         if get_thread_id() == self.thread_id {
-            unsafe { Ok(&mut *self.value.get()) }
+            unsafe { Ok(&mut *self.value.as_mut_ptr()) }
         } else {
             Err(InvalidThreadAccess)
         }
@@ -137,7 +134,10 @@ impl<T> Drop for Fragile<T> {
     fn drop(&mut self) {
         if mem::needs_drop::<T>() {
             if get_thread_id() == self.thread_id {
-                unsafe { ManuallyDrop::drop(&mut self.value) }
+                unsafe {
+                    let rv = mem::replace(&mut self.value, MaybeUninit::uninit());
+                    rv.assume_init();
+                }
             } else {
                 panic!("destructor of fragile object ran on wrong thread");
             }
@@ -252,8 +252,9 @@ fn test_basic() {
     assert!(val.try_get().is_ok());
     thread::spawn(move || {
         assert!(val.try_get().is_err());
-    }).join()
-        .unwrap();
+    })
+    .join()
+    .unwrap();
 }
 
 #[test]
@@ -271,8 +272,9 @@ fn test_access_other_thread() {
     let val = Fragile::new(true);
     thread::spawn(move || {
         val.get();
-    }).join()
-        .unwrap();
+    })
+    .join()
+    .unwrap();
 }
 
 #[test]
@@ -282,8 +284,9 @@ fn test_noop_drop_elsewhere() {
     thread::spawn(move || {
         // force the move
         val.try_get().ok();
-    }).join()
-        .unwrap();
+    })
+    .join()
+    .unwrap();
 }
 
 #[test]
@@ -299,20 +302,19 @@ fn test_panic_on_drop_elsewhere() {
         }
     }
     let val = Fragile::new(X(was_called.clone()));
-    assert!(
-        thread::spawn(move || {
-            val.try_get().ok();
-        }).join()
-            .is_err()
-    );
+    assert!(thread::spawn(move || {
+        val.try_get().ok();
+    })
+    .join()
+    .is_err());
     assert_eq!(was_called.load(Ordering::SeqCst), false);
 }
 
 #[test]
 fn test_rc_sending() {
     use std::rc::Rc;
-    use std::thread;
     use std::sync::mpsc::channel;
+    use std::thread;
 
     let val = Fragile::new(Rc::new(true));
     let (tx, rx) = channel();

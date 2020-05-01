@@ -7,7 +7,7 @@ pub struct InvalidThreadAccess;
 
 impl fmt::Display for InvalidThreadAccess {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(error::Error::description(self), f)
+        fmt::Display::fmt(&self.to_string(), f)
     }
 }
 
