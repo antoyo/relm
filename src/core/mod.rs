@@ -257,11 +257,28 @@ pub struct EventStream<MSG> {
     }
 }*/
 
+trait SourceDbg {
+    fn print_ref_count(&self);
+}
+
+impl SourceDbg for Source {
+    fn print_ref_count(&self) {
+        unsafe {
+            println!("Ref count: {}", (*self.to_glib_none().0).ref_count);
+        }
+    }
+}
+
+use glib::translate::ToGlibPtr;
+
 impl<MSG> Drop for EventStream<MSG> {
     fn drop(&mut self) {
         println!("Drop EventStream");
+        self.source.print_ref_count();
         Source::remove(self.source_id.take().expect("source id"));
+        self.source.print_ref_count();
         self.close();
+        self.source.print_ref_count();
     }
 }
 
