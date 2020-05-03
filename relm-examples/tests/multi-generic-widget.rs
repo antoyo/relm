@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -158,11 +158,21 @@ enum Msg {
     Quit,
 }
 
+struct Components {
+    _counter1: Component<Counter<i32, i64>>,
+    _counter2: Component<Counter<i32, i64>>,
+}
+
 #[derive(Clone)]
-struct Win {
-    counter1: Component<Counter<i32, i64>>,
-    counter2: Component<Counter<i32, i64>>,
+struct Widgets {
+    counter1: <Counter<i32, i64> as Widget>::Root,
+    counter2: gtk::Box,
     window: Window,
+}
+
+struct Win {
+    _components: Components,
+    widgets: Widgets,
 }
 
 impl Update for Win {
@@ -185,7 +195,7 @@ impl Widget for Win {
     type Root = Window;
 
     fn root(&self) -> Self::Root {
-        self.window.clone()
+        self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: ()) -> Win {
@@ -202,18 +212,24 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         Win {
-            counter1: counter1,
-            counter2: counter2,
-            window: window,
+            widgets: Widgets {
+                counter1: counter1.widget().clone(),
+                counter2: counter2.widget().clone(),
+                window: window,
+            },
+            _components: Components {
+                _counter1: counter1,
+                _counter2: counter2,
+            },
         }
     }
 }
 
 impl WidgetTest for Win {
-    type Widgets = Win;
+    type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
-        self.clone()
+        self.widgets.clone()
     }
 }
 
@@ -232,8 +248,8 @@ mod tests {
     #[test]
     fn model_params() {
         let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
-        let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label");
-        let label2: Label = find_child_by_name(widgets.counter2.widget(), "label").expect("label");
+        let label1: Label = find_child_by_name(&widgets.counter1, "label").expect("label");
+        let label2: Label = find_child_by_name(&widgets.counter2, "label").expect("label");
 
         assert_text!(label1, 2);
         assert_text!(label2, 3);

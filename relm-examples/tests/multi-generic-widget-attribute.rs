@@ -156,8 +156,8 @@ mod tests {
     #[test]
     fn model_params() {
         let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
-        let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label");
-        let label2: Label = find_child_by_name(widgets.counter2.widget(), "label").expect("label");
+        let label1: Label = find_child_by_name(&widgets.counter1, "label").expect("label");
+        let label2: Label = find_child_by_name(&widgets.counter2, "label").expect("label");
 
         assert_text!(label1, 2);
         assert_text!(label2, 3);

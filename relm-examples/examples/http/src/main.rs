@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -118,11 +118,9 @@ impl Widget for Win {
 
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}",
                     self.model.topic);
-                //for _ in 0..10 {
-                    let http = execute::<Http>(url.clone());
-                    connect_stream!(http@ReadDone(ref buffer), self.model.relm.stream(), NewGif(buffer.take()));
-                    self.model.request = Some(http);
-                //}
+                let http = execute::<Http>(url.clone());
+                connect_stream!(http@ReadDone(ref buffer), self.model.relm.stream(), NewGif(buffer.take()));
+                self.model.request = Some(http);
             },
             HttpError(error) => {
                 self.model.button_enabled = true;
@@ -137,10 +135,9 @@ impl Widget for Win {
             NewGif(buffer) => {
                 if let Ok(body) = String::from_utf8(buffer) {
                     let mut json = json::parse(&body).expect("invalid json");
-                    println!("{}", body);
                     match json["data"]["image_url"].take_string() {
                         Some(url) => {
-                            let http = execute::<Http>(url);
+                            let http = execute::<Http>(url.to_string());
                             connect_stream!(http@DataRead(ref buffer), self.model.relm.stream(), ImageChunk(buffer.take()));
                             connect_stream!(http@ReadDone(_), self.model.relm.stream(), DownloadCompleted);
                             self.model.request = Some(http);

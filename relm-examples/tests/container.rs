@@ -128,14 +128,22 @@ pub enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
-struct Win {
+struct Components {
     _button: Component<Button>,
     _vbox: ContainerComponent<VBox>,
+}
+
+#[derive(Clone)]
+struct Widgets {
     window: Window,
     inc_button: gtk::Button,
     dec_button: gtk::Button,
     label: Label,
+}
+
+struct Win {
+    _components: Components,
+    widgets: Widgets,
 }
 
 impl Update for Win {
@@ -157,7 +165,7 @@ impl Widget for Win {
     type Root = Window;
 
     fn root(&self) -> Self::Root {
-        self.window.clone()
+        self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: ()) -> Self {
@@ -173,21 +181,25 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
         window.show_all();
         Win {
-            _button: button,
-            _vbox: vbox,
-            window: window,
-            inc_button,
-            dec_button,
-            label,
+            _components: Components {
+                _button: button,
+                _vbox: vbox,
+            },
+            widgets: Widgets {
+                window: window,
+                inc_button,
+                dec_button,
+                label,
+            },
         }
     }
 }
 
 impl WidgetTest for Win {
-    type Widgets = Win;
+    type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
-        self.clone()
+        self.widgets.clone()
     }
 }
 

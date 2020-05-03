@@ -204,13 +204,13 @@ mod tests {
     fn label_change() {
         let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let dec_button = &widgets.dec_button;
-        let label1: Label = find_child_by_name(widgets.counter1.widget(), "label").expect("label1");
-        let inc_button1: Button = find_child_by_name(widgets.counter1.widget(), "inc_button").expect("button1");
-        let dec_button1: Button = find_child_by_name(widgets.counter1.widget(), "dec_button").expect("button1");
-        let label2: Label = find_child_by_name(widgets.counter2.widget(), "label").expect("label2");
+        let label1: Label = find_child_by_name(&widgets.counter1, "label").expect("label1");
+        let inc_button1: Button = find_child_by_name(&widgets.counter1, "inc_button").expect("button1");
+        let dec_button1: Button = find_child_by_name(&widgets.counter1, "dec_button").expect("button1");
+        let label2: Label = find_child_by_name(&widgets.counter2, "label").expect("label2");
         let label = &widgets.label;
-        let entry: Entry = find_child_by_name(widgets.text.widget(), "entry").expect("entry");
-        let text_label: Label = find_child_by_name(widgets.text.widget(), "text_label").expect("label");
+        let entry: Entry = find_child_by_name(&widgets.text, "entry").expect("entry");
+        let text_label: Label = find_child_by_name(&widgets.text, "text_label").expect("label");
 
         assert_text!(label1, 0);
 

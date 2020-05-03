@@ -129,7 +129,7 @@ mod tests {
     fn model_params() {
         let (_component, widgets) = relm::init_test::<Win>(5).expect("init_test failed");
         let label = &widgets.label;
-        let button = widgets.button.widget();
+        let button = &widgets.button;
 
         assert_text!(label, 5);
         assert_label!(button, "Button text attribute");

@@ -115,8 +115,8 @@ impl Widget for Win {
         let inc = MenuItem::with_label("Increment");
         connect!(self.model.relm, inc, connect_activate(_), Increment);
         menu.append(&inc);
-        self.menu_action.set_submenu(Some(&menu));
-        self.menu_bar.show_all();
+        self.widgets.menu_action.set_submenu(Some(&menu));
+        self.widgets.menu_bar.show_all();
     }
 
     fn model(relm: &Relm<Self>, _: ()) -> Model {
@@ -326,7 +326,6 @@ mod tests {
         assert_eq!(widgets.label.get_text(), 7.to_string());
         assert_text!(widgets.label, 7);
 
-        let inc_label = inc_label.widget();
         click(inc_label);
         assert_text!(widgets.label, 8);
 

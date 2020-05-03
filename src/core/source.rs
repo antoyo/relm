@@ -24,7 +24,7 @@ use std::os::raw::c_int;
 use std::ptr;
 
 use glib::Source;
-use glib::translate::{ToGlibPtr, from_glib_none};
+use glib::translate::{ToGlibPtr, from_glib_full};
 use glib_sys::{GSource, GSourceFunc, GSourceFuncs, g_source_new};
 use libc;
 
@@ -54,7 +54,7 @@ pub fn new_source<T: SourceFuncs>(data: T) -> Source {
         let source = g_source_new(&mut *funcs, mem::size_of::<SourceData<T>>() as u32);
         ptr::write(&mut (*(source as *mut SourceData<T>)).data, data);
         ptr::write(&mut (*(source as *mut SourceData<T>)).funcs, funcs);
-        from_glib_none(source)
+        from_glib_full(source)
     }
 }
 
@@ -75,7 +75,6 @@ unsafe extern "C" fn dispatch<T: SourceFuncs>(source: *mut GSource, _callback: G
 }
 
 unsafe extern "C" fn finalize<T: SourceFuncs>(source: *mut GSource) {
-    println!("finalize");
     // TODO: needs a bomb to abort on panic
     let source = source as *mut SourceData<T>;
     ptr::read(&(*source).funcs);
