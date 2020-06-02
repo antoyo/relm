@@ -19,7 +19,11 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use super::{EventStream, Widget};
+use super::{
+    EventStream,
+    StreamHandle,
+    Widget,
+};
 
 /// Widget that was added by the `ContainerWidget::add_widget()` method.
 ///
@@ -60,7 +64,13 @@ impl<WIDGET: Widget> Component<WIDGET> {
 
     /// Get the event stream of the component.
     /// This is used internally by the library.
-    pub fn stream(&self) -> &EventStream<WIDGET::Msg> {
+    pub fn stream(&self) -> StreamHandle<WIDGET::Msg> {
+        self.stream.downgrade()
+    }
+
+    /// Get the event stream of the component.
+    /// This is used internally by the library.
+    pub fn owned_stream(&self) -> &EventStream<WIDGET::Msg> {
         &self.stream
     }
 

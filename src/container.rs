@@ -69,19 +69,19 @@ impl<WIDGET: Container + Widget> ContainerComponent<WIDGET> {
         let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
         let container = WIDGET::add_widget(self, &component);
         widget.on_add(container);
-        init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+        init_component::<CHILDWIDGET>(component.owned_stream(), widget, &child_relm);
         component
     }
 
     /// Emit a message of the widget stream.
     pub fn emit(&self, msg: WIDGET::Msg) {
-        self.stream().emit(msg);
+        self.owned_stream().emit(msg);
     }
 
     /// Get the event stream of the component.
     /// This is used internally by the library.
-    pub fn stream(&self) -> &EventStream<WIDGET::Msg> {
-        self.component.stream()
+    pub fn owned_stream(&self) -> &EventStream<WIDGET::Msg> {
+        self.component.owned_stream()
     }
 
     // TODO: add delete methods?
@@ -163,7 +163,7 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
         let root = widget.root().clone();
         self.add(&root);
         widget.on_add(self.clone());
-        init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+        init_component::<CHILDWIDGET>(component.owned_stream(), widget, &child_relm);
         ContainerComponent::new(component, container, containers)
     }
 
@@ -176,7 +176,7 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
         let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
         self.add(component.widget());
         widget.on_add(self.clone());
-        init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+        init_component::<CHILDWIDGET>(component.owned_stream(), widget, &child_relm);
         component
     }
 
