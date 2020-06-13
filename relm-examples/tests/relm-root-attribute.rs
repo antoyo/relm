@@ -66,12 +66,20 @@ impl Widget for VBox {
     }
 }
 
+pub struct Model {
+    visible: bool,
+}
+
 #[widget]
 impl Widget for MyVBox {
-    fn model() -> () {
+    fn model() -> Model {
+        Model {
+            visible: true,
+        }
     }
 
     fn update(&mut self, _event: ()) {
+        self.model.visible = true;
     }
 
     view! {
@@ -85,6 +93,7 @@ impl Widget for MyVBox {
                 text: "0",
             },
             Button {
+                visible: self.model.visible,
                 widget_name: "button",
             },
             gtk::Button {
