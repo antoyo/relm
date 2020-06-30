@@ -27,6 +27,7 @@ gtk = "^0.8.0"
 libc = "^0.2.54"
 log = "^0.4.6"
 quote = "0.6"
+crossbeam-channel = "0.4.2"
 
 [dependencies.syn]
 features = ["full"]
