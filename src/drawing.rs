@@ -82,7 +82,7 @@ pub struct DrawHandler<W> {
 
 impl<W: Clone + WidgetExt> DrawHandler<W> {
     /// Create a new DrawHandler.
-    pub fn new() -> Result<Self, cairo::Status> {
+    pub fn new() -> Result<Self, cairo::Error> {
         Ok(Self {
             draw_surface: Surface::new(ImageSurface::create(Format::ARgb32, 100, 100)?),
             edit_surface: ImageSurface::create(Format::ARgb32, 100, 100)?,
