@@ -19,13 +19,15 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use gtk::{
-    BoxExt,
+use glib::{
     Cast,
-    ContainerExt,
-    Inhibit,
     IsA,
     Object,
+};
+use gtk::{
+    BoxExt,
+    ContainerExt,
+    Inhibit,
     PackType,
     WidgetExt,
 };

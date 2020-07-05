@@ -147,7 +147,7 @@ fn create_stmts_for_props(ident: &Ident, property_map: &PropertyModelMap) -> Vec
             let stmt =
                 if property.is_relm_widget {
                     quote_spanned! { ident.span() =>
-                        { self.#widget_name.#prop_name(#tokens); }
+                        { self.#widget_name.widget().#prop_name(#tokens); }
                     }
                 }
                 else {

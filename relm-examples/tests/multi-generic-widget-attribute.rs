@@ -99,7 +99,7 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
                 clicked => Increment,
             },
             gtk::Label {
-                name: "label",
+                widget_name: "label",
                 text: &self.model.counter1.to_string(),
             },
             gtk::Button {

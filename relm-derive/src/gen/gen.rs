@@ -414,7 +414,7 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream 
         let value = remover.fold_expr(value.clone());
         let key = key.to_string();
         values.push(quote_spanned! { struct_name.span() =>
-            ::gtk::ToValue::to_value(&#value)
+            ::relm::ToValue::to_value(&#value)
         });
         let index = parameters.len();
         parameters.push(quote_spanned! { struct_name.span() =>
@@ -448,10 +448,12 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream 
                         panic!("GTK has not been initialized. Call `gtk::init` first.");
                     }
                 }
-                use gtk::StaticType;
+                use relm::StaticType;
                 use relm::{Cast, FromGlibPtrNone};
-                let values: &[::gtk::Value] = &[#(#values),*];
+                let values: &[::relm::Value] = &[#(#values),*];
                 let mut parameters = [#(#parameters),*];
+                // TODO: use the safe Object::new().
+                // TODO: switch to builders.
                 ::gtk::Widget::from_glib_none(::relm::g_object_newv(
                     ::relm::ToGlib::to_glib(&#struct_name::static_type()),
                     #properties_count, parameters.as_mut_ptr()) as *mut _)
@@ -557,7 +559,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
             if parent_id.is_none() {
                 default_container = quote_spanned! { span =>
                     ::gtk::ContainerExt::add(&container.container, widget.widget());
-                    ::gtk::Cast::upcast(container.container.clone())
+                    ::relm::Cast::upcast(container.container.clone())
                 };
             }
             else {
@@ -565,7 +567,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                     other_containers = quote_spanned! { span =>
                         if WIDGET::parent_id() == Some(#parent_id) {
                             ::gtk::ContainerExt::add(&container.containers.#name, widget.widget());
-                            ::gtk::Cast::upcast(container.containers.#name.clone())
+                            ::relm::Cast::upcast(container.containers.#name.clone())
                         }
                     };
                 }
@@ -574,7 +576,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                         #other_containers
                         else if WIDGET::parent_id() == Some(#parent_id) {
                             ::gtk::ContainerExt::add(&container.containers.#name, widget.widget());
-                            ::gtk::Cast::upcast(container.containers.#name.clone())
+                            ::relm::Cast::upcast(container.containers.#name.clone())
                         }
                     };
                 }

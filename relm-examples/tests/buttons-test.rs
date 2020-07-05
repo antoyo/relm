@@ -78,7 +78,7 @@ impl Widget for ClickableLabel {
             }, Inhibit(false)),
             #[name="label"]
             gtk::Label {
-                name: "label",
+                widget_name: "label",
                 text: &self.model.text,
             },
         },
@@ -208,8 +208,8 @@ impl Widget for Win {
 
 #[cfg(test)]
 mod tests {
+    use glib::Cast;
     use gtk::{
-        Cast,
         ContainerExt,
         LabelExt,
         Menu,
@@ -230,7 +230,7 @@ mod tests {
         relm_observer_wait,
     };
 
-    use crate::Msg::{self, FiveInc, GetModel, RecvModel, TwoInc};
+    use crate::Msg::{FiveInc, GetModel, RecvModel, TwoInc};
     use crate::LabelMsg::Text;
     use crate::Win;
 

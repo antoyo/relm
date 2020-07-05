@@ -47,8 +47,6 @@
 )]
 
 /*
- * TODO: maybe remove SimpleMsg.
- *
  * TODO: improve README so that examples can be copy/pasted.
  *
  * FIXME: some relm widgets requires { and } (see the rusic music-player) while other do not.
@@ -60,10 +58,6 @@
  * TODO: use pub(crate) instead of pub so that we're not bound to make the model and msg structs pub.
  *
  * TODO: add init() method to the Widget (or Update) trait as a shortcut for init::<Widget>()?
- *
- * TODO: alternative to tokio with a trait to get FD and add this FD to glib (perhaps using a
- * GSource).
- * For timers, add a connect_timeout!() macro or something.
  *
  * TODO: show a warning when a component is imediately destroyed.
  * FIXME: cannot add a trailing coma at the end of a initializer list.
@@ -92,8 +86,6 @@
  *
  * TODO: chat client/server example.
  *
- * TODO: err if trying to use the SimpleMsg custom derive on stable.
- *
  * TODO: add default type of () for Model in Widget when it is stable.
  * TODO: optionnaly multi-threaded.
  */
@@ -109,12 +101,19 @@ pub mod vendor;
 mod widget;
 
 #[doc(hidden)]
-pub use glib::Cast;
+pub use glib::{
+    Cast,
+    IsA,
+    Object,
+    StaticType,
+    ToValue,
+    Value,
+};
 #[doc(hidden)]
 pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
-use gtk::Continue;
+use glib::Continue;
 
 pub use crate::core::{Channel, EventStream, Sender};
 pub use crate::state::{
@@ -153,10 +152,10 @@ fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WID
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, relm): (_, WIDGET, _) = create_widget(model_param);
-    let widgets = component.get_widgets();
-    init_component::<WIDGET>(widget.stream(), component, &relm);
-    (widget, widgets)
+    let (component, widget, relm): (_, WIDGET, _) = create_widget(model_param);
+    let widgets = widget.get_widgets();
+    init_component::<WIDGET>(component.stream(), widget, &relm);
+    (component, widgets)
 }
 
 /// Create a new relm widget without adding it to an existing widget.
@@ -166,9 +165,9 @@ pub fn create_component<CHILDWIDGET>(model_param: CHILDWIDGET::ModelParam)
     where CHILDWIDGET: Widget + 'static,
           CHILDWIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
-    init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
-    widget
+    let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+    init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+    component
 }
 
 /// Create a new relm container widget without adding it to an existing widget.
@@ -178,11 +177,11 @@ pub fn create_container<CHILDWIDGET>(model_param: CHILDWIDGET::ModelParam)
     where CHILDWIDGET: Container + Widget + 'static,
           CHILDWIDGET::Msg: DisplayVariant + 'static,
 {
-    let (widget, component, child_relm) = create_widget::<CHILDWIDGET>(model_param);
-    let container = component.container().clone();
-    let containers = component.other_containers();
-    init_component::<CHILDWIDGET>(widget.stream(), component, &child_relm);
-    ContainerComponent::new(widget, container, containers)
+    let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
+    let container = widget.container().clone();
+    let containers = widget.other_containers();
+    init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+    ContainerComponent::new(component, container, containers)
 }
 
 /// Create a new relm widget with `model_param` as initialization value.
@@ -274,9 +273,9 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static
 {
-    let (widget, component, relm) = create_widget::<WIDGET>(model_param);
-    init_component::<WIDGET>(widget.stream(), component, &relm);
-    Ok(widget)
+    let (component, widget, relm) = create_widget::<WIDGET>(model_param);
+    init_component::<WIDGET>(component.stream(), widget, &relm);
+    Ok(component)
 }
 
 /// Create the specified relm `Widget` and run the main event loops.

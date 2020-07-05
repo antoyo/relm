@@ -121,15 +121,15 @@ impl<T: Clone + IncDec + Display + 'static> Widget for Counter<T> {
         let vbox = gtk::Box::new(Vertical, 0);
 
         let plus_button = Button::new_with_label("+");
-        plus_button.set_name("inc_button");
+        plus_button.set_widget_name("inc_button");
         vbox.add(&plus_button);
 
         let counter_label = Label::new(Some(model.counter.to_string().as_ref()));
-        counter_label.set_name("label");
+        counter_label.set_widget_name("label");
         vbox.add(&counter_label);
 
         let minus_button = Button::new_with_label("-");
-        minus_button.set_name("dec_button");
+        minus_button.set_widget_name("dec_button");
         vbox.add(&minus_button);
 
         connect!(relm, plus_button, connect_clicked(_), Increment(T::identity()));

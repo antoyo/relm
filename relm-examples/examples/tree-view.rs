@@ -21,22 +21,22 @@
 
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{MAIN_SEPARATOR, PathBuf};
 
+use glib::StaticType;
 use gtk::{
     CellLayoutExt,
     ContainerExt,
     GtkWindowExt,
     Inhibit,
-    GtkListStoreExtManual,
-    StaticType,
     TreeModelExt,
     TreeSelectionExt,
     TreeView,
     TreeViewExt,
     WidgetExt,
     Window,
-    WindowType
+    WindowType,
+    prelude::GtkListStoreExtManual,
 };
 use gtk::Orientation::Vertical;
 use relm_derive::Msg;
@@ -82,12 +82,16 @@ impl Update for Win {
                     let is_dir: bool = list_model
                         .get_value(&iter, IS_DIR_COL)
                         .get::<bool>()
+                        .ok()
+                        .and_then(|value| value)
                         .expect("get_value.get<bool> failed");
 
                     if is_dir {
                         let dir_name = list_model
                             .get_value(&iter, VALUE_COL)
                             .get::<String>()
+                            .ok()
+                            .and_then(|value| value)
                             .expect("get_value.get<String> failed");
 
                         println!("{:?} selected", dir_name);
@@ -173,7 +177,7 @@ fn create_and_fill_model(dir_str: &PathBuf) -> io::Result<gtk::ListStore> {
 
             if let Ok(file_name) = entry.file_name().into_string() {
                 let (final_name, is_dir) = if metadata.is_dir() {
-                    (format!("{}/", file_name), true)
+                    (format!("{}{}", file_name, MAIN_SEPARATOR), true)
                 } else {
                     (file_name, false)
                 };

@@ -18,7 +18,7 @@ image:https://img.shields.io/badge/Donate-Patreon-orange.svg[link="https://www.p
 
 Since relm is based on GTK+, you need this library on your system in order to use it.
 
-See http://gtk-rs.org/docs-src/requirements[this page] for information on how to install GTK+.
+See http://gtk-rs.org/docs/requirements.html[this page] for information on how to install GTK+.
 
 == Usage
 
@@ -26,9 +26,9 @@ First, add this to your `Cargo.toml`:
 
 [source,toml]
 ----
-gtk = "^0.6.0"
-relm = "^0.16.0"
-relm-derive = "^0.16.0"
+gtk = "^0.8.0"
+relm = "^0.19.0"
+relm-derive = "^0.19.0"
 ----
 
 Next, add this to your crate:
@@ -38,6 +38,7 @@ Next, add this to your crate:
 use relm::{Relm, Update, Widget};
 use gtk::prelude::*;
 use gtk::{Window, Inhibit, WindowType};
+use relm_derive::Msg;
 ----
 
 Then, create your model:
@@ -125,7 +126,7 @@ impl Widget for Win {
 
         Win {
             model,
-            window: window,
+            window,
         }
     }
 }
@@ -150,7 +151,7 @@ This attribute does the following:
  * Automatically create the `fn root()`, `type Msg`, `type Model`, `type ModelParam` and `type Root` items.
  * Automatically insert the call to `Widget::set_property()` in the `update()` function when assigning to an attribute of the model.
  * Automatically create the `Widget` `struct`.
- * Both traits can be implemented at once.
+ * `Update` and `Widget` traits can be implemented at once.
 
 To use this attribute, add the following code:
 
@@ -273,7 +274,7 @@ fn update(&mut self, event: Msg) {
 ----
 ====
 
-For more information about how you can use relm, you can take a look at the https://github.com/antoyo/relm/tree/master/relm-examples/examples[examples].
+For more information about how you can use relm, you can take a look at the https://github.com/antoyo/relm/tree/master/relm-examples/[examples].
 
 == Donations
 
