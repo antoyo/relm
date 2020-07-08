@@ -22,7 +22,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use gdk::{EventKey, keyval_to_unicode};
+use gdk::EventKey;
 use gtk::{
     Inhibit,
     WidgetExt,
@@ -67,7 +67,7 @@ impl Widget for Win {
     fn update(&mut self, event: Msg) {
         match event {
             KeyPress(event) => {
-                if let Some(letter) = keyval_to_unicode(event.get_keyval()) {
+                if let Some(letter) = event.get_keyval().to_unicode() {
                     self.model.letter.set(letter);
                     self.drawing_area.queue_draw();
                 }

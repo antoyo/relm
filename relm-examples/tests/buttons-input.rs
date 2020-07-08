@@ -91,12 +91,12 @@ impl Widget for Win {
                     #[name="left_entry"]
                     gtk::Entry {
                         text: &self.model.left_text,
-                        changed(entry) => LeftChanged(entry.get_text().expect("get_text failed").to_string()),
+                        changed(entry) => LeftChanged(entry.get_text().to_string()),
                     },
                     #[name="right_entry"]
                     gtk::Entry {
                         text: &self.model.right_text,
-                        changed(entry) => RightChanged(entry.get_text().expect("get_text failed").to_string()),
+                        changed(entry) => RightChanged(entry.get_text().to_string()),
                     },
                     orientation: Horizontal,
                 },
@@ -126,7 +126,7 @@ impl Widget for Win {
 
 #[cfg(test)]
 mod tests {
-    use gdk::enums::key;
+    use gdk::keys::constants as key;
     use gtk::{
         EntryExt,
         GtkWindowExt,

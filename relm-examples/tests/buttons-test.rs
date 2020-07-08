@@ -111,7 +111,7 @@ pub enum Msg {
 impl Widget for Win {
     fn init_view(&mut self) {
         let menu = Menu::new();
-        let inc = MenuItem::new_with_label("Increment");
+        let inc = MenuItem::with_label("Increment");
         connect!(self.model.relm, inc, connect_activate(_), Increment);
         menu.append(&inc);
         self.menu_action.set_submenu(Some(&menu));

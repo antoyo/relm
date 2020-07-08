@@ -74,7 +74,6 @@ impl Update for Win {
         match event {
             Change => {
                 self.model.content = self.widgets.input.get_text()
-                                                       .expect("get_text failed")
                                                        .chars()
                                                        .rev()
                                                        .collect();
@@ -135,7 +134,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gdk::enums::key;
+    use gdk::keys::constants as key;
     use gtk::LabelExt;
 
     use gtk_test::{assert_text, enter_key, enter_keys};

@@ -69,7 +69,7 @@ impl Widget for Button {
     }
 
     fn view(_relm: &Relm<Self>, _model: Self::Model) -> Self {
-        let button = gtk::Button::new_with_label("+");
+        let button = gtk::Button::with_label("+");
         button.set_widget_name("button");
         Button {
             button: button,
@@ -153,7 +153,7 @@ impl Widget for MyVBox {
     fn view(_relm: &Relm<Self>, _model: Self::Model) -> Self {
         let vbox = create_container::<VBox>(());
 
-        let plus_button = gtk::Button::new_with_label("+");
+        let plus_button = gtk::Button::with_label("+");
         plus_button.set_widget_name("inc_button");
         vbox.add(&plus_button);
 
@@ -163,7 +163,7 @@ impl Widget for MyVBox {
 
         let widget = vbox.add_widget::<Button>(());
 
-        let minus_button = gtk::Button::new_with_label("-");
+        let minus_button = gtk::Button::with_label("-");
         minus_button.set_widget_name("dec_button");
         vbox.add(&minus_button);
 

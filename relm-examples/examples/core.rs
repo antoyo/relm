@@ -73,11 +73,11 @@ fn main() {
     // Add some widgets to the layout.
     let clock_label = Label::new(None);
     vbox.add(&clock_label);
-    let plus_button = Button::new_with_label("+");
+    let plus_button = Button::with_label("+");
     vbox.add(&plus_button);
     let counter_label = Label::new(Some("0"));
     vbox.add(&counter_label);
-    let minus_button = Button::new_with_label("-");
+    let minus_button = Button::with_label("-");
     vbox.add(&minus_button);
 
     // As mentioned above, this struct holds the labels that we're going

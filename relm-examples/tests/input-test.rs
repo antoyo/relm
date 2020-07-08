@@ -66,7 +66,7 @@ impl Widget for Win {
                 orientation: Vertical,
                 #[name = "entry"]
                 gtk::Entry {
-                    changed(entry) => Change(entry.get_text().expect("get_text failed")),
+                    changed(entry) => Change(entry.get_text()),
                     placeholder_text: Some("Text to reverse"),
                 },
                 #[name = "entry2"]
@@ -83,7 +83,7 @@ impl Widget for Win {
 
 #[cfg(test)]
 mod tests {
-    use gdk::enums::key;
+    use gdk::keys::constants as key;
     use gtk::{EntryExt, LabelExt};
 
     use gtk_test::{

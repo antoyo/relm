@@ -104,7 +104,7 @@ impl Widget for CheckButton {
     }
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
-        let button = gtk::CheckButton::new_with_label(model.label);
+        let button = gtk::CheckButton::with_label(model.label);
 
         connect!(relm, button, connect_clicked(_), Toggle);
 

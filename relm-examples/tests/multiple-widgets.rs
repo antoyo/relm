@@ -79,7 +79,7 @@ impl Update for Text {
     fn update(&mut self, event: TextMsg) {
         match event {
             Change => {
-                self.model.content = self.input.get_text().expect("get_text failed").chars().rev().collect();
+                self.model.content = self.input.get_text().chars().rev().collect();
                 self.label.set_text(&self.model.content);
             },
         }
@@ -168,7 +168,7 @@ impl Widget for Counter {
     fn view(relm: &Relm<Self>, model: Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
-        let plus_button = Button::new_with_label("+");
+        let plus_button = Button::with_label("+");
         plus_button.set_widget_name("inc_button");
         vbox.add(&plus_button);
 
@@ -176,7 +176,7 @@ impl Widget for Counter {
         counter_label.set_widget_name("label");
         vbox.add(&counter_label);
 
-        let minus_button = Button::new_with_label("-");
+        let minus_button = Button::with_label("-");
         vbox.add(&minus_button);
 
         connect!(relm, plus_button, connect_clicked(_), Increment);

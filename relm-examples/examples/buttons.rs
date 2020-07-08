@@ -104,13 +104,13 @@ impl Widget for Win {
         // Create the view using the normal GTK+ method calls.
         let vbox = gtk::Box::new(Vertical, 0);
 
-        let plus_button = Button::new_with_label("+");
+        let plus_button = Button::with_label("+");
         vbox.add(&plus_button);
 
         let counter_label = Label::new(Some("0"));
         vbox.add(&counter_label);
 
-        let minus_button = Button::new_with_label("-");
+        let minus_button = Button::with_label("-");
         vbox.add(&minus_button);
 
         let window = Window::new(WindowType::Toplevel);

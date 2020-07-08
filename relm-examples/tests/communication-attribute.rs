@@ -63,7 +63,7 @@ impl Widget for Text {
         gtk::Box {
             orientation: Vertical,
             gtk::Entry {
-                changed(entry) => Change(entry.get_text().expect("get_text failed")),
+                changed(entry) => Change(entry.get_text()),
                 widget_name: "entry",
             },
             gtk::Label {

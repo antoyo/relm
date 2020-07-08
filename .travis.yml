@@ -15,6 +15,7 @@ addons:
       - openbox
       - xvfb
       - libmount-dev
+      - libxdo-dev
 
 env:
   - RUST_BACKTRACE=1
@@ -42,7 +43,7 @@ script:
   - cargo test --manifest-path relm-examples/examples/buttons-attribute/Cargo.toml
   - cargo build --manifest-path relm-examples/examples/http/Cargo.toml
   #- cargo build --manifest-path relm-examples/examples/async/Cargo.toml
-  - cargo build --manifest-path relm-examples/examples/webkit-test/Cargo.toml
+  #- cargo build --manifest-path relm-examples/examples/webkit-test/Cargo.toml
 
 matrix:
   allow_failures:

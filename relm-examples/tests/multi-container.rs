@@ -73,7 +73,7 @@ impl Widget for CenterButton {
     }
 
     fn view(_relm: &Relm<Self>, _model: ()) -> Self {
-        let button = gtk::Button::new_with_label("-");
+        let button = gtk::Button::with_label("-");
         CenterButton {
             button: button,
         }
@@ -108,7 +108,7 @@ impl Widget for Button {
     }
 
     fn view(_relm: &Relm<Self>, _model: ()) -> Self {
-        let button = gtk::Button::new_with_label("+");
+        let button = gtk::Button::with_label("+");
         Button {
             button: button,
         }
@@ -282,13 +282,13 @@ impl Widget for Win {
     fn view(relm: &Relm<Self>, _model: ()) -> Self {
         let window = Window::new(Toplevel);
         let vbox = window.add_container::<SplitBox>(());
-        let button1 = gtk::Button::new_with_label("+");
+        let button1 = gtk::Button::with_label("+");
         vbox.add(&button1);
         let label = Label::new(Some("0"));
         vbox.add(&label);
         let button = vbox.add_widget::<Button>(());
         let center_button = vbox.add_widget::<CenterButton>(());
-        let button2 = gtk::Button::new_with_label("-");
+        let button2 = gtk::Button::with_label("-");
         vbox.add(&button2);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
         window.show_all();

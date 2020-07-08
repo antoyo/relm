@@ -66,7 +66,7 @@ impl Widget for Text {
             #[name="text_entry"]
             gtk::Entry {
                 widget_name: "text_entry",
-                changed(entry) => Change(entry.get_text().expect("get_text failed")),
+                changed(entry) => Change(entry.get_text()),
             },
             gtk::Label {
                 text: &self.model.content,
