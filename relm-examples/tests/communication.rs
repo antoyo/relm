@@ -104,7 +104,7 @@ impl Widget for Text {
         vbox.add(&label);
 
         let input2 = input.clone();
-        connect!(relm, input, connect_changed(_), Change(input2.get_text().expect("get_text failed")));
+        connect!(relm, input, connect_changed(_), Change(input2.get_text()));
 
         Text {
             label: label,
@@ -167,7 +167,7 @@ impl Widget for Counter {
     fn view(relm: &Relm<Self>, model: CounterModel) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
-        let plus_button = Button::new_with_label("+");
+        let plus_button = Button::with_label("+");
         plus_button.set_widget_name("inc_button");
         vbox.add(&plus_button);
 
@@ -175,7 +175,7 @@ impl Widget for Counter {
         counter_label.set_widget_name("label");
         vbox.add(&counter_label);
 
-        let minus_button = Button::new_with_label("-");
+        let minus_button = Button::with_label("-");
         minus_button.set_widget_name("dec_button");
         vbox.add(&minus_button);
 
@@ -250,7 +250,7 @@ impl Widget for Win {
 
         let hbox = gtk::Box::new(Horizontal, 0);
 
-        let dec_button = Button::new_with_label("Decrement");
+        let dec_button = Button::with_label("Decrement");
         hbox.add(&dec_button);
 
         let label = Label::new(None);
@@ -301,7 +301,8 @@ fn main() {
 mod tests {
     use gtk::{Button, Entry, Label, LabelExt};
 
-    use gtk_test::{assert_text, click, enter_keys, find_child_by_name};
+    use gtk_test::{assert_text, find_child_by_name};
+    use relm_test::{click, enter_keys};
 
     use crate::Win;
 

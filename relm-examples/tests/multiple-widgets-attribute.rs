@@ -64,7 +64,7 @@ impl Widget for Text {
             orientation: Vertical,
             gtk::Entry {
                 widget_name: "entry",
-                changed(entry) => Change(entry.get_text().expect("get_text failed")),
+                changed(entry) => Change(entry.get_text()),
             },
             gtk::Label {
                 widget_name: "label",
@@ -159,7 +159,8 @@ fn main() {
 mod tests {
     use gtk::{Button, Entry, Label, LabelExt};
 
-    use gtk_test::{assert_text, click, enter_keys, find_child_by_name};
+    use gtk_test::{assert_text, enter_keys, find_child_by_name};
+    use relm_test::click;
 
     use crate::Win;
 

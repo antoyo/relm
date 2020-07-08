@@ -120,7 +120,7 @@ impl<T: Clone + IncDec + Display + 'static> Widget for Counter<T> {
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
-        let plus_button = Button::new_with_label("+");
+        let plus_button = Button::with_label("+");
         plus_button.set_widget_name("inc_button");
         vbox.add(&plus_button);
 
@@ -128,7 +128,7 @@ impl<T: Clone + IncDec + Display + 'static> Widget for Counter<T> {
         counter_label.set_widget_name("label");
         vbox.add(&counter_label);
 
-        let minus_button = Button::new_with_label("-");
+        let minus_button = Button::with_label("-");
         minus_button.set_widget_name("dec_button");
         vbox.add(&minus_button);
 
@@ -215,7 +215,8 @@ fn main() {
 mod tests {
     use gtk::{Button, Label, LabelExt};
 
-    use gtk_test::{assert_text, click, find_child_by_name};
+    use gtk_test::{assert_text, find_child_by_name};
+    use relm_test::click;
 
     use crate::Win;
 

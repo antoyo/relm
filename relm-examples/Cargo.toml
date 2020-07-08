@@ -4,28 +4,28 @@ categories = ["asynchronous", "gui"]
 description = "Examples for relm"
 license = "MIT"
 name = "relm-examples"
-version = "0.19.0"
+version = "0.20.0"
 edition = "2018"
 
 [dev-dependencies]
 chrono = "0.4"
-gdk = "^0.12.0"
-glib = "^0.9.0"
-gtk = "^0.8.0"
-gtk-test = "^0.5"
+gdk = "^0.13.0"
+glib = "^0.10.0"
+gtk = "^0.9.0"
+gtk-test = "^0.6"
 rand = "^0.5.1"
 
 [dev-dependencies.gio]
-version = "^0.8.0"
+version = "^0.9.0"
 
 [dev-dependencies.relm]
 path = ".."
-version = "^0.19.0"
+version = "^0.20.0"
 
 [dev-dependencies.relm-derive]
 path = "../relm-derive"
-version = "^0.19.0"
+version = "^0.20.0"
 
 [dev-dependencies.relm-test]
 path = "../relm-test"
-version = "^0.19.0"
+version = "^0.20.0"

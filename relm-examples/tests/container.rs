@@ -68,7 +68,7 @@ impl Widget for Button {
     }
 
     fn view(_relm: &Relm<Self>, _model: ()) -> Self {
-        let button = gtk::Button::new_with_label("+");
+        let button = gtk::Button::with_label("+");
         Button {
             button: button,
         }
@@ -163,12 +163,12 @@ impl Widget for Win {
     fn view(relm: &Relm<Self>, _model: ()) -> Self {
         let window = Window::new(Toplevel);
         let vbox = window.add_container::<VBox>(());
-        let inc_button = gtk::Button::new_with_label("+");
+        let inc_button = gtk::Button::with_label("+");
         vbox.add(&inc_button);
         let label = Label::new(Some("0"));
         vbox.add(&label);
         let button = vbox.add_widget::<Button>(());
-        let dec_button = gtk::Button::new_with_label("-");
+        let dec_button = gtk::Button::with_label("-");
         vbox.add(&dec_button);
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
         window.show_all();

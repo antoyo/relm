@@ -68,7 +68,7 @@ impl Widget for Win {
                 #[name="entry"]
                 gtk::Entry {
                     changed(entry) => {
-                        let text = entry.get_text().expect("get_text failed").to_string();
+                        let text = entry.get_text().to_string();
                         let len = text.len();
                         Change(text, len)
                     },
@@ -90,10 +90,11 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gdk::enums::key;
+    use gdk::keys::constants as key;
     use gtk::LabelExt;
 
-    use gtk_test::{assert_text, enter_key, enter_keys};
+    use gtk_test::assert_text;
+    use relm_test::{enter_key, enter_keys};
 
     use crate::Win;
 

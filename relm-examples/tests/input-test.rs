@@ -66,7 +66,7 @@ impl Widget for Win {
                 orientation: Vertical,
                 #[name = "entry"]
                 gtk::Entry {
-                    changed(entry) => Change(entry.get_text().expect("get_text failed")),
+                    changed(entry) => Change(entry.get_text()),
                     placeholder_text: Some("Text to reverse"),
                 },
                 #[name = "entry2"]
@@ -83,11 +83,11 @@ impl Widget for Win {
 
 #[cfg(test)]
 mod tests {
-    use gdk::enums::key;
+    use gdk::keys::constants as key;
     use gtk::{EntryExt, LabelExt};
 
-    use gtk_test::{
-        assert_text,
+    use gtk_test::assert_text;
+    use relm_test::{
         enter_key,
         enter_keys,
         key_press,
@@ -105,12 +105,12 @@ mod tests {
 
         // TODO: add test with uppercase letter (shift) when this issue (https://github.com/enigo-rs/enigo/issues/49) is fixed.
         //key_press(entry, key::Shift_L);
-        key_press(entry, key::A);
+        key_press(entry, key::a);
         assert_text!(label, "a");
-        key_release(entry, key::A);
+        key_release(entry, key::a);
         assert_text!(label, "a");
-        enter_key(entry, key::B);
-        enter_key(entry2, key::C);
+        enter_key(entry, key::b);
+        enter_key(entry2, key::c);
         assert_text!(label, "ba");
         assert_text!(entry2, "c");
         enter_keys(entry, "CD");

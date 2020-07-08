@@ -45,9 +45,9 @@ pub enum Msg {
 impl Widget for Win {
     fn init_view(&mut self) {
         let file_menu = gtk::Menu::new();
-        let file_item = gtk::MenuItem::new_with_label("File");
+        let file_item = gtk::MenuItem::with_label("File");
         file_item.set_submenu(Some(&file_menu));
-        let quit_item = gtk::MenuItem::new_with_label("Quit");
+        let quit_item = gtk::MenuItem::with_label("Quit");
         self.menubar.append(&file_item);
         file_menu.append(&quit_item);
         self.menubar.show_all();

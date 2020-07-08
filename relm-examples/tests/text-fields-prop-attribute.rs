@@ -66,7 +66,7 @@ impl Widget for Text {
             #[name="text_entry"]
             gtk::Entry {
                 widget_name: "text_entry",
-                changed(entry) => Change(entry.get_text().expect("get_text failed")),
+                changed(entry) => Change(entry.get_text()),
             },
             gtk::Label {
                 text: &self.model.content,
@@ -129,7 +129,8 @@ fn main() {
 mod tests {
     use gtk::{Entry, EntryExt};
 
-    use gtk_test::{assert_text, click, find_child_by_name, wait};
+    use gtk_test::{assert_text, find_child_by_name, wait};
+    use relm_test::click;
 
     use crate::Win;
 

@@ -22,7 +22,36 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use enigo::{Enigo, KeyboardControllable, MouseButton, MouseControllable};
+use gdk::keyval_to_unicode;
+use gdk::keys::Key;
+use gdk::keys::constants as key;
+use glib::{IsA, Object, object::Cast};
+use gtk::{Inhibit, ToolButton, ToolButtonExt, Widget, WidgetExt};
+use gtk_test::{focus, observer_new, mouse_move, run_loop, wait_for_draw};
 use relm::EventStream;
+
+// TODO: should remove the signal after wait()?
+// FIXME: remove when it's in gtk-test.
+macro_rules! gtk_observer_new {
+    ($widget:expr, $signal_name:ident, |$e1:pat $(,$e:pat)*|) => {{
+        let observer = gtk_test::Observer::new();
+        let res = (*observer.get_inner()).clone();
+        $widget.$signal_name(move |$e1 $(,$e:expr)*| {
+            *res.borrow_mut() = true;
+        });
+        observer
+    }};
+    ($widget:expr, $signal_name:ident, |$e1:pat $(,$e:pat)*| $block:block) => {{
+        let observer = gtk_test::Observer::new();
+        let res = (*observer.get_inner()).clone();
+        $widget.$signal_name(move |$e1 $(,$e)*| {
+            *res.borrow_mut() = true;
+            $block
+        });
+        observer
+    }}
+}
 
 pub struct Observer<MSG> {
     result: Rc<RefCell<Option<MSG>>>,
@@ -105,4 +134,135 @@ macro_rules! relm_observer_wait {
             }
         };
     };
+}
+
+// FIXME: remove when it's in gtk-test.
+pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: &W) {
+    wait_for_draw(widget, || {
+        let observer =
+            if let Ok(tool_button) = widget.clone().dynamic_cast::<ToolButton>() {
+                gtk_observer_new!(tool_button, connect_clicked, |_|)
+            }
+            else {
+                gtk_observer_new!(widget, connect_button_press_event, |_, _| {
+                    Inhibit(false)
+                })
+            };
+        let allocation = widget.get_allocation();
+        mouse_move(widget, allocation.width / 2, allocation.height / 2);
+        let mut enigo = Enigo::new();
+        enigo.mouse_click(MouseButton::Left);
+        observer.wait();
+    });
+}
+
+pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
+    wait_for_draw(widget, || {
+        let observer = gtk_observer_new!(widget, connect_button_press_event, |_, _| {
+            Inhibit(false)
+        });
+        let allocation = widget.get_allocation();
+        mouse_move(widget, allocation.width / 2, allocation.height / 2);
+        let mut enigo = Enigo::new();
+        enigo.mouse_click(MouseButton::Left);
+        run_loop();
+        enigo.mouse_click(MouseButton::Left);
+        observer.wait();
+    });
+}
+
+// FIXME: don't wait the observer for modifier keys like shift?
+pub fn key_press<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
+    wait_for_draw(widget, || {
+        let observer = gtk_observer_new!(widget, connect_key_press_event, |_, _| {
+            Inhibit(false)
+        });
+        focus(widget);
+        let mut enigo = Enigo::new();
+        enigo.key_down(gdk_key_to_enigo_key(key));
+        observer.wait();
+    });
+}
+
+pub fn key_release<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
+    wait_for_draw(widget, || {
+        let observer = gtk_observer_new!(widget, connect_key_release_event, |_, _| {
+            Inhibit(false)
+        });
+        focus(widget);
+        let mut enigo = Enigo::new();
+        enigo.key_up(gdk_key_to_enigo_key(key));
+        observer.wait();
+    });
+}
+
+pub fn enter_key<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
+    wait_for_draw(widget, || {
+        let observer = gtk_observer_new!(widget, connect_key_release_event, |_, _| {
+            Inhibit(false)
+        });
+        focus(widget);
+        let mut enigo = Enigo::new();
+        enigo.key_click(gdk_key_to_enigo_key(key));
+        observer.wait();
+    });
+}
+
+pub fn enter_keys<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, text: &str) {
+    wait_for_draw(widget, || {
+        focus(widget);
+        let mut enigo = Enigo::new();
+        for char in text.chars() {
+            let observer = gtk_observer_new!(widget, connect_key_release_event, |_, _| {
+                Inhibit(false)
+            });
+            enigo.key_sequence(&char.to_string());
+            observer.wait();
+        }
+    });
+}
+
+fn gdk_key_to_enigo_key(key: Key) -> enigo::Key {
+    use enigo::Key::*;
+    match key {
+        key::Return => Return,
+        key::Tab => Tab,
+        key::space => Space,
+        key::BackSpace => Backspace,
+        key::Escape => Escape,
+        key::Super_L | key::Super_R => Meta,
+        key::Control_L | key::Control_R => Control,
+        key::Shift_L | key::Shift_R => Shift,
+        key::Shift_Lock => CapsLock,
+        key::Alt_L | key::Alt_R => Alt,
+        key::Option => Option,
+        key::End => End,
+        key::Home => Home,
+        key::Page_Down => PageDown,
+        key::Page_Up => PageUp,
+        key::leftarrow => LeftArrow,
+        key::rightarrow => RightArrow,
+        key::downarrow => DownArrow,
+        key::uparrow => UpArrow,
+        key::F1 => F1,
+        key::F2 => F2,
+        key::F3 => F3,
+        key::F4 => F4,
+        key::F5 => F5,
+        key::F6 => F6,
+        key::F7 => F7,
+        key::F8 => F8,
+        key::F9 => F9,
+        key::F10 => F10,
+        key::F11 => F11,
+        key::F12 => F12,
+        _ => {
+            if let Some(char) = keyval_to_unicode(*key) {
+                Layout(char)
+            }
+            else {
+                Raw(*key as u16)
+            }
+        },
+    }
 }

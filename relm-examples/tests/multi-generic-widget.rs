@@ -130,14 +130,14 @@ impl<S: Clone + Display + IncDec, T: Clone + Display + IncDec> Widget for Counte
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let vbox = gtk::Box::new(Vertical, 0);
 
-        let plus_button = Button::new_with_label("+");
+        let plus_button = Button::with_label("+");
         vbox.add(&plus_button);
 
         let counter_label = Label::new(Some(model.counter1.to_string().as_ref()));
         counter_label.set_widget_name("label");
         vbox.add(&counter_label);
 
-        let minus_button = Button::new_with_label("-");
+        let minus_button = Button::with_label("-");
         vbox.add(&minus_button);
 
         connect!(relm, plus_button, connect_clicked(_), Increment);

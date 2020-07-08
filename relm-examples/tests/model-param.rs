@@ -103,13 +103,13 @@ impl Widget for Win {
         // Create the view using the normal GTK+ method calls.
         let vbox = gtk::Box::new(Vertical, 0);
 
-        let plus_button = Button::new_with_label("+");
+        let plus_button = Button::with_label("+");
         vbox.add(&plus_button);
 
         let counter_label = Label::new(Some(model.counter.to_string().as_ref()));
         vbox.add(&counter_label);
 
-        let dec_button = Button::new_with_label("-");
+        let dec_button = Button::with_label("-");
         vbox.add(&dec_button);
 
         let window = Window::new(WindowType::Toplevel);
@@ -150,7 +150,8 @@ fn main() {
 mod tests {
     use gtk::LabelExt;
 
-    use gtk_test::{assert_text, click};
+    use gtk_test::assert_text;
+    use relm_test::click;
 
     use crate::Win;
 
