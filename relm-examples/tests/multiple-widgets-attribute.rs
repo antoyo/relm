@@ -159,7 +159,8 @@ fn main() {
 mod tests {
     use gtk::{Button, Entry, Label, LabelExt};
 
-    use gtk_test::{assert_text, click, enter_keys, find_child_by_name};
+    use gtk_test::{assert_text, enter_keys, find_child_by_name};
+    use relm_test::click;
 
     use crate::Win;
 

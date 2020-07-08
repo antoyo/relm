@@ -215,7 +215,8 @@ fn main() {
 mod tests {
     use gtk::{Button, Label, LabelExt};
 
-    use gtk_test::{assert_text, click, find_child_by_name};
+    use gtk_test::{assert_text, find_child_by_name};
+    use relm_test::click;
 
     use crate::Win;
 

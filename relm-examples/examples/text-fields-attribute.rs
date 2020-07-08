@@ -93,7 +93,8 @@ mod tests {
     use gdk::keys::constants as key;
     use gtk::LabelExt;
 
-    use gtk_test::{assert_text, enter_key, enter_keys};
+    use gtk_test::assert_text;
+    use relm_test::{enter_key, enter_keys};
 
     use crate::Win;
 

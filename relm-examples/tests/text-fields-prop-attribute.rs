@@ -129,7 +129,8 @@ fn main() {
 mod tests {
     use gtk::{Entry, EntryExt};
 
-    use gtk_test::{assert_text, click, find_child_by_name, wait};
+    use gtk_test::{assert_text, find_child_by_name, wait};
+    use relm_test::click;
 
     use crate::Win;
 

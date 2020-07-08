@@ -136,7 +136,8 @@ fn main() {
 mod tests {
     use gtk::EntryExt;
 
-    use gtk_test::{assert_text, enter_keys};
+    use gtk_test::assert_text;
+    use relm_test::enter_keys;
 
     use crate::Win;
 

@@ -206,7 +206,7 @@ fn main() {
 mod tests {
     use gtk::ToggleButtonExt;
 
-    use gtk_test::click;
+    use relm_test::click;
 
     use crate::Win;
 

@@ -136,11 +136,11 @@ mod tests {
 
     use gtk_test::{
         assert_text,
-        enter_key,
-        enter_keys,
         focus,
     };
     use relm_test::{
+        enter_key,
+        enter_keys,
         relm_observer_new,
         relm_observer_wait,
     };

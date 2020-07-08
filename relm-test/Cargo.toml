@@ -10,6 +10,10 @@ version = "0.20.0"
 edition = "2018"
 
 [dependencies]
+enigo = "^0.0.14"
+gdk = "^0.13.0"
+glib = "^0.10.0"
+gtk = "^0.9.0"
 gtk-test = "^0.6"
 
 [dependencies.relm]

@@ -75,7 +75,8 @@ fn main() {
 mod tests {
     use gtk::{ButtonExt, LabelExt};
 
-    use gtk_test::{assert_label, assert_text, click};
+    use gtk_test::{assert_label, assert_text};
+    use relm_test::click;
 
     use crate::Win;
 

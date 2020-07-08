@@ -103,7 +103,8 @@ fn main() {
 mod tests {
     use gtk::LabelExt;
 
-    use gtk_test::{assert_text, click};
+    use gtk_test::assert_text;
+    use relm_test::click;
 
     use crate::Win;
 

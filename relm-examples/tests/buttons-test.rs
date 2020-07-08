@@ -68,6 +68,7 @@ impl Widget for ClickableLabel {
 
     view! {
         gtk::EventBox {
+            widget_name: "event_box",
             button_press_event(_, event) => ({
                 if event.get_event_type() == DoubleButtonPress {
                     DblClick
@@ -219,13 +220,12 @@ mod tests {
 
     use gtk_test::{
         assert_text,
-        click,
-        double_click,
-        find_widget_by_name,
         wait,
     };
     use relm_test::{
         Observer,
+        click,
+        double_click,
         relm_observer_new,
         relm_observer_wait,
     };
@@ -323,6 +323,7 @@ mod tests {
         assert_text!(widgets.label, 6);
 
         click(inc_tool_button);
+        assert_eq!(widgets.label.get_text(), 7.to_string());
         assert_text!(widgets.label, 7);
 
         let inc_label = inc_label.widget();
@@ -336,8 +337,7 @@ mod tests {
         wait(200);
         assert_text!(widgets.text, "Updated text");
 
-        let inc_label = find_widget_by_name(inc_label, "label").expect("find label");
-        double_click(&inc_label);
+        double_click(inc_label);
         relm_observer_wait!(let Text(text) = label_observer);
         assert_eq!(text, "Double click");
         assert_text!(widgets.label, 10);
