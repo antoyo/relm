@@ -35,7 +35,7 @@ Next, add this to your crate:
 
 [source,rust]
 ----
-use relm::{Relm, Update, Widget};
+use relm::{connect, Relm, Update, Widget};
 use gtk::prelude::*;
 use gtk::{Window, Inhibit, WindowType};
 use relm_derive::Msg;
