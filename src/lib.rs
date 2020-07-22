@@ -47,6 +47,9 @@
 )]
 
 /*
+ * TODO: allow using self in the event connection right side (messages to be sent) to remove the
+ * with syntax.
+ *
  * TODO: improve README so that examples can be copy/pasted.
  *
  * FIXME: some relm widgets requires { and } (see the rusic music-player) while other do not.

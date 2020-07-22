@@ -158,7 +158,7 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: 
 
 pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
     wait_for_draw(widget, || {
-        let observer = gtk_observer_new!(widget, connect_button_press_event, |_, _| {
+        let observer = gtk_observer_new!(widget, connect_button_release_event, |_, _| {
             Inhibit(false)
         });
         let allocation = widget.get_allocation();
