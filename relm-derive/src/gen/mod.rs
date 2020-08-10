@@ -424,7 +424,7 @@ impl Driver {
         let (view, relm_widgets, container_impl) = gen::gen(name, &widget, self);
         let model_ident = Ident::new(MODEL_IDENT, Span::call_site()); // TODO: maybe need to set Span here.
         let code = quote_spanned! { name.span() =>
-            #[allow(unused_variables)] // Necessary to avoid warnings in case the parameters are unused.
+            #[allow(unused_variables,clippy::all)] // Necessary to avoid warnings in case the parameters are unused.
             fn view(relm: &::relm::Relm<Self>, #model_ident: Self::Model) -> Self {
                 #view
             }
