@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2018 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -49,6 +49,7 @@ struct Widgets {
     window: Window,
 }
 
+// The channel is saved so it does not get droped
 struct Win {
     model: Model,
     widgets: Widgets,
@@ -133,9 +134,10 @@ impl Widget for Win {
         thread::spawn(move || {
             let mut step = 0;
             loop {
+                // The thread sleeps for one second and then sends a message to increment the counter
                 thread::sleep(Duration::from_millis(1000));
                 // Send a message from the other thread.
-                // The value 42 will be received as the num parameter in the above closure.
+                // The value of step will be received as the num parameter in the above closure.
                 sender.send(step).expect("send message");
                 step += 1;
             }
