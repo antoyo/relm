@@ -148,6 +148,7 @@ mod tests {
     use crate::Win;
 
     #[test]
+    #[ignore]
     fn label_change() {
         let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let plus_button = &widgets.plus_button;
