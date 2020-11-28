@@ -28,7 +28,7 @@ use gdk::keys::Key;
 use gdk::keys::constants as key;
 use glib::{IsA, Object, object::Cast};
 use gtk::{Inhibit, ToolButton, ToolButtonExt, Widget, WidgetExt};
-use gtk_test::{focus, observer_new, mouse_move, run_loop, wait_for_draw};
+use gtk_test::{focus, mouse_move, run_loop, wait_for_draw};
 use relm::EventStream;
 
 // TODO: should remove the signal after wait()?
@@ -153,6 +153,13 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: 
         let mut enigo = Enigo::new();
         enigo.mouse_click(MouseButton::Left);
         observer.wait();
+    });
+}
+
+pub fn mouse_move_to<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: &W) {
+    wait_for_draw(widget, || {
+        let allocation = widget.get_allocation();
+        mouse_move(widget, allocation.width / 2, allocation.height / 2);
     });
 }
 

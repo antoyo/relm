@@ -72,18 +72,22 @@ impl Widget for Win {
             gtk::Box {
                 orientation: Vertical,
                 gtk::MenuBar {
+                    #[name="file_menu"]
                     gtk::MenuItem {
                         label: "File",
                         submenu: view! {
                             gtk::Menu {
+                                #[name="increment_menu"]
                                 gtk::MenuItem {
                                     label: "Increment",
                                     submenu: view! {
                                         gtk::Menu {
+                                            #[name="inc_menu"]
                                             gtk::MenuItem {
                                                 label: &("By one ".to_string() + &self.model.counter.to_string()),
                                                 activate => Increment,
                                             },
+                                            #[name="dec_menu"]
                                             gtk::MenuItem {
                                                 label: &("By minus one ".to_string() + &self.model.counter.to_string()),
                                                 activate => Decrement,
@@ -104,6 +108,7 @@ impl Widget for Win {
                     clicked => Increment,
                     label: "+",
                 },
+                #[name="label"]
                 gtk::Label {
                     text: &self.model.counter.to_string(),
                 },
@@ -127,4 +132,82 @@ impl Widget for Win {
 
 fn main() {
     Win::run(()).expect("Win::run failed");
+}
+
+#[cfg(test)]
+mod tests {
+    use gtk::{ButtonExt, GtkMenuItemExt, LabelExt};
+
+    use gtk_test::{assert_label, assert_text};
+    use relm_test::{click, mouse_move_to};
+
+    use crate::Win;
+
+    #[test]
+    fn label_change() {
+        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let inc_button = &widgets.inc_button;
+        let dec_button = &widgets.dec_button;
+        let label = &widgets.label;
+        let inc_menu = &widgets.inc_menu;
+        let dec_menu = &widgets.dec_menu;
+        let increment_menu = &widgets.increment_menu;
+        let file_menu = &widgets.file_menu;
+
+        assert_label!(inc_button, "+");
+        assert_label!(dec_button, "-");
+
+        let menu_click = || {
+            click(file_menu);
+            mouse_move_to(increment_menu);
+            click(inc_menu);
+        };
+
+        assert_text!(label, 0);
+        assert_label!(inc_menu, "By one 0");
+        assert_label!(dec_menu, "By minus one 0");
+        click(inc_button);
+        assert_text!(label, 1);
+        assert_label!(inc_menu, "By one 1");
+        assert_label!(dec_menu, "By minus one 1");
+        menu_click();
+        assert_text!(label, 2);
+        assert_label!(inc_menu, "By one 2");
+        assert_label!(dec_menu, "By minus one 2");
+        click(inc_button);
+        assert_text!(label, 3);
+        assert_label!(inc_menu, "By one 3");
+        assert_label!(dec_menu, "By minus one 3");
+        menu_click();
+        assert_text!(label, 4);
+        assert_label!(inc_menu, "By one 4");
+        assert_label!(dec_menu, "By minus one 4");
+
+        let menu_click = || {
+            click(file_menu);
+            mouse_move_to(increment_menu);
+            click(dec_menu);
+        };
+
+        menu_click();
+        assert_text!(label, 3);
+        assert_label!(inc_menu, "By one 3");
+        assert_label!(dec_menu, "By minus one 3");
+        menu_click();
+        assert_text!(label, 2);
+        assert_label!(inc_menu, "By one 2");
+        assert_label!(dec_menu, "By minus one 2");
+        menu_click();
+        assert_text!(label, 1);
+        assert_label!(inc_menu, "By one 1");
+        assert_label!(dec_menu, "By minus one 1");
+        menu_click();
+        assert_text!(label, 0);
+        assert_label!(inc_menu, "By one 0");
+        assert_label!(dec_menu, "By minus one 0");
+        menu_click();
+        assert_text!(label, -1);
+        assert_label!(inc_menu, "By one -1");
+        assert_label!(dec_menu, "By minus one -1");
+    }
 }
