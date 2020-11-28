@@ -739,9 +739,9 @@ impl ValueOrChildProperties {
             else {
                 let value = Value::parse(input)?;
                 let mut nested_view = None;
-                if let Expr::Macro(ExprMacro { mac: Macro { ref path, ref tts, .. }, .. }) = value.value {
-                    if path.is_ident(dummy_ident("view")) {
-                        nested_view = Some(tts.clone());
+                if let Expr::Macro(ExprMacro { mac: Macro { ref path, ref tokens, .. }, .. }) = value.value {
+                    if path.is_ident(&dummy_ident("view")) {
+                        nested_view = Some(tokens.clone());
                     }
                 }
                 if let Some(tokens) = nested_view {
@@ -1093,6 +1093,6 @@ pub fn respan_with(tokens: proc_macro::TokenStream, span: proc_macro::Span) -> p
     FromIterator::from_iter(result.into_iter())
 }
 
-fn dummy_ident(ident: &str) -> Ident {
+pub fn dummy_ident(ident: &str) -> Ident {
     Ident::new(ident, Span::call_site())
 }

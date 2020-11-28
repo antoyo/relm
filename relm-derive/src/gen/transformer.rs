@@ -32,11 +32,12 @@ use syn::{
     ExprPath,
     Ident,
     Macro,
-    Path,
     parse,
 };
 use syn::fold::{Fold, fold_expr};
 use syn::Member::Named;
+
+use super::parser::dummy_ident;
 
 thread_local! {
     static COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -64,10 +65,8 @@ impl Fold for Transformer {
             Expr::Field(ExprField { ref base, ref member, .. }) => {
                 if let Named(ref ident) = *member {
                     let mut is_inside_self = false;
-                    if let Expr::Path(ExprPath { path: Path { ref segments, .. }, .. }) = **base {
-                        if segments.first().map(|segment| segment.value().ident.to_string()) ==
-                            Some("self".to_string())
-                        {
+                    if let Expr::Path(ExprPath { ref path, .. }) = **base {
+                        if path.is_ident(&dummy_ident("self")) {
                             is_inside_self = true;
                         }
                     }
@@ -90,10 +89,9 @@ impl Fold for Transformer {
                     }
                 }
             },
-            Expr::Macro(ExprMacro { mac: Macro { ref path, ref tts, .. }, .. }) => {
-                if path.segments.first().map(|segment| segment.value().ident.to_string()) == Some("view".to_string())
-                {
-                    self.nested_widgets.push(tts.clone());
+            Expr::Macro(ExprMacro { mac: Macro { ref path, ref tokens, .. }, .. }) => {
+                if path.is_ident(&dummy_ident("view")) {
+                    self.nested_widgets.push(tokens.clone());
                     let counter = COUNTER.with(|counter| {
                         counter.fetch_add(1, Ordering::SeqCst)
                     });

@@ -36,22 +36,22 @@ use std::collections::{HashMap, HashSet};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use syn::{
-    ArgCaptured,
     Generics,
     Ident,
     ImplItem,
     ImplItemMethod,
     ItemImpl,
     Macro,
-    MethodSig,
     Path,
+    PatType,
     ReturnType,
+    Signature,
     TypePath,
     parse,
 };
-use syn::FnArg::{self, Captured};
+use syn::FnArg::{self, Typed};
 use syn::fold::Fold;
-use syn::ImplItem::{Const, Existential, Method, Verbatim};
+use syn::ImplItem::{Const, Method, Verbatim, __Nonexhaustive,};
 use syn::Item::{self, Impl};
 use syn::parse::Result;
 use syn::spanned::Spanned;
@@ -213,7 +213,6 @@ impl Driver {
                 let mut i = item.clone();
                 match item {
                     Const(..) => panic!("Unexpected const item"),
-                    Existential(..) => panic!("Unexpected existential item"),
                     ImplItem::Macro(mac) => self.view_macro = Some(mac.mac),
                     Method(ImplItemMethod { sig, .. }) => {
                         match sig.ident.to_string().as_ref() {
@@ -243,6 +242,7 @@ impl Driver {
                         }
                     },
                     Verbatim(..) => panic!("Unexpected verbatim item"),
+                    __Nonexhaustive => panic!("Unexpected item"),
                 }
             }
             let view =
@@ -421,7 +421,7 @@ impl Driver {
     }
 
     fn impl_view(&mut self, name: &Ident, typ: &Type) -> Result<View> {
-        let tts = self.view_macro.take().expect("view_macro in impl_view()").tts;
+        let tts = self.view_macro.take().expect("view_macro in impl_view()").tokens;
         let mut widgets = parse_widgets(tts)?;
         self.widget_parent_id = widgets[0].parent_id.clone();
 
@@ -504,20 +504,20 @@ pub fn gen_widget(input: TokenStream) -> TokenStream {
 fn add_model_param(model_fn: &mut ImplItem, model_param_type: &mut Option<ImplItem>) {
     let span = model_fn.span();
     if let Method(ImplItemMethod { ref mut sig, .. }) = *model_fn {
-        let len = sig.decl.inputs.len();
+        let len = sig.inputs.len();
         if len == 0 || len == 1 {
             let type_tokens = quote_spanned! { span =>
                 &::relm::Relm<Self>
             };
             let ty: Type = parse(type_tokens.into()).expect("Relm type");
             let input: FnArg = parse(quote! { _: #ty }.into()).expect("wild arg");
-            sig.decl.inputs.insert(0, input);
+            sig.inputs.insert(0, input);
             if len == 0 {
                 let input: FnArg = parse(quote! { _: () }.into()).expect("wild arg");
-                sig.decl.inputs.push(input);
+                sig.inputs.push(input);
             }
         }
-        if let Some(&Captured(ArgCaptured { ref ty, .. })) = sig.decl.inputs.iter().nth(1) {
+        if let Some(&Typed(PatType { ref ty, .. })) = sig.inputs.iter().nth(1) {
             *model_param_type = Some(block_to_impl_item(quote! {
                 type ModelParam = #ty;
             }));
@@ -599,8 +599,8 @@ fn get_map(widget: &Widget, map: &mut PropertyModelMap, is_relm: bool) {
     }
 }
 
-fn get_return_type(sig: MethodSig) -> Type {
-    if let ReturnType::Type(_, ty) = sig.decl.output {
+fn get_return_type(sig: Signature) -> Type {
+    if let ReturnType::Type(_, ty) = sig.output {
         *ty
     }
     else {
@@ -611,12 +611,12 @@ fn get_return_type(sig: MethodSig) -> Type {
     }
 }
 
-fn get_second_param_type(sig: &MethodSig) -> Type {
-    if let Captured(ArgCaptured { ref ty, .. }) = sig.decl.inputs[1] {
-        ty.clone()
+fn get_second_param_type(sig: &Signature) -> Type {
+    if let Typed(PatType { ref ty, .. }) = sig.inputs[1] {
+        *ty.clone()
     }
     else {
-        panic!("Unexpected `(unknown)`, expecting Captured Type"/*, sig.decl.inputs[1]*/); // TODO
+        panic!("Unexpected `(unknown)`, expecting Typed Type"/*, sig.decl.inputs[1]*/); // TODO
     }
 }
 
