@@ -74,28 +74,18 @@ impl Widget for Win {
                 gtk::MenuBar {
                     gtk::MenuItem {
                         label: "File",
-                                    submenu: view! {
-                                        gtk::MenuItem {
-                                            label: "By one",
-                                            activate => Increment,
-                                        },
-                                        gtk::MenuItem {
-                                            label: "By minus one",
-                                            activate => Decrement,
-                                        },
-                                    },
-                        /*submenu: view! {
+                        submenu: view! {
                             gtk::Menu {
                                 gtk::MenuItem {
                                     label: "Increment",
                                     submenu: view! {
                                         gtk::Menu {
                                             gtk::MenuItem {
-                                                label: "By one",
+                                                label: &("By one ".to_string() + &self.model.counter.to_string()),
                                                 activate => Increment,
                                             },
                                             gtk::MenuItem {
-                                                label: "By minus one",
+                                                label: &("By minus one ".to_string() + &self.model.counter.to_string()),
                                                 activate => Decrement,
                                             },
                                         }
@@ -106,7 +96,7 @@ impl Widget for Win {
                                     activate => Quit,
                                 },
                             },
-                        },*/
+                        },
                     },
                 },
                 #[name="inc_button"]

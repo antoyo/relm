@@ -477,6 +477,14 @@ struct ChildWidgetParser {
     parent_id: Option<String>,
 }
 
+/*
+ * First tokens:
+ * * # (attributes)
+ * * $ (absolute relm widget name (path))
+ * * path
+ * * * (
+ * * * {
+ */
 impl ChildWidgetParser {
     fn parse(root: SaveWidget, input: ParseStream) -> Result<Self> {
         let attributes = Attributes::parse(&input)?.name_values;
@@ -687,6 +695,15 @@ struct GtkChildPropertyOrEvent {
     child_item: ChildItem,
 }
 
+/*
+ * First tokens:
+ * * ident
+ * * * :
+ * * * .
+ * * * ( (in Event)
+ * * * with
+ * * * =>
+ */
 impl Parse for GtkChildPropertyOrEvent {
     fn parse(input: ParseStream) -> Result<Self> {
         let ident: Ident = input.parse()?;
@@ -745,7 +762,6 @@ impl ValueOrChildProperties {
                     }
                 }
                 if let Some(tokens) = nested_view {
-                    // FIXME: errors shown at the wrong location in nested views.
                     let widget: Widget = parse2(tokens)?;
                     NestedView(ident.clone(), widget)
                 }
@@ -955,15 +971,70 @@ impl Parse for Event {
     }
 }
 
+fn is_property_or_event(input: &ParseStream) -> bool {
+    let input = input.fork();
+    // Attributes start with # and qualified name for relm widget starts with $ .
+    if input.peek(Token![#]) || input.peek(Token![$]) {
+        return false;
+    }
+    {
+        let input = input.fork();
+        let path = input.parse::<Path>();
+        if let Ok(path) = path {
+            if path.segments.len() > 1 {
+                // Only a widget starts with a path that contains more than 1 segment.
+                return false;
+            }
+        }
+    }
+    let _ident: Ident = input.parse().expect("should be an ident");
+    if input.peek(token::Brace) {
+        // Only a widget can have an ident followed by { .
+        return false;
+    }
+    if input.peek(Token![=>]) || input.peek(Token![.]) || input.peek(Token![:]) {
+        // Only an event can contain => .
+        return true;
+    }
+    {
+        let input = input.fork();
+        if Tag::parse(&input, "with").is_ok() {
+            // Only an event can contain with.
+            return true;
+        }
+    }
+    let result = catch_return! {{
+        let _content;
+        let _parens = parenthesized!(_content in input);
+    }};
+    result.expect("parse parenthesis");
+    if input.peek(token::Brace) {
+        // Only a widget can have an ident followed by { .
+        return false;
+    }
+    if input.peek(Token![=>]) || input.peek(Token![.]) || input.peek(Token![:]) {
+        // Only an event can contain => .
+        return true;
+    }
+    {
+        let input = input.fork();
+        if Tag::parse(&input, "with").is_ok() {
+            // Only an event can contain with.
+            return true;
+        }
+    }
+
+    // If the parens are not followed by either => or with, it's a widget.
+    false
+}
+
 struct ChildGtkItem {
     item: ChildItem,
 }
 
 impl Parse for ChildGtkItem {
     fn parse(input: ParseStream) -> Result<Self> {
-        let parser = input.fork();
-        let item: Result<GtkChildPropertyOrEvent> = parser.parse();
-        if item.is_ok() {
+        if is_property_or_event(&input) {
             let item: GtkChildPropertyOrEvent = input.parse()?;
             Ok(ChildGtkItem {
                 item: item.child_item,

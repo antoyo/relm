@@ -22,9 +22,7 @@
 use gtk::{
     BoxExt,
     ButtonExt,
-    FrameExt,
     GestureDragExt,
-    GtkMenuItemExt,
     Inhibit,
     LabelExt,
     OrientableExt,
