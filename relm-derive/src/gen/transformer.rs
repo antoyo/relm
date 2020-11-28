@@ -52,18 +52,29 @@ impl Fold for Transformer {
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         if let Expr::Field(ExprField { ref base, ref member, .. }) = expr {
             if let Named(ref ident) = *member {
-                if ident == "model" {
-                    if let Expr::Path(ExprPath { path: Path { ref segments, .. }, .. }) = **base {
-                        if segments.first().map(|segment| segment.value().ident.to_string()) ==
-                            Some("self".to_string())
-                        {
-                            let model_ident = Ident::new(self.model_ident.as_str(), Span::call_site()); // TODO: check if the position is needed.
-                            let tokens = quote_spanned! { expr.span() => {
-                                let model = &#model_ident;
-                                model
-                            }};
-                            return parse(tokens.into()).expect("model path");
-                        }
+                let mut is_inside_self = false;
+                if let Expr::Path(ExprPath { path: Path { ref segments, .. }, .. }) = **base {
+                    if segments.first().map(|segment| segment.value().ident.to_string()) ==
+                        Some("self".to_string())
+                    {
+                        is_inside_self = true;
+                    }
+                }
+
+                if is_inside_self {
+                    if ident == "model" {
+                        let model_ident = Ident::new(self.model_ident.as_str(), Span::call_site()); // TODO: check if the position is needed.
+                        let tokens = quote_spanned! { expr.span() => {
+                            let model = &#model_ident;
+                            model
+                        }};
+                        return parse(tokens.into()).expect("model path");
+                    }
+                    else {
+                        let tokens = quote_spanned! { expr.span() =>
+                            #ident
+                        };
+                        return parse(tokens.into()).expect("self field path");
                     }
                 }
             }

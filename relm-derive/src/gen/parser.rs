@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -58,6 +58,7 @@ use self::InitProperties::*;
 use self::WidgetPath::*;
 use self::SaveWidget::*;
 
+// TODO: switch to thread_local?
 lazy_static! {
     static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
 }
@@ -213,7 +214,25 @@ impl RelmWidget {
     }
 }
 
-pub fn parse_widget(tokens: TokenStream) -> Result<Widget> {
+struct WidgetList {
+    widgets: Vec<Widget>,
+}
+
+impl Parse for WidgetList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let widget: Widget = input.parse()?;
+        let mut widgets = vec![widget];
+        while !input.is_empty() {
+            let widget: Widget = input.parse()?;
+            widgets.push(widget);
+        }
+        Ok(WidgetList {
+            widgets,
+        })
+    }
+}
+
+pub fn parse_widgets(tokens: TokenStream) -> Result<Vec<Widget>> {
     if let Ok(literal) = parse2::<LitStr>(tokens.clone()) {
         // TODO: also support glade file.
         let mut file = File::open(literal.value()).expect("File::open() in parse()");
@@ -221,10 +240,13 @@ pub fn parse_widget(tokens: TokenStream) -> Result<Widget> {
         file.read_to_string(&mut file_content).expect("read_to_string() in parse()");
         let tokens = proc_macro::TokenStream::from_str(&file_content).expect("convert string to TokenStream");
         let tokens = respan_with(tokens, literal.span().unwrap());
-        parse(tokens)
+
+        let widgets: WidgetList = parse(tokens)?;
+        Ok(widgets.widgets)
     }
     else {
-        parse2(tokens)
+        let widgets: WidgetList = parse2(tokens)?;
+        Ok(widgets.widgets)
     }
 }
 

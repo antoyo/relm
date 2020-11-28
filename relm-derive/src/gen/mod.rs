@@ -61,7 +61,7 @@ use syn::visit::Visit;
 use self::adder::{Adder, Message, Property};
 pub use self::gen::gen_where_clause;
 use self::parser::EitherWidget::{Gtk, Relm};
-use self::parser::{Widget, parse_widget};
+use self::parser::{Widget, parse_widgets};
 use self::walker::ModelVariableVisitor;
 
 const MODEL_IDENT: &str = "__relm_model";
@@ -411,17 +411,21 @@ impl Driver {
 
     fn impl_view(&mut self, name: &Ident, typ: &Type) -> Result<View> {
         let tts = self.view_macro.take().expect("view_macro in impl_view()").tts;
-        let mut widget = parse_widget(tts)?;
-        if let Gtk(ref mut widget) = widget.widget {
-            widget.relm_name = Some(typ.clone());
-        }
-        self.widget_parent_id = widget.parent_id.clone();
+        let mut widgets = parse_widgets(tts)?;
+        self.widget_parent_id = widgets[0].parent_id.clone();
+
         let mut msg_model_map = HashMap::new();
         let mut properties_model_map = HashMap::new();
-        get_properties_model_map(&widget, &mut properties_model_map);
-        get_msg_model_map(&widget, &mut msg_model_map);
-        self.add_widgets(&widget, &properties_model_map);
-        let (view, relm_widgets, container_impl) = gen::gen(name, &widget, self);
+        for widget in &mut widgets {
+            if let Gtk(ref mut widget) = widget.widget {
+                widget.relm_name = Some(typ.clone());
+            }
+            get_properties_model_map(&widget, &mut properties_model_map);
+            get_msg_model_map(&widget, &mut msg_model_map);
+            self.add_widgets(&widget, &properties_model_map);
+        }
+
+        let (view, relm_widgets, container_impl) = gen::gen(name, &widgets, self);
         let model_ident = Ident::new(MODEL_IDENT, Span::call_site()); // TODO: maybe need to set Span here.
         let code = quote_spanned! { name.span() =>
             #[allow(unused_variables,clippy::all)] // Necessary to avoid warnings in case the parameters are unused.
@@ -430,6 +434,7 @@ impl Driver {
             }
         };
         let item = block_to_impl_item(code);
+        let widget = widgets.drain(..).next().expect("first widget");
         Ok(View {
             container_impl,
             item,

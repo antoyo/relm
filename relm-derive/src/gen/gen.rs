@@ -81,9 +81,24 @@ enum WidgetType {
     IsRelm,
 }
 
-pub fn gen(name: &Ident, widget: &Widget, driver: &mut Driver) -> (TokenStream, HashMap<Ident, Path>, TokenStream) {
+pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStream, HashMap<Ident, Path>, TokenStream) {
     let mut generator = Generator::new(driver);
-    let widget_tokens = generator.widget(widget, None, IsGtk);
+    let mut widget_tokens = quote! {};
+    for (index, widget) in widgets.iter().enumerate() {
+        // Only show the first item as the following could non-widget like a gtk::Gesture.
+        let tokens = generator.widget(widget, None, IsGtk, index == 0);
+        widget_tokens = quote! {
+            #widget_tokens #tokens
+        };
+    }
+
+/*
+    // Generate the first widget last because it might access other widgets.
+    let tokens = generator.widget(&widgets[0], None, IsGtk, true);
+    widget_tokens = quote! {
+        #widget_tokens #tokens
+    };*/
+
     let driver = generator.driver.take().expect("driver");
     let idents: Vec<_> = driver.widgets.keys().collect();
     let root_widget_name = &driver.root_widget.as_ref().expect("root_widget is None");
@@ -108,7 +123,7 @@ pub fn gen(name: &Ident, widget: &Widget, driver: &mut Driver) -> (TokenStream, 
             model: #model_ident,
         }
     };
-    let container_impl = gen_container_impl(&generator, widget, driver.generic_types.as_ref().expect("generic types"));
+    let container_impl = gen_container_impl(&generator, &widgets[0], driver.generic_types.as_ref().expect("generic types"));
     (code, generator.relm_widgets, container_impl)
 }
 
@@ -152,13 +167,15 @@ impl<'a> Generator<'a> {
         else {
             let struct_name = &widget.typ;
             let driver = self.driver.as_mut().expect("driver");
-            driver.root_widget_type = Some(quote! {
-                #struct_name
-            });
-            driver.root_widget = Some(widget_name.clone());
-            driver.root_widget_expr = Some(quote! {
-                #widget_name
-            });
+            if driver.root_widget_expr.is_none() {
+                driver.root_widget_type = Some(quote! {
+                    #struct_name
+                });
+                driver.root_widget = Some(widget_name.clone());
+                driver.root_widget_expr = Some(quote! {
+                    #widget_name
+                });
+            }
             quote! {
             }
         }
@@ -193,13 +210,15 @@ impl<'a> Generator<'a> {
         }
         else {
             let driver = self.driver.as_mut().expect("driver");
-            driver.root_widget_type = Some(quote_spanned! { widget_name.span() =>
-                <#widget_type_ident as ::relm::Widget>::Root
-            });
-            driver.root_widget = Some(widget_name.clone());
-            driver.root_widget_expr = Some(quote! {
-                #widget_name.widget()
-            });
+            if driver.root_widget_expr.is_none() {
+                driver.root_widget_type = Some(quote_spanned! { widget_name.span() =>
+                    <#widget_type_ident as ::relm::Widget>::Root
+                });
+                driver.root_widget = Some(widget_name.clone());
+                driver.root_widget_expr = Some(quote! {
+                    #widget_name.widget()
+                });
+            }
             if is_container {
                 quote_spanned! { widget_name.span() =>
                     let #widget_name = ::relm::create_container::<#widget_type_ident>(#init_parameters);
@@ -314,7 +333,7 @@ impl<'a> Generator<'a> {
     }
 
     fn gtk_widget(&mut self, widget: &Widget, gtk_widget: &GtkWidget, parent: Option<&Ident>,
-        parent_widget_type: WidgetType) -> TokenStream
+        parent_widget_type: WidgetType, show: bool) -> TokenStream
     {
         let struct_name = &widget.typ;
         let widget_name = &widget.name;
@@ -329,7 +348,7 @@ impl<'a> Generator<'a> {
         self.collect_events(widget, gtk_widget);
 
         let children: Vec<_> = widget.children.iter()
-            .map(|child| self.widget(child, Some(widget_name), IsGtk))
+            .map(|child| self.widget(child, Some(widget_name), IsGtk, true))
             .collect();
 
         let add_child_or_show_all = self.add_child_or_show_all(widget, parent, parent_widget_type);
@@ -337,12 +356,22 @@ impl<'a> Generator<'a> {
         let (properties, visible_properties) = self.gtk_set_prop_calls(widget, ident);
         let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type, IsGtk);
 
+        let show =
+            if show {
+                quote_spanned! { widget_name.span() =>
+                    ::gtk::WidgetExt::show(&#widget_name);
+                }
+            }
+            else {
+                quote! { }
+            };
+
         quote_spanned! { widget_name.span() =>
             let #widget_name: #struct_name = #construct_widget;
             #(#properties)*
             #(#children)*
             #add_child_or_show_all
-            ::gtk::WidgetExt::show(&#widget_name);
+            #show
             #(#visible_properties)*
             #(#child_properties)*
         }
@@ -361,7 +390,7 @@ impl<'a> Generator<'a> {
         self.collect_relm_events(widget, relm_widget);
 
         let children: Vec<_> = widget.children.iter()
-            .map(|child| self.widget(child, Some(widget_name), IsRelm))
+            .map(|child| self.widget(child, Some(widget_name), IsRelm, true))
             .collect();
         let ident = quote! { #widget_name.widget() };
         let (mut properties, mut visible_properties) = self.gtk_set_prop_calls(widget, ident);
@@ -381,6 +410,7 @@ impl<'a> Generator<'a> {
         }
     }
 
+    /// Initialize the relm properties by sending messages.
     fn messages(&self, widget: &Widget, relm_widget: &RelmWidget) -> TokenStream {
         let mut tokens = quote! {};
         let name = &widget.name;
@@ -395,9 +425,9 @@ impl<'a> Generator<'a> {
         tokens
     }
 
-    fn widget(&mut self, widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType) -> TokenStream {
+    fn widget(&mut self, widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType, show: bool) -> TokenStream {
         match widget.widget {
-            Gtk(ref gtk_widget) => self.gtk_widget(widget, gtk_widget, parent, parent_widget_type),
+            Gtk(ref gtk_widget) => self.gtk_widget(widget, gtk_widget, parent, parent_widget_type, show),
             Relm(ref relm_widget) => self.relm_widget(widget, relm_widget, parent, parent_widget_type),
         }
     }

@@ -40,6 +40,9 @@ pub trait Widget
     }
 
     /// Method called when the widget is added to its parent.
+    /// This is currently only used to set the child properties of a widget as relm widget could
+    /// have child properties and we don't know its parent when it is defined. Thus, we call
+    /// on_add() when it is added to its parent to set the child properties.
     fn on_add<W: IsA<gtk::Widget> + IsA<Object>>(&self, _parent: W) {
     }
 

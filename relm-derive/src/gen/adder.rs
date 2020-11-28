@@ -19,6 +19,9 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+//! The adder adds the calls to set_property() or emit(Msg) whenever we assign to an attribute of
+//! the model.
+
 use quote::{quote, quote_spanned, TokenStreamExt};
 use syn::{
     Expr,
