@@ -135,6 +135,20 @@ impl Driver {
         }
     }
 
+    fn collect_bindings(&mut self, widget: &Widget, msg_model_map: &mut MsgModelMap, properties_model_map: &mut PropertyModelMap) {
+        get_properties_model_map(&widget, properties_model_map);
+        get_msg_model_map(&widget, msg_model_map);
+        self.add_widgets(&widget, &properties_model_map);
+
+        for (_, nested_view) in &widget.nested_views {
+            self.collect_bindings(nested_view, msg_model_map, properties_model_map);
+        }
+
+        for child in &widget.children {
+            self.collect_bindings(child, msg_model_map, properties_model_map);
+        }
+    }
+
     fn add_widgets(&mut self, widget: &Widget, map: &PropertyModelMap) {
         // Only add widgets that are needed by the update() function.
         let mut to_add = false;
@@ -151,9 +165,6 @@ impl Driver {
                 #widget_type
             };
             self.widgets.insert(widget.name.clone(), typ);
-        }
-        for child in &widget.children {
-            self.add_widgets(child, map);
         }
     }
 
@@ -416,13 +427,11 @@ impl Driver {
 
         let mut msg_model_map = HashMap::new();
         let mut properties_model_map = HashMap::new();
-        for widget in &mut widgets {
-            if let Gtk(ref mut widget) = widget.widget {
-                widget.relm_name = Some(typ.clone());
-            }
-            get_properties_model_map(&widget, &mut properties_model_map);
-            get_msg_model_map(&widget, &mut msg_model_map);
-            self.add_widgets(&widget, &properties_model_map);
+        if let Gtk(ref mut widget) = widgets[0].widget {
+            widget.relm_name = Some(typ.clone());
+        }
+        for widget in &widgets {
+            self.collect_bindings(widget, &mut msg_model_map, &mut properties_model_map);
         }
 
         let (view, relm_widgets, container_impl) = gen::gen(name, &widgets, self);
@@ -542,35 +551,9 @@ fn get_name(typ: &Type) -> Ident {
     }
 }
 
-macro_rules! get_map {
-    ($widget:expr, $map:expr, $is_relm:expr) => {{
-        for (name, expr) in &$widget.properties {
-            let mut visitor = ModelVariableVisitor::new();
-            visitor.visit_expr(&expr);
-            let model_variables = visitor.idents;
-            for var in model_variables {
-                let set = $map.entry(var).or_insert_with(HashSet::new);
-                set.insert(Property {
-                    expr: expr.clone(),
-                    is_relm_widget: $is_relm,
-                    name: name.clone(),
-                    widget_name: $widget.name.clone(),
-                });
-            }
-        }
-        for child in &$widget.children {
-            get_properties_model_map(child, $map);
-        }
-    }};
-}
-
 fn get_msg_model_map(widget: &Widget, map: &mut MsgModelMap) {
     match widget.widget {
-        Gtk(_) => {
-            for child in &widget.children {
-                get_msg_model_map(child, map);
-            }
-        },
+        Gtk(_) => (),
         Relm(ref relm_widget) => {
             for (name, expr) in &relm_widget.messages {
                 let mut visitor = ModelVariableVisitor::new();
@@ -585,9 +568,6 @@ fn get_msg_model_map(widget: &Widget, map: &mut MsgModelMap) {
                     });
                 }
             }
-            for child in &widget.children {
-                get_msg_model_map(child, map);
-            }
         },
     }
 }
@@ -597,8 +577,25 @@ fn get_msg_model_map(widget: &Widget, map: &mut MsgModelMap) {
  */
 fn get_properties_model_map(widget: &Widget, map: &mut PropertyModelMap) {
     match widget.widget {
-        Gtk(_) => get_map!(widget, map, false),
-        Relm(_) => get_map!(widget, map, true),
+        Gtk(_) => get_map(widget, map, false),
+        Relm(_) => get_map(widget, map, true),
+    }
+}
+
+fn get_map(widget: &Widget, map: &mut PropertyModelMap, is_relm: bool) {
+    for (name, expr) in &widget.properties {
+        let mut visitor = ModelVariableVisitor::new();
+        visitor.visit_expr(&expr);
+        let model_variables = visitor.idents;
+        for var in model_variables {
+            let set = map.entry(var).or_insert_with(HashSet::new);
+            set.insert(Property {
+                expr: expr.clone(),
+                is_relm_widget: is_relm,
+                name: name.clone(),
+                widget_name: widget.name.clone(),
+            });
+        }
     }
 }
 

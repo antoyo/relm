@@ -85,19 +85,12 @@ pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStrea
     let mut generator = Generator::new(driver);
     let mut widget_tokens = quote! {};
     for (index, widget) in widgets.iter().enumerate() {
-        // Only show the first item as the following could non-widget like a gtk::Gesture.
+        // Only show the first item as the following could be non-widget like a gtk::Gesture.
         let tokens = generator.widget(widget, None, IsGtk, index == 0);
         widget_tokens = quote! {
             #widget_tokens #tokens
         };
     }
-
-/*
-    // Generate the first widget last because it might access other widgets.
-    let tokens = generator.widget(&widgets[0], None, IsGtk, true);
-    widget_tokens = quote! {
-        #widget_tokens #tokens
-    };*/
 
     let driver = generator.driver.take().expect("driver");
     let idents: Vec<_> = driver.widgets.keys().collect();
@@ -312,7 +305,7 @@ impl<'a> Generator<'a> {
         }
     }
 
-    fn gtk_set_prop_calls(&self, widget: &Widget, ident: TokenStream) -> (Vec<TokenStream>, Vec<TokenStream>) {
+    fn gtk_set_prop_calls(&mut self, widget: &Widget, ident: TokenStream) -> (Vec<TokenStream>, Vec<TokenStream>) {
         let mut properties = vec![];
         let mut visible_properties = vec![];
         for (key, value) in &widget.properties {
@@ -328,6 +321,16 @@ impl<'a> Generator<'a> {
             else {
                 properties.push(property);
             }
+        }
+        for (key, value) in &widget.nested_views {
+            let name = &value.name;
+            let widget = self.widget(value, None, IsGtk, true);
+            let property_func = Ident::new(&format!("set_{}", key), key.span());
+            let property = quote! {
+                #widget
+                #ident.#property_func(::std::convert::Into::into(&#name));
+            };
+            properties.push(property);
         }
         (properties, visible_properties)
     }
