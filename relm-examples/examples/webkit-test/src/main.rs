@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -41,7 +41,7 @@ pub enum Msg {
 #[widget]
 impl Widget for Win {
     fn init_view(&mut self) {
-        self.webview.load_uri("https://crates.io/");
+        self.widgets.webview.load_uri("https://crates.io/");
     }
 
     fn model() -> Model {

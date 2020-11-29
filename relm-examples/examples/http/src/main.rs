@@ -104,9 +104,9 @@ impl Widget for Win {
         match event {
             DownloadCompleted => {
                 self.model.button_enabled = true;
-                self.button.grab_focus();
+                self.widgets.button.grab_focus();
                 self.model.loader.close().ok();
-                self.image.set_from_pixbuf(self.model.loader.get_pixbuf().as_ref());
+                self.widgets.image.set_from_pixbuf(self.model.loader.get_pixbuf().as_ref());
                 self.model.loader = PixbufLoader::new();
                 self.model.request = None;
             },
@@ -125,7 +125,7 @@ impl Widget for Win {
             HttpError(error) => {
                 self.model.button_enabled = true;
                 self.model.text = format!("HTTP error: {}", error);
-                self.label.override_color(StateFlags::NORMAL, Some(RED));
+                self.widgets.label.override_color(StateFlags::NORMAL, Some(RED));
             },
             ImageChunk(chunk) => {
                 if let Err(error) = self.model.loader.write(&chunk) {
