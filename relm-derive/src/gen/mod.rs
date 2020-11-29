@@ -194,9 +194,9 @@ impl Driver {
             let component_idents = relm_components.keys();
             let component_root_types = relm_components.values()
                 .map(|path| {
-                    if let PathArguments::AngleBracketed(ref arguments) = path.segments.last().expect("component").value().arguments {
+                    if let PathArguments::AngleBracketed(ref arguments) = path.segments.last().expect("component").arguments {
                         let first_arg = arguments.args.first();
-                        let arg = first_arg.as_ref().expect("argument").value();
+                        let arg = first_arg.as_ref().expect("argument");
                         return arg.clone();
                     }
                     panic!("Not a component type");

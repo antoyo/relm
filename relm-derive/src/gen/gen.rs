@@ -692,7 +692,7 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
                 type Containers = #containers_type;
 
                 fn container(&self) -> &Self::Container {
-                    &self.#name
+                    &self.widgets.#name
                 }
 
                 #other_containers_func
