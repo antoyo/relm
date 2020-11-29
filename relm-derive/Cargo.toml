@@ -13,9 +13,9 @@ proc-macro = true
 
 [dependencies]
 lazy_static = "1.0"
-proc-macro2 = "0.4"
-quote = "0.6"
+proc-macro2 = "1.0"
+quote = "1.0"
 
 [dependencies.syn]
 features = ["extra-traits", "fold", "full", "visit"]
-version = "^0.15"
+version = "^1.0"

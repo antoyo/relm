@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -28,12 +28,14 @@ use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 use proc_macro;
-use proc_macro2::{TokenTree, TokenStream};
+use proc_macro2::{Span, TokenTree, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
     Expr,
+    ExprMacro,
     Ident,
     LitStr,
+    Macro,
     Pat,
     Path,
     Type,
@@ -58,6 +60,7 @@ use self::InitProperties::*;
 use self::WidgetPath::*;
 use self::SaveWidget::*;
 
+// TODO: switch to thread_local?
 lazy_static! {
     static ref NAMES_INDEX: Mutex<HashMap<String, u32>> = Mutex::new(HashMap::new());
 }
@@ -121,6 +124,7 @@ pub struct Widget {
     pub init_parameters: Vec<Expr>,
     pub is_container: bool,
     pub name: Ident,
+    pub nested_views: HashMap<Ident, Widget>,
     pub parent_id: Option<String>,
     pub properties: HashMap<Ident, Expr>,
     pub typ: Path,
@@ -129,7 +133,8 @@ pub struct Widget {
 
 impl Widget {
     fn new_gtk(widget: GtkWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
-        properties: HashMap<Ident, Expr>, child_properties: ChildProperties, child_events: ChildEvents) -> Self
+        properties: HashMap<Ident, Expr>, child_properties: ChildProperties, child_events: ChildEvents,
+        nested_views: HashMap<Ident, Widget>) -> Self
     {
         let name = gen_widget_name(&typ);
         Widget {
@@ -140,6 +145,7 @@ impl Widget {
             init_parameters,
             is_container: false,
             name,
+            nested_views,
             parent_id: None,
             properties,
             typ,
@@ -148,7 +154,8 @@ impl Widget {
     }
 
     fn new_relm(widget: RelmWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
-        properties: HashMap<Ident, Expr>, child_properties: ChildProperties, child_events: ChildEvents) -> Self
+        properties: HashMap<Ident, Expr>, child_properties: ChildProperties, child_events: ChildEvents,
+        nested_views: HashMap<Ident, Widget>) -> Self
     {
         let mut name = gen_widget_name(&typ);
         // Relm widgets are not used in the update() method; they are only saved to avoid dropping
@@ -163,6 +170,7 @@ impl Widget {
             init_parameters,
             is_container: false,
             name,
+            nested_views,
             parent_id: None,
             properties,
             typ,
@@ -213,7 +221,25 @@ impl RelmWidget {
     }
 }
 
-pub fn parse_widget(tokens: TokenStream) -> Result<Widget> {
+struct WidgetList {
+    widgets: Vec<Widget>,
+}
+
+impl Parse for WidgetList {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let widget: Widget = input.parse()?;
+        let mut widgets = vec![widget];
+        while !input.is_empty() {
+            let widget: Widget = input.parse()?;
+            widgets.push(widget);
+        }
+        Ok(WidgetList {
+            widgets,
+        })
+    }
+}
+
+pub fn parse_widgets(tokens: TokenStream) -> Result<Vec<Widget>> {
     if let Ok(literal) = parse2::<LitStr>(tokens.clone()) {
         // TODO: also support glade file.
         let mut file = File::open(literal.value()).expect("File::open() in parse()");
@@ -221,10 +247,13 @@ pub fn parse_widget(tokens: TokenStream) -> Result<Widget> {
         file.read_to_string(&mut file_content).expect("read_to_string() in parse()");
         let tokens = proc_macro::TokenStream::from_str(&file_content).expect("convert string to TokenStream");
         let tokens = respan_with(tokens, literal.span().unwrap());
-        parse(tokens)
+
+        let widgets: WidgetList = parse(tokens)?;
+        Ok(widgets.widgets)
     }
     else {
-        parse2(tokens)
+        let widgets: WidgetList = parse2(tokens)?;
+        Ok(widgets.widgets)
     }
 }
 
@@ -300,6 +329,7 @@ enum ChildItem {
     ItemChildProperties(ChildProperties),
     ItemEvent(Ident, Event),
     ChildWidget(Widget),
+    NestedView(Ident, Widget),
     Property(Ident, Value),
     RelmMsg(Ident, Value),
     RelmMsgEvent(Ident, Event),
@@ -311,6 +341,7 @@ impl ChildItem {
             ChildEvent(_, _, _) => panic!("Expected widget, found child event"),
             ItemEvent(_, _) => panic!("Expected widget, found event"),
             ItemChildProperties(_) => panic!("Expected widget, found child properties"),
+            NestedView(_, _) => panic!("Expected widget, found nested view"),
             Property(_, _) => panic!("Expected widget, found property"),
             RelmMsg(_, _) => panic!("Expected widget, found relm msg"),
             RelmMsgEvent(_, _) => panic!("Expected widget, found relm msg event"),
@@ -446,6 +477,14 @@ struct ChildWidgetParser {
     parent_id: Option<String>,
 }
 
+/*
+ * First tokens:
+ * * # (attributes)
+ * * $ (absolute relm widget name (path))
+ * * path
+ * * * (
+ * * * {
+ */
 impl ChildWidgetParser {
     fn parse(root: SaveWidget, input: ParseStream) -> Result<Self> {
         let attributes = Attributes::parse(&input)?.name_values;
@@ -483,6 +522,7 @@ impl GtkWidgetParser {
         let mut properties = HashMap::new();
         let mut child_events = HashMap::new();
         let mut child_properties = HashMap::new();
+        let mut nested_views = HashMap::new();
         for item in child_items.into_iter() {
             let item = item.item;
             match item {
@@ -496,6 +536,7 @@ impl GtkWidgetParser {
                 },
                 ItemEvent(ident, event) => { let _ = gtk_widget.events.insert(ident, event); },
                 ChildWidget(widget) => children.push(widget),
+                NestedView(ident, widget) => { let _ = nested_views.insert(ident, widget); },
                 Property(ident, value) => { let _ = properties.insert(ident, value.value); },
                 RelmMsg(_, _) | RelmMsgEvent(_, _) => panic!("Unexpected relm msg in gtk widget"),
             }
@@ -507,7 +548,7 @@ impl GtkWidgetParser {
         }
         Ok(GtkWidgetParser {
             gtk_widget: ChildWidget(Widget::new_gtk(gtk_widget, typ, init_parameters, children, properties,
-                            child_properties, child_events)),
+                            child_properties, child_events, nested_views)),
         })
     }
 }
@@ -563,6 +604,7 @@ impl RelmWidgetParser {
                 let mut child_properties = HashMap::new();
                 let mut child_events = HashMap::new();
                 let mut properties = HashMap::new();
+                let mut nested_views = HashMap::new();
                 for item in child_items {
                     match item {
                         ChildEvent(event_name, child_name, event) => {
@@ -575,6 +617,7 @@ impl RelmWidgetParser {
                                 child_properties.insert(key, value);
                             }
                         },
+                        NestedView(ident, widget) => { let _ = nested_views.insert(ident, widget); },
                         Property(ident, value) => { let _ = properties.insert(ident, value.value); },
                         RelmMsg(ident, value) => { let _ = relm_widget.messages.insert(ident, value.value); },
                         RelmMsgEvent(ident, event) => {
@@ -584,12 +627,12 @@ impl RelmWidgetParser {
                     }
                 }
                 ChildWidget(Widget::new_relm(relm_widget, typ.clone(), init_parameters, children, properties,
-                    child_properties, child_events))
+                    child_properties, child_events, nested_views))
             }
             else {
                 let init_parameters = init_parameters.unwrap_or_else(Vec::new);
                 ChildWidget(Widget::new_relm(RelmWidget::new(), typ, init_parameters, vec![], HashMap::new(),
-                    HashMap::new(), HashMap::new()))
+                    HashMap::new(), HashMap::new(), HashMap::new()))
             };
         Ok(RelmWidgetParser {
             relm_widget,
@@ -652,6 +695,15 @@ struct GtkChildPropertyOrEvent {
     child_item: ChildItem,
 }
 
+/*
+ * First tokens:
+ * * ident
+ * * * :
+ * * * .
+ * * * ( (in Event)
+ * * * with
+ * * * =>
+ */
 impl Parse for GtkChildPropertyOrEvent {
     fn parse(input: ParseStream) -> Result<Self> {
         let ident: Ident = input.parse()?;
@@ -703,7 +755,19 @@ impl ValueOrChildProperties {
             }
             else {
                 let value = Value::parse(input)?;
-                Property(ident.clone(), value)
+                let mut nested_view = None;
+                if let Expr::Macro(ExprMacro { mac: Macro { ref path, ref tokens, .. }, .. }) = value.value {
+                    if path.is_ident(&dummy_ident("view")) {
+                        nested_view = Some(tokens.clone());
+                    }
+                }
+                if let Some(tokens) = nested_view {
+                    let widget: Widget = parse2(tokens)?;
+                    NestedView(ident.clone(), widget)
+                }
+                else {
+                    Property(ident.clone(), value)
+                }
             };
         Ok(ValueOrChildProperties {
             child_item,
@@ -907,15 +971,70 @@ impl Parse for Event {
     }
 }
 
+fn is_property_or_event(input: &ParseStream) -> bool {
+    let input = input.fork();
+    // Attributes start with # and qualified name for relm widget starts with $ .
+    if input.peek(Token![#]) || input.peek(Token![$]) {
+        return false;
+    }
+    {
+        let input = input.fork();
+        let path = input.parse::<Path>();
+        if let Ok(path) = path {
+            if path.segments.len() > 1 {
+                // Only a widget starts with a path that contains more than 1 segment.
+                return false;
+            }
+        }
+    }
+    let _ident: Ident = input.parse().expect("should be an ident");
+    if input.peek(token::Brace) {
+        // Only a widget can have an ident followed by { .
+        return false;
+    }
+    if input.peek(Token![=>]) || input.peek(Token![.]) || input.peek(Token![:]) {
+        // Only an event can contain => .
+        return true;
+    }
+    {
+        let input = input.fork();
+        if Tag::parse(&input, "with").is_ok() {
+            // Only an event can contain with.
+            return true;
+        }
+    }
+    let result = catch_return! {{
+        let _content;
+        let _parens = parenthesized!(_content in input);
+    }};
+    result.expect("parse parenthesis");
+    if input.peek(token::Brace) {
+        // Only a widget can have an ident followed by { .
+        return false;
+    }
+    if input.peek(Token![=>]) || input.peek(Token![.]) || input.peek(Token![:]) {
+        // Only an event can contain => .
+        return true;
+    }
+    {
+        let input = input.fork();
+        if Tag::parse(&input, "with").is_ok() {
+            // Only an event can contain with.
+            return true;
+        }
+    }
+
+    // If the parens are not followed by either => or with, it's a widget.
+    false
+}
+
 struct ChildGtkItem {
     item: ChildItem,
 }
 
 impl Parse for ChildGtkItem {
     fn parse(input: ParseStream) -> Result<Self> {
-        let parser = input.fork();
-        let item: Result<GtkChildPropertyOrEvent> = parser.parse();
-        if item.is_ok() {
+        if is_property_or_event(&input) {
             let item: GtkChildPropertyOrEvent = input.parse()?;
             Ok(ChildGtkItem {
                 item: item.child_item,
@@ -1043,4 +1162,8 @@ pub fn respan_with(tokens: proc_macro::TokenStream, span: proc_macro::Span) -> p
         }
     }
     FromIterator::from_iter(result.into_iter())
+}
+
+pub fn dummy_ident(ident: &str) -> Ident {
+    Ident::new(ident, Span::call_site())
 }

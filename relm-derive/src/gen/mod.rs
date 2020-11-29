@@ -36,22 +36,22 @@ use std::collections::{HashMap, HashSet};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned, ToTokens};
 use syn::{
-    ArgCaptured,
     Generics,
     Ident,
     ImplItem,
     ImplItemMethod,
     ItemImpl,
     Macro,
-    MethodSig,
     Path,
+    PatType,
     ReturnType,
+    Signature,
     TypePath,
     parse,
 };
-use syn::FnArg::{self, Captured};
+use syn::FnArg::{self, Typed};
 use syn::fold::Fold;
-use syn::ImplItem::{Const, Existential, Method, Verbatim};
+use syn::ImplItem::{Const, Method, Verbatim, __Nonexhaustive,};
 use syn::Item::{self, Impl};
 use syn::parse::Result;
 use syn::spanned::Spanned;
@@ -61,7 +61,7 @@ use syn::visit::Visit;
 use self::adder::{Adder, Message, Property};
 pub use self::gen::gen_where_clause;
 use self::parser::EitherWidget::{Gtk, Relm};
-use self::parser::{Widget, parse_widget};
+use self::parser::{Widget, parse_widgets};
 use self::walker::ModelVariableVisitor;
 
 const MODEL_IDENT: &str = "__relm_model";
@@ -135,6 +135,20 @@ impl Driver {
         }
     }
 
+    fn collect_bindings(&mut self, widget: &Widget, msg_model_map: &mut MsgModelMap, properties_model_map: &mut PropertyModelMap) {
+        get_properties_model_map(&widget, properties_model_map);
+        get_msg_model_map(&widget, msg_model_map);
+        self.add_widgets(&widget, &properties_model_map);
+
+        for (_, nested_view) in &widget.nested_views {
+            self.collect_bindings(nested_view, msg_model_map, properties_model_map);
+        }
+
+        for child in &widget.children {
+            self.collect_bindings(child, msg_model_map, properties_model_map);
+        }
+    }
+
     fn add_widgets(&mut self, widget: &Widget, map: &PropertyModelMap) {
         // Only add widgets that are needed by the update() function.
         let mut to_add = false;
@@ -151,9 +165,6 @@ impl Driver {
                 #widget_type
             };
             self.widgets.insert(widget.name.clone(), typ);
-        }
-        for child in &widget.children {
-            self.add_widgets(child, map);
         }
     }
 
@@ -202,7 +213,6 @@ impl Driver {
                 let mut i = item.clone();
                 match item {
                     Const(..) => panic!("Unexpected const item"),
-                    Existential(..) => panic!("Unexpected existential item"),
                     ImplItem::Macro(mac) => self.view_macro = Some(mac.mac),
                     Method(ImplItemMethod { sig, .. }) => {
                         match sig.ident.to_string().as_ref() {
@@ -232,6 +242,7 @@ impl Driver {
                         }
                     },
                     Verbatim(..) => panic!("Unexpected verbatim item"),
+                    __Nonexhaustive => panic!("Unexpected item"),
                 }
             }
             let view =
@@ -410,18 +421,20 @@ impl Driver {
     }
 
     fn impl_view(&mut self, name: &Ident, typ: &Type) -> Result<View> {
-        let tts = self.view_macro.take().expect("view_macro in impl_view()").tts;
-        let mut widget = parse_widget(tts)?;
-        if let Gtk(ref mut widget) = widget.widget {
-            widget.relm_name = Some(typ.clone());
-        }
-        self.widget_parent_id = widget.parent_id.clone();
+        let tts = self.view_macro.take().expect("view_macro in impl_view()").tokens;
+        let mut widgets = parse_widgets(tts)?;
+        self.widget_parent_id = widgets[0].parent_id.clone();
+
         let mut msg_model_map = HashMap::new();
         let mut properties_model_map = HashMap::new();
-        get_properties_model_map(&widget, &mut properties_model_map);
-        get_msg_model_map(&widget, &mut msg_model_map);
-        self.add_widgets(&widget, &properties_model_map);
-        let (view, relm_widgets, container_impl) = gen::gen(name, &widget, self);
+        if let Gtk(ref mut widget) = widgets[0].widget {
+            widget.relm_name = Some(typ.clone());
+        }
+        for widget in &widgets {
+            self.collect_bindings(widget, &mut msg_model_map, &mut properties_model_map);
+        }
+
+        let (view, relm_widgets, container_impl) = gen::gen(name, &widgets, self);
         let model_ident = Ident::new(MODEL_IDENT, Span::call_site()); // TODO: maybe need to set Span here.
         let code = quote_spanned! { name.span() =>
             #[allow(unused_variables,clippy::all)] // Necessary to avoid warnings in case the parameters are unused.
@@ -430,6 +443,7 @@ impl Driver {
             }
         };
         let item = block_to_impl_item(code);
+        let widget = widgets.drain(..).next().expect("first widget");
         Ok(View {
             container_impl,
             item,
@@ -490,20 +504,20 @@ pub fn gen_widget(input: TokenStream) -> TokenStream {
 fn add_model_param(model_fn: &mut ImplItem, model_param_type: &mut Option<ImplItem>) {
     let span = model_fn.span();
     if let Method(ImplItemMethod { ref mut sig, .. }) = *model_fn {
-        let len = sig.decl.inputs.len();
+        let len = sig.inputs.len();
         if len == 0 || len == 1 {
             let type_tokens = quote_spanned! { span =>
                 &::relm::Relm<Self>
             };
             let ty: Type = parse(type_tokens.into()).expect("Relm type");
             let input: FnArg = parse(quote! { _: #ty }.into()).expect("wild arg");
-            sig.decl.inputs.insert(0, input);
+            sig.inputs.insert(0, input);
             if len == 0 {
                 let input: FnArg = parse(quote! { _: () }.into()).expect("wild arg");
-                sig.decl.inputs.push(input);
+                sig.inputs.push(input);
             }
         }
-        if let Some(&Captured(ArgCaptured { ref ty, .. })) = sig.decl.inputs.iter().nth(1) {
+        if let Some(&Typed(PatType { ref ty, .. })) = sig.inputs.iter().nth(1) {
             *model_param_type = Some(block_to_impl_item(quote! {
                 type ModelParam = #ty;
             }));
@@ -537,35 +551,9 @@ fn get_name(typ: &Type) -> Ident {
     }
 }
 
-macro_rules! get_map {
-    ($widget:expr, $map:expr, $is_relm:expr) => {{
-        for (name, expr) in &$widget.properties {
-            let mut visitor = ModelVariableVisitor::new();
-            visitor.visit_expr(&expr);
-            let model_variables = visitor.idents;
-            for var in model_variables {
-                let set = $map.entry(var).or_insert_with(HashSet::new);
-                set.insert(Property {
-                    expr: expr.clone(),
-                    is_relm_widget: $is_relm,
-                    name: name.clone(),
-                    widget_name: $widget.name.clone(),
-                });
-            }
-        }
-        for child in &$widget.children {
-            get_properties_model_map(child, $map);
-        }
-    }};
-}
-
 fn get_msg_model_map(widget: &Widget, map: &mut MsgModelMap) {
     match widget.widget {
-        Gtk(_) => {
-            for child in &widget.children {
-                get_msg_model_map(child, map);
-            }
-        },
+        Gtk(_) => (),
         Relm(ref relm_widget) => {
             for (name, expr) in &relm_widget.messages {
                 let mut visitor = ModelVariableVisitor::new();
@@ -580,9 +568,6 @@ fn get_msg_model_map(widget: &Widget, map: &mut MsgModelMap) {
                     });
                 }
             }
-            for child in &widget.children {
-                get_msg_model_map(child, map);
-            }
         },
     }
 }
@@ -592,13 +577,30 @@ fn get_msg_model_map(widget: &Widget, map: &mut MsgModelMap) {
  */
 fn get_properties_model_map(widget: &Widget, map: &mut PropertyModelMap) {
     match widget.widget {
-        Gtk(_) => get_map!(widget, map, false),
-        Relm(_) => get_map!(widget, map, true),
+        Gtk(_) => get_map(widget, map, false),
+        Relm(_) => get_map(widget, map, true),
     }
 }
 
-fn get_return_type(sig: MethodSig) -> Type {
-    if let ReturnType::Type(_, ty) = sig.decl.output {
+fn get_map(widget: &Widget, map: &mut PropertyModelMap, is_relm: bool) {
+    for (name, expr) in &widget.properties {
+        let mut visitor = ModelVariableVisitor::new();
+        visitor.visit_expr(&expr);
+        let model_variables = visitor.idents;
+        for var in model_variables {
+            let set = map.entry(var).or_insert_with(HashSet::new);
+            set.insert(Property {
+                expr: expr.clone(),
+                is_relm_widget: is_relm,
+                name: name.clone(),
+                widget_name: widget.name.clone(),
+            });
+        }
+    }
+}
+
+fn get_return_type(sig: Signature) -> Type {
+    if let ReturnType::Type(_, ty) = sig.output {
         *ty
     }
     else {
@@ -609,12 +611,12 @@ fn get_return_type(sig: MethodSig) -> Type {
     }
 }
 
-fn get_second_param_type(sig: &MethodSig) -> Type {
-    if let Captured(ArgCaptured { ref ty, .. }) = sig.decl.inputs[1] {
-        ty.clone()
+fn get_second_param_type(sig: &Signature) -> Type {
+    if let Typed(PatType { ref ty, .. }) = sig.inputs[1] {
+        *ty.clone()
     }
     else {
-        panic!("Unexpected `(unknown)`, expecting Captured Type"/*, sig.decl.inputs[1]*/); // TODO
+        panic!("Unexpected `(unknown)`, expecting Typed Type"/*, sig.decl.inputs[1]*/); // TODO
     }
 }
 

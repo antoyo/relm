@@ -26,10 +26,11 @@ use syn::{
     ExprField,
     ExprPath,
     Ident,
-    Path,
 };
 use syn::Member::Named;
 use syn::visit::{Visit, visit_expr};
+
+use super::parser::dummy_ident;
 
 pub struct ModelVariableVisitor {
     pub idents: Vec<Ident>,
@@ -47,12 +48,9 @@ impl<'ast> Visit<'ast> for ModelVariableVisitor {
     fn visit_expr(&mut self, expr: &'ast Expr) {
         if let Expr::Field(ExprField { base: ref obj, member: ref field, .. }) = *expr {
             if let Expr::Field(ExprField { base: ref expr, member: ref model_ident, .. }) = **obj {
-                if let Expr::Path(ExprPath { path: Path { ref segments, .. }, .. }) = **expr {
+                if let Expr::Path(ExprPath { ref path, .. }) = **expr {
                     if let Named(ref model_ident) = *model_ident {
-                        if model_ident == "model" &&
-                            segments.first().map(|segment| segment.value().ident.to_string()) ==
-                                Some("self".to_string())
-                        {
+                        if path.is_ident(&dummy_ident("self")) && model_ident == "model" {
                             if let Named(ref field) = *field {
                                 self.idents.push(field.clone());
                             }
