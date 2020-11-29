@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (component, widgets) = relm::init_test::<Win>(()).expect("init relm test");
+        let (component, streams, widgets) = relm::init_test::<Win>(()).expect("init relm test");
         let inc_button = &widgets.inc_button;
         let dec_button = &widgets.dec_button;
         let update_button = &widgets.update_button;
@@ -252,7 +252,7 @@ mod tests {
                 false
             }
         );
-        let label_observer = relm_observer_new!(inc_label, Text(_));
+        let label_observer = relm_observer_new!(streams.inc_label, Text(_));
 
         // Shortcut for the previous call to Observer::new().
         let two_observer = relm_observer_new!(component, TwoInc(_, _));

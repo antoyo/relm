@@ -23,7 +23,7 @@ use glib::{Cast, IsA, Object};
 use gtk::{ContainerExt, WidgetExt};
 
 use crate::state::EventStream;
-use super::{Component, DisplayVariant, create_widget, init_component};
+use super::{Component, DisplayVariant, StreamHandle, create_widget, init_component};
 use crate::widget::Widget;
 
 /// Struct for relm containers to add GTK+ and relm `Widget`s.
@@ -82,6 +82,12 @@ impl<WIDGET: Container + Widget> ContainerComponent<WIDGET> {
     /// This is used internally by the library.
     pub fn owned_stream(&self) -> &EventStream<WIDGET::Msg> {
         self.component.owned_stream()
+    }
+
+    /// Get the event stream of the component.
+    /// This is used internally by the library.
+    pub fn stream(&self) -> StreamHandle<WIDGET::Msg> {
+        self.component.stream()
     }
 
     // TODO: add delete methods?

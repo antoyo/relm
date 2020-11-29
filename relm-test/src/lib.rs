@@ -29,7 +29,7 @@ use gdk::keys::constants as key;
 use glib::{IsA, Object, object::Cast};
 use gtk::{Inhibit, ToolButton, ToolButtonExt, Widget, WidgetExt};
 use gtk_test::{focus, mouse_move, run_loop, wait_for_draw};
-use relm::EventStream;
+use relm::StreamHandle;
 
 // TODO: should remove the signal after wait()?
 // FIXME: remove when it's in gtk-test.
@@ -58,7 +58,7 @@ pub struct Observer<MSG> {
 }
 
 impl<MSG: Clone + 'static> Observer<MSG> {
-    pub fn new<F: Fn(&MSG) -> bool + 'static>(stream: &EventStream<MSG>, predicate: F) -> Self {
+    pub fn new<F: Fn(&MSG) -> bool + 'static>(stream: StreamHandle<MSG>, predicate: F) -> Self {
         let result = Rc::new(RefCell::new(None));
         let res = result.clone();
         stream.observe(move |msg| {

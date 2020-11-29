@@ -226,6 +226,11 @@ impl Widget for Win {
 }
 
 impl WidgetTest for Win {
+    type Streams = ();
+
+    fn get_streams(&self) -> Self::Streams {
+    }
+
     type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
@@ -247,7 +252,7 @@ mod tests {
 
     #[test]
     fn model_params() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let label1: Label = find_child_by_name(&widgets.counter1, "label").expect("label");
         let label2: Label = find_child_by_name(&widgets.counter2, "label").expect("label");
 

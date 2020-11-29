@@ -52,9 +52,9 @@ impl Widget for TreeView {
         let cell = CellRendererText::new();
         view_column.pack_start(&cell, true);
         view_column.add_attribute(&cell, "text", 0);
-        self.tree_view.append_column(&view_column);
+        self.widgets.tree_view.append_column(&view_column);
 
-        self.tree_view.set_model(Some(&model));
+        self.widgets.tree_view.set_model(Some(&model));
     }
 
     fn model() -> () {
@@ -95,9 +95,9 @@ impl Widget for Win {
         let cell = CellRendererText::new();
         view_column.pack_start(&cell, true);
         view_column.add_attribute(&cell, "text", 0);
-        self.tree_view.append_column(&view_column);
+        self.widgets.tree_view.append_column(&view_column);
 
-        self.tree_view.set_model(Some(&model));
+        self.widgets.tree_view.set_model(Some(&model));
     }
 
     fn model() -> Model {
@@ -149,7 +149,7 @@ mod tests {
 
     #[test]
     fn child_event() {
-        let (component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let tree_view = &widgets.tree_view;
 
         let selection_observer = relm_observer_new!(component, SelectionChanged(_));

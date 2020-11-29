@@ -121,6 +121,11 @@ impl Widget for Win {
 }
 
 impl WidgetTest for Win {
+    type Streams = ();
+
+    fn get_streams(&self) -> Self::Streams {
+    }
+
     type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
@@ -144,7 +149,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let entry = &widgets.input;
         let label = &widgets.label;
 

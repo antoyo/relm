@@ -202,7 +202,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let dec_button = &widgets.dec_button;
         let label1: Label = find_child_by_name(&widgets.counter1, "label").expect("label1");
         let inc_button1: Button = find_child_by_name(&widgets.counter1, "inc_button").expect("button1");

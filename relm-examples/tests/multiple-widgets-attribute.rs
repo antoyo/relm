@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -166,16 +166,16 @@ mod tests {
 
     #[test]
     fn model_params() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let counter1 = &widgets.counter1;
         let text = &widgets.text;
-        let inc_button1: Button = find_child_by_name(counter1.widget(), "inc_button").expect("button");
-        let label1: Label = find_child_by_name(counter1.widget(), "label").expect("label");
+        let inc_button1: Button = find_child_by_name(counter1, "inc_button").expect("button");
+        let label1: Label = find_child_by_name(counter1, "label").expect("label");
         let counter2 = &widgets.counter2;
-        let inc_button2: Button = find_child_by_name(counter2.widget(), "inc_button").expect("button");
-        let label2: Label = find_child_by_name(counter2.widget(), "label").expect("label");
-        let entry: Entry = find_child_by_name(text.widget(), "entry").expect("entry");
-        let text_label: Label = find_child_by_name(text.widget(), "label").expect("label");
+        let inc_button2: Button = find_child_by_name(counter2, "inc_button").expect("button");
+        let label2: Label = find_child_by_name(counter2, "label").expect("label");
+        let entry: Entry = find_child_by_name(text, "entry").expect("entry");
+        let text_label: Label = find_child_by_name(text, "label").expect("label");
 
         assert_text!(label1, 0);
 

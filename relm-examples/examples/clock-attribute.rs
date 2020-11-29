@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let label = &widgets.label;
 
         fn time_close(time1: glib::GString, time2: String) -> bool {

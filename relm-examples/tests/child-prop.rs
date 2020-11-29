@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -99,12 +99,21 @@ pub enum Msg {
     Quit,
 }
 
+struct Components {
+    _inc_button: Component<Button>,
+}
+
 #[derive(Clone)]
-struct Win {
+struct Widgets {
     dec_button: gtk::Button,
-    inc_button: Component<Button>,
+    inc_button: gtk::Button,
     label: gtk::Label,
     window: gtk::Window,
+}
+
+struct Win {
+    _components: Components,
+    widgets: Widgets,
 }
 
 impl Update for Win {
@@ -126,7 +135,7 @@ impl Widget for Win {
     type Root = gtk::Window;
 
     fn root(&self) -> Self::Root {
-        self.window.clone()
+        self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
@@ -142,19 +151,29 @@ impl Widget for Win {
         window.show_all();
 
         Win {
-            dec_button,
-            inc_button: relm_button,
-            label,
-            window: window,
+            widgets: Widgets {
+                dec_button,
+                inc_button: relm_button.widget().clone(),
+                label,
+                window: window,
+            },
+            _components: Components {
+                _inc_button: relm_button,
+            },
         }
     }
 }
 
 impl WidgetTest for Win {
-    type Widgets = Win;
+    type Streams = ();
+
+    fn get_streams(&self) -> Self::Streams {
+    }
+
+    type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
-        self.clone()
+        self.widgets.clone()
     }
 }
 
@@ -170,8 +189,8 @@ mod tests {
 
     #[test]
     fn button_position() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
-        let inc_button = widgets.inc_button.widget();
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let inc_button = &widgets.inc_button;
         let dec_button = &widgets.dec_button;
         let label = &widgets.label;
 

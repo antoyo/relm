@@ -48,9 +48,9 @@ impl Widget for Win {
         let file_item = gtk::MenuItem::with_label("File");
         file_item.set_submenu(Some(&file_menu));
         let quit_item = gtk::MenuItem::with_label("Quit");
-        self.menubar.append(&file_item);
+        self.widgets.menubar.append(&file_item);
         file_menu.append(&quit_item);
-        self.menubar.show_all();
+        self.widgets.menubar.show_all();
 
         connect!(quit_item, connect_activate(_), self.model.relm, Quit);
     }

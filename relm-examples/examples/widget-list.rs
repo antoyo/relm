@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -101,13 +101,13 @@ impl Widget for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Add => {
-                let widget = self.hbox.add_widget::<Counter>(());
+                let widget = self.widgets.hbox.add_widget::<Counter>(());
                 self.model.counters.push(widget);
             },
             Quit => gtk::main_quit(),
             Remove => {
                 if let Some(counter) = self.model.counters.pop() {
-                    self.hbox.remove_widget(counter);
+                    self.widgets.hbox.remove_widget(counter);
                 }
             },
         }
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn root_widget() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let hbox = &widgets.hbox;
         let add_button = &widgets.add_button;
         let remove_button = &widgets.remove_button;

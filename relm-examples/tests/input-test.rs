@@ -98,7 +98,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let entry = &widgets.entry;
         let entry2 = &widgets.entry2;
         let label = &widgets.label;

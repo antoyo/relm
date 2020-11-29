@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn inhibit_event() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let entry = &widgets.entry;
 
         enter_keys(entry, "a");

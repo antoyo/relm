@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -143,12 +143,12 @@ mod tests {
 
     #[test]
     fn root_widget() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let vbox = &widgets.vbox;
-        let inc_button: Button = find_child_by_name(vbox.widget(), "inc_button").expect("inc button");
-        let label: Label = find_child_by_name(vbox.widget(), "label").expect("label");
-        let button: Button = find_child_by_name(vbox.widget(), "button").expect("button");
-        let dec_button: Button = find_child_by_name(vbox.widget(), "dec_button").expect("dec button");
+        let inc_button: Button = find_child_by_name(vbox, "inc_button").expect("inc button");
+        let label: Label = find_child_by_name(vbox, "label").expect("label");
+        let button: Button = find_child_by_name(vbox, "button").expect("button");
+        let dec_button: Button = find_child_by_name(vbox, "dec_button").expect("dec button");
         let inc_allocation = inc_button.get_allocation();
         let label_allocation = label.get_allocation();
         let button_allocation = button.get_allocation();

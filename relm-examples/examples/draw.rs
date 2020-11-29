@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2019-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -46,7 +46,7 @@ pub enum Msg {
 impl Widget for Win {
     fn init_view(&mut self) {
         let letter = self.model.letter.clone();
-        self.drawing_area.connect_draw(move |_, context| {
+        self.widgets.drawing_area.connect_draw(move |_, context| {
             context.set_source_rgb(0.2, 0.4, 0.0);
             context.paint();
 
@@ -69,7 +69,7 @@ impl Widget for Win {
             KeyPress(event) => {
                 if let Some(letter) = event.get_keyval().to_unicode() {
                     self.model.letter.set(letter);
-                    self.drawing_area.queue_draw();
+                    self.widgets.drawing_area.queue_draw();
                 }
             },
             Quit => gtk::main_quit(),

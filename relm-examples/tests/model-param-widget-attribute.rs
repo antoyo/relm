@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     fn model_params() {
-        let (_component, widgets) = relm::init_test::<Win>(5).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(5).expect("init_test failed");
         let label = &widgets.label;
         let button = &widgets.button;
 

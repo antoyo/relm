@@ -207,9 +207,9 @@ struct Win {
 }
 
 struct Components {
-    counter1: Component<Counter>,
-    counter2: Component<Counter>,
-    text: Component<Text>,
+    _counter1: Component<Counter>,
+    _counter2: Component<Counter>,
+    _text: Component<Text>,
 }
 
 #[derive(Clone)]
@@ -288,9 +288,9 @@ impl Widget for Win {
                 window,
             },
             _components: Components {
-                counter1,
-                counter2,
-                text,
+                _counter1: counter1,
+                _counter2: counter2,
+                _text: text,
             },
             model,
         }
@@ -298,6 +298,11 @@ impl Widget for Win {
 }
 
 impl WidgetTest for Win {
+    type Streams = ();
+
+    fn get_streams(&self) -> Self::Streams {
+    }
+
     type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
@@ -320,7 +325,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let dec_button = &widgets.dec_button;
         let label1: Label = find_child_by_name(&widgets.counter1, "label").expect("label1");
         let inc_button1: Button = find_child_by_name(&widgets.counter1, "inc_button").expect("button1");

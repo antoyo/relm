@@ -68,6 +68,11 @@ impl<MSG> StreamHandle<MSG> {
         }
     }
 
+    /// Same as clone(). Useful for the macro relm_observer_new.
+    pub fn stream(&self) -> Self {
+        self.clone()
+    }
+
     /// Send the `event` message to the stream and the observers.
     pub fn emit(&self, msg: MSG) {
         if let Some(ref stream) = self.stream.upgrade() {
@@ -253,7 +258,8 @@ pub struct EventStream<MSG> {
 
 impl<MSG> Drop for EventStream<MSG> {
     fn drop(&mut self) {
-        Source::remove(self.source_id.take().expect("source id"));
+        // Ignore error since we're in a destructor.
+        let _ = Source::remove(self.source_id.take().expect("source id"));
         self.close();
     }
 }

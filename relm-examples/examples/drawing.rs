@@ -89,8 +89,8 @@ pub enum Msg {
 #[widget]
 impl Widget for Win {
     fn init_view(&mut self) {
-        self.model.draw_handler.init(&self.drawing_area);
-        self.drawing_area.add_events(EventMask::POINTER_MOTION_MASK);
+        self.model.draw_handler.init(&self.widgets.drawing_area);
+        self.widgets.drawing_area.add_events(EventMask::POINTER_MOTION_MASK);
     }
 
     fn model() -> Model {
@@ -110,7 +110,7 @@ impl Widget for Win {
         match event {
             Generate => self.model.circles.push(Circle::generate()),
             Move => {
-                let allocation = self.drawing_area.get_allocation();
+                let allocation = self.widgets.drawing_area.get_allocation();
                 for circle in &mut self.model.circles {
                     if (circle.x + circle.vx + SIZE / 2.0 < allocation.width as f64) &&
                         (circle.x + circle.vx - SIZE / 2.0 > 0.0)

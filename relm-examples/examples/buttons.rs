@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -137,6 +137,11 @@ impl Widget for Win {
 }
 
 impl WidgetTest for Win {
+    type Streams = ();
+
+    fn get_streams(&self) -> Self::Streams {
+    }
+
     type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
@@ -159,7 +164,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let plus_button = &widgets.plus_button;
         let minus_button = &widgets.minus_button;
         let label = &widgets.counter_label;

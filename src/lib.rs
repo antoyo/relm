@@ -151,14 +151,15 @@ macro_rules! use_impl_self_type {
     };
 }
 
-fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WIDGET>, WIDGET::Widgets)
+fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WIDGET>, WIDGET::Streams, WIDGET::Widgets)
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
     let (component, widget, relm) = create_widget::<WIDGET>(model_param);
     let widgets = widget.get_widgets();
+    let streams = widget.get_streams();
     init_component::<WIDGET>(component.owned_stream(), widget, &relm);
-    (component, widgets)
+    (component, streams, widgets)
 }
 
 /// Create a new relm widget without adding it to an existing widget.
@@ -258,11 +259,11 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
 /// # #[derive(Msg)]
 /// # enum Msg {}
 /// # fn main() {
-/// let (component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+/// let (component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
 /// # }
 /// ```
 pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
-    Result<(Component<WIDGET>, WIDGET::Widgets), ()>
+    Result<(Component<WIDGET>, WIDGET::Streams, WIDGET::Widgets), ()>
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {

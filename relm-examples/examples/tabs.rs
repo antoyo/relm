@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn root_widget() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let tabs = &widgets.tabs;
         let inc_button = &widgets.inc_button;
         let label = &widgets.label;

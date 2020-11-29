@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -246,15 +246,25 @@ pub enum Msg {
     Quit,
 }
 
+struct Components {
+    _right_button: Component<Button>,
+    _center_button: Component<CenterButton>,
+    _vbox: ContainerComponent<SplitBox>,
+}
+
 #[derive(Clone)]
-struct Win {
+struct Widgets {
     button1: gtk::Button,
     label: Label,
     button2: gtk::Button,
-    right_button: Component<Button>,
-    center_button: Component<CenterButton>,
-    _vbox: ContainerComponent<SplitBox>,
+    center_button: gtk::Button,
+    right_button: gtk::Button,
     window: Window,
+}
+
+struct Win {
+    _components: Components,
+    widgets: Widgets,
 }
 
 impl Update for Win {
@@ -276,7 +286,7 @@ impl Widget for Win {
     type Root = Window;
 
     fn root(&self) -> Self::Root {
-        self.window.clone()
+        self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: ()) -> Self {
@@ -293,22 +303,33 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
         window.show_all();
         Win {
-            button1,
-            label,
-            button2,
-            right_button: button,
-            center_button: center_button,
-            _vbox: vbox,
-            window: window,
+            widgets: Widgets {
+                button1,
+                button2,
+                center_button: center_button.widget().clone(),
+                label,
+                right_button: button.widget().clone(),
+                window,
+            },
+            _components: Components {
+                _right_button: button,
+                _center_button: center_button,
+                _vbox: vbox,
+            }
         }
     }
 }
 
 impl WidgetTest for Win {
-    type Widgets = Win;
+    type Streams = ();
+
+    fn get_streams(&self) -> Self::Streams {
+    }
+
+    type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
-        self.clone()
+        self.widgets.clone()
     }
 }
 
@@ -324,12 +345,12 @@ mod tests {
 
     #[test]
     fn model_params() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let button1 = &widgets.button1;
         let label = &widgets.label;
         let button2 = &widgets.button2;
-        let right_button = widgets.right_button.widget();
-        let center_button = widgets.center_button.widget();
+        let right_button = widgets.right_button;
+        let center_button = widgets.center_button;
 
         let button1_allocation = button1.get_allocation();
         let label_allocation = label.get_allocation();

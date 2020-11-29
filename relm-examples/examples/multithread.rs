@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn channel() {
-        let (component, _widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (component, _, _widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let observer = relm_observer_new!(component, Value(_));
         relm_observer_wait!(let Value(value) = observer);
         assert_eq!(value, 42);
