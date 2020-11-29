@@ -28,11 +28,76 @@ use gtk::{
     OrientableExt,
     WidgetExt,
 };
-use gtk::Orientation::Vertical;
+use gtk::Orientation::{Horizontal, Vertical};
 use relm::Widget;
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use self::CounterMsg::SetIncrement;
+
+pub struct CounterModel {
+    counter: i32,
+}
+
+#[derive(Msg)]
+pub enum CounterMsg {
+    Decrement,
+    Increment,
+    SetIncrement(i32),
+}
+
+#[widget]
+impl Widget for Counter {
+    fn model() -> CounterModel {
+        CounterModel {
+            counter: 0,
+        }
+    }
+
+    fn update(&mut self, event: CounterMsg) {
+        match event {
+            CounterMsg::Decrement => self.model.counter -= 1,
+            CounterMsg::Increment => self.model.counter += 1,
+            SetIncrement(value) => self.model.counter = value,
+        }
+    }
+
+    view! {
+        gtk::Box {
+            orientation: Vertical,
+            gtk::Button {
+                label: "+",
+                widget_name: "inc_button",
+                clicked => CounterMsg::Increment,
+            },
+            gtk::Label {
+                widget_name: "label",
+                text: &self.model.counter.to_string(),
+            },
+            gtk::Button {
+                label: "-",
+                clicked => CounterMsg::Decrement,
+            },
+        }
+    }
+}
+
+#[widget]
+impl Widget for HBox {
+    fn model() -> () {
+        ()
+    }
+
+    fn update(&mut self, _event: ()) {
+    }
+
+    view! {
+        #[container]
+        gtk::Box {
+            orientation: Horizontal,
+        }
+    }
+}
 
 pub struct Model {
     counter: i32,
@@ -80,6 +145,7 @@ impl Widget for Win {
                                 #[name="increment_menu"]
                                 gtk::MenuItem {
                                     label: "Increment",
+                                    // TODO: test nested view with a relm widget.
                                     submenu: view! {
                                         gtk::Menu {
                                             #[name="inc_menu"]
@@ -114,8 +180,15 @@ impl Widget for Win {
                 },
                 gtk::Frame {
                     label_widget: view! {
-                        gtk::Label {
-                            text: &self.model.counter.to_string(),
+                        HBox {
+                            gtk::Frame {
+                                label_widget: view! {
+                                    #[name="counter"]
+                                    Counter {
+                                        SetIncrement: self.model.counter,
+                                    },
+                                }
+                            }
                         }
                     },
                     #[name="dec_button"]
@@ -136,9 +209,9 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{ButtonExt, GtkMenuItemExt, LabelExt};
+    use gtk::{Button, ButtonExt, GtkMenuItemExt, Label, LabelExt};
 
-    use gtk_test::{assert_label, assert_text};
+    use gtk_test::{assert_label, assert_text, find_child_by_name};
     use relm_test::{click, mouse_move_to};
 
     use crate::Win;
@@ -154,6 +227,10 @@ mod tests {
         let increment_menu = &widgets.increment_menu;
         let file_menu = &widgets.file_menu;
 
+        let counter = &widgets.counter;
+        let counter_inc_button: Button = find_child_by_name(counter.widget(), "inc_button").expect("button");
+        let counter_label: Label = find_child_by_name(counter.widget(), "label").expect("label");
+
         assert_label!(inc_button, "+");
         assert_label!(dec_button, "-");
 
@@ -164,22 +241,34 @@ mod tests {
         };
 
         assert_text!(label, 0);
+        assert_text!(counter_label, 0);
         assert_label!(inc_menu, "By one 0");
         assert_label!(dec_menu, "By minus one 0");
         click(inc_button);
         assert_text!(label, 1);
+        assert_text!(counter_label, 1);
         assert_label!(inc_menu, "By one 1");
         assert_label!(dec_menu, "By minus one 1");
         menu_click();
         assert_text!(label, 2);
+        assert_text!(counter_label, 2);
         assert_label!(inc_menu, "By one 2");
         assert_label!(dec_menu, "By minus one 2");
         click(inc_button);
         assert_text!(label, 3);
+        assert_text!(counter_label, 3);
         assert_label!(inc_menu, "By one 3");
         assert_label!(dec_menu, "By minus one 3");
+
+        click(&counter_inc_button);
+        assert_text!(label, 3);
+        assert_text!(counter_label, 4);
+        assert_label!(inc_menu, "By one 3");
+        assert_label!(dec_menu, "By minus one 3");
+
         menu_click();
         assert_text!(label, 4);
+        assert_text!(counter_label, 4);
         assert_label!(inc_menu, "By one 4");
         assert_label!(dec_menu, "By minus one 4");
 
@@ -191,22 +280,27 @@ mod tests {
 
         menu_click();
         assert_text!(label, 3);
+        assert_text!(counter_label, 3);
         assert_label!(inc_menu, "By one 3");
         assert_label!(dec_menu, "By minus one 3");
         menu_click();
         assert_text!(label, 2);
+        assert_text!(counter_label, 2);
         assert_label!(inc_menu, "By one 2");
         assert_label!(dec_menu, "By minus one 2");
         menu_click();
         assert_text!(label, 1);
+        assert_text!(counter_label, 1);
         assert_label!(inc_menu, "By one 1");
         assert_label!(dec_menu, "By minus one 1");
         menu_click();
         assert_text!(label, 0);
+        assert_text!(counter_label, 0);
         assert_label!(inc_menu, "By one 0");
         assert_label!(dec_menu, "By minus one 0");
         menu_click();
         assert_text!(label, -1);
+        assert_text!(counter_label, -1);
         assert_label!(inc_menu, "By one -1");
         assert_label!(dec_menu, "By minus one -1");
     }

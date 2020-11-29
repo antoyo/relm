@@ -324,6 +324,13 @@ impl<'a> Generator<'a> {
         }
         for (key, value) in &widget.nested_views {
             let name = &value.name;
+            let name =
+                match value.widget {
+                    Gtk(_) => quote! { #name },
+                    Relm(_) => quote! {
+                        #name.widget().clone()
+                    },
+                };
             let widget = self.widget(value, None, IsGtk, true);
             let property_func = Ident::new(&format!("set_{}", key), key.span());
             let property = quote! {
