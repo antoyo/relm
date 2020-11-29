@@ -145,7 +145,6 @@ impl Widget for Win {
                                 #[name="increment_menu"]
                                 gtk::MenuItem {
                                     label: "Increment",
-                                    // TODO: test nested view with a relm widget.
                                     submenu: view! {
                                         gtk::Menu {
                                             #[name="inc_menu"]
