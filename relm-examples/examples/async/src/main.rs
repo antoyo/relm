@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -33,6 +33,7 @@ use gtk::{
     FileChooserAction,
     FileChooserDialog,
     FileChooserExt,
+    GtkWindowExt,
     Inhibit,
     LabelExt,
     OrientableExt,
@@ -108,7 +109,7 @@ impl Widget for Win {
 
 impl Win {
     fn open_app(&mut self) {
-        let dialog = FileChooserDialog::new(Some("Open a file"), Some(&self.window), FileChooserAction::Open);
+        let dialog = FileChooserDialog::new(Some("Open a file"), Some(&self.widgets.window), FileChooserAction::Open);
         dialog.add_button("Cancel", ResponseType::Cancel);
         dialog.add_button("Accept", ResponseType::Accept);
         let result = dialog.run();
@@ -120,11 +121,11 @@ impl Win {
                 cancellable.cancel();
             }
         }
-        dialog.destroy();
+        dialog.close();
     }
 
     fn open_file(&mut self) {
-        let dialog = FileChooserDialog::new(Some("Open a file"), Some(&self.window), FileChooserAction::Open);
+        let dialog = FileChooserDialog::new(Some("Open a file"), Some(&self.widgets.window), FileChooserAction::Open);
         dialog.add_button("Cancel", ResponseType::Cancel);
         dialog.add_button("Accept", ResponseType::Accept);
         let result = dialog.run();
@@ -138,7 +139,7 @@ impl Win {
                 cancellable.cancel();
             }
         }
-        dialog.destroy();
+        dialog.close();
     }
 }
 

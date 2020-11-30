@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -36,7 +36,7 @@ pub struct LabelModel {
 #[widget]
 impl Widget for Label {
     fn init_view(&mut self) {
-        self.label.set_text("Test");
+        self.widgets.label.set_text("Test");
     }
 
     fn model() -> LabelModel {
@@ -46,7 +46,7 @@ impl Widget for Label {
     }
 
     fn update(&mut self, _event: LabelMsg) {
-        self.label.set_text("");
+        self.widgets.label.set_text("");
     }
 
     view! {
@@ -96,8 +96,8 @@ mod tests {
 
     #[test]
     fn root_widget() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
-        let label = widgets.label.widget();
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let label = &widgets.label;
 
         assert_text!(label, "Test");
     }

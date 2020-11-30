@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -19,6 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+
 use gtk::{
     ButtonExt,
     Inhibit,
@@ -33,6 +35,8 @@ use relm_derive::{Msg, widget};
 use self::CounterMsg::*;
 use self::Msg::*;
 
+static COUNTER: AtomicUsize = AtomicUsize::new(0);
+
 pub struct CounterModel {
     counter: i32,
 }
@@ -46,6 +50,7 @@ pub enum CounterMsg {
 #[widget]
 impl Widget for Counter {
     fn model() -> CounterModel {
+        COUNTER.fetch_add(1, Ordering::SeqCst);
         CounterModel {
             counter: 0,
         }
@@ -79,6 +84,12 @@ impl Widget for Counter {
     }
 }
 
+impl Drop for Counter {
+    fn drop(&mut self) {
+        COUNTER.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
 #[derive(Msg)]
 pub enum Msg {
     Add,
@@ -101,13 +112,13 @@ impl Widget for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Add => {
-                let widget = self.hbox.add_widget::<Counter>(());
+                let widget = self.widgets.hbox.add_widget::<Counter>(());
                 self.model.counters.push(widget);
             },
             Quit => gtk::main_quit(),
             Remove => {
                 if let Some(counter) = self.model.counters.pop() {
-                    self.hbox.remove_widget(counter);
+                    self.widgets.hbox.remove_widget(counter);
                 }
             },
         }
@@ -143,24 +154,28 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::Ordering;
+
     use gtk::{Button, ContainerExt, Label, LabelExt};
 
     use gtk_test::{assert_text, find_child_by_name};
     use relm_test::click;
 
-    use crate::Win;
+    use crate::{Win, COUNTER};
 
     #[test]
     fn root_widget() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let hbox = &widgets.hbox;
         let add_button = &widgets.add_button;
         let remove_button = &widgets.remove_button;
 
         assert_eq!(hbox.get_children().len(), 0);
+        assert_eq!(COUNTER.load(Ordering::SeqCst), 0);
 
         click(add_button);
         assert_eq!(hbox.get_children().len(), 1);
+        assert_eq!(COUNTER.load(Ordering::SeqCst), 1);
 
         let widget1 = &hbox.get_children()[0];
         let inc_button1: Button = find_child_by_name(widget1, "inc_button").expect("inc button");
@@ -172,6 +187,7 @@ mod tests {
 
         click(add_button);
         assert_eq!(hbox.get_children().len(), 2);
+        assert_eq!(COUNTER.load(Ordering::SeqCst), 2);
 
         let widget2 = &hbox.get_children()[1];
         let inc_button2: Button = find_child_by_name(widget2, "inc_button").expect("inc button");
@@ -186,6 +202,7 @@ mod tests {
 
         click(add_button);
         assert_eq!(hbox.get_children().len(), 3);
+        assert_eq!(COUNTER.load(Ordering::SeqCst), 3);
 
         let widget3 = &hbox.get_children()[2];
         let inc_button3: Button = find_child_by_name(widget3, "inc_button").expect("inc button");
@@ -203,6 +220,7 @@ mod tests {
 
         click(remove_button);
         assert_eq!(hbox.get_children().len(), 2);
+        assert_eq!(COUNTER.load(Ordering::SeqCst), 2);
 
         click(&inc_button1);
         assert_text!(label1, 4);
@@ -212,11 +230,13 @@ mod tests {
 
         click(remove_button);
         assert_eq!(hbox.get_children().len(), 1);
+        assert_eq!(COUNTER.load(Ordering::SeqCst), 1);
 
         click(&inc_button1);
         assert_text!(label1, 5);
 
         click(remove_button);
         assert_eq!(hbox.get_children().len(), 0);
+        assert_eq!(COUNTER.load(Ordering::SeqCst), 0);
     }
 }

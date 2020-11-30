@@ -38,6 +38,7 @@ before_script:
 
 script:
   - cargo build
+  - cargo build --examples
   - cargo test --manifest-path relm-examples/Cargo.toml
   - cargo test --manifest-path relm-examples/Cargo.toml --examples
   - cargo test --manifest-path relm-examples/examples/buttons-attribute/Cargo.toml

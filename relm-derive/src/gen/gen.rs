@@ -50,25 +50,6 @@ use super::{Driver, MODEL_IDENT};
 use self::WidgetType::*;
 use self::WithParentheses::{WithParens, WithoutParens};
 
-macro_rules! set_container {
-    ($_self:expr, $widget:expr, $widget_name:expr, $widget_type:expr) => {
-        if let Some(ref container_type) = $widget.container_type {
-            if $_self.container_names.contains_key(container_type) {
-                let attribute =
-                    if let Some(ref typ) = *container_type {
-                        format!("#[container=\"{}\"]", typ)
-                    }
-                    else {
-                        "#[container]".to_string()
-                    };
-                panic!("Cannot use the {} attribute twice in the same widget", attribute);
-            }
-            $_self.relm_widgets.insert($widget_name.clone(), $widget_type.clone());
-            $_self.container_names.insert(container_type.clone(), ($widget_name.clone(), $widget_type.clone()));
-        }
-    };
-}
-
 #[derive(PartialEq)]
 enum WithParentheses {
     WithParens,
@@ -81,7 +62,7 @@ enum WidgetType {
     IsRelm,
 }
 
-pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStream, HashMap<Ident, Path>, TokenStream) {
+pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStream, HashMap<Ident, Path>, HashMap<Ident, Path>, TokenStream) {
     let mut generator = Generator::new(driver);
     let mut widget_tokens = quote! {};
     for (index, widget) in widgets.iter().enumerate() {
@@ -95,15 +76,37 @@ pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStrea
     let driver = generator.driver.take().expect("driver");
     let idents: Vec<_> = driver.widgets.keys().collect();
     let root_widget_name = &driver.root_widget.as_ref().expect("root_widget is None");
-    let widget_names1: Vec<_> = generator.widget_names.iter()
-        .filter(|ident| (idents.contains(ident) || generator.relm_widgets.contains_key(ident))
-                && ident != root_widget_name)
+    let component_names: Vec<_> = generator.widget_names.iter()
+        .filter(|ident| generator.relm_components.contains_key(ident) && ident != root_widget_name)
         .collect();
-    let widget_names1 = &widget_names1;
-    let widget_names2 = widget_names1;
+    let component_names1 = &component_names;
+    let component_names2 = &component_names;
+
+    let widget_names: Vec<_> = generator.widget_names.iter()
+        .filter(|ident| (idents.contains(ident) || generator.relm_widgets.contains_key(ident)) && !component_names.contains(ident) && ident != root_widget_name)
+        .collect();
+
     let events = &generator.events;
     let properties = &generator.properties;
     let model_ident = Ident::new(MODEL_IDENT, Span::call_site());
+    let components_name = Ident::new(&format!("__{}Components", name), Span::call_site());
+    let widgets_name = Ident::new(&format!("__{}Widgets", name), Span::call_site());
+    let streams_name = Ident::new(&format!("__{}Streams", name), Span::call_site());
+
+    let stream_names = generator.relm_components.keys();
+    let component_streams = generator.relm_components.keys()
+        .map(|name| quote! { #name.stream() });
+
+    let root_widget_expr =
+        if driver.root_widget_is_relm {
+            quote! {
+                : #root_widget_name.widget().clone()
+            }
+        }
+        else {
+            quote! {}
+        };
+
     let code = quote_spanned! { name.span() =>
         #widget_tokens
 
@@ -111,13 +114,22 @@ pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStrea
         #(#properties)*
 
         #name {
-            #root_widget_name: #root_widget_name,
-            #(#widget_names1: #widget_names2,)*
+            #[cfg(test)] streams: #streams_name {
+                #(#stream_names: #component_streams,)*
+            },
+            widgets: #widgets_name {
+                #root_widget_name #root_widget_expr,
+                #(#widget_names,)*
+                #(#component_names1: #component_names2.widget().clone(),)*
+            },
+            components: #components_name {
+                #(#component_names,)*
+            },
             model: #model_ident,
         }
     };
     let container_impl = gen_container_impl(&generator, &widgets[0], driver.generic_types.as_ref().expect("generic types"));
-    (code, generator.relm_widgets, container_impl)
+    (code, generator.relm_widgets, generator.relm_components, container_impl)
 }
 
 struct Generator<'a> {
@@ -125,6 +137,7 @@ struct Generator<'a> {
     driver: Option<&'a mut Driver>,
     events: Vec<TokenStream>,
     properties: Vec<TokenStream>,
+    relm_components: HashMap<Ident, Path>,
     relm_widgets: HashMap<Ident, Path>,
     widget_names: Vec<Ident>,
 }
@@ -136,6 +149,7 @@ impl<'a> Generator<'a> {
             driver: Some(driver),
             events: vec![],
             properties: vec![],
+            relm_components: HashMap::new(),
             relm_widgets: HashMap::new(),
             widget_names: vec![],
         }
@@ -209,8 +223,9 @@ impl<'a> Generator<'a> {
                 });
                 driver.root_widget = Some(widget_name.clone());
                 driver.root_widget_expr = Some(quote! {
-                    #widget_name.widget()
+                    #widget_name
                 });
+                driver.root_widget_is_relm = true;
             }
             if is_container {
                 quote_spanned! { widget_name.span() =>
@@ -347,7 +362,7 @@ impl<'a> Generator<'a> {
     {
         let struct_name = &widget.typ;
         let widget_name = &widget.name;
-        set_container!(self, widget, widget_name, struct_name);
+        self.set_container(widget, widget_name, struct_name, false);
         self.widget_names.push(widget_name.clone());
 
         if gtk_widget.save {
@@ -393,9 +408,9 @@ impl<'a> Generator<'a> {
         self.widget_names.push(widget.name.clone());
         let widget_name = &widget.name;
         let widget_type_ident = &widget.typ;
-        set_container!(self, widget, widget_name, widget_type_ident);
+        self.set_container(widget, widget_name, widget_type_ident, true);
         let relm_component_type = gen_relm_component_type(widget.is_container, widget_type_ident);
-        self.relm_widgets.insert(widget.name.clone(), relm_component_type);
+        self.relm_components.insert(widget.name.clone(), relm_component_type);
 
         self.collect_relm_events(widget, relm_widget);
 
@@ -433,6 +448,28 @@ impl<'a> Generator<'a> {
             };
         }
         tokens
+    }
+
+    fn set_container(&mut self, widget: &Widget, widget_name: &Ident, widget_type: &Path, is_relm_widget: bool) {
+        if let Some(ref container_type) = widget.container_type {
+            if self.container_names.contains_key(container_type) {
+                let attribute =
+                    if let Some(ref typ) = *container_type {
+                        format!("#[container=\"{}\"]", typ)
+                    }
+                    else {
+                        "#[container]".to_string()
+                    };
+                panic!("Cannot use the {} attribute twice in the same widget", attribute);
+            }
+            if is_relm_widget {
+                self.relm_components.insert(widget_name.clone(), widget_type.clone());
+            }
+            else {
+                self.relm_widgets.insert(widget_name.clone(), widget_type.clone());
+            }
+            self.container_names.insert(container_type.clone(), (widget_name.clone(), widget_type.clone()));
+        }
     }
 
     fn widget(&mut self, widget: &Widget, parent: Option<&Ident>, parent_widget_type: WidgetType, show: bool) -> TokenStream {
@@ -677,7 +714,7 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
                 type Containers = #containers_type;
 
                 fn container(&self) -> &Self::Container {
-                    &self.#name
+                    &self.widgets.#name
                 }
 
                 #other_containers_func
@@ -696,7 +733,6 @@ fn gen_other_containers(generator: &Generator, widget_type: &TokenStream, widget
         let mut names = vec![];
         let mut types = vec![];
         let mut values = vec![];
-        let mut suffixes = vec![];
         for (_, &(ref name, ref typ)) in &generator.container_names {
             names.push(name.clone());
             let original_type = typ.clone();
@@ -704,13 +740,11 @@ fn gen_other_containers(generator: &Generator, widget_type: &TokenStream, widget
                 if typ.segments.len() > 1 {
                     // GTK+ widget
                     values.push(name.clone());
-                    suffixes.push(quote! {});
                     quote! { #original_type }
                 }
                 else {
                     // Relm widget
                     values.push(Ident::new(&format!("{}", name), name.span()));
-                    suffixes.push(quote! { .widget() });
                     let original_ident = original_type.segments[0].ident.clone();
                     quote_spanned! { original_ident.span() =>
                         <#original_ident as ::relm::Widget>::Root
@@ -730,7 +764,7 @@ fn gen_other_containers(generator: &Generator, widget_type: &TokenStream, widget
         }, quote! {
             fn other_containers(&self) -> Self::Containers {
                 #containers_ident {
-                    #(#names: self.#values#suffixes.clone(),)*
+                    #(#names: self.widgets.#values.clone(),)*
                 }
             }
         })

@@ -74,8 +74,13 @@ pub trait Widget
 /// Trait implemented by the generator to ease the creation of tests of relm widgets using the
 /// view! macro.
 pub trait WidgetTest : Widget {
+    /// Represents the structure holding all the `StreamHandle`s. Useful for tests.
+    type Streams;
     /// Represents the structure holding all the widgets. Useful for tests.
     type Widgets;
+
+    /// Get the structure containing all the `StreamHandle`s. Useful for tests.
+    fn get_streams(&self) -> Self::Streams;
 
     /// Get the structure containing all the widgets. Useful for tests.
     fn get_widgets(&self) -> Self::Widgets;

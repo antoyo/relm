@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -117,6 +117,11 @@ impl Widget for Win {
 }
 
 impl WidgetTest for Win {
+    type Streams = ();
+
+    fn get_streams(&self) -> Self::Streams {
+    }
+
     type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
@@ -143,7 +148,7 @@ mod tests {
 
     #[test]
     fn inhibit_event() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let entry = &widgets.entry;
 
         enter_keys(entry, "a");

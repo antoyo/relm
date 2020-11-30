@@ -119,7 +119,7 @@ fn main() {
 
     // Send the `Increment` message when `plus_button` emits the `clicked` signal.
     {
-        let stream = main_stream.clone();
+        let stream = main_stream.downgrade();
         plus_button.connect_clicked(move |_| {
             stream.emit(Increment);
         });
@@ -127,7 +127,7 @@ fn main() {
 
     // Send the `Decrement` message when `minus_button` emits the `clicked` signal.
     {
-        let stream = main_stream.clone();
+        let stream = main_stream.downgrade();
         minus_button.connect_clicked(move |_| {
             stream.emit(Decrement);
         });
@@ -137,7 +137,7 @@ fn main() {
 
     // Close the window and quit when the window close button is clicked.
     {
-        let stream = main_stream.clone();
+        let stream = main_stream.downgrade();
         window.connect_delete_event(move |_, _| {
             stream.emit(Quit);
             Inhibit(false)

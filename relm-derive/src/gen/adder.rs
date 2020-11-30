@@ -127,7 +127,7 @@ fn create_stmts_for_msgs(ident: &Ident, msg_map: &MsgModelMap) -> Vec<Stmt> {
             value.append_all(&[&msg.expr]);
             let variant = &msg.name;
             let stmt = quote_spanned! { ident.span() =>
-                { self.#widget_name.stream().emit(#variant(#value)); }
+                { self.components.#widget_name.stream().emit(#variant(#value)); }
             };
             let expr: Expr = parse(stmt.into())
                 .expect("parse() in create_stmts");
@@ -148,15 +148,8 @@ fn create_stmts_for_props(ident: &Ident, property_map: &PropertyModelMap) -> Vec
             let mut tokens = quote! {};
             tokens.append_all(&[&property.expr]);
             let stmt =
-                if property.is_relm_widget {
-                    quote_spanned! { ident.span() =>
-                        { self.#widget_name.widget().#prop_name(#tokens); }
-                    }
-                }
-                else {
-                    quote_spanned! { ident.span() =>
-                        { self.#widget_name.#prop_name(#tokens); }
-                    }
+                quote_spanned! { ident.span() =>
+                    { self.widgets.#widget_name.#prop_name(#tokens); }
                 };
             let expr: Expr = parse(stmt.into()).expect("parse() in create_stmts");
             if let Block(ExprBlock { ref block, .. }) = expr {

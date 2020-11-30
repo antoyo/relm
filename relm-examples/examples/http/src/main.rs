@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -49,6 +49,7 @@ use gtk::Orientation::Vertical;
 use relm::{
     connect_async,
     connect_stream,
+    EventStream,
     Relm,
     Update,
     UpdateNew,
@@ -70,6 +71,7 @@ pub struct Model {
     button_enabled: bool,
     loader: PixbufLoader,
     relm: Relm<Win>,
+    request: Option<EventStream<HttpMsg>>,
     topic: String,
     text: String,
 }
@@ -92,6 +94,7 @@ impl Widget for Win {
             button_enabled: true,
             loader: PixbufLoader::new(),
             relm: relm.clone(),
+            request: None,
             topic: topic.to_string(),
             text: topic.to_string(),
         }
@@ -101,10 +104,11 @@ impl Widget for Win {
         match event {
             DownloadCompleted => {
                 self.model.button_enabled = true;
-                self.button.grab_focus();
+                self.widgets.button.grab_focus();
                 self.model.loader.close().ok();
-                self.image.set_from_pixbuf(self.model.loader.get_pixbuf().as_ref());
+                self.widgets.image.set_from_pixbuf(self.model.loader.get_pixbuf().as_ref());
                 self.model.loader = PixbufLoader::new();
+                self.model.request = None;
             },
             FetchUrl => {
                 self.model.text = String::new();
@@ -114,16 +118,16 @@ impl Widget for Win {
 
                 let url = format!("https://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag={}",
                     self.model.topic);
-                let http = execute::<Http>(url);
+                let http = execute::<Http>(url.clone());
                 connect_stream!(http@ReadDone(ref buffer), self.model.relm.stream(), NewGif(buffer.take()));
+                self.model.request = Some(http);
             },
             HttpError(error) => {
                 self.model.button_enabled = true;
                 self.model.text = format!("HTTP error: {}", error);
-                self.label.override_color(StateFlags::NORMAL, Some(RED));
+                self.widgets.label.override_color(StateFlags::NORMAL, Some(RED));
             },
             ImageChunk(chunk) => {
-                //self.model.loader.write(&chunk).expect("write failure");
                 if let Err(error) = self.model.loader.write(&chunk) {
                     eprintln!("{}", error);
                 }
@@ -131,10 +135,18 @@ impl Widget for Win {
             NewGif(buffer) => {
                 if let Ok(body) = String::from_utf8(buffer) {
                     let mut json = json::parse(&body).expect("invalid json");
-                    let url = json["data"]["image_url"].take_string().expect("take_string failed");
-                    let http = execute::<Http>(url);
-                    connect_stream!(http@DataRead(ref buffer), self.model.relm.stream(), ImageChunk(buffer.take()));
-                    connect_stream!(http@ReadDone(_), self.model.relm.stream(), DownloadCompleted);
+                    match json["data"]["image_url"].take_string() {
+                        Some(url) => {
+                            let http = execute::<Http>(url.to_string());
+                            connect_stream!(http@DataRead(ref buffer), self.model.relm.stream(), ImageChunk(buffer.take()));
+                            connect_stream!(http@ReadDone(_), self.model.relm.stream(), DownloadCompleted);
+                            self.model.request = Some(http);
+                        },
+                        None => {
+                            eprintln!("No data.image_url in json");
+                            self.model.relm.stream().emit(DownloadCompleted);
+                        },
+                    }
                 }
             },
             Quit => gtk::main_quit(),

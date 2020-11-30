@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -179,10 +179,19 @@ pub enum Msg {
     Quit,
 }
 
+struct Components {
+    _vbox: Component<MyVBox>,
+}
+
 #[derive(Clone)]
-struct Win {
-    vbox: Component<MyVBox>,
+struct Widgets {
+    vbox: gtk::EventBox,
     window: Window,
+}
+
+struct Win {
+    _components: Components,
+    widgets: Widgets,
 }
 
 impl Update for Win {
@@ -204,7 +213,7 @@ impl Widget for Win {
     type Root = Window;
 
     fn root(&self) -> Window {
-        self.window.clone()
+        self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
@@ -215,17 +224,27 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
 
         Win {
-            vbox: vbox,
-            window: window,
+            widgets: Widgets {
+                vbox: vbox.widget().clone(),
+                window,
+            },
+            _components: Components {
+                _vbox: vbox,
+            },
         }
     }
 }
 
 impl WidgetTest for Win {
-    type Widgets = Win;
+    type Streams = ();
+
+    fn get_streams(&self) -> Self::Streams {
+    }
+
+    type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
-        self.clone()
+        self.widgets.clone()
     }
 }
 
@@ -243,12 +262,12 @@ mod tests {
 
     #[test]
     fn root_widget() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let vbox = &widgets.vbox;
-        let inc_button: Button = find_child_by_name(vbox.widget(), "inc_button").expect("inc button");
-        let label: Label = find_child_by_name(vbox.widget(), "label").expect("label");
-        let button: Button = find_child_by_name(vbox.widget(), "button").expect("button");
-        let dec_button: Button = find_child_by_name(vbox.widget(), "dec_button").expect("dec button");
+        let inc_button: Button = find_child_by_name(vbox, "inc_button").expect("inc button");
+        let label: Label = find_child_by_name(vbox, "label").expect("label");
+        let button: Button = find_child_by_name(vbox, "button").expect("button");
+        let dec_button: Button = find_child_by_name(vbox, "dec_button").expect("dec button");
         let inc_allocation = inc_button.get_allocation();
         let label_allocation = label.get_allocation();
         let button_allocation = button.get_allocation();

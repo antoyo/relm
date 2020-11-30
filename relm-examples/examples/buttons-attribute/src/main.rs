@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2018-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -62,7 +62,7 @@ impl Widget for Win {
             Decrement => self.model.counter -= 1,
             Increment => self.model.counter += 1,
             Quit => gtk::main_quit(),
-            Show => self.dec_button.set_visible(true),
+            Show => self.widgets.dec_button.set_visible(true),
         }
     }
 
@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let dec_button = &widgets.dec_button;
         let label = &widgets.label;
 

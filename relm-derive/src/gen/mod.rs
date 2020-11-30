@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -34,7 +34,7 @@ mod walker;
 use std::collections::{HashMap, HashSet};
 
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{quote, quote_spanned};
 use syn::{
     Generics,
     Ident,
@@ -44,6 +44,7 @@ use syn::{
     Macro,
     Path,
     PatType,
+    PathArguments,
     ReturnType,
     Signature,
     TypePath,
@@ -83,6 +84,7 @@ pub struct Driver {
     root_type: Option<ImplItem>,
     root_widget: Option<Ident>,
     root_widget_expr: Option<TokenStream>,
+    root_widget_is_relm: bool,
     root_widget_type: Option<TokenStream>,
     update_method: Option<ImplItem>,
     view_macro: Option<Macro>,
@@ -97,6 +99,7 @@ struct View {
     item: ImplItem,
     msg_model_map: MsgModelMap,
     properties_model_map: PropertyModelMap,
+    relm_components: HashMap<Ident, Path>,
     relm_widgets: HashMap<Ident, Path>,
     widget: Widget,
 }
@@ -116,6 +119,7 @@ impl Driver {
             root_type: None,
             root_widget: None,
             root_widget_expr: None,
+            root_widget_is_relm: false,
             root_widget_type: None,
             update_method: None,
             view_macro: None,
@@ -168,33 +172,75 @@ impl Driver {
         }
     }
 
-    fn create_struct(&self, typ: &Type, relm_widgets: &HashMap<Ident, Path>, generics: &Generics) -> TokenStream {
+    fn create_struct(&self, typ: &Type, relm_widgets: &HashMap<Ident, Path>, relm_components: &HashMap<Ident, Path>, generics: &Generics) -> TokenStream {
         let where_clause = gen_where_clause(generics);
-        let widgets = self.widgets.iter().filter(|&(ident, _)| !relm_widgets.contains_key(ident))
+        let root_widget_name = self.root_widget.as_ref().expect("root widget name");
+        let widgets = self.widgets.iter()
+            .filter(|&(ident, _)| !relm_widgets.contains_key(ident) && !relm_components.contains_key(ident) && ident != root_widget_name)
             .map(|(ident, tokens)| (ident.clone(), tokens));
         let (idents, types): (Vec<Ident>, Vec<_>) = widgets.unzip();
-        let idents = &idents;
-        let types = &types;
-        let relm_idents = relm_widgets.keys();
-        let relm_types = relm_widgets.values();
         let widget_model_type = self.widget_model_type.as_ref().expect("missing model method");
+        let components_name = Ident::new(&format!("__{}Components", get_name(&typ)), Span::call_site());
+        let widgets_name = Ident::new(&format!("__{}Widgets", get_name(&typ)), Span::call_site());
+        let streams_name = Ident::new(&format!("__{}Streams", get_name(&typ)), Span::call_site());
+        let components = {
+            let components = relm_components.iter().filter(|&(ident, _)| ident != root_widget_name)
+                .map(|(ident, tokens)| (ident.clone(), tokens));
+            let (idents, types): (Vec<Ident>, Vec<_>) = components.unzip();
+            quote! {
+                pub struct #components_name {
+                    #(pub #idents: #types,)*
+                }
+            }
+        };
+
+        let component_root_types = relm_components.values();
+        let component_root_types: Vec<_> = component_root_types
+            .map(|path| {
+                if let PathArguments::AngleBracketed(ref arguments) = path.segments.last().expect("component").arguments {
+                    let first_arg = arguments.args.first();
+                    let arg = first_arg.as_ref().expect("argument");
+                    return arg.clone();
+                }
+                panic!("Not a component type");
+            })
+            .collect();
         let widgets = {
             let relm_idents = relm_widgets.keys();
             let relm_types = relm_widgets.values();
-            let name = Ident::new(&format!("__{}Widgets", get_name(&typ)), Span::call_site());
+
+            let component_idents = relm_components.keys();
             quote! {
-                pub struct #name {
-                    #(pub #relm_idents: #relm_types,)*
+                #[derive(Clone)]
+                pub struct #widgets_name {
+                    #(#component_idents: <#component_root_types as ::relm::Widget>::Root,)*
+                    #(#idents: #types,)*
+                    #(#relm_idents: #relm_types,)*
+                }
+            }
+        };
+        let streams = {
+            let component_idents = relm_components.keys();
+            quote! {
+                #[cfg(test)]
+                #[derive(Clone)]
+                pub struct #streams_name {
+                    #(#component_idents: ::relm::StreamHandle<<#component_root_types as ::relm::Update>::Msg>,)*
                 }
             }
         };
         quote_spanned! { typ.span() =>
             #[allow(dead_code, missing_docs)]
             pub struct #typ #where_clause {
-                #(#idents: #types,)*
-                #(#relm_idents: #relm_types,)*
+                #[cfg(test)] streams: #streams_name,
+                components: #components_name,
+                widgets: #widgets_name,
                 model: #widget_model_type,
             }
+
+            #components
+
+            #streams
 
             #widgets
         }
@@ -258,7 +304,7 @@ impl Driver {
             new_items.push(view.item);
             self.widgets.insert(self.root_widget.clone().expect("root widget"),
             self.root_widget_type.clone().expect("root widget type"));
-            let widget_struct = self.create_struct(&self_ty, &view.relm_widgets, &generics);
+            let widget_struct = self.create_struct(&self_ty, &view.relm_widgets, &view.relm_components, &generics);
             new_items.push(self.get_root_type());
             if let Some(data_method) = self.get_data_method() {
                 new_items.push(data_method);
@@ -266,7 +312,7 @@ impl Driver {
             new_items.push(self.get_root());
             let other_methods = self.get_other_methods(&self_ty, &generics);
             let update_impl = self.update_impl(&self_ty, &generics, update_items);
-            let widget_test_impl = self.widget_test_impl(&self_ty, &generics, &view.relm_widgets);
+            let widget_test_impl = self.widget_test_impl(&self_ty, &generics);
             let item = Impl(ItemImpl { attrs, defaultness, unsafety, generics, impl_token, trait_, self_ty, brace_token,
                 items: new_items });
             ast = item;
@@ -345,7 +391,7 @@ impl Driver {
             let root_widget_expr = self.root_widget_expr.take().expect("root widget expr");
             block_to_impl_item(quote! {
                 fn root(&self) -> Self::Root {
-                    self.#root_widget_expr.clone()
+                    self.widgets.#root_widget_expr.clone()
                 }
             })
         })
@@ -434,7 +480,7 @@ impl Driver {
             self.collect_bindings(widget, &mut msg_model_map, &mut properties_model_map);
         }
 
-        let (view, relm_widgets, container_impl) = gen::gen(name, &widgets, self);
+        let (view, relm_widgets, relm_components, container_impl) = gen::gen(name, &widgets, self);
         let model_ident = Ident::new(MODEL_IDENT, Span::call_site()); // TODO: maybe need to set Span here.
         let code = quote_spanned! { name.span() =>
             #[allow(unused_variables,clippy::all)] // Necessary to avoid warnings in case the parameters are unused.
@@ -449,6 +495,7 @@ impl Driver {
             item,
             msg_model_map,
             properties_model_map,
+            relm_components,
             relm_widgets,
             widget,
         })
@@ -472,24 +519,22 @@ impl Driver {
         }
     }
 
-    fn widget_test_impl(&self, typ: &Type, generics: &Generics, relm_widgets: &HashMap<Ident, Path>) -> TokenStream {
+    fn widget_test_impl(&self, typ: &Type, generics: &Generics) -> TokenStream {
+        let streams_name = Ident::new(&format!("__{}Streams", get_name(&typ)), Span::call_site());
         let name = Ident::new(&format!("__{}Widgets", get_name(&typ)), Span::call_site());
         let where_clause = gen_where_clause(generics);
-        let mut relm_idents = quote! { };
-        for token in relm_widgets.keys().map(|ident| ident.clone().into_token_stream()) {
-            relm_idents = quote_spanned! { typ.span() =>
-                #relm_idents
-                #token: self.#token.clone(),
-            };
-        }
         quote_spanned! { typ.span() =>
+            #[cfg(test)]
             impl #generics ::relm::WidgetTest for #typ #where_clause {
+                type Streams = #streams_name;
                 type Widgets = #name;
 
+                fn get_streams(&self) -> #streams_name {
+                    self.streams.clone()
+                }
+
                 fn get_widgets(&self) -> #name {
-                    #name {
-                        #relm_idents
-                    }
+                    self.widgets.clone()
                 }
             }
         }
@@ -627,7 +672,7 @@ fn gen_set_child_prop_calls(widget: &Widget) -> Option<ImplItem> {
         let property_func = Ident::new(&format!("set_{}_{}", ident, key), key.span());
         tokens = quote_spanned! { widget_name.span() =>
             #tokens
-            parent.#property_func(&self.#widget_name, #value);
+            parent.#property_func(&self.widgets.#widget_name, #value);
         };
     }
     if !widget.child_properties.is_empty() {

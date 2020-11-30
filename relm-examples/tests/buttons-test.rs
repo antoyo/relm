@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -115,8 +115,8 @@ impl Widget for Win {
         let inc = MenuItem::with_label("Increment");
         connect!(self.model.relm, inc, connect_activate(_), Increment);
         menu.append(&inc);
-        self.menu_action.set_submenu(Some(&menu));
-        self.menu_bar.show_all();
+        self.widgets.menu_action.set_submenu(Some(&menu));
+        self.widgets.menu_bar.show_all();
     }
 
     fn model(relm: &Relm<Self>, _: ()) -> Model {
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn label_change() {
-        let (component, widgets) = relm::init_test::<Win>(()).expect("init relm test");
+        let (component, streams, widgets) = relm::init_test::<Win>(()).expect("init relm test");
         let inc_button = &widgets.inc_button;
         let dec_button = &widgets.dec_button;
         let update_button = &widgets.update_button;
@@ -252,7 +252,7 @@ mod tests {
                 false
             }
         );
-        let label_observer = relm_observer_new!(inc_label, Text(_));
+        let label_observer = relm_observer_new!(streams.inc_label, Text(_));
 
         // Shortcut for the previous call to Observer::new().
         let two_observer = relm_observer_new!(component, TwoInc(_, _));
@@ -326,7 +326,6 @@ mod tests {
         assert_eq!(widgets.label.get_text(), 7.to_string());
         assert_text!(widgets.label, 7);
 
-        let inc_label = inc_label.widget();
         click(inc_label);
         assert_text!(widgets.label, 8);
 

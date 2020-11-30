@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -56,7 +56,7 @@ impl Widget for Text {
     fn update(&mut self, event: TextMsg) {
         match event {
             Change(text) => self.model.content = text.chars().rev().collect(),
-            SetText(text) => self.text_entry.set_text(&text),
+            SetText(text) => self.widgets.text_entry.set_text(&text),
         }
     }
 
@@ -136,9 +136,9 @@ mod tests {
 
     #[test]
     fn root_widget() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let button = &widgets.button;
-        let entry: Entry = find_child_by_name(widgets.text.widget(), "text_entry").expect("entry");
+        let entry: Entry = find_child_by_name(&widgets.text, "text_entry").expect("entry");
 
         wait(200);
 

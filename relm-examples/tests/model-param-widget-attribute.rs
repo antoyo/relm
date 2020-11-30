@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -127,9 +127,9 @@ mod tests {
 
     #[test]
     fn model_params() {
-        let (_component, widgets) = relm::init_test::<Win>(5).expect("init_test failed");
+        let (_component, _, widgets) = relm::init_test::<Win>(5).expect("init_test failed");
         let label = &widgets.label;
-        let button = widgets.button.widget();
+        let button = &widgets.button;
 
         assert_text!(label, 5);
         assert_label!(button, "Button text attribute");

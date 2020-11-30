@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 Boucher, Antoni <bouanto@zoho.com>
+ * Copyright (c) 2017-2020 Boucher, Antoni <bouanto@zoho.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -123,11 +123,21 @@ enum Msg {
     Quit,
 }
 
-#[derive(Clone)]
-struct Win {
+struct Components {
     minus_button: Component<CheckButton>,
     plus_button: Component<CheckButton>,
+}
+
+#[derive(Clone)]
+struct Widgets {
+    minus_button: gtk::CheckButton,
+    plus_button: gtk::CheckButton,
     window: Window,
+}
+
+struct Win {
+    components: Components,
+    widgets: Widgets,
 }
 
 impl Update for Win {
@@ -142,19 +152,19 @@ impl Update for Win {
         match event {
             Quit => gtk::main_quit(),
             MinusToggle => {
-                if self.minus_button.widget().get_active() {
-                    self.plus_button.emit(Uncheck);
+                if self.widgets.minus_button.get_active() {
+                    self.components.plus_button.emit(Uncheck);
                 }
                 else {
-                    self.plus_button.emit(Check);
+                    self.components.plus_button.emit(Check);
                 }
             },
             PlusToggle => {
-                if self.plus_button.widget().get_active() {
-                    self.minus_button.emit(Uncheck);
+                if self.widgets.plus_button.get_active() {
+                    self.components.minus_button.emit(Uncheck);
                 }
                 else {
-                    self.minus_button.emit(Check);
+                    self.components.minus_button.emit(Check);
                 }
             },
         }
@@ -165,7 +175,7 @@ impl Widget for Win {
     type Root = Window;
 
     fn root(&self) -> Self::Root {
-        self.window.clone()
+        self.widgets.window.clone()
     }
 
     fn view(relm: &Relm<Self>, _model: Self::Model) -> Self {
@@ -183,18 +193,29 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         Win {
-            minus_button,
-            plus_button,
-            window: window,
+            widgets: Widgets {
+                minus_button: minus_button.widget().clone(),
+                plus_button: plus_button.widget().clone(),
+                window: window,
+            },
+            components: Components {
+                minus_button,
+                plus_button,
+            },
         }
     }
 }
 
 impl WidgetTest for Win {
-    type Widgets = Win;
+    type Streams = ();
+
+    fn get_streams(&self) -> Self::Streams {
+    }
+
+    type Widgets = Widgets;
 
     fn get_widgets(&self) -> Self::Widgets {
-        self.clone()
+        self.widgets.clone()
     }
 }
 
@@ -212,9 +233,9 @@ mod tests {
 
     #[test]
     fn check_uncheck() {
-        let (_component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
-        let plus_button = widgets.plus_button.widget();
-        let minus_button = widgets.minus_button.widget();
+        let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+        let plus_button = &widgets.plus_button;
+        let minus_button = &widgets.minus_button;
 
         assert!(!plus_button.get_active());
         assert!(!minus_button.get_active());

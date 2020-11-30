@@ -118,7 +118,7 @@ pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
 pub use gobject_sys::{GParameter, g_object_newv};
 use glib::Continue;
 
-pub use crate::core::{Channel, EventStream, Sender};
+pub use crate::core::{Channel, EventStream, Sender, StreamHandle};
 pub use crate::state::{
     DisplayVariant,
     IntoOption,
@@ -151,14 +151,15 @@ macro_rules! use_impl_self_type {
     };
 }
 
-fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WIDGET>, WIDGET::Widgets)
+fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WIDGET>, WIDGET::Streams, WIDGET::Widgets)
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    let (component, widget, relm): (_, WIDGET, _) = create_widget(model_param);
+    let (component, widget, relm) = create_widget::<WIDGET>(model_param);
     let widgets = widget.get_widgets();
-    init_component::<WIDGET>(component.stream(), widget, &relm);
-    (component, widgets)
+    let streams = widget.get_streams();
+    init_component::<WIDGET>(component.owned_stream(), widget, &relm);
+    (component, streams, widgets)
 }
 
 /// Create a new relm widget without adding it to an existing widget.
@@ -169,7 +170,7 @@ pub fn create_component<CHILDWIDGET>(model_param: CHILDWIDGET::ModelParam)
           CHILDWIDGET::Msg: DisplayVariant + 'static,
 {
     let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
-    init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+    init_component::<CHILDWIDGET>(component.owned_stream(), widget, &child_relm);
     component
 }
 
@@ -183,7 +184,7 @@ pub fn create_container<CHILDWIDGET>(model_param: CHILDWIDGET::ModelParam)
     let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
     let container = widget.container().clone();
     let containers = widget.other_containers();
-    init_component::<CHILDWIDGET>(component.stream(), widget, &child_relm);
+    init_component::<CHILDWIDGET>(component.owned_stream(), widget, &child_relm);
     ContainerComponent::new(component, container, containers)
 }
 
@@ -195,7 +196,7 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
 {
     let stream = EventStream::new();
 
-    let relm = Relm::new(stream.clone());
+    let relm = Relm::new(&stream);
     let model = WIDGET::model(&relm, model_param);
     let mut widget = WIDGET::view(&relm, model);
     widget.init_view();
@@ -258,11 +259,11 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
 /// # #[derive(Msg)]
 /// # enum Msg {}
 /// # fn main() {
-/// let (component, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
+/// let (component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
 /// # }
 /// ```
 pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
-    Result<(Component<WIDGET>, WIDGET::Widgets), ()>
+    Result<(Component<WIDGET>, WIDGET::Streams, WIDGET::Widgets), ()>
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
@@ -277,7 +278,7 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
           WIDGET::Msg: DisplayVariant + 'static
 {
     let (component, widget, relm) = create_widget::<WIDGET>(model_param);
-    init_component::<WIDGET>(component.stream(), widget, &relm);
+    init_component::<WIDGET>(component.owned_stream(), widget, &relm);
     Ok(component)
 }
 
@@ -340,7 +341,7 @@ pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>
 }
 
 /// Emit the `msg` every `duration` ms.
-pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, duration: u32, constructor: F) {
+pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MSG>, duration: u32, constructor: F) {
     let stream = stream.clone();
     gtk::timeout_add(duration, move || {
         let msg = constructor();
@@ -350,7 +351,7 @@ pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG
 }
 
 /// After `duration` ms, emit `msg`.
-pub fn timeout<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &EventStream<MSG>, duration: u32, constructor: F) {
+pub fn timeout<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MSG>, duration: u32, constructor: F) {
     let stream = stream.clone();
     gtk::timeout_add(duration, move || {
         let msg = constructor();
