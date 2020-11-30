@@ -30,23 +30,14 @@ use super::{
 /// ## Warning
 /// You must keep your components as long as you want them to send/receive events.
 /// Common practice is to store `Component`s in the `Widget` struct (see the [communication
-/// example](https://github.com/antoyo/relm/blob/master/tests/communication.rs#L216-L220)).
+/// example](https://github.com/antoyo/relm/blob/master/relm-examples/tests/communication.rs#L210-L214)).
 /// The `#[widget]` attribute takes care of storing them in the struct automatically (see the
-/// [communication-attribute example](https://github.com/antoyo/relm/blob/master/tests/communication-attribute.rs)).
+/// [communication-attribute example](https://github.com/antoyo/relm/blob/master/relm-examples/tests/communication-attribute.rs)).
 #[must_use]
 pub struct Component<WIDGET: Widget> {
     stream: EventStream<WIDGET::Msg>,
     widget: WIDGET::Root,
 }
-
-/*impl<WIDGET: Widget> Clone for Component<WIDGET> {
-    fn clone(&self) -> Self {
-        Self {
-            stream: self.stream.clone(),
-            widget: self.widget.clone(),
-        }
-    }
-}*/
 
 impl<WIDGET: Widget> Component<WIDGET> {
     #[doc(hidden)]

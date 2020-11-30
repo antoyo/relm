@@ -141,9 +141,6 @@ pub fn init_component<UPDATE>(stream: &EventStream<UPDATE::Msg>, mut component: 
           UPDATE::Msg: DisplayVariant + 'static,
 {
     component.subscriptions(relm);
-    // FIXME: This callback contains the component and the component contains a copy of the stream,
-    // so we have a reference cycle.
-    // Check if it is really the case.
     stream.set_callback(move |event| {
         update_component(&mut component, event);
     });

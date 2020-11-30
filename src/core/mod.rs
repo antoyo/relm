@@ -246,16 +246,6 @@ pub struct EventStream<MSG> {
     _phantom: PhantomData<*mut MSG>,
 }
 
-/*impl<MSG> Clone for EventStream<MSG> {
-    fn clone(&self) -> Self {
-        EventStream {
-            source_id: self.source_id,
-            source: self.source.clone(),
-            _phantom: PhantomData,
-        }
-    }
-}*/
-
 impl<MSG> Drop for EventStream<MSG> {
     fn drop(&mut self) {
         // Ignore error since we're in a destructor.

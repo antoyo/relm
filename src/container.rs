@@ -35,16 +35,6 @@ pub struct ContainerComponent<WIDGET: Container + Widget> {
     pub containers: WIDGET::Containers,
 }
 
-/*impl<WIDGET: Container + Widget> Clone for ContainerComponent<WIDGET> {
-    fn clone(&self) -> Self {
-        Self {
-            component: self.component.clone(),
-            container: self.container.clone(),
-            containers: self.containers.clone(),
-        }
-    }
-}*/
-
 impl<WIDGET: Container + Widget> ContainerComponent<WIDGET> {
     #[doc(hidden)]
     pub fn new(component: Component<WIDGET>, container: WIDGET::Container, containers: WIDGET::Containers) -> Self {

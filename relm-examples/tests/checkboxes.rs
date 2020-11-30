@@ -152,7 +152,7 @@ impl Update for Win {
         match event {
             Quit => gtk::main_quit(),
             MinusToggle => {
-                if self.components.minus_button.widget().get_active() {
+                if self.widgets.minus_button.get_active() {
                     self.components.plus_button.emit(Uncheck);
                 }
                 else {
@@ -160,7 +160,7 @@ impl Update for Win {
                 }
             },
             PlusToggle => {
-                if self.components.plus_button.widget().get_active() {
+                if self.widgets.plus_button.get_active() {
                     self.components.minus_button.emit(Uncheck);
                 }
                 else {
