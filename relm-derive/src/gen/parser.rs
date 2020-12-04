@@ -127,6 +127,7 @@ pub struct Widget {
     pub nested_views: HashMap<Ident, Widget>,
     pub parent_id: Option<String>,
     pub properties: HashMap<Ident, Expr>,
+    pub save: bool,
     pub typ: Path,
     pub widget: EitherWidget,
 }
@@ -148,6 +149,7 @@ impl Widget {
             nested_views,
             parent_id: None,
             properties,
+            save: false,
             typ,
             widget: Gtk(widget),
         }
@@ -173,6 +175,7 @@ impl Widget {
             nested_views,
             parent_id: None,
             properties,
+            save: false,
             typ,
             widget: Relm(widget),
         }
@@ -190,7 +193,6 @@ pub struct GtkWidget {
     pub construct_properties: HashMap<Ident, Expr>,
     pub events: HashMap<Ident, Event>,
     pub relm_name: Option<Type>,
-    pub save: bool,
 }
 
 impl GtkWidget {
@@ -199,7 +201,6 @@ impl GtkWidget {
             construct_properties: HashMap::new(),
             events: HashMap::new(),
             relm_name: None,
-            save: false,
         }
     }
 }
@@ -490,15 +491,15 @@ impl ChildWidgetParser {
         let attributes = Attributes::parse(&input)?.name_values;
         let typ: WidgetPathParser = input.parse()?;
         let typ = typ.widget_path;
+        let save = attributes.contains_key("name") || root == Save;
         match typ {
             RelmPath(_) => {
                 let relm_widget = RelmWidgetParser::parse(typ.get_relm_path().clone(), input)?.relm_widget;
-                Ok(adjust_widget_with_attributes(relm_widget, &attributes))
+                Ok(adjust_widget_with_attributes(relm_widget, &attributes, save))
             },
             GtkPath(_) => {
-                let gtk_widget = GtkWidgetParser::parse(typ.get_gtk_path().clone(),
-                    attributes.contains_key("name") || root == Save, input)?.gtk_widget;
-                Ok(adjust_widget_with_attributes(gtk_widget, &attributes))
+                let gtk_widget = GtkWidgetParser::parse(typ.get_gtk_path().clone(), input)?.gtk_widget;
+                Ok(adjust_widget_with_attributes(gtk_widget, &attributes, save))
             },
         }
     }
@@ -509,14 +510,13 @@ struct GtkWidgetParser {
 }
 
 impl GtkWidgetParser {
-    fn parse(typ: Path, save: bool, input: ParseStream) -> Result<Self> {
+    fn parse(typ: Path, input: ParseStream) -> Result<Self> {
         let init_properties = InitPropertiesParser::parse(input)?.properties;
         let content;
         let _brace = braced!(content in input);
         let child_items: Punctuated<ChildGtkItem, Token![,]> = content.parse_terminated(ChildGtkItem::parse)?;
 
         let mut gtk_widget = GtkWidget::new();
-        gtk_widget.save = save;
         let mut init_parameters = vec![];
         let mut children = vec![];
         let mut properties = HashMap::new();
@@ -1121,12 +1121,13 @@ fn path_to_string(path: &Path) -> String {
     string
 }
 
-fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<String, Option<LitStr>>)
+fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<String, Option<LitStr>>, save: bool)
     -> ChildWidgetParser
 {
     let parent_id;
     match widget {
         ChildWidget(ref mut widget) => {
+            widget.save = save;
             let container_type = attributes.get("container")
                 .map(|typ| typ.as_ref().map(|lit| lit.value()));
             let name = attributes.get("name").and_then(|name| name.clone());

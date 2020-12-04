@@ -101,6 +101,7 @@ struct View {
     properties_model_map: PropertyModelMap,
     relm_components: HashMap<Ident, Path>,
     relm_widgets: HashMap<Ident, Path>,
+    streams_to_save: HashSet<Ident>,
     widget: Widget,
 }
 
@@ -172,7 +173,7 @@ impl Driver {
         }
     }
 
-    fn create_struct(&self, typ: &Type, relm_widgets: &HashMap<Ident, Path>, relm_components: &HashMap<Ident, Path>, generics: &Generics) -> TokenStream {
+    fn create_struct(&self, typ: &Type, relm_widgets: &HashMap<Ident, Path>, relm_components: &HashMap<Ident, Path>, streams_to_save: &HashSet<Ident>, generics: &Generics) -> TokenStream {
         let where_clause = gen_where_clause(generics);
         let root_widget_name = self.root_widget.as_ref().expect("root widget name");
         let widgets = self.widgets.iter()
@@ -184,7 +185,7 @@ impl Driver {
         let widgets_name = Ident::new(&format!("__{}Widgets", get_name(&typ)), Span::call_site());
         let streams_name = Ident::new(&format!("__{}Streams", get_name(&typ)), Span::call_site());
         let components = {
-            let components = relm_components.iter().filter(|&(ident, _)| ident != root_widget_name)
+            let components = relm_components.iter()
                 .map(|(ident, tokens)| (ident.clone(), tokens));
             let (idents, types): (Vec<Ident>, Vec<_>) = components.unzip();
             quote! {
@@ -220,9 +221,18 @@ impl Driver {
             }
         };
         let streams = {
-            let component_idents = relm_components.keys();
+            let (component_idents, component_root_types): (Vec<_>, Vec<_>) = relm_components.iter()
+                .filter(|(ident, _)| streams_to_save.contains(ident))
+                .map(|(ident, path)| {
+                    if let PathArguments::AngleBracketed(ref arguments) = path.segments.last().expect("component").arguments {
+                        let first_arg = arguments.args.first();
+                        let arg = first_arg.as_ref().expect("argument");
+                        return (ident, arg.clone());
+                    }
+                    panic!("Not a component type");
+                })
+                .unzip();
             quote! {
-                #[cfg(test)]
                 #[derive(Clone)]
                 pub struct #streams_name {
                     #(#component_idents: ::relm::StreamHandle<<#component_root_types as ::relm::Update>::Msg>,)*
@@ -232,7 +242,7 @@ impl Driver {
         quote_spanned! { typ.span() =>
             #[allow(dead_code, missing_docs)]
             pub struct #typ #where_clause {
-                #[cfg(test)] streams: #streams_name,
+                streams: #streams_name,
                 components: #components_name,
                 widgets: #widgets_name,
                 model: #widget_model_type,
@@ -304,7 +314,7 @@ impl Driver {
             new_items.push(view.item);
             self.widgets.insert(self.root_widget.clone().expect("root widget"),
             self.root_widget_type.clone().expect("root widget type"));
-            let widget_struct = self.create_struct(&self_ty, &view.relm_widgets, &view.relm_components, &generics);
+            let widget_struct = self.create_struct(&self_ty, &view.relm_widgets, &view.relm_components, &view.streams_to_save, &generics);
             new_items.push(self.get_root_type());
             if let Some(data_method) = self.get_data_method() {
                 new_items.push(data_method);
@@ -480,7 +490,7 @@ impl Driver {
             self.collect_bindings(widget, &mut msg_model_map, &mut properties_model_map);
         }
 
-        let (view, relm_widgets, relm_components, container_impl) = gen::gen(name, &widgets, self);
+        let (view, relm_widgets, relm_components, streams_to_save, container_impl) = gen::gen(name, &widgets, self);
         let model_ident = Ident::new(MODEL_IDENT, Span::call_site()); // TODO: maybe need to set Span here.
         let code = quote_spanned! { name.span() =>
             #[allow(unused_variables,clippy::all)] // Necessary to avoid warnings in case the parameters are unused.
@@ -497,6 +507,7 @@ impl Driver {
             properties_model_map,
             relm_components,
             relm_widgets,
+            streams_to_save,
             widget,
         })
     }
