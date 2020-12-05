@@ -81,7 +81,7 @@ macro_rules! connect_stream {
     // ReturnValue) where the ReturnValue is the value to return in the GTK+ callback.
     // Option<MSG> can be None if no message needs to be emitted.
     (return $stream:expr, $widget:expr, $event:ident($($args:pat),*), $msg:expr) => {{
-        let stream = $stream.clone();
+        let stream = $stream.stream().clone();
         let _ = $widget.$event(move |$($args),*| {
             let (msg, return_value) = $crate::IntoPair::into_pair($msg);
             let msg: Option<_> = $crate::IntoOption::into_option(msg);
@@ -94,7 +94,7 @@ macro_rules! connect_stream {
 
     // Connect to a GTK+ widget event, sending a message to another widget.
     ($widget:expr, $event:ident($($args:pat),*), $other_stream:expr, $msg:expr) => {
-        let stream = $other_stream.clone();
+        let stream = $other_stream.stream().clone();
         let _ = $widget.$event(move |$($args),*| {
             let msg: Option<_> = $crate::IntoOption::into_option($msg);
             if let Some(msg) = msg {
@@ -106,7 +106,7 @@ macro_rules! connect_stream {
     // Connect to a message reception.
     // TODO: create another macro rule accepting multiple patterns.
     ($src_stream:ident @ $message:pat, $dst_stream:expr, $msg:expr) => {
-        let stream = $dst_stream.clone();
+        let stream = $dst_stream.stream().clone();
         $src_stream.observe(move |msg| {
             #[allow(unreachable_patterns)]
             match msg {
