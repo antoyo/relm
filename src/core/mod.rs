@@ -291,6 +291,11 @@ impl<MSG> EventStream<MSG> {
         self.source.destroy();
     }
 
+    /// Synonym for downgrade().
+    pub fn stream(&self) -> StreamHandle<MSG> {
+        self.downgrade()
+    }
+
     /// Create a Clone-able EventStream handle.
     pub fn downgrade(&self) -> StreamHandle<MSG> {
         StreamHandle::new(Rc::downgrade(&self.get_stream()))

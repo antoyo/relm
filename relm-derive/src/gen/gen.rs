@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned};
@@ -62,7 +62,7 @@ enum WidgetType {
     IsRelm,
 }
 
-pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStream, HashMap<Ident, Path>, HashMap<Ident, Path>, TokenStream) {
+pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStream, HashMap<Ident, Path>, HashMap<Ident, Path>, HashSet<Ident>, TokenStream) {
     let mut generator = Generator::new(driver);
     let mut widget_tokens = quote! {};
     for (index, widget) in widgets.iter().enumerate() {
@@ -77,13 +77,16 @@ pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStrea
     let idents: Vec<_> = driver.widgets.keys().collect();
     let root_widget_name = &driver.root_widget.as_ref().expect("root_widget is None");
     let component_names: Vec<_> = generator.widget_names.iter()
+        .filter(|ident| generator.relm_components.contains_key(ident))
+        .collect();
+
+    let component_widgets: Vec<_> = generator.widget_names.iter()
         .filter(|ident| generator.relm_components.contains_key(ident) && ident != root_widget_name)
         .collect();
-    let component_names1 = &component_names;
-    let component_names2 = &component_names;
+    let component_widgets2 = &component_widgets;
 
     let widget_names: Vec<_> = generator.widget_names.iter()
-        .filter(|ident| (idents.contains(ident) || generator.relm_widgets.contains_key(ident)) && !component_names.contains(ident) && ident != root_widget_name)
+        .filter(|ident| (idents.contains(ident) || generator.relm_widgets.contains_key(ident)) && !component_widgets.contains(ident) && ident != root_widget_name)
         .collect();
 
     let events = &generator.events;
@@ -93,8 +96,10 @@ pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStrea
     let widgets_name = Ident::new(&format!("__{}Widgets", name), Span::call_site());
     let streams_name = Ident::new(&format!("__{}Streams", name), Span::call_site());
 
-    let stream_names = generator.relm_components.keys();
+    let stream_names = generator.relm_components.keys()
+        .filter(|ident| generator.streams_to_save.contains(ident));
     let component_streams = generator.relm_components.keys()
+        .filter(|ident| generator.streams_to_save.contains(ident))
         .map(|name| quote! { #name.stream() });
 
     let root_widget_expr =
@@ -114,13 +119,13 @@ pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStrea
         #(#properties)*
 
         #name {
-            #[cfg(test)] streams: #streams_name {
+            streams: #streams_name {
                 #(#stream_names: #component_streams,)*
             },
             widgets: #widgets_name {
                 #root_widget_name #root_widget_expr,
                 #(#widget_names,)*
-                #(#component_names1: #component_names2.widget().clone(),)*
+                #(#component_widgets: #component_widgets2.widget().clone(),)*
             },
             components: #components_name {
                 #(#component_names,)*
@@ -129,7 +134,7 @@ pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> (TokenStrea
         }
     };
     let container_impl = gen_container_impl(&generator, &widgets[0], driver.generic_types.as_ref().expect("generic types"));
-    (code, generator.relm_widgets, generator.relm_components, container_impl)
+    (code, generator.relm_widgets, generator.relm_components, generator.streams_to_save, container_impl)
 }
 
 struct Generator<'a> {
@@ -139,6 +144,7 @@ struct Generator<'a> {
     properties: Vec<TokenStream>,
     relm_components: HashMap<Ident, Path>,
     relm_widgets: HashMap<Ident, Path>,
+    streams_to_save: HashSet<Ident>,
     widget_names: Vec<Ident>,
 }
 
@@ -151,6 +157,7 @@ impl<'a> Generator<'a> {
             properties: vec![],
             relm_components: HashMap::new(),
             relm_widgets: HashMap::new(),
+            streams_to_save: HashSet::new(),
             widget_names: vec![],
         }
     }
@@ -365,8 +372,9 @@ impl<'a> Generator<'a> {
         self.set_container(widget, widget_name, struct_name, false);
         self.widget_names.push(widget_name.clone());
 
-        if gtk_widget.save {
+        if widget.save {
             self.relm_widgets.insert(widget_name.clone(), struct_name.clone());
+            self.streams_to_save.insert(widget_name.clone());
         }
 
         let construct_widget = gen_construct_widget(widget, gtk_widget);
@@ -411,6 +419,10 @@ impl<'a> Generator<'a> {
         self.set_container(widget, widget_name, widget_type_ident, true);
         let relm_component_type = gen_relm_component_type(widget.is_container, widget_type_ident);
         self.relm_components.insert(widget.name.clone(), relm_component_type);
+
+        if widget.save {
+            self.streams_to_save.insert(widget_name.clone());
+        }
 
         self.collect_relm_events(widget, relm_widget);
 
