@@ -18,7 +18,7 @@ image:https://img.shields.io/badge/Donate-Patreon-orange.svg[link="https://www.p
 
 Since relm is based on GTK+, you need this library on your system in order to use it.
 
-See http://gtk-rs.org/docs/requirements.html[this page] for information on how to install GTK+.
+See https://www.gtk.org/docs/installations/[this page] for information on how to install GTK+.
 
 == Usage
 
