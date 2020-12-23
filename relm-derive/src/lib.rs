@@ -42,7 +42,7 @@ use syn::{
 };
 use syn::spanned::Spanned;
 
-use gen::{gen_widget, gen_where_clause};
+use gen::{gen_widget, gen_where_clause, parser::dummy_ident};
 
 #[proc_macro_derive(Msg)]
 pub fn msg(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -81,7 +81,8 @@ fn derive_display_variant(ast: &Item, krate: &Ident) -> TokenStream {
         };
 
         let variant_patterns = enum_item.variants.iter().map(|variant| {
-            let attrs = &variant.attrs;
+            let doc_ident = dummy_ident("doc");
+            let attrs = variant.attrs.iter().filter(|attr| !attr.path.is_ident(&doc_ident));
             let ident = &variant.ident;
             quote! {
                 #(#attrs)* #name::#ident { .. }

@@ -25,9 +25,10 @@
  * TODO: think about conditions and loops (widget-list).
  */
 
+pub(crate) mod parser;
+
 mod adder;
 mod gen;
-mod parser;
 mod transformer;
 mod walker;
 
