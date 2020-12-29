@@ -19,6 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#![deny(unused_doc_comments)]
+
 use gtk::{Inhibit, LabelExt, WidgetExt};
 use relm::Widget;
 use relm_derive::{Msg, widget};
@@ -60,6 +62,7 @@ impl Widget for Label {
 
 #[derive(Msg)]
 pub enum Msg {
+    /// User requests application quit.
     Quit,
 }
 
