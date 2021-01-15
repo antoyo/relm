@@ -294,5 +294,6 @@ image:https://c5.patreon.com/external/logo/become_a_patron_button.png[link="http
  * https://github.com/knack-supply/curve-tracer[KS Curve Tracer]
  * https://github.com/emmanueltouzery/cigale[Cigale]
  * https://github.com/emmanueltouzery/projectpad2[Projectpad]
+ * https://github.com/crrodger/timezoners[TimezoneRS]
 
 If you want to add your project to this list, please https://github.com/antoyo/relm/pulls[create a pull request].
