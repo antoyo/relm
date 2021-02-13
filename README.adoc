@@ -2,9 +2,10 @@
 
 Asynchronous, GTK+-based, GUI library, inspired by Elm, written in Rust.
 
-*This library is in alpha stage: it has not been thoroughly tested and its API may change at any time.*
+*This library is in beta stage: it has not been thoroughly tested and its API may change at any time.*
 
 image:https://img.shields.io/github/workflow/status/antoyo/relm/CI[link="https://github.com/antoyo/relm/actions"]
+image:https://img.shields.io/badge/Relm-Tutorial-blueviolet[link="https://relm.antoyo.xyz/documentation/tutorial/"]
 image:https://img.shields.io/crates/v/relm.svg[link="https://crates.io/crates/relm"]
 image:https://img.shields.io/badge/rust-documentation-blue.svg[link="https://docs.rs/relm/"]
 image:https://img.shields.io/crates/d/relm.svg[link="https://crates.io/crates/relm"]
@@ -24,9 +25,9 @@ First, add this to your `Cargo.toml`:
 
 [source,toml]
 ----
-gtk = "^0.8.0"
-relm = "^0.19.0"
-relm-derive = "^0.19.0"
+gtk = "^0.9.0"
+relm = "^0.21.0"
+relm-derive = "^0.21.0"
 ----
 
 Next, add this to your crate:

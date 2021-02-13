@@ -2,21 +2,14 @@
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 categories = ["asynchronous", "gui"]
 description = "Asynchronous, GTK+-based, GUI library, inspired by Elm, written in Rust"
+homepage = "https://relm.antoyo.xyz/"
 documentation = "https://docs.rs/relm/"
 license = "MIT"
 name = "relm"
 readme = "README.adoc"
 repository = "https://github.com/antoyo/relm"
-version = "0.20.0"
+version = "0.21.0"
 edition = "2018"
-
-[badges.appveyor]
-branch = "master"
-repository = "antoyo/relm"
-
-[badges.travis-ci]
-branch = "master"
-repository = "antoyo/relm"
 
 [dependencies]
 cairo-rs = "^0.9.0"
@@ -34,13 +27,3 @@ version = "0.15"
 
 [features]
 hidpi = ["cairo-rs/v1_14"]
-
-[[package.metadata.release.pre-release-replacements]]
-file = "README.adoc"
-replace = "relm = \"{{version}}\""
-search = "relm = \"[a-z0-9^\\.-]+\""
-
-[[package.metadata.release.pre-release-replacements]]
-file = "src/lib.rs"
-replace = "relm = \"{{version}}\""
-search = "relm = \"[a-z0-9^\\.-]+\""

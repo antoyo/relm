@@ -1,11 +1,12 @@
 [package]
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 description = "Custom derive required by the relm crate."
+homepage = "https://relm.antoyo.xyz/"
 documentation = "https://docs.rs/relm-derive/"
 license = "MIT"
 name = "relm-derive"
 repository = "https://github.com/antoyo/relm"
-version = "0.20.0"
+version = "0.21.0"
 edition = "2018"
 
 [lib]

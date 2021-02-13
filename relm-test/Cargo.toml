@@ -2,11 +2,12 @@
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 categories = ["development-tools::testing", "gui"]
 description = "Testing library for relm"
+homepage = "https://relm.antoyo.xyz/"
 documentation = "https://docs.rs/relm-test/"
 license = "MIT"
 name = "relm-test"
 repository = "https://github.com/antoyo/relm"
-version = "0.20.0"
+version = "0.21.0"
 edition = "2018"
 
 [dependencies]
@@ -18,4 +19,4 @@ gtk-test = "^0.6"
 
 [dependencies.relm]
 path = ".."
-version = "^0.20.0"
+version = "^0.21.0"
