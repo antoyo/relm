@@ -28,7 +28,7 @@ use gdk::keys::Key;
 use gdk::keys::constants as key;
 use glib::{IsA, Object, object::Cast};
 use gtk::{Inhibit, ToolButton, ToolButtonExt, Widget, WidgetExt};
-use gtk_test::{focus, mouse_move, run_loop, wait_for_draw};
+use gtk_test::{self, focus, mouse_move, run_loop, wait_for_draw};
 use relm::StreamHandle;
 
 // TODO: should remove the signal after wait()?
@@ -153,6 +153,8 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: 
         let mut enigo = Enigo::new();
         enigo.mouse_click(MouseButton::Left);
         observer.wait();
+
+        wait_for_relm_events();
     });
 }
 
@@ -172,9 +174,15 @@ pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
         let mut enigo = Enigo::new();
         enigo.mouse_click(MouseButton::Left);
-        run_loop();
+        observer.wait();
+
+        let observer = gtk_observer_new!(widget, connect_button_release_event, |_, _| {
+            Inhibit(false)
+        });
         enigo.mouse_click(MouseButton::Left);
         observer.wait();
+
+        wait_for_relm_events();
     });
 }
 
@@ -227,6 +235,14 @@ pub fn enter_keys<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, 
             observer.wait();
         }
     });
+}
+
+fn wait_for_relm_events() {
+    gtk_test::wait(1);
+    while gtk::events_pending() {
+        run_loop();
+        gtk_test::wait(1);
+    }
 }
 
 fn gdk_key_to_enigo_key(key: Key) -> enigo::Key {

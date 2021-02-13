@@ -88,11 +88,20 @@ impl<MSG> StreamHandle<MSG> {
         if let Some(ref stream) = self.stream.upgrade() {
             stream.borrow_mut().locked = true;
             Lock {
-                stream: stream.clone(),
+                stream: self.clone(),
             }
         }
         else {
             panic!("Trying to call lock() on a dropped EventStream");
+        }
+    }
+
+    fn unlock(&self) {
+        if let Some(ref stream) = self.stream.upgrade() {
+            stream.borrow_mut().locked = false;
+        }
+        else {
+            panic!("Trying to call unlock() on a dropped EventStream");
         }
     }
 
@@ -111,12 +120,12 @@ impl<MSG> StreamHandle<MSG> {
 /// A lock is used to temporarily stop emitting messages.
 #[must_use]
 pub struct Lock<MSG> {
-    stream: Rc<RefCell<_EventStream<MSG>>>,
+    stream: StreamHandle<MSG>,
 }
 
 impl<MSG> Drop for Lock<MSG> {
     fn drop(&mut self) {
-        self.stream.borrow_mut().locked = false;
+        self.stream.unlock();
     }
 }
 
@@ -203,6 +212,9 @@ impl<MSG> SourceFuncs for RefCell<ChannelData<MSG>> {
 struct _EventStream<MSG> {
     events: VecDeque<MSG>,
     locked: bool,
+    // We use an Rc here to be able to clone the function to call it so that we don't borrow the
+    // stream while calling the function. Otherwise, calling an observer could trigger a
+    // borrow_mut() which would result in a panic.
     observers: Vec<Rc<dyn Fn(&MSG)>>,
 }
 
@@ -260,8 +272,8 @@ impl<MSG> EventStream<MSG> {
         source_get::<SourceData<MSG>>(&self.source).callback.clone()
     }
 
-    fn get_stream(&self) -> Rc<RefCell<_EventStream<MSG>>> {
-        source_get::<SourceData<MSG>>(&self.source).stream.clone()
+    fn get_stream(&self) -> &Rc<RefCell<_EventStream<MSG>>> {
+        &source_get::<SourceData<MSG>>(&self.source).stream
     }
 }
 
@@ -298,21 +310,13 @@ impl<MSG> EventStream<MSG> {
 
     /// Create a Clone-able EventStream handle.
     pub fn downgrade(&self) -> StreamHandle<MSG> {
-        StreamHandle::new(Rc::downgrade(&self.get_stream()))
+        StreamHandle::new(Rc::downgrade(self.get_stream()))
     }
 
     /// Send the `event` message to the stream and the observers.
     pub fn emit(&self, event: MSG) {
         let stream = self.get_stream();
-        if !stream.borrow().locked {
-            let len = stream.borrow().observers.len();
-            for i in 0..len {
-                let observer = stream.borrow().observers[i].clone();
-                observer(&event);
-            }
-
-            stream.borrow_mut().events.push_back(event);
-        }
+        emit(stream, event)
     }
 
     /// Lock the stream (don't emit message) until the `Lock` goes out of scope.
@@ -320,7 +324,7 @@ impl<MSG> EventStream<MSG> {
         let stream = self.get_stream();
         stream.borrow_mut().locked = true;
         Lock {
-            stream: self.get_stream().clone(),
+            stream: self.stream(),
         }
     }
 

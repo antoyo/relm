@@ -53,7 +53,7 @@ use syn::{
 };
 use syn::FnArg::{self, Typed};
 use syn::fold::Fold;
-use syn::ImplItem::{Const, Method, Verbatim, __Nonexhaustive,};
+use syn::ImplItem::{Const, Method, Verbatim};
 use syn::Item::{self, Impl};
 use syn::parse::Result;
 use syn::spanned::Spanned;
@@ -299,7 +299,7 @@ impl Driver {
                         }
                     },
                     Verbatim(..) => panic!("Unexpected verbatim item"),
-                    __Nonexhaustive => panic!("Unexpected item"),
+                    _ => panic!("Unexpected item"),
                 }
             }
             let view =
