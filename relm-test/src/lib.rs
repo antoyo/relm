@@ -162,6 +162,8 @@ pub fn mouse_move_to<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(
     wait_for_draw(widget, || {
         let allocation = widget.get_allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
+
+        wait_for_relm_events();
     });
 }
 
@@ -196,6 +198,8 @@ pub fn key_press<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, k
         let mut enigo = Enigo::new();
         enigo.key_down(gdk_key_to_enigo_key(key));
         observer.wait();
+
+        wait_for_relm_events();
     });
 }
 
@@ -208,6 +212,8 @@ pub fn key_release<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W,
         let mut enigo = Enigo::new();
         enigo.key_up(gdk_key_to_enigo_key(key));
         observer.wait();
+
+        wait_for_relm_events();
     });
 }
 
@@ -220,6 +226,8 @@ pub fn enter_key<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, k
         let mut enigo = Enigo::new();
         enigo.key_click(gdk_key_to_enigo_key(key));
         observer.wait();
+
+        wait_for_relm_events();
     });
 }
 
@@ -234,6 +242,8 @@ pub fn enter_keys<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, 
             enigo.key_sequence(&char.to_string());
             observer.wait();
         }
+
+        wait_for_relm_events();
     });
 }
 
