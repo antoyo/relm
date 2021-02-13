@@ -2,6 +2,7 @@
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 categories = ["development-tools::testing", "gui"]
 description = "Testing library for relm"
+homepage = "https://relm.antoyo.xyz/"
 documentation = "https://docs.rs/relm-test/"
 license = "MIT"
 name = "relm-test"
