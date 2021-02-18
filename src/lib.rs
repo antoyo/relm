@@ -99,9 +99,10 @@ mod core;
 mod drawing;
 mod macros;
 mod state;
-#[doc(hidden)]
-pub mod vendor;
 mod widget;
+
+#[doc(hidden)]
+pub use fragile::Fragile;
 
 #[doc(hidden)]
 pub use glib::{
