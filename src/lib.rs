@@ -37,6 +37,8 @@
 //!
 //! More info can be found in the [readme](https://github.com/antoyo/relm#relm).
 
+#![allow(clippy::new_without_default)]
+
 #![warn(
     missing_docs,
     trivial_casts,
@@ -202,9 +204,11 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
     let mut widget = WIDGET::view(&relm, model);
     widget.init_view();
 
-    let root = widget.root().clone();
+    let root = widget.root();
     (Component::new(stream, root), widget, relm)
 }
+
+type InitTestComponents<WIDGET> = (Component<WIDGET>, <WIDGET as WidgetTest>::Streams, <WIDGET as WidgetTest>::Widgets);
 
 /// Initialize a widget for a test.
 ///
@@ -264,17 +268,17 @@ fn create_widget<WIDGET>(model_param: WIDGET::ModelParam)
 /// # }
 /// ```
 pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
-    Result<(Component<WIDGET>, WIDGET::Streams, WIDGET::Widgets), ()>
+    Result<InitTestComponents<WIDGET>, glib::BoolError>
     where WIDGET: Widget + WidgetTest + 'static,
           WIDGET::Msg: DisplayVariant + 'static,
 {
-    gtk::init().map_err(|_| ())?;
+    gtk::init()?;
     let component = create_widget_test::<WIDGET>(model_param);
     Ok(component)
 }
 
 /// Initialize a widget.
-pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, ()>
+pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>, glib::BoolError>
     where WIDGET: Widget + 'static,
           WIDGET::Msg: DisplayVariant + 'static
 {
@@ -332,10 +336,10 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
 /// Win::run(()).expect("Win::run failed");
 /// # }
 /// ```
-pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), ()>
+pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), glib::BoolError>
     where WIDGET: Widget + 'static,
 {
-    gtk::init().map_err(|_| ())?;
+    gtk::init()?;
     let _component = init::<WIDGET>(model_param)?;
     gtk::main();
     Ok(())

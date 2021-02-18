@@ -64,7 +64,7 @@ impl<MSG> Clone for StreamHandle<MSG> {
 impl<MSG> StreamHandle<MSG> {
     fn new(stream: Weak<RefCell<_EventStream<MSG>>>) -> Self {
         Self {
-            stream: stream,
+            stream,
         }
     }
 
@@ -233,8 +233,10 @@ impl<MSG> SourceFuncs for SourceData<MSG> {
 
 }
 
+type Callback<MSG> = Rc<RefCell<Option<Box<dyn FnMut(MSG)>>>>;
+
 struct SourceData<MSG> {
-    callback: Rc<RefCell<Option<Box<dyn FnMut(MSG)>>>>,
+    callback: Callback<MSG>,
     stream: Rc<RefCell<_EventStream<MSG>>>,
 }
 
@@ -266,9 +268,8 @@ impl<MSG> Drop for EventStream<MSG> {
     }
 }
 
-
 impl<MSG> EventStream<MSG> {
-    fn get_callback(&self) -> Rc<RefCell<Option<Box<dyn FnMut(MSG)>>>> {
+    fn get_callback(&self) -> Callback<MSG> {
         source_get::<SourceData<MSG>>(&self.source).callback.clone()
     }
 
