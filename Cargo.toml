@@ -12,11 +12,11 @@ version = "0.21.0"
 edition = "2018"
 
 [dependencies]
-cairo-rs = "^0.9.0"
-glib = "^0.10.0"
-glib-sys = "^0.10.0"
-gobject-sys = "^0.10.0"
-gtk = "^0.9.0"
+cairo-rs = { git = "https://github.com/gtk-rs/gtk-rs.git" }
+glib = { git = "https://github.com/gtk-rs/gtk-rs.git" }
+glib-sys = { git = "https://github.com/gtk-rs/gtk-rs.git" }
+gobject-sys = { git = "https://github.com/gtk-rs/gtk-rs.git" }
+gtk = { git = "https://github.com/gtk-rs/gtk-rs.git" }
 libc = "^0.2.54"
 log = "^0.4.6"
 
