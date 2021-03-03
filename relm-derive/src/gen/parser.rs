@@ -419,7 +419,6 @@ impl Parse for Attributes {
                 match attribute.name_values.get("style_class") {
                     Some(Some(style_class)) => {
                         style_classes.insert(style_class.value());
-                        ()
                     },
                     Some(None) => panic!("Invalid style_class specification"),
                     None => name_values.extend(attribute.name_values)
