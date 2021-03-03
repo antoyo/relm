@@ -19,6 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use std::collections::HashSet;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
@@ -130,6 +131,7 @@ pub struct Widget {
     pub save: bool,
     pub typ: Path,
     pub widget: EitherWidget,
+    pub style_classes: Vec<String>,
 }
 
 impl Widget {
@@ -152,6 +154,7 @@ impl Widget {
             save: false,
             typ,
             widget: Gtk(widget),
+            style_classes: vec![],
         }
     }
 
@@ -178,6 +181,7 @@ impl Widget {
             save: false,
             typ,
             widget: Relm(widget),
+            style_classes: vec![],
         }
     }
 }
@@ -400,17 +404,25 @@ impl Parse for Attribute {
 
 struct Attributes {
     name_values: HashMap<String, Option<LitStr>>,
+    style_classes: HashSet<String>,
 }
 
 impl Parse for Attributes {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut name_values = HashMap::new();
+        let mut style_classes = HashSet::new();
         loop {
             let lookahead = input.lookahead1();
 
             if lookahead.peek(Token![#]) {
                 let attribute: Attribute = input.parse()?;
-                name_values.extend(attribute.name_values);
+                match attribute.name_values.get("style_class") {
+                    Some(Some(style_class)) => {
+                        style_classes.insert(style_class.value());
+                    },
+                    Some(None) => panic!("Invalid style_class specification"),
+                    None => name_values.extend(attribute.name_values)
+                };
             }
             else {
                 break;
@@ -418,7 +430,8 @@ impl Parse for Attributes {
         }
 
         Ok(Attributes {
-            name_values
+            name_values,
+            style_classes
         })
     }
 }
@@ -488,18 +501,18 @@ struct ChildWidgetParser {
  */
 impl ChildWidgetParser {
     fn parse(root: SaveWidget, input: ParseStream) -> Result<Self> {
-        let attributes = Attributes::parse(&input)?.name_values;
+        let attributes = Attributes::parse(&input)?;
         let typ: WidgetPathParser = input.parse()?;
         let typ = typ.widget_path;
-        let save = attributes.contains_key("name") || root == Save;
+        let save = attributes.name_values.contains_key("name") || root == Save;
         match typ {
             RelmPath(_) => {
                 let relm_widget = RelmWidgetParser::parse(typ.get_relm_path().clone(), input)?.relm_widget;
-                Ok(adjust_widget_with_attributes(relm_widget, &attributes, save))
+                Ok(adjust_widget_with_attributes(relm_widget, &attributes.name_values, &attributes.style_classes, save))
             },
             GtkPath(_) => {
                 let gtk_widget = GtkWidgetParser::parse(typ.get_gtk_path().clone(), input)?.gtk_widget;
-                Ok(adjust_widget_with_attributes(gtk_widget, &attributes, save))
+                Ok(adjust_widget_with_attributes(gtk_widget, &attributes.name_values, &attributes.style_classes, save))
             },
         }
     }
@@ -1121,7 +1134,7 @@ fn path_to_string(path: &Path) -> String {
     string
 }
 
-fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<String, Option<LitStr>>, save: bool)
+fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<String, Option<LitStr>>, style_classes: &HashSet<String>, save: bool)
     -> ChildWidgetParser
 {
     let parent_id;
@@ -1133,6 +1146,10 @@ fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<Str
             let name = attributes.get("name").and_then(|name| name.clone());
             if let Some(name) = name {
                 widget.name = Ident::new(&name.value(), name.span());
+            }
+            // style_class attribute
+            for style_class in style_classes {
+                widget.style_classes.push((*style_class).clone());
             }
             widget.is_container = !widget.children.is_empty();
             widget.container_type = container_type;
