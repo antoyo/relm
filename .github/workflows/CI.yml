@@ -30,6 +30,9 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           override: true
+      - name: "clippy"
+        run: cargo clippy -- --deny warnings
+
       # nightly
       - name: "relm: build nightly"
         run: cargo build
