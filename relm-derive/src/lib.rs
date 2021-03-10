@@ -145,5 +145,5 @@ fn remove_generic_bounds(generics: &Generics) -> Generics {
             _ => (),
         }
     }
-    generics.clone()
+    generics
 }

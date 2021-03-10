@@ -28,7 +28,6 @@ use std::str::FromStr;
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
-use proc_macro;
 use proc_macro2::{Span, TokenTree, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
@@ -86,7 +85,7 @@ enum SaveWidget {
 #[derive(Debug)]
 pub enum EventValueReturn {
     CallReturn(Expr),
-    Return(Expr, Expr),
+    Return(Box<(Expr, Expr)>),
     WithoutReturn(Expr),
 }
 
@@ -135,6 +134,7 @@ pub struct Widget {
 }
 
 impl Widget {
+    #[allow(clippy::too_many_arguments)]
     fn new_gtk(widget: GtkWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
         properties: HashMap<Ident, Expr>, child_properties: ChildProperties, child_events: ChildEvents,
         nested_views: HashMap<Ident, Widget>) -> Self
@@ -158,6 +158,7 @@ impl Widget {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_relm(widget: RelmWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
         properties: HashMap<Ident, Expr>, child_properties: ChildProperties, child_events: ChildEvents,
         nested_views: HashMap<Ident, Widget>) -> Self
@@ -265,7 +266,7 @@ pub fn parse_widgets(tokens: TokenStream) -> Result<Vec<Widget>> {
 enum InitProperties {
     ConstructProperties(HashMap<Ident, Expr>),
     InitParameters(Vec<Expr>),
-    NoInitProperties,
+    NoInitParameter,
 }
 
 struct HashKeyValue {
@@ -321,7 +322,7 @@ impl Parse for InitPropertiesParser {
                 }
             }
             else {
-                NoInitProperties
+                NoInitParameter
             };
         Ok(InitPropertiesParser {
             properties,
@@ -557,7 +558,7 @@ impl GtkWidgetParser {
         match init_properties {
             ConstructProperties(construct_properties) => gtk_widget.construct_properties = construct_properties,
             InitParameters(init_params) => init_parameters = init_params,
-            NoInitProperties => (),
+            NoInitParameter => (),
         }
         Ok(GtkWidgetParser {
             gtk_widget: ChildWidget(Widget::new_gtk(gtk_widget, typ, init_parameters, children, properties,
@@ -611,7 +612,7 @@ impl RelmWidgetParser {
                     .into_iter()
                     .map(|relm_item| relm_item.child_item);
 
-                let init_parameters = init_parameters.clone().unwrap_or_else(Vec::new);
+                let init_parameters = init_parameters.unwrap_or_default();
                 let mut relm_widget = RelmWidget::new();
                 let mut children = vec![];
                 let mut child_properties = HashMap::new();
@@ -639,7 +640,7 @@ impl RelmWidgetParser {
                         },
                     }
                 }
-                ChildWidget(Widget::new_relm(relm_widget, typ.clone(), init_parameters, children, properties,
+                ChildWidget(Widget::new_relm(relm_widget, typ, init_parameters, children, properties,
                     child_properties, child_events, nested_views))
             }
             else {
@@ -682,7 +683,7 @@ impl Parse for RelmPropertyOrEvent {
                 let _colon: Token![.] = input.parse()?;
                 let event_name: Ident = input.parse()?;
                 let event = Event::parse(input)?;
-                ChildEvent(event_name, ident.clone(), event)
+                ChildEvent(event_name, ident, event)
             }
             else {
                 let mut event = Event::parse(input)?;
@@ -734,7 +735,7 @@ impl Parse for GtkChildPropertyOrEvent {
                 if event.params.is_empty() {
                     event.params.push(wild_pat());
                 }
-                ChildEvent(event_name, ident.clone(), event)
+                ChildEvent(event_name, ident, event)
             }
             else {
                 let mut event = Event::parse(input)?;
@@ -814,8 +815,7 @@ impl Parse for SharedValues {
             Tag::parse(input, "with")?;
             let content;
             let _parens = parenthesized!(content in input);
-            let idents = IdentList::parse(&content)?.idents;
-            idents
+            IdentList::parse(&content)?.idents
         }}.ok();
         Ok(SharedValues {
             shared_values,
@@ -878,7 +878,7 @@ impl Parse for EventValueParser {
             let _comma: token::Comma = content.parse()?;
             let value2: Value = content.parse()?;
             Ok(EventValueParser {
-                value_return: Return(value1.value, value2.value),
+                value_return: Return(Box::new((value1.value, value2.value))),
                 use_self: value1.use_self || value2.use_self,
             })
         }
