@@ -20,7 +20,6 @@
  */
 
 use glib::{IsA, Object};
-use gtk;
 
 use super::{Relm, run};
 use crate::state::Update;
@@ -61,7 +60,7 @@ pub trait Widget
     fn root(&self) -> Self::Root;
 
     /// Create the window from this widget and start the main loop.
-    fn run(model_param: Self::ModelParam) -> Result<(), ()>
+    fn run(model_param: Self::ModelParam) -> Result<(), glib::BoolError>
         where Self: 'static,
     {
         run::<Self>(model_param)

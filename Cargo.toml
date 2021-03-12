@@ -17,6 +17,7 @@ glib = { git = "https://github.com/gtk-rs/gtk-rs.git" }
 glib-sys = { git = "https://github.com/gtk-rs/gtk-rs.git" }
 gobject-sys = { git = "https://github.com/gtk-rs/gtk-rs.git" }
 gtk = { git = "https://github.com/gtk-rs/gtk-rs.git" }
+fragile = "1.0"
 libc = "^0.2.54"
 log = "^0.4.6"
 

@@ -156,7 +156,7 @@ impl<W: Clone + ContainerExt + IsA<gtk::Widget> + IsA<Object>> ContainerWidget f
         let (component, widget, child_relm) = create_widget::<CHILDWIDGET>(model_param);
         let container = widget.container().clone();
         let containers = widget.other_containers();
-        let root = widget.root().clone();
+        let root = widget.root();
         self.add(&root);
         widget.on_add(self.clone());
         init_component::<CHILDWIDGET>(component.owned_stream(), widget, &child_relm);

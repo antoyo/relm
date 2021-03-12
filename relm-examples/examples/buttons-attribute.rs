@@ -84,6 +84,8 @@ impl Widget for Win {
                     text: &self.model.counter.to_string(),
                 },
                 #[name="dec_button"]
+                #[style_class="destructive-action"]
+                #[style_class="linked"]
                 gtk::Button {
                     clicked => Decrement,
                     label: "-",

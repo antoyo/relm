@@ -28,7 +28,7 @@
 pub(crate) mod parser;
 
 mod adder;
-mod gen;
+mod generator;
 mod transformer;
 mod walker;
 
@@ -61,7 +61,7 @@ use syn::Type;
 use syn::visit::Visit;
 
 use self::adder::{Adder, Message, Property};
-pub use self::gen::gen_where_clause;
+pub use self::generator::gen_where_clause;
 use self::parser::EitherWidget::{Gtk, Relm};
 use self::parser::{Widget, parse_widgets};
 use self::walker::ModelVariableVisitor;
@@ -146,7 +146,7 @@ impl Driver {
         get_msg_model_map(&widget, msg_model_map);
         self.add_widgets(&widget, &properties_model_map);
 
-        for (_, nested_view) in &widget.nested_views {
+        for nested_view in widget.nested_views.values() {
             self.collect_bindings(nested_view, msg_model_map, properties_model_map);
         }
 
@@ -202,7 +202,7 @@ impl Driver {
                 if let PathArguments::AngleBracketed(ref arguments) = path.segments.last().expect("component").arguments {
                     let first_arg = arguments.args.first();
                     let arg = first_arg.as_ref().expect("argument");
-                    return arg.clone();
+                    return *arg;
                 }
                 panic!("Not a component type");
             })
@@ -228,7 +228,7 @@ impl Driver {
                     if let PathArguments::AngleBracketed(ref arguments) = path.segments.last().expect("component").arguments {
                         let first_arg = arguments.args.first();
                         let arg = first_arg.as_ref().expect("argument");
-                        return (ident, arg.clone());
+                        return (ident, *arg);
                     }
                     panic!("Not a component type");
                 })
@@ -491,7 +491,7 @@ impl Driver {
             self.collect_bindings(widget, &mut msg_model_map, &mut properties_model_map);
         }
 
-        let (view, relm_widgets, relm_components, streams_to_save, container_impl) = gen::gen(name, &widgets, self);
+        let generator::Gen { view, relm_widgets, relm_components, streams_to_save, container_impl } = generator::gen(name, &widgets, self);
         let model_ident = Ident::new(MODEL_IDENT, Span::call_site()); // TODO: maybe need to set Span here.
         let code = quote_spanned! { name.span() =>
             #[allow(unused_variables,clippy::all)] // Necessary to avoid warnings in case the parameters are unused.

@@ -19,6 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use std::collections::HashSet;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
@@ -27,7 +28,6 @@ use std::str::FromStr;
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
-use proc_macro;
 use proc_macro2::{Span, TokenTree, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
@@ -85,7 +85,7 @@ enum SaveWidget {
 #[derive(Debug)]
 pub enum EventValueReturn {
     CallReturn(Expr),
-    Return(Expr, Expr),
+    Return(Box<(Expr, Expr)>),
     WithoutReturn(Expr),
 }
 
@@ -130,9 +130,11 @@ pub struct Widget {
     pub save: bool,
     pub typ: Path,
     pub widget: EitherWidget,
+    pub style_classes: Vec<String>,
 }
 
 impl Widget {
+    #[allow(clippy::too_many_arguments)]
     fn new_gtk(widget: GtkWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
         properties: HashMap<Ident, Expr>, child_properties: ChildProperties, child_events: ChildEvents,
         nested_views: HashMap<Ident, Widget>) -> Self
@@ -152,9 +154,11 @@ impl Widget {
             save: false,
             typ,
             widget: Gtk(widget),
+            style_classes: vec![],
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn new_relm(widget: RelmWidget, typ: Path, init_parameters: Vec<Expr>, children: Vec<Widget>,
         properties: HashMap<Ident, Expr>, child_properties: ChildProperties, child_events: ChildEvents,
         nested_views: HashMap<Ident, Widget>) -> Self
@@ -178,6 +182,7 @@ impl Widget {
             save: false,
             typ,
             widget: Relm(widget),
+            style_classes: vec![],
         }
     }
 }
@@ -261,7 +266,7 @@ pub fn parse_widgets(tokens: TokenStream) -> Result<Vec<Widget>> {
 enum InitProperties {
     ConstructProperties(HashMap<Ident, Expr>),
     InitParameters(Vec<Expr>),
-    NoInitProperties,
+    NoInitParameter,
 }
 
 struct HashKeyValue {
@@ -317,7 +322,7 @@ impl Parse for InitPropertiesParser {
                 }
             }
             else {
-                NoInitProperties
+                NoInitParameter
             };
         Ok(InitPropertiesParser {
             properties,
@@ -400,17 +405,25 @@ impl Parse for Attribute {
 
 struct Attributes {
     name_values: HashMap<String, Option<LitStr>>,
+    style_classes: HashSet<String>,
 }
 
 impl Parse for Attributes {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut name_values = HashMap::new();
+        let mut style_classes = HashSet::new();
         loop {
             let lookahead = input.lookahead1();
 
             if lookahead.peek(Token![#]) {
                 let attribute: Attribute = input.parse()?;
-                name_values.extend(attribute.name_values);
+                match attribute.name_values.get("style_class") {
+                    Some(Some(style_class)) => {
+                        style_classes.insert(style_class.value());
+                    },
+                    Some(None) => panic!("Invalid style_class specification"),
+                    None => name_values.extend(attribute.name_values)
+                };
             }
             else {
                 break;
@@ -418,7 +431,8 @@ impl Parse for Attributes {
         }
 
         Ok(Attributes {
-            name_values
+            name_values,
+            style_classes
         })
     }
 }
@@ -488,18 +502,18 @@ struct ChildWidgetParser {
  */
 impl ChildWidgetParser {
     fn parse(root: SaveWidget, input: ParseStream) -> Result<Self> {
-        let attributes = Attributes::parse(&input)?.name_values;
+        let attributes = Attributes::parse(&input)?;
         let typ: WidgetPathParser = input.parse()?;
         let typ = typ.widget_path;
-        let save = attributes.contains_key("name") || root == Save;
+        let save = attributes.name_values.contains_key("name") || root == Save;
         match typ {
             RelmPath(_) => {
                 let relm_widget = RelmWidgetParser::parse(typ.get_relm_path().clone(), input)?.relm_widget;
-                Ok(adjust_widget_with_attributes(relm_widget, &attributes, save))
+                Ok(adjust_widget_with_attributes(relm_widget, &attributes.name_values, &attributes.style_classes, save))
             },
             GtkPath(_) => {
                 let gtk_widget = GtkWidgetParser::parse(typ.get_gtk_path().clone(), input)?.gtk_widget;
-                Ok(adjust_widget_with_attributes(gtk_widget, &attributes, save))
+                Ok(adjust_widget_with_attributes(gtk_widget, &attributes.name_values, &attributes.style_classes, save))
             },
         }
     }
@@ -544,7 +558,7 @@ impl GtkWidgetParser {
         match init_properties {
             ConstructProperties(construct_properties) => gtk_widget.construct_properties = construct_properties,
             InitParameters(init_params) => init_parameters = init_params,
-            NoInitProperties => (),
+            NoInitParameter => (),
         }
         Ok(GtkWidgetParser {
             gtk_widget: ChildWidget(Widget::new_gtk(gtk_widget, typ, init_parameters, children, properties,
@@ -598,7 +612,7 @@ impl RelmWidgetParser {
                     .into_iter()
                     .map(|relm_item| relm_item.child_item);
 
-                let init_parameters = init_parameters.clone().unwrap_or_else(Vec::new);
+                let init_parameters = init_parameters.unwrap_or_default();
                 let mut relm_widget = RelmWidget::new();
                 let mut children = vec![];
                 let mut child_properties = HashMap::new();
@@ -626,7 +640,7 @@ impl RelmWidgetParser {
                         },
                     }
                 }
-                ChildWidget(Widget::new_relm(relm_widget, typ.clone(), init_parameters, children, properties,
+                ChildWidget(Widget::new_relm(relm_widget, typ, init_parameters, children, properties,
                     child_properties, child_events, nested_views))
             }
             else {
@@ -669,7 +683,7 @@ impl Parse for RelmPropertyOrEvent {
                 let _colon: Token![.] = input.parse()?;
                 let event_name: Ident = input.parse()?;
                 let event = Event::parse(input)?;
-                ChildEvent(event_name, ident.clone(), event)
+                ChildEvent(event_name, ident, event)
             }
             else {
                 let mut event = Event::parse(input)?;
@@ -721,7 +735,7 @@ impl Parse for GtkChildPropertyOrEvent {
                 if event.params.is_empty() {
                     event.params.push(wild_pat());
                 }
-                ChildEvent(event_name, ident.clone(), event)
+                ChildEvent(event_name, ident, event)
             }
             else {
                 let mut event = Event::parse(input)?;
@@ -801,8 +815,7 @@ impl Parse for SharedValues {
             Tag::parse(input, "with")?;
             let content;
             let _parens = parenthesized!(content in input);
-            let idents = IdentList::parse(&content)?.idents;
-            idents
+            IdentList::parse(&content)?.idents
         }}.ok();
         Ok(SharedValues {
             shared_values,
@@ -865,7 +878,7 @@ impl Parse for EventValueParser {
             let _comma: token::Comma = content.parse()?;
             let value2: Value = content.parse()?;
             Ok(EventValueParser {
-                value_return: Return(value1.value, value2.value),
+                value_return: Return(Box::new((value1.value, value2.value))),
                 use_self: value1.use_self || value2.use_self,
             })
         }
@@ -1121,7 +1134,7 @@ fn path_to_string(path: &Path) -> String {
     string
 }
 
-fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<String, Option<LitStr>>, save: bool)
+fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<String, Option<LitStr>>, style_classes: &HashSet<String>, save: bool)
     -> ChildWidgetParser
 {
     let parent_id;
@@ -1133,6 +1146,10 @@ fn adjust_widget_with_attributes(mut widget: ChildItem, attributes: &HashMap<Str
             let name = attributes.get("name").and_then(|name| name.clone());
             if let Some(name) = name {
                 widget.name = Ident::new(&name.value(), name.span());
+            }
+            // style_class attribute
+            for style_class in style_classes {
+                widget.style_classes.push((*style_class).clone());
             }
             widget.is_container = !widget.children.is_empty();
             widget.container_type = container_type;
