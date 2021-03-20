@@ -1,0 +1,20 @@
+[package]
+name = "flight_booker"
+version = "0.1.0"
+authors = ["Julian Schmidhuber <schmidhuberj2@protonmail.com>"]
+edition = "2018"
+
+[dependencies]
+glib = "0.10.0"
+gtk = "^0.9.0"
+chrono = "0.4.19"
+gdk = "0.13.2"
+
+[dependencies.gio]
+features = ["v2_50"]
+version = "^0.9.0"
+[dependencies.relm]
+path = "../../../.."
+
+[dependencies.relm-derive]
+path = "../../../../relm-derive"
