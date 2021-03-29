@@ -39,24 +39,32 @@ impl Widget for Win {
         match event {
             // The celsius input was changed.
             Msg::ChangedCelsius(celsius) => {
-                if self.model.temp_celsius != celsius {
+                // Only update the celsius widget if this widget does not have focus.
+                // This will prevent overwriting the value while the user still manipulates the text.
+                if !self.widgets.entry_celsius.has_focus() {
                     self.model.temp_celsius = celsius.clone();
                 }
 
-                if let Ok(temp) = celsius.parse::<i64>() {
-                    let fahrenheit = (temp as f64) * 9.0 / 5.0 + 32.0;
-                    self.model.temp_fahrenheit = format!("{:?}", fahrenheit as i64);
+                if !self.widgets.entry_fahrenheit.has_focus() {
+                    if let Ok(temp) = celsius.parse::<i64>() {
+                        let fahrenheit = (temp as f64) * 9.0 / 5.0 + 32.0;
+                        self.model.temp_fahrenheit = format!("{:?}", fahrenheit as i64);
+                    }
                 }
             }
             // The celsius input was changed.
             Msg::ChangedFahrenheit(fahrenheit) => {
-                if self.model.temp_fahrenheit != fahrenheit {
+                // Only update the fahrenheit widget if this widget does not have focus.
+                // This will prevent overwriting the value while the user still manipulates the text.
+                if !self.widgets.entry_fahrenheit.has_focus() {
                     self.model.temp_fahrenheit = fahrenheit.clone();
                 }
 
-                if let Ok(temp) = fahrenheit.parse::<i64>() {
-                    let celsius = ((temp as f64) - 32.0) * 5.0 / 9.0;
-                    self.model.temp_celsius = format!("{:?}", celsius as i64);
+                if !self.widgets.entry_celsius.has_focus() {
+                    if let Ok(temp) = fahrenheit.parse::<i64>() {
+                        let celsius = ((temp as f64) - 32.0) * 5.0 / 9.0;
+                        self.model.temp_celsius = format!("{:?}", celsius as i64);
+                    }
                 }
             }
             // Quit the application
@@ -69,6 +77,7 @@ impl Widget for Win {
         gtk::Window {
             gtk::Box {
                 // The entry box for the temperature in celsius.
+                #[name="entry_celsius"]
                 gtk::Entry {
                     // This will be called when the entry changes.
                     changed(entry) => {
@@ -76,6 +85,13 @@ impl Widget for Win {
                         let text = entry.get_text().to_string();
                         Msg::ChangedCelsius(text)
                     },
+                    // This will be called when the entry looses focus.
+                    focus_out_event(entry, _) => ({
+                        // Get the text from the entry
+                        let text = entry.get_text().to_string();
+                        Msg::ChangedCelsius(text)
+
+                    }, Inhibit(false)),
                     text: &self.model.temp_celsius,
                 },
                 // The label only showing text.
@@ -83,6 +99,7 @@ impl Widget for Win {
                     label: "Celsius = "
                 },
                 // The entry box for the temperature in fahrenheit.
+                #[name="entry_fahrenheit"]
                 gtk::Entry {
                     // This will be called when the entry changes.
                     changed(entry) => {
@@ -90,6 +107,13 @@ impl Widget for Win {
                         let text = entry.get_text().to_string();
                         Msg::ChangedFahrenheit(text)
                     },
+                    // This will be called when the entry looses focus.
+                    focus_out_event(entry, _) => ({
+                        // Get the text from the entry
+                        let text = entry.get_text().to_string();
+                        Msg::ChangedFahrenheit(text)
+
+                    }, Inhibit(false)),
                     text: &self.model.temp_fahrenheit,
                 },
                 // The label showing the text.
