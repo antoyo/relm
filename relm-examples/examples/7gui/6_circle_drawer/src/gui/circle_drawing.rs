@@ -3,13 +3,11 @@ use crate::gui::win::WinMsg;
 use crate::gui::window_resize::{WindowResize, WindowResizeMsg};
 use crate::model::{Circle, CircleGroup};
 
-use std::sync::{Arc, Mutex};
-
-use cairo::Context;
 use gdk::{EventButton, EventMotion};
 use gtk::{
-    prelude::WidgetExtManual, ContainerExt, DrawingArea, EventBox, GtkWindowExt, Inhibit, WidgetExt,};
-use relm::{connect, init, Component, Relm, StreamHandle, Update, Widget};
+    prelude::WidgetExtManual, ContainerExt, DrawingArea, EventBox, GtkWindowExt, Inhibit, WidgetExt,
+};
+use relm::{connect, init, Component, DrawHandler, Relm, StreamHandle, Update, Widget};
 use relm_derive::Msg;
 
 const STARTING_RADIUS: u64 = 50;
@@ -33,15 +31,21 @@ pub enum CircleDrawingMsg {
 
     /// This will be called from the main window when undoing/redoing.
     SetCircles(CircleGroup),
+
+    /// This will redraw the drawing area
+    UpdateDrawBuffer,
 }
 
 pub struct CircleDrawingModel {
-    circles: Arc<Mutex<CircleGroup>>,
+    circles: CircleGroup,
 
-    // Whether a circle is selected by right-clicking.
+    /// Whether a circle is selected by right-clicking.
     is_circle_selected: bool,
 
     win_stream: StreamHandle<WinMsg>,
+
+    /// The `DrawHandler` manages the drawing operations of a widget.
+    draw_handler: DrawHandler<DrawingArea>,
 }
 
 /// The widget for drawing the circles with clicking.
@@ -65,10 +69,13 @@ impl Update for CircleDrawing {
 
     fn model(_relm: &Relm<Self>, win_stream: StreamHandle<WinMsg>) -> CircleDrawingModel {
         CircleDrawingModel {
-            circles: Arc::new(Mutex::new(CircleGroup::new())),
+            circles: CircleGroup::new(),
             is_circle_selected: false,
 
             win_stream,
+
+            // Create a new `DrawHandler`. It receives the widget in the `view` method.`
+            draw_handler: DrawHandler::new().expect("Could not create draw handler"),
         }
     }
 
@@ -76,7 +83,7 @@ impl Update for CircleDrawing {
         match event {
             CircleDrawingMsg::StartResize => {
                 self.model.is_circle_selected = true;
-                let selected = (*self.model.circles).lock().unwrap().get_selected().clone();
+                let selected = self.model.circles.get_selected().clone();
                 let radius = selected.map(|c| c.get_radius()).unwrap_or(100);
 
                 // Spawn the window with the slider.
@@ -95,10 +102,7 @@ impl Update for CircleDrawing {
                 self.emit_new_circle_group();
             }
             CircleDrawingMsg::Resize(radius) => {
-                (*self.model.circles)
-                    .lock()
-                    .unwrap()
-                    .resize_selected(radius);
+                self.model.circles.resize_selected(radius);
                 self.drawing_area.queue_draw();
             }
             CircleDrawingMsg::Clicked(button_event) => {
@@ -107,7 +111,7 @@ impl Update for CircleDrawing {
 
                 if button == MOUSE_LEFT_CLICK {
                     // Add a new circle on left click.
-                    (*self.model.circles).lock().unwrap().add(Circle::new(
+                    self.model.circles.add(Circle::new(
                         pos_x as u64,
                         pos_y as u64,
                         STARTING_RADIUS,
@@ -116,7 +120,7 @@ impl Update for CircleDrawing {
                     self.emit_new_circle_group();
                 } else if button == MOUSE_RIGHT_CLICK {
                     // Edit the radius of the circle on right click.
-                    if let Some(_circle) = (*self.model.circles).lock().unwrap().get_selected() {
+                    if let Some(_circle) = self.model.circles.get_selected() {
                         // Spawn the popup menu when the click happened on a circle.
                         self.popup_menu
                             .emit(PopupMenuMsg::ShowAt(pos_x as u64, pos_y as u64));
@@ -127,23 +131,57 @@ impl Update for CircleDrawing {
                 // Only update the hovered circle if no circle was selected by right-clicking.
                 if !self.model.is_circle_selected {
                     let (pos_x, pos_y) = motion_event.get_position();
-                    (*self.model.circles)
-                        .lock()
-                        .unwrap()
-                        .select_at(pos_x as u64, pos_y as u64);
+                    self.model.circles.select_at(pos_x as u64, pos_y as u64);
                     self.drawing_area.queue_draw();
                 }
             }
 
             CircleDrawingMsg::SetCircles(circles) => {
                 // Reset the shown circles.
-                *(*self.model.circles).lock().unwrap() = circles;
+                self.model.circles = circles;
                 if let Some(win) = &self.resize_window {
                     win.emit(WindowResizeMsg::Quit);
                     win.widget().close();
                 } else {
                     self.model.is_circle_selected = false;
                     self.drawing_area.queue_draw();
+                }
+            }
+            CircleDrawingMsg::UpdateDrawBuffer => {
+                let context = self.model.draw_handler.get_context();
+                let drawing_area = &self.drawing_area;
+                let circles = &self.model.circles;
+
+                // Draw the background
+                context.rectangle(
+                    0.0,
+                    0.0,
+                    drawing_area.get_allocated_width() as f64,
+                    drawing_area.get_allocated_height() as f64,
+                );
+
+                context.set_source_rgb(1.0, 1.0, 1.0);
+                context.fill();
+
+                // Drawing the circles.
+                for circle in circles.get_all() {
+                    // The circle to be drawn.
+                    context.arc(
+                        circle.get_x() as f64,
+                        circle.get_y() as f64,
+                        circle.get_radius() as f64,
+                        0.0,
+                        2.0 * std::f64::consts::PI,
+                    );
+
+                    // Draw fill if selected.
+                    if circle.is_selected() {
+                        context.set_source_rgb(0.5, 0.5, 0.5);
+                        context.fill_preserve();
+                    }
+
+                    context.set_source_rgb(0.0, 0.0, 0.0);
+                    context.stroke();
                 }
             }
         }
@@ -157,26 +195,29 @@ impl Widget for CircleDrawing {
         self.event_box.clone()
     }
 
-    fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
+    fn view(relm: &Relm<Self>, mut model: Self::Model) -> Self {
         let event_box = EventBox::new();
         let drawing_area = DrawingArea::new();
         event_box.add(&drawing_area);
 
-        // The circle group in the model is a `Arc<Mutex<_>>` as it has to be shared with the `draw` function accessed by `drawing_area.connect_draw`.
-        let circles_arc = model.circles.clone();
-
-        drawing_area.connect_draw(move |widget, context| {
-            draw(circles_arc.clone(), widget, context);
-
-            Inhibit(false)
-        });
+        connect!(
+            relm,               // The `Relm` to send messages to
+            drawing_area,       // The `gtk::Widget`.
+            connect_draw(_, _), // The event to connect to.
+            return (
+                // What to do when the signal occured.
+                Some(CircleDrawingMsg::UpdateDrawBuffer), // Sending a message.
+                Inhibit(false) // Do not inhibit, other widgets may also register that mouse press.
+            )
+        );
 
         // Connect mouse clicking.
         connect!(
             relm,                                 // The `Relm` to send messages to
             event_box,                            // The `gtk::Widget`.
             connect_button_press_event(_, event), // The event to connect to.
-            return (                // What to do when the signal occured.
+            return (
+                // What to do when the signal occured.
                 Some(CircleDrawingMsg::Clicked(event.clone())), // Sending a message.
                 Inhibit(false) // Do not inhibit, other widgets may also register that mouse press.
             )
@@ -200,6 +241,9 @@ impl Widget for CircleDrawing {
         // Show everything.
         event_box.show_all();
 
+        // Give the draw handler the widget.
+        model.draw_handler.init(&drawing_area);
+
         CircleDrawing {
             model,
 
@@ -218,46 +262,10 @@ impl CircleDrawing {
     /// This will be called when the `self.model.circles` has significant changed like
     /// a new circle or a finalized resize.
     fn emit_new_circle_group(&self) {
-        let mut circle_group = (*self.model.circles).lock().unwrap().clone();
+        let mut circle_group = self.model.circles.clone();
         circle_group.delesect_all();
         self.model
             .win_stream
             .emit(WinMsg::AddCircleGroup(circle_group));
     }
 }
-
-/// Draw all the `circles` on the given `context` in the `drawing_area` widget.
-fn draw(circles: Arc<Mutex<CircleGroup>>, drawing_area: &DrawingArea, context: &Context) {
-    // Draw the background
-    context.rectangle(
-        0.0,
-        0.0,
-        drawing_area.get_allocated_width() as f64,
-        drawing_area.get_allocated_height() as f64,
-    );
-
-    context.set_source_rgb(1.0, 1.0, 1.0);
-    context.fill();
-
-    // Drawing the circles.
-    for circle in (*circles).lock().unwrap().get_all() {
-        // The circle to be drawn.
-        context.arc(
-            circle.get_x() as f64,
-            circle.get_y() as f64,
-            circle.get_radius() as f64,
-            0.0,
-            2.0 * std::f64::consts::PI,
-        );
-
-        // Draw fill if selected.
-        if circle.is_selected() {
-            context.set_source_rgb(0.5, 0.5, 0.5);
-            context.fill_preserve();
-        }
-
-        context.set_source_rgb(0.0, 0.0, 0.0);
-        context.stroke();
-    }
-}
-
