@@ -73,7 +73,7 @@ jobs:
         run: cargo build --manifest-path relm-examples/examples/webkit-test/Cargo.toml
 
       - name: "relm: clean tests"
-        cargo clean --manifest-path relm-examples/Cargo.toml
+        run: cargo clean --manifest-path relm-examples/Cargo.toml
 
       - name: "relm: clean http example"
         run: cargo clean --manifest-path relm-examples/examples/http/Cargo.toml
