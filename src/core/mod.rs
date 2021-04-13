@@ -311,18 +311,18 @@ impl<MSG> EventStream<MSG> {
 
     /// Create a Clone-able EventStream handle.
     pub fn downgrade(&self) -> StreamHandle<MSG> {
-        StreamHandle::new(Rc::downgrade(self.stream()))
+        StreamHandle::new(Rc::downgrade(self.get_stream()))
     }
 
     /// Send the `event` message to the stream and the observers.
     pub fn emit(&self, event: MSG) {
-        let stream = self.stream();
+        let stream = self.get_stream();
         emit(stream, event)
     }
 
     /// Lock the stream (don't emit message) until the `Lock` goes out of scope.
     pub fn lock(&self) -> Lock<MSG> {
-        let stream = self.stream();
+        let stream = self.get_stream();
         stream.borrow_mut().locked = true;
         Lock {
             stream: self.stream(),
@@ -332,7 +332,7 @@ impl<MSG> EventStream<MSG> {
     /// Add an observer to the event stream.
     /// This callback will be called every time a message is emmited.
     pub fn observe<CALLBACK: Fn(&MSG) + 'static>(&self, callback: CALLBACK) {
-        let stream = self.stream();
+        let stream = self.get_stream();
         stream.borrow_mut().observers.push(Rc::new(callback));
     }
 
@@ -340,7 +340,7 @@ impl<MSG> EventStream<MSG> {
     /// This is the main callback and received a owned version of the message, in contrast to
     /// observe().
     pub fn set_callback<CALLBACK: FnMut(MSG) + 'static>(&self, callback: CALLBACK) {
-        let source_callback = self.callback();
+        let source_callback = self.get_callback();
         *source_callback.borrow_mut() = Some(Box::new(callback));
     }
 }
