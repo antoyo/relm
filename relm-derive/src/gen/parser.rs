@@ -508,11 +508,11 @@ impl ChildWidgetParser {
         let save = attributes.name_values.contains_key("name") || root == Save;
         match typ {
             RelmPath(_) => {
-                let relm_widget = RelmWidgetParser::parse(typ.get_relm_path().clone(), input)?.relm_widget;
+                let relm_widget = RelmWidgetParser::parse(typ.relm_path().clone(), input)?.relm_widget;
                 Ok(adjust_widget_with_attributes(relm_widget, &attributes.name_values, &attributes.style_classes, save))
             },
             GtkPath(_) => {
-                let gtk_widget = GtkWidgetParser::parse(typ.get_gtk_path().clone(), input)?.gtk_widget;
+                let gtk_widget = GtkWidgetParser::parse(typ.gtk_path().clone(), input)?.gtk_widget;
                 Ok(adjust_widget_with_attributes(gtk_widget, &attributes.name_values, &attributes.style_classes, save))
             },
         }

@@ -36,7 +36,7 @@ use relm::StreamHandle;
 macro_rules! gtk_observer_new {
     ($widget:expr, $signal_name:ident, |$e1:pat $(,$e:pat)*|) => {{
         let observer = gtk_test::Observer::new();
-        let res = (*observer.get_inner()).clone();
+        let res = (*observer.inner()).clone();
         $widget.$signal_name(move |$e1 $(,$e:expr)*| {
             *res.borrow_mut() = true;
         });
@@ -44,7 +44,7 @@ macro_rules! gtk_observer_new {
     }};
     ($widget:expr, $signal_name:ident, |$e1:pat $(,$e:pat)*| $block:block) => {{
         let observer = gtk_test::Observer::new();
-        let res = (*observer.get_inner()).clone();
+        let res = (*observer.inner()).clone();
         $widget.$signal_name(move |$e1 $(,$e)*| {
             *res.borrow_mut() = true;
             $block
@@ -148,7 +148,7 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: 
                     Inhibit(false)
                 })
             };
-        let allocation = widget.get_allocation();
+        let allocation = widget.allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
         let mut enigo = Enigo::new();
         enigo.mouse_click(MouseButton::Left);
@@ -160,7 +160,7 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: 
 
 pub fn mouse_move_to<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: &W) {
     wait_for_draw(widget, || {
-        let allocation = widget.get_allocation();
+        let allocation = widget.allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
 
         wait_for_relm_events();
@@ -172,7 +172,7 @@ pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W
         let observer = gtk_observer_new!(widget, connect_button_release_event, |_, _| {
             Inhibit(false)
         });
-        let allocation = widget.get_allocation();
+        let allocation = widget.allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
         let mut enigo = Enigo::new();
         enigo.mouse_click(MouseButton::Left);

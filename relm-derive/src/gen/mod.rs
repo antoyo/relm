@@ -316,11 +316,11 @@ impl Driver {
             self.widgets.insert(self.root_widget.clone().expect("root widget"),
             self.root_widget_type.clone().expect("root widget type"));
             let widget_struct = self.create_struct(&self_ty, &view.relm_widgets, &view.relm_components, &view.streams_to_save, &generics);
-            new_items.push(self.get_root_type());
-            if let Some(data_method) = self.get_data_method() {
+            new_items.push(self.root_type());
+            if let Some(data_method) = self.data_method() {
                 new_items.push(data_method);
             }
-            new_items.push(self.get_root());
+            new_items.push(self.root());
             let other_methods = self.get_other_methods(&self_ty, &generics);
             let update_impl = self.update_impl(&self_ty, &generics, update_items);
             let widget_test_impl = self.widget_test_impl(&self_ty, &generics);
@@ -516,10 +516,10 @@ impl Driver {
     fn update_impl(&mut self, typ: &Type, generics: &Generics, items: Vec<ImplItem>) -> TokenStream {
         let where_clause = gen_where_clause(generics);
 
-        let msg = self.get_msg_type();
-        let model_param = self.get_model_param_type();
-        let update = self.get_update();
-        let model = self.get_model_type();
+        let msg = self.msg_type();
+        let model_param = self.model_param_type();
+        let update = self.update();
+        let model = self.model_type();
         quote_spanned! { typ.span() =>
             impl #generics ::relm::Update for #typ #where_clause {
                 #msg

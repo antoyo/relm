@@ -106,7 +106,7 @@ impl Widget for Win {
                 self.model.button_enabled = true;
                 self.widgets.button.grab_focus();
                 self.model.loader.close().ok();
-                self.widgets.image.set_from_pixbuf(self.model.loader.get_pixbuf().as_ref());
+                self.widgets.image.set_from_pixbuf(self.model.loader.pixbuf().as_ref());
                 self.model.loader = PixbufLoader::new();
                 self.model.request = None;
             },
@@ -253,7 +253,7 @@ impl Update for Http {
         match message {
             Connection(connection) => {
                 let stream: IOStream = connection.upcast();
-                let writer = stream.get_output_stream().expect("output");
+                let writer = stream.output_stream().expect("output");
                 self.model.stream = Some(stream);
                 if let Ok(uri) = HttpUri::new(&self.model.url) {
                     let path = uri.resource.path;
@@ -272,7 +272,7 @@ impl Update for Http {
                 }
                 else {
                     if let Some(ref stream) = self.model.stream {
-                        let reader = stream.get_input_stream().expect("input");
+                        let reader = stream.input_stream().expect("input");
                         connect_async!(reader, read_async(vec![0; READ_SIZE], PRIORITY_DEFAULT), self.model.relm, Read);
                     }
                 }
@@ -322,7 +322,7 @@ impl Update for Http {
             ReadDone(_) => (),
             Wrote => {
                 if let Some(ref stream) = self.model.stream {
-                    let reader = stream.get_input_stream().expect("input");
+                    let reader = stream.input_stream().expect("input");
                     connect_async!(reader, read_async(vec![0; READ_SIZE], PRIORITY_DEFAULT), self.model.relm, Read);
                 }
             },

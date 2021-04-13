@@ -152,7 +152,7 @@ impl Update for Win {
         match event {
             Quit => gtk::main_quit(),
             MinusToggle => {
-                if self.widgets.minus_button.get_active() {
+                if self.widgets.minus_button.active() {
                     self.components.plus_button.emit(Uncheck);
                 }
                 else {
@@ -160,7 +160,7 @@ impl Update for Win {
                 }
             },
             PlusToggle => {
-                if self.widgets.plus_button.get_active() {
+                if self.widgets.plus_button.active() {
                     self.components.minus_button.emit(Uncheck);
                 }
                 else {
@@ -237,23 +237,23 @@ mod tests {
         let plus_button = &widgets.plus_button;
         let minus_button = &widgets.minus_button;
 
-        assert!(!plus_button.get_active());
-        assert!(!minus_button.get_active());
+        assert!(!plus_button.active());
+        assert!(!minus_button.active());
 
         click(plus_button);
-        assert!(plus_button.get_active());
-        assert!(!minus_button.get_active());
+        assert!(plus_button.active());
+        assert!(!minus_button.active());
 
         click(plus_button);
-        assert!(!plus_button.get_active());
-        assert!(minus_button.get_active());
+        assert!(!plus_button.active());
+        assert!(minus_button.active());
 
         click(minus_button);
-        assert!(plus_button.get_active());
-        assert!(!minus_button.get_active());
+        assert!(plus_button.active());
+        assert!(!minus_button.active());
 
         click(minus_button);
-        assert!(!plus_button.get_active());
-        assert!(minus_button.get_active());
+        assert!(!plus_button.active());
+        assert!(minus_button.active());
     }
 }

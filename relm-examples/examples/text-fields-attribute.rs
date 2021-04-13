@@ -68,7 +68,7 @@ impl Widget for Win {
                 #[name="entry"]
                 gtk::Entry {
                     changed(entry) => {
-                        let text = entry.get_text().to_string();
+                        let text = entry.text().to_string();
                         let len = text.len();
                         Change(text, len)
                     },

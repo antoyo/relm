@@ -104,7 +104,7 @@ impl Widget for Text {
         vbox.add(&label);
 
         let input2 = input.clone();
-        connect!(relm, input, connect_changed(_), Change(input2.get_text()));
+        connect!(relm, input, connect_changed(_), Change(input2.text()));
 
         Text {
             label: label,

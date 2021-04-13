@@ -66,7 +66,7 @@ impl Widget for Win {
                 orientation: Vertical,
                 #[name = "entry"]
                 gtk::Entry {
-                    changed(entry) => Change(entry.get_text()),
+                    changed(entry) => Change(entry.text()),
                     placeholder_text: Some("Text to reverse"),
                 },
                 #[name = "entry2"]

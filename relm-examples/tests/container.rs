@@ -225,9 +225,9 @@ mod tests {
         let dec_button = &widgets.dec_button;
         let label = &widgets.label;
 
-        let inc_allocation = inc_button.get_allocation();
-        let dec_allocation = dec_button.get_allocation();
-        let label_allocation = label.get_allocation();
+        let inc_allocation = inc_button.allocation();
+        let dec_allocation = dec_button.allocation();
+        let label_allocation = label.allocation();
         assert!(inc_allocation.y < dec_allocation.y);
         assert!(inc_allocation.y < label_allocation.y);
         assert!(label_allocation.y < dec_allocation.y);

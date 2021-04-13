@@ -170,14 +170,14 @@ mod tests {
         let add_button = &widgets.add_button;
         let remove_button = &widgets.remove_button;
 
-        assert_eq!(hbox.get_children().len(), 0);
+        assert_eq!(hbox.children().len(), 0);
         assert_eq!(COUNTER.load(Ordering::SeqCst), 0);
 
         click(add_button);
-        assert_eq!(hbox.get_children().len(), 1);
+        assert_eq!(hbox.children().len(), 1);
         assert_eq!(COUNTER.load(Ordering::SeqCst), 1);
 
-        let widget1 = &hbox.get_children()[0];
+        let widget1 = &hbox.children()[0];
         let inc_button1: Button = find_child_by_name(widget1, "inc_button").expect("inc button");
         let label1: Label = find_child_by_name(widget1, "label").expect("label");
         assert_text!(label1, 0);
@@ -186,10 +186,10 @@ mod tests {
         assert_text!(label1, 1);
 
         click(add_button);
-        assert_eq!(hbox.get_children().len(), 2);
+        assert_eq!(hbox.children().len(), 2);
         assert_eq!(COUNTER.load(Ordering::SeqCst), 2);
 
-        let widget2 = &hbox.get_children()[1];
+        let widget2 = &hbox.children()[1];
         let inc_button2: Button = find_child_by_name(widget2, "inc_button").expect("inc button");
         let label2: Label = find_child_by_name(widget2, "label").expect("label");
         assert_text!(label2, 0);
@@ -201,10 +201,10 @@ mod tests {
         assert_text!(label1, 2);
 
         click(add_button);
-        assert_eq!(hbox.get_children().len(), 3);
+        assert_eq!(hbox.children().len(), 3);
         assert_eq!(COUNTER.load(Ordering::SeqCst), 3);
 
-        let widget3 = &hbox.get_children()[2];
+        let widget3 = &hbox.children()[2];
         let inc_button3: Button = find_child_by_name(widget3, "inc_button").expect("inc button");
         let label3: Label = find_child_by_name(widget3, "label").expect("label");
         assert_text!(label3, 0);
@@ -219,7 +219,7 @@ mod tests {
         assert_text!(label1, 3);
 
         click(remove_button);
-        assert_eq!(hbox.get_children().len(), 2);
+        assert_eq!(hbox.children().len(), 2);
         assert_eq!(COUNTER.load(Ordering::SeqCst), 2);
 
         click(&inc_button1);
@@ -229,14 +229,14 @@ mod tests {
         assert_text!(label2, 3);
 
         click(remove_button);
-        assert_eq!(hbox.get_children().len(), 1);
+        assert_eq!(hbox.children().len(), 1);
         assert_eq!(COUNTER.load(Ordering::SeqCst), 1);
 
         click(&inc_button1);
         assert_text!(label1, 5);
 
         click(remove_button);
-        assert_eq!(hbox.get_children().len(), 0);
+        assert_eq!(hbox.children().len(), 0);
         assert_eq!(COUNTER.load(Ordering::SeqCst), 0);
     }
 }

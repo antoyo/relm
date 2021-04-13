@@ -409,7 +409,7 @@ impl<'a> Generator<'a> {
         let (properties, visible_properties) = self.gtk_set_prop_calls(widget, ident);
         let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type, IsGtk);
         let set_style_classes: Vec<_> = widget.style_classes.iter().map(|style_class|
-            quote_spanned! { widget_name.span() => gtk::StyleContextExt::add_class(&#widget_name.get_style_context(), &#style_class); }
+            quote_spanned! { widget_name.span() => gtk::StyleContextExt::add_class(&#widget_name.style_context(), &#style_class); }
         ).collect();
 
         let show =

@@ -77,8 +77,8 @@ impl Update for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Msg::ItemSelect => {
-                let selection = self.tree_view.get_selection();
-                if let Some((list_model, iter)) = selection.get_selected() {
+                let selection = self.tree_view.selection();
+                if let Some((list_model, iter)) = selection.selected() {
                     let is_dir: bool = list_model
                         .get_value(&iter, IS_DIR_COL)
                         .get::<bool>()

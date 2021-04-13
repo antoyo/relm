@@ -138,12 +138,12 @@ mod tests {
         }
 
         let time = Local::now();
-        assert!(time_close(label.get_text(), time.format("%H:%M:%S").to_string()));
+        assert!(time_close(label.text(), time.format("%H:%M:%S").to_string()));
 
         wait(2000);
 
         let time2 = Local::now();
         assert_ne!(time, time2);
-        assert!(time_close(label.get_text(), time2.format("%H:%M:%S").to_string()));
+        assert!(time_close(label.text(), time2.format("%H:%M:%S").to_string()));
     }
 }

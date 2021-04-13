@@ -67,7 +67,7 @@ impl Widget for Win {
     fn update(&mut self, event: Msg) {
         match event {
             KeyPress(event) => {
-                if let Some(letter) = event.get_keyval().to_unicode() {
+                if let Some(letter) = event.keyval().to_unicode() {
                     self.model.letter.set(letter);
                     self.widgets.drawing_area.queue_draw();
                 }

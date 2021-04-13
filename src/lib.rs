@@ -160,8 +160,8 @@ fn create_widget_test<WIDGET>(model_param: WIDGET::ModelParam) -> (Component<WID
           WIDGET::Msg: DisplayVariant + 'static,
 {
     let (component, widget, relm) = create_widget::<WIDGET>(model_param);
-    let widgets = widget.get_widgets();
-    let streams = widget.get_streams();
+    let widgets = widget.widgets();
+    let streams = widget.streams();
     init_component::<WIDGET>(component.owned_stream(), widget, &relm);
     (component, streams, widgets)
 }

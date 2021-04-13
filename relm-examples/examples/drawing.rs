@@ -110,7 +110,7 @@ impl Widget for Win {
         match event {
             Generate => self.model.circles.push(Circle::generate()),
             Move => {
-                let allocation = self.widgets.drawing_area.get_allocation();
+                let allocation = self.widgets.drawing_area.allocation();
                 for circle in &mut self.model.circles {
                     if (circle.x + circle.vx + SIZE / 2.0 < allocation.width as f64) &&
                         (circle.x + circle.vx - SIZE / 2.0 > 0.0)
@@ -133,7 +133,7 @@ impl Widget for Win {
             MoveCursor(pos) => self.model.cursor_pos = pos,
             Quit => gtk::main_quit(),
             UpdateDrawBuffer => {
-                let context = self.model.draw_handler.get_context();
+                let context = self.model.draw_handler.context();
                 context.set_source_rgb(1.0, 1.0, 1.0);
                 context.paint();
                 for circle in &self.model.circles {
@@ -159,7 +159,7 @@ impl Widget for Win {
                         expand: true,
                     },
                     draw(_, _) => (UpdateDrawBuffer, Inhibit(false)),
-                    motion_notify_event(_, event) => (MoveCursor(event.get_position()), Inhibit(false))
+                    motion_notify_event(_, event) => (MoveCursor(event.position()), Inhibit(false))
                 },
             },
             delete_event(_, _) => (Quit, Inhibit(false)),

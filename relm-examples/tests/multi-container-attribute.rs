@@ -188,11 +188,11 @@ mod tests {
         let right_button = &widgets.right_button;
         let center_button = &widgets.center_button;
 
-        let button1_allocation = button1.get_allocation();
-        let label_allocation = label.get_allocation();
-        let button2_allocation = button2.get_allocation();
-        let right_allocation = right_button.get_allocation();
-        let center_allocation = center_button.get_allocation();
+        let button1_allocation = button1.allocation();
+        let label_allocation = label.allocation();
+        let button2_allocation = button2.allocation();
+        let right_allocation = right_button.allocation();
+        let center_allocation = center_button.allocation();
 
         assert!(button1_allocation.y < label_allocation.y);
         assert!(label_allocation.y < button2_allocation.y);

@@ -73,7 +73,7 @@ impl Update for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Change => {
-                self.model.content = self.widgets.input.get_text()
+                self.model.content = self.widgets.input.text()
                                                        .chars()
                                                        .rev()
                                                        .collect();
