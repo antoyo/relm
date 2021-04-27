@@ -14,10 +14,8 @@ use cairo::{
     Format,
     ImageSurface,
 };
-use gtk::{
-    Inhibit,
-    WidgetExt,
-};
+use gtk::Inhibit;
+use gtk::traits::WidgetExt;
 
 #[derive(Clone)]
 struct Surface {
@@ -107,7 +105,7 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
                     Ok(surface) => {
                         {
                             #[cfg(feature = "hidpi")]
-                            surface.set_device_scale(scale as f64, scale as f64);
+                                surface.set_device_scale(scale as f64, scale as f64);
                         }
                         self.edit_surface = surface
                     }
@@ -115,8 +113,7 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
                 }
             }
             DrawContext::new(&self.draw_surface, &self.edit_surface, widget)
-        }
-        else {
+        } else {
             panic!("Call DrawHandler::init() before DrawHandler::get_context().");
         }
     }
