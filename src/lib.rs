@@ -116,7 +116,7 @@ pub use glib::{
     Value,
 };
 #[doc(hidden)]
-pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
+pub use glib::translate::{FromGlibPtrNone, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
 use glib::Continue;
