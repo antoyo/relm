@@ -28,7 +28,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
-use proc_macro2::{Span, TokenTree, TokenStream};
+use proc_macro2::{Span, TokenTree};
 use quote::{quote, ToTokens};
 use syn::{
     Expr,
@@ -227,39 +227,37 @@ impl RelmWidget {
     }
 }
 
-struct WidgetList {
-    widgets: Vec<Widget>,
+pub struct WidgetList {
+    pub widgets: Vec<Widget>,
 }
 
 impl Parse for WidgetList {
     fn parse(input: ParseStream) -> Result<Self> {
-        let widget: Widget = input.parse()?;
-        let mut widgets = vec![widget];
-        while !input.is_empty() {
-            let widget: Widget = input.parse()?;
-            widgets.push(widget);
+        let lookahead = input.lookahead1();
+        if lookahead.peek(LitStr) {
+            let literal: LitStr = input.parse()?;
+
+            // TODO: also support glade file.
+            let mut file = File::open(literal.value()).expect("File::open() in parse()");
+            let mut file_content = String::new();
+            file.read_to_string(&mut file_content)
+                .expect("read_to_string() in parse()");
+            let tokens = proc_macro::TokenStream::from_str(&file_content)
+                .expect("convert string to TokenStream");
+            let tokens = respan_with(tokens, literal.span().unwrap());
+
+            syn::parse(tokens)
+        } else if lookahead.peek(Ident) || lookahead.peek(token::Pound) {
+            let mut widgets = vec![];
+
+            while !input.is_empty() {
+                widgets.push(input.parse()?);
+            }
+
+            Ok(WidgetList { widgets })
+        } else {
+            Err(lookahead.error())
         }
-        Ok(WidgetList {
-            widgets,
-        })
-    }
-}
-
-pub fn parse_widgets(tokens: TokenStream) -> Result<Vec<Widget>> {
-    if let Ok(literal) = parse2::<LitStr>(tokens.clone()) {
-        // TODO: also support glade file.
-        let mut file = File::open(literal.value()).expect("File::open() in parse()");
-        let mut file_content = String::new();
-        file.read_to_string(&mut file_content).expect("read_to_string() in parse()");
-        let tokens = proc_macro::TokenStream::from_str(&file_content).expect("convert string to TokenStream");
-        let tokens = respan_with(tokens, literal.span().unwrap());
-
-        let widgets: WidgetList = parse(tokens)?;
-        Ok(widgets.widgets)
-    }
-    else {
-        let widgets: WidgetList = parse2(tokens)?;
-        Ok(widgets.widgets)
     }
 }
 
