@@ -39,10 +39,11 @@ use syn::{
     LifetimeDef,
     TypeParam,
     parse,
+    parse_macro_input,
 };
 use syn::spanned::Spanned;
 
-use gen::{gen_widget, gen_where_clause, parser::dummy_ident};
+use gen::{WidgetDefinition, gen_widget, gen_where_clause, parser::dummy_ident};
 
 #[proc_macro_derive(Msg)]
 pub fn msg(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -53,12 +54,8 @@ pub fn msg(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 #[proc_macro_attribute]
 pub fn widget(_attributes: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let ast: Item = parse(input).expect("widget.parse failed");
-    let tokens = quote! {
-        #ast
-    };
-    let expanded = gen_widget(tokens);
-    expanded.into()
+    let definition = parse_macro_input!(input as WidgetDefinition);
+    gen_widget(definition).into()
 }
 
 fn impl_msg(ast: &Item, krate: Ident) -> TokenStream {
