@@ -48,7 +48,7 @@ pub struct DrawContext<W: WidgetExt> {
 impl<W: Clone + WidgetExt> DrawContext<W> {
     fn new(draw_surface: &Surface, edit_surface: &ImageSurface, widget: &W) -> Self {
         Self {
-            context: Context::new(&edit_surface),
+            context: Context::new(&edit_surface).unwrap(),
             draw_surface: draw_surface.clone(),
             edit_surface: edit_surface.clone(),
             widget: widget.clone(),
@@ -126,8 +126,8 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
         let draw_surface = self.draw_surface.clone();
         widget.connect_draw(move |_, context| {
             // TODO: only copy the area that was exposed?
-            context.set_source_surface(&draw_surface.get(), 0.0, 0.0);
-            context.paint();
+            context.set_source_surface(&draw_surface.get(), 0.0, 0.0).unwrap();
+            context.paint().unwrap();
             Inhibit(false)
         });
     }
