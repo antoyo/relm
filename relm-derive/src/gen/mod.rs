@@ -63,7 +63,7 @@ use syn::visit::Visit;
 use self::adder::{Adder, Message, Property};
 pub use self::generator::gen_where_clause;
 use self::parser::EitherWidget::{Gtk, Relm};
-use self::parser::{Widget, parse_widgets};
+use self::parser::{Widget, WidgetList};
 use self::walker::ModelVariableVisitor;
 
 const MODEL_IDENT: &str = "__relm_model";
@@ -429,57 +429,12 @@ impl Driver {
     }
 
     fn get_view(&mut self, name: &Ident, typ: &Type) -> Result<View> {
-        // This method should probably just be replaced with `impl_view` and
-        // `view_validation_before_impl` should be put inside `impl_view`
-        self.view_validation_before_impl();
-        self.impl_view(name, typ)
-    }
+        let WidgetList { mut widgets } = self
+            .view_macro
+            .take()
+            .expect("view_macro in impl_view()")
+            .parse_body()?;
 
-    fn view_validation_before_impl(&mut self) {
-        /*
-        // This is what comes immediately after `view!` e.g. `{ ... }`
-        let macro_token_tree: Vec<_> = self.view_macro.as_ref().expect("`view!` macro not yet set").tts
-            .clone()
-            .into_iter()
-            .collect();
-        // Panic if the macro is declared as anything other than `view! { ... }` or equivalent
-        if macro_token_tree.len() != 1 {
-            panic!("Invalid `view!` syntax, must be `view! { ... }`, `view! ( ... )`, or `view! [ ... ]`");
-        }
-        // Reach inside the brackets and bind the contents (the top level items) of `view!`
-        let top_level_items: Vec<_> = match macro_token_tree[0].kind {
-            TokenNode::Group(_, ref tts) => tts.clone().into_iter().collect(),
-            _ => panic!("Contents of `view!` should be a comma-delimitted series of items")
-        };
-        if let Some(index) = top_level_items.iter().position(|item|
-            match item.kind {
-                TokenNode::Op(',', _) => true,
-                _ => false,
-            })
-        {
-            // Find a comma (meaning more than one top level item) and panic unless it's just a trailing comma
-            if index != top_level_items.len() - 1 {
-                panic!("There may only be one top-level item in `view!`");
-            }
-        } else if top_level_items.len() == 0 {
-            // Panic if `view!` is empty e.g. `view! {}`
-            panic!("`view!` macro is empty, must contain one top-level item");
-        }
-        let macro_name_segments = &self.view_macro.as_ref().expect("`view!` macro not yet set").path.segments;
-        let last_segment = &macro_name_segments[macro_name_segments.len() - 1];
-        if (macro_name_segments.len() != 1) || (last_segment.ident.as_ref() != "view") {
-            let joined_path = macro_name_segments.iter()
-                .map(|seg| seg.ident.as_ref())
-                .collect::<Vec<&str>>()
-                .join("::");
-            panic!("Expected `view!` macro, found `{}` instead", joined_path);
-        }
-        */
-    }
-
-    fn impl_view(&mut self, name: &Ident, typ: &Type) -> Result<View> {
-        let tts = self.view_macro.take().expect("view_macro in impl_view()").tokens;
-        let mut widgets = parse_widgets(tts)?;
         self.widget_parent_id = widgets[0].parent_id.clone();
 
         let mut msg_model_map = HashMap::new();
@@ -698,63 +653,5 @@ fn gen_set_child_prop_calls(widget: &Widget) -> Option<ImplItem> {
     }
     else {
         None
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use syn::parse_expr;
-    use syn::{ExprKind};
-
-    #[test]
-    #[should_panic(expected = "Expected `view!` macro, found `foo` instead")]
-    fn incorrect_view_macro_name() {
-        let macro_text = "foo! {
-            gtk::Window {}
-        }";
-        let parsed_expr: ExprKind = parse_expr(macro_text)
-                                        .expect("incorrect_view_macro_name > parse_expr failed").node;
-        let mac = match parsed_expr {
-            ExprKind::Mac(mac) => mac,
-            _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
-        };
-        let mut driver = Driver::new();
-        driver.view_macro = Some(mac);
-        driver.view_validation_before_impl();
-    }
-
-    #[test]
-    #[should_panic(expected = "`view!` macro is empty, must contain one top-level item")]
-    fn empty_view_macro() {
-        let macro_text = "view! {
-        }";
-        let parsed_expr: ExprKind = parse_expr(macro_text)
-                                        .expect("empty_view_macro > parse_expr failed").node;
-        let mac = match parsed_expr {
-            ExprKind::Mac(mac) => mac,
-            _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
-        };
-        let mut driver = Driver::new();
-        driver.view_macro = Some(mac);
-        driver.view_validation_before_impl();
-    }
-
-    #[test]
-    #[should_panic(expected = "There may only be one top-level item in `view!`")]
-    fn multiple_top_level_items() {
-        let macro_text = "view! {
-            gtk::Window {},
-            gtk::Window {}
-        }";
-        let parsed_expr: ExprKind = parse_expr(macro_text)
-                                        .expect("multiple_top_level_items > parse_expr failed").node;
-        let mac = match parsed_expr {
-            ExprKind::Mac(mac) => mac,
-            _ => panic!("Expected ExprKind::Mac(mac), found {:#?}", parsed_expr),
-        };
-        let mut driver = Driver::new();
-        driver.view_macro = Some(mac);
-        driver.view_validation_before_impl();
     }
 }
