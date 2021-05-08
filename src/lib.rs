@@ -238,6 +238,10 @@ type InitTestComponents<WIDGET> = (Component<WIDGET>, <WIDGET as WidgetTest>::St
 /// # }
 /// #
 /// # impl WidgetTest for Win {
+/// #     type Streams = ();
+/// #
+/// #     fn get_streams(&self) -> Self::Streams {}
+/// #
 /// #     type Widgets = Win;
 /// #
 /// #     fn get_widgets(&self) -> Self::Widgets {
