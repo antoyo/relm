@@ -21,3 +21,6 @@ fragile = "1.0"
 libc = "^0.2.54"
 log = "^0.4.6"
 
+[features]
+hidpi = ["cairo-rs/v1_16"]
+
