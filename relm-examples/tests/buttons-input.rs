@@ -91,12 +91,12 @@ impl Widget for Win {
                     #[name="left_entry"]
                     gtk::Entry {
                         text: &self.model.left_text,
-                        changed(entry) => LeftChanged(entry.get_text().to_string()),
+                        changed(entry) => LeftChanged(entry.text().to_string()),
                     },
                     #[name="right_entry"]
                     gtk::Entry {
                         text: &self.model.right_text,
-                        changed(entry) => RightChanged(entry.get_text().to_string()),
+                        changed(entry) => RightChanged(entry.text().to_string()),
                     },
                     orientation: Horizontal,
                 },
@@ -162,19 +162,19 @@ mod tests {
         let cleared_observer = relm_observer_new!(component, DataCleared);
 
         assert_text!(label, "");
-        enter_keys(&window.get_focus().expect("focused widget"), "left");
+        enter_keys(&window.gets_focus().expect("focused widget"), "left");
         enter_key(window, key::Tab);
         assert!(right_entry.has_focus());
 
-        enter_keys(&window.get_focus().expect("focused widget"), "right");
+        enter_keys(&window.gets_focus().expect("focused widget"), "right");
         enter_key(window, key::Tab);
         assert!(concat_button.has_focus());
-        enter_key(&window.get_focus().expect("focused widget"), key::space);
+        enter_key(&window.gets_focus().expect("focused widget"), key::space);
         assert_text!(label, "leftright");
 
         enter_key(window, key::Tab);
         assert!(cancel_button.has_focus());
-        enter_key(&window.get_focus().expect("focused widget"), key::space);
+        enter_key(&window.gets_focus().expect("focused widget"), key::space);
         assert_text!(label, "");
         assert_text!(left_entry, "");
         assert_text!(right_entry, "");

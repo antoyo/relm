@@ -64,7 +64,7 @@ impl Widget for Text {
             orientation: Vertical,
             gtk::Entry {
                 widget_name: "entry",
-                changed(entry) => Change(entry.get_text()),
+                changed(entry) => Change(entry.text()),
             },
             gtk::Label {
                 widget_name: "label",

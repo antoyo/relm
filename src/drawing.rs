@@ -14,10 +14,8 @@ use cairo::{
     Format,
     ImageSurface,
 };
-use gtk::{
-    Inhibit,
-    WidgetExt,
-};
+use gtk::Inhibit;
+use gtk::traits::WidgetExt;
 
 #[derive(Clone)]
 struct Surface {
@@ -50,7 +48,7 @@ pub struct DrawContext<W: WidgetExt> {
 impl<W: Clone + WidgetExt> DrawContext<W> {
     fn new(draw_surface: &Surface, edit_surface: &ImageSurface, widget: &W) -> Self {
         Self {
-            context: Context::new(&edit_surface),
+            context: Context::new(&edit_surface).unwrap(),
             draw_surface: draw_surface.clone(),
             edit_surface: edit_surface.clone(),
             widget: widget.clone(),
@@ -93,21 +91,21 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
     /// Get the drawing context to draw on a widget.
     pub fn get_context(&mut self) -> DrawContext<W> {
         if let Some(ref widget) = self.widget {
-            let allocation = widget.get_allocation();
+            let allocation = widget.allocation();
             let scale = if cfg!(feature = "hidpi") {
-                widget.get_scale_factor()
+                widget.scale_factor()
             } else {
                 1
             };
             let width = allocation.width * scale;
             let height = allocation.height * scale;
-            if (width, height) != (self.edit_surface.get_width(), self.edit_surface.get_height()) {
+            if (width, height) != (self.edit_surface.width(), self.edit_surface.height()) {
                 // TODO: also copy the old small surface to the new bigger one?
                 match ImageSurface::create(Format::ARgb32, width, height) {
                     Ok(surface) => {
                         {
                             #[cfg(feature = "hidpi")]
-                            surface.set_device_scale(scale as f64, scale as f64);
+                                surface.set_device_scale(scale as f64, scale as f64);
                         }
                         self.edit_surface = surface
                     }
@@ -115,8 +113,7 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
                 }
             }
             DrawContext::new(&self.draw_surface, &self.edit_surface, widget)
-        }
-        else {
+        } else {
             panic!("Call DrawHandler::init() before DrawHandler::get_context().");
         }
     }
@@ -129,8 +126,8 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
         let draw_surface = self.draw_surface.clone();
         widget.connect_draw(move |_, context| {
             // TODO: only copy the area that was exposed?
-            context.set_source_surface(&draw_surface.get(), 0.0, 0.0);
-            context.paint();
+            context.set_source_surface(&draw_surface.get(), 0.0, 0.0).unwrap();
+            context.paint().unwrap();
             Inhibit(false)
         });
     }

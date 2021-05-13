@@ -116,7 +116,7 @@ pub use glib::{
     Value,
 };
 #[doc(hidden)]
-pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
+pub use glib::translate::{FromGlibPtrNone, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
 use glib::Continue;
@@ -137,6 +137,7 @@ pub use component::Component;
 pub use container::{Container, ContainerComponent, ContainerWidget};
 pub use drawing::DrawHandler;
 pub use widget::{Widget, WidgetTest};
+use glib::bitflags::_core::time::Duration;
 
 /// Dummy macro to be used with `#[derive(Widget)]`.
 #[macro_export]
@@ -348,7 +349,7 @@ pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), glib::BoolErro
 /// Emit the `msg` every `duration` ms.
 pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MSG>, duration: u32, constructor: F) {
     let stream = stream.clone();
-    glib::timeout_add_local(duration, move || {
+    glib::timeout_add_local(Duration::from_millis(duration as u64), move || {
         let msg = constructor();
         stream.emit(msg);
         Continue(true)
@@ -358,7 +359,7 @@ pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MS
 /// After `duration` ms, emit `msg`.
 pub fn timeout<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MSG>, duration: u32, constructor: F) {
     let stream = stream.clone();
-    glib::timeout_add_local(duration, move || {
+    glib::timeout_add_local(Duration::from_millis(duration as u64), move || {
         let msg = constructor();
         stream.emit(msg);
         Continue(false)

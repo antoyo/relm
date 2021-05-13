@@ -106,6 +106,6 @@ mod tests {
         let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let button = &widgets.button;
         assert_label!(button, "_inc");
-        assert!(button.get_use_underline());
+        assert!(button.uses_underline());
     }
 }

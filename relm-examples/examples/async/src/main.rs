@@ -114,7 +114,7 @@ impl Win {
         dialog.add_button("Accept", ResponseType::Accept);
         let result = dialog.run();
         if result == ResponseType::Accept {
-            if let Some(uri) = dialog.get_uri() {
+            if let Some(uri) = dialog.uri() {
                 let app_launch_context = AppLaunchContext::new();
                 //connect_async_func!(AppInfo::launch_default_for_uri_async(&uri, &app_launch_context), self.model.relm, AppOpened);
                 let cancellable = connect_async_func_full!(AppInfo::launch_default_for_uri_async(&uri, Some(&app_launch_context)), self.model.relm, AppOpened, AppError);
@@ -130,7 +130,7 @@ impl Win {
         dialog.add_button("Accept", ResponseType::Accept);
         let result = dialog.run();
         if result == ResponseType::Accept {
-            if let Some(filename) = dialog.get_filename() {
+            if let Some(filename) = dialog.filename() {
                 let file = File::new_for_path(filename);
                 //connect_async!(file, load_contents_async, self.model.relm, FileRead);
                 //let cancellable = connect_async_full!(file, load_contents_async, self.model.relm, FileRead);

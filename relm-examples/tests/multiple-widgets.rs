@@ -79,7 +79,7 @@ impl Update for Text {
     fn update(&mut self, event: TextMsg) {
         match event {
             Change => {
-                self.model.content = self.input.get_text().chars().rev().collect();
+                self.model.content = self.input.text().chars().rev().collect();
                 self.label.set_text(&self.model.content);
             },
         }
