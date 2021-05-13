@@ -12,14 +12,12 @@ version = "0.21.0"
 edition = "2018"
 
 [dependencies]
-cairo-rs = { git = "https://github.com/gtk-rs/gtk-rs.git" }
-glib = { git = "https://github.com/gtk-rs/gtk-rs.git" }
-glib-sys = { git = "https://github.com/gtk-rs/gtk-rs.git" }
-gobject-sys = { git = "https://github.com/gtk-rs/gtk-rs.git" }
-gtk = { git = "https://github.com/gtk-rs/gtk-rs.git" }
+cairo-rs = { git = "https://github.com/gtk-rs/gtk-rs-core.git" }
+glib = { git = "https://github.com/gtk-rs/gtk-rs-core.git" }
+glib-sys = { git = "https://github.com/gtk-rs/gtk-rs-core.git" }
+gobject-sys = { git = "https://github.com/gtk-rs/gtk-rs-core.git" }
+gtk = { git = "https://github.com/gtk-rs/gtk3-rs.git" }
 fragile = "1.0"
 libc = "^0.2.54"
 log = "^0.4.6"
 
-[features]
-hidpi = ["cairo-rs/v1_14"]
