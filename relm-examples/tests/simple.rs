@@ -21,7 +21,7 @@
 
 #![deny(unused_doc_comments)]
 
-use gtk::{Inhibit, LabelExt, WidgetExt};
+use gtk::{Inhibit, prelude::LabelExt, prelude::WidgetExt};
 use relm::Widget;
 use relm_derive::{Msg, widget};
 
@@ -92,7 +92,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::LabelExt;
+    use gtk::prelude::LabelExt;
     use gtk_test::assert_text;
 
     use crate::Win;

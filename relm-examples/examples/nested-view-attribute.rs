@@ -20,13 +20,8 @@
  */
 
 use gtk::{
-    ButtonExt,
-    FrameExt,
-    GtkMenuItemExt,
+    prelude::*,
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
 };
 use gtk::Orientation::{Horizontal, Vertical};
 use relm::Widget;
@@ -208,7 +203,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{Button, ButtonExt, GtkMenuItemExt, Label, LabelExt};
+    use gtk::{Button, prelude::ButtonExt, prelude::GtkMenuItemExt, Label, prelude::LabelExt};
 
     use gtk_test::{assert_label, assert_text, find_child_by_name};
     use relm_test::{click, mouse_move_to};

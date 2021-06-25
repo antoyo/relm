@@ -20,11 +20,11 @@
  */
 
 use gtk::{
-    ButtonExt,
     Inhibit,
-    LabelExt,
-    NotebookExt,
-    WidgetExt,
+    prelude::ButtonExt,
+    prelude::LabelExt,
+    prelude::NotebookExt,
+    prelude::WidgetExt,
 };
 use relm_derive::{widget, Msg};
 use relm::Widget;
@@ -83,7 +83,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use glib::Cast;
-    use gtk::{Label, LabelExt, NotebookExt};
+    use gtk::{Label, prelude::LabelExt, prelude::NotebookExt};
     use gtk_test::assert_text;
 
     use crate::Win;
@@ -96,11 +96,11 @@ mod tests {
         let label = &widgets.label;
         let dec_button = &widgets.dec_button;
 
-        assert_eq!(tabs.get_tab_label_text(inc_button).expect("inc button label"), "First Button");
-        let label_widget: Label = tabs.get_tab_label(label).expect("label widget").downcast::<Label>()
+        assert_eq!(tabs.tab_label_text(inc_button).expect("inc button label"), "First Button");
+        let label_widget: Label = tabs.tab_label(label).expect("label widget").downcast::<Label>()
             .expect("downcast");
         assert_text!(label_widget, "Second page");
-        assert_eq!(tabs.get_tab_label(dec_button), None);
-        assert_eq!(tabs.get_tab_label_text(dec_button), None);
+        assert_eq!(tabs.tab_label(dec_button), None);
+        assert_eq!(tabs.tab_label_text(dec_button), None);
     }
 }

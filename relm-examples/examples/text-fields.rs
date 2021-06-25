@@ -20,16 +20,16 @@
  */
 
 use gtk::{
-    ContainerExt,
     EditableSignals,
     Entry,
-    EntryExt,
     Inhibit,
     Label,
-    LabelExt,
-    WidgetExt,
     Window,
     WindowType,
+    prelude::ContainerExt,
+    prelude::EntryExt,
+    prelude::LabelExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm_derive::Msg;
@@ -73,7 +73,7 @@ impl Update for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Change => {
-                self.model.content = self.widgets.input.get_text()
+                self.model.content = self.widgets.input.text()
                                                        .chars()
                                                        .rev()
                                                        .collect();
@@ -140,7 +140,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use gdk::keys::constants as key;
-    use gtk::LabelExt;
+    use gtk::prelude::LabelExt;
 
     use gtk_test::assert_text;
     use relm_test::{enter_key, enter_keys};

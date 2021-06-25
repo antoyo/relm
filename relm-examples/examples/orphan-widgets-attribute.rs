@@ -20,13 +20,13 @@
  */
 
 use gtk::{
-    BoxExt,
-    ButtonExt,
-    GestureDragExt,
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
+    prelude::BoxExt,
+    prelude::ButtonExt,
+    prelude::GestureDragExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::Widget;

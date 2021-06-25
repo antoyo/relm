@@ -23,11 +23,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use enigo::{Enigo, KeyboardControllable, MouseButton, MouseControllable};
-use gdk::keyval_to_unicode;
 use gdk::keys::Key;
 use gdk::keys::constants as key;
 use glib::{IsA, Object, object::Cast};
-use gtk::{Inhibit, ToolButton, ToolButtonExt, Widget, WidgetExt};
+use gtk::{prelude::*, Inhibit, ToolButton, Widget};
 use gtk_test::{self, focus, mouse_move, run_loop, wait_for_draw};
 use relm::StreamHandle;
 
@@ -148,7 +147,7 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: 
                     Inhibit(false)
                 })
             };
-        let allocation = widget.get_allocation();
+        let allocation = widget.allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
         let mut enigo = Enigo::new();
         enigo.mouse_click(MouseButton::Left);
@@ -160,7 +159,7 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: 
 
 pub fn mouse_move_to<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: &W) {
     wait_for_draw(widget, || {
-        let allocation = widget.get_allocation();
+        let allocation = widget.allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
 
         wait_for_relm_events();
@@ -172,7 +171,7 @@ pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W
         let observer = gtk_observer_new!(widget, connect_button_release_event, |_, _| {
             Inhibit(false)
         });
-        let allocation = widget.get_allocation();
+        let allocation = widget.allocation();
         mouse_move(widget, allocation.width / 2, allocation.height / 2);
         let mut enigo = Enigo::new();
         enigo.mouse_click(MouseButton::Left);
@@ -290,7 +289,7 @@ fn gdk_key_to_enigo_key(key: Key) -> enigo::Key {
         key::F11 => F11,
         key::F12 => F12,
         _ => {
-            if let Some(char) = keyval_to_unicode(*key) {
+            if let Some(char) = key.to_unicode() {
                 Layout(char)
             }
             else {

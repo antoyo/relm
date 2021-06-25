@@ -20,13 +20,13 @@
  */
 
 use gtk::{
-    ButtonExt,
     EditableSignals,
-    EntryExt,
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
+    prelude::ButtonExt,
+    prelude::EntryExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::Widget;
@@ -66,7 +66,7 @@ impl Widget for Text {
             #[name="text_entry"]
             gtk::Entry {
                 widget_name: "text_entry",
-                changed(entry) => Change(entry.get_text()),
+                changed(entry) => Change(entry.text()),
             },
             gtk::Label {
                 text: &self.model.content,
@@ -127,7 +127,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{Entry, EntryExt};
+    use gtk::{Entry, prelude::EntryExt};
 
     use gtk_test::{assert_text, find_child_by_name, wait};
     use relm_test::click;

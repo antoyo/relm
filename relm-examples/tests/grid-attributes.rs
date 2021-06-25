@@ -20,10 +20,10 @@
  */
 
 use gtk::{
-    ButtonExt,
-    GridExt,
     Inhibit,
-    WidgetExt,
+    prelude::ButtonExt,
+    prelude::GridExt,
+    prelude::WidgetExt,
 };
 use relm::Widget;
 use relm_derive::{Msg, widget};
@@ -157,7 +157,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::WidgetExt;
+    use gtk::prelude::WidgetExt;
 
     use crate::Win;
 
@@ -177,18 +177,18 @@ mod tests {
         let button0 = &widgets.button0;
         let button_dot = &widgets.button_dot;
 
-        let button7_allocation = button7.get_allocation();
-        let button8_allocation = button8.get_allocation();
-        let button9_allocation = button9.get_allocation();
-        let button4_allocation = button4.get_allocation();
-        let button5_allocation = button5.get_allocation();
-        let button6_allocation = button6.get_allocation();
-        let button1_allocation = button1.get_allocation();
-        let button2_allocation = button2.get_allocation();
-        let button3_allocation = button3.get_allocation();
-        let button_pm_allocation = button_plus_minus.get_allocation();
-        let button0_allocation = button0.get_allocation();
-        let button_dot_allocation = button_dot.get_allocation();
+        let button7_allocation = button7.allocation();
+        let button8_allocation = button8.allocation();
+        let button9_allocation = button9.allocation();
+        let button4_allocation = button4.allocation();
+        let button5_allocation = button5.allocation();
+        let button6_allocation = button6.allocation();
+        let button1_allocation = button1.allocation();
+        let button2_allocation = button2.allocation();
+        let button3_allocation = button3.allocation();
+        let button_pm_allocation = button_plus_minus.allocation();
+        let button0_allocation = button0.allocation();
+        let button_dot_allocation = button_dot.allocation();
         assert!(button7_allocation.x < button8_allocation.x);
         assert_eq!(button7_allocation.x, button4_allocation.x);
         assert!(button7_allocation.y < button4_allocation.y);

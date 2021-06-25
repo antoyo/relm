@@ -21,16 +21,16 @@
 
 use gdk::EventType::DoubleButtonPress;
 use gtk::{
-    ButtonExt,
     Inhibit,
-    LabelExt,
     Menu,
     MenuItem,
-    MenuShellExt,
-    OrientableExt,
-    ToolButtonExt,
-    GtkMenuItemExt,
-    WidgetExt,
+    prelude::ButtonExt,
+    prelude::LabelExt,
+    prelude::MenuShellExt,
+    prelude::OrientableExt,
+    prelude::ToolButtonExt,
+    prelude::GtkMenuItemExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::{connect, Relm, Widget, timeout};
@@ -70,7 +70,7 @@ impl Widget for ClickableLabel {
         gtk::EventBox {
             widget_name: "event_box",
             button_press_event(_, event) => ({
-                if event.get_event_type() == DoubleButtonPress {
+                if event.event_type() == DoubleButtonPress {
                     DblClick
                 }
                 else {
@@ -211,11 +211,11 @@ impl Widget for Win {
 mod tests {
     use glib::Cast;
     use gtk::{
-        ContainerExt,
-        LabelExt,
         Menu,
         MenuItem,
-        GtkMenuItemExt,
+        prelude::ContainerExt,
+        prelude::LabelExt,
+        prelude::GtkMenuItemExt,
     };
 
     use gtk_test::{
@@ -315,15 +315,15 @@ mod tests {
         relm_observer_wait!(let RecvModel(model) = model_observer);
         assert_eq!(model.counter, 5);
 
-        let action_menu: MenuItem = widgets.menu_bar.get_children()[0].clone().downcast().expect("menu item 2");
+        let action_menu: MenuItem = widgets.menu_bar.children()[0].clone().downcast().expect("menu item 2");
         click(&action_menu);
-        let menu: Menu = action_menu.get_submenu().expect("menu 2").downcast().expect("menu 3");
-        let inc_menu: MenuItem = menu.get_children()[0].clone().downcast().expect("menu item");
+        let menu: Menu = action_menu.submenu().expect("menu 2").downcast().expect("menu 3");
+        let inc_menu: MenuItem = menu.children()[0].clone().downcast().expect("menu item");
         click(&inc_menu);
         assert_text!(widgets.label, 6);
 
         click(inc_tool_button);
-        assert_eq!(widgets.label.get_text(), 7.to_string());
+        assert_eq!(widgets.label.text(), 7.to_string());
         assert_text!(widgets.label, 7);
 
         click(inc_label);

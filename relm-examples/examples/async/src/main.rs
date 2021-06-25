@@ -22,23 +22,23 @@
 use gio::{
     AppInfo,
     AppLaunchContext,
-    CancellableExt,
     File,
-    FileExt,
+    prelude::CancellableExt,
+    prelude::FileExt,
 };
 use glib::GString;
 use gtk::{
-    ButtonExt,
-    DialogExt,
     FileChooserAction,
     FileChooserDialog,
-    FileChooserExt,
-    GtkWindowExt,
     Inhibit,
-    LabelExt,
-    OrientableExt,
     ResponseType,
-    WidgetExt,
+    prelude::ButtonExt,
+    prelude::DialogExt,
+    prelude::FileChooserExt,
+    prelude::GtkWindowExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::{connect_async_full, connect_async_func_full, Relm, Widget};
@@ -55,7 +55,7 @@ pub struct Model {
 pub enum Msg {
     AppError(glib::Error),
     AppOpened(()),
-    FileRead((Vec<u8>, GString)),
+    FileRead((Vec<u8>, Option<GString>)),
     OpenApp,
     OpenFile,
     Quit,
@@ -114,7 +114,7 @@ impl Win {
         dialog.add_button("Accept", ResponseType::Accept);
         let result = dialog.run();
         if result == ResponseType::Accept {
-            if let Some(uri) = dialog.get_uri() {
+            if let Some(uri) = dialog.uri() {
                 let app_launch_context = AppLaunchContext::new();
                 //connect_async_func!(AppInfo::launch_default_for_uri_async(&uri, &app_launch_context), self.model.relm, AppOpened);
                 let cancellable = connect_async_func_full!(AppInfo::launch_default_for_uri_async(&uri, Some(&app_launch_context)), self.model.relm, AppOpened, AppError);
@@ -130,8 +130,8 @@ impl Win {
         dialog.add_button("Accept", ResponseType::Accept);
         let result = dialog.run();
         if result == ResponseType::Accept {
-            if let Some(filename) = dialog.get_filename() {
-                let file = File::new_for_path(filename);
+            if let Some(filename) = dialog.filename() {
+                let file = File::for_path(filename);
                 //connect_async!(file, load_contents_async, self.model.relm, FileRead);
                 //let cancellable = connect_async_full!(file, load_contents_async, self.model.relm, FileRead);
                 //connect_async!(file, load_contents_async, self.model.relm, FileRead, ReadError);
