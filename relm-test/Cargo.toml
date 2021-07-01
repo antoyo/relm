@@ -7,7 +7,7 @@ documentation = "https://docs.rs/relm-test/"
 license = "MIT"
 name = "relm-test"
 repository = "https://github.com/antoyo/relm"
-version = "0.21.0"
+version = "0.22.0"
 edition = "2018"
 
 [dependencies]
@@ -19,4 +19,4 @@ gtk-test = "^0.7"
 
 [dependencies.relm]
 path = ".."
-version = "^0.21.0"
+version = "^0.22.0"
