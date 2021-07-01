@@ -21,17 +21,17 @@
 
 use gtk::{
     Button,
-    ButtonExt,
-    ContainerExt,
     EditableSignals,
     Entry,
-    EntryExt,
     Inhibit,
     Label,
-    LabelExt,
-    WidgetExt,
     Window,
     WindowType,
+    prelude::ButtonExt,
+    prelude::ContainerExt,
+    prelude::EntryExt,
+    prelude::LabelExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::{Horizontal, Vertical};
 use relm::{
@@ -79,7 +79,7 @@ impl Update for Text {
     fn update(&mut self, event: TextMsg) {
         match event {
             Change => {
-                self.model.content = self.input.get_text().chars().rev().collect();
+                self.model.content = self.input.text().chars().rev().collect();
                 self.label.set_text(&self.model.content);
             },
         }
@@ -286,7 +286,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{Button, Entry, Label, LabelExt};
+    use gtk::{Button, Entry, Label, prelude::LabelExt};
 
     use gtk_test::{assert_text, find_child_by_name};
     use relm_test::{click, enter_keys};

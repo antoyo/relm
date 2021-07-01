@@ -184,7 +184,7 @@ impl<'a> Generator<'a> {
         if let Some(name) = parent {
             if parent_widget_type == IsGtk {
                 quote_spanned! { widget_name.span() =>
-                    ::gtk::ContainerExt::add(&#name, &#widget_name);
+                    ::gtk::prelude::ContainerExt::add(&#name, &#widget_name);
                 }
             }
             else {
@@ -302,7 +302,7 @@ impl<'a> Generator<'a> {
             self.collect_event(quote! { #widget_name }, name, event);
         }
         for (&(ref child_name, ref name), event) in &widget.child_events {
-            let child_ident = Ident::new(&format!("get_{}", child_name), child_name.span());
+            let child_ident = Ident::new(&format!("{}", child_name), child_name.span());
             self.collect_event(quote! { #widget_name.#child_ident() }, name, event);
         }
     }
@@ -342,7 +342,7 @@ impl<'a> Generator<'a> {
             self.collect_event(quote! { #widget_name.widget() }, name, event);
         }
         for (&(ref child_name, ref name), event) in &widget.child_events {
-            let child_ident = Ident::new(&format!("get_{}", child_name), child_name.span());
+            let child_ident = Ident::new(&format!("{}", child_name), child_name.span());
             self.collect_event(quote! { #widget_name.widget().#child_ident() }, &name, event);
         }
     }
@@ -409,13 +409,13 @@ impl<'a> Generator<'a> {
         let (properties, visible_properties) = self.gtk_set_prop_calls(widget, ident);
         let child_properties = gen_set_child_prop_calls(widget, parent, parent_widget_type, IsGtk);
         let set_style_classes: Vec<_> = widget.style_classes.iter().map(|style_class|
-            quote_spanned! { widget_name.span() => gtk::StyleContextExt::add_class(&#widget_name.get_style_context(), &#style_class); }
+            quote_spanned! { widget_name.span() => gtk::prelude::StyleContextExt::add_class(&#widget_name.style_context(), &#style_class); }
         ).collect();
 
         let show =
             if show {
                 quote_spanned! { widget_name.span() =>
-                    ::gtk::WidgetExt::show(&#widget_name);
+                    ::gtk::prelude::WidgetExt::show(&#widget_name);
                 }
             }
             else {
@@ -568,7 +568,7 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream 
                 // TODO: use the safe Object::new().
                 // TODO: switch to builders.
                 ::gtk::Widget::from_glib_none(::relm::g_object_newv(
-                    ::relm::ToGlib::to_glib(&#struct_name::static_type()),
+                    ::relm::IntoGlib::into_glib(#struct_name::static_type()),
                     #properties_count, parameters.as_mut_ptr()) as *mut _)
                     .downcast().unwrap()
                 // TODO: use this new code when g_object_new_with_properties() is released.
@@ -671,14 +671,14 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
         for (parent_id, &(ref name, _)) in container_names {
             if parent_id.is_none() {
                 default_container = quote_spanned! { span =>
-                    ::gtk::ContainerExt::add(&container.container, widget.widget());
+                    ::gtk::prelude::ContainerExt::add(&container.container, widget.widget());
                     ::relm::Cast::upcast(container.container.clone())
                 };
             }
             else if other_containers.is_empty() {
                 other_containers = quote_spanned! { span =>
                     if WIDGET::parent_id() == Some(#parent_id) {
-                        ::gtk::ContainerExt::add(&container.containers.#name, widget.widget());
+                        ::gtk::prelude::ContainerExt::add(&container.containers.#name, widget.widget());
                         ::relm::Cast::upcast(container.containers.#name.clone())
                     }
                 };
@@ -687,7 +687,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
                 other_containers = quote_spanned! { span =>
                     #other_containers
                     else if WIDGET::parent_id() == Some(#parent_id) {
-                        ::gtk::ContainerExt::add(&container.containers.#name, widget.widget());
+                        ::gtk::prelude::ContainerExt::add(&container.containers.#name, widget.widget());
                         ::relm::Cast::upcast(container.containers.#name.clone())
                     }
                 };

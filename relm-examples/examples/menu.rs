@@ -20,11 +20,11 @@
  */
 
 use gtk::{
-    GtkMenuItemExt,
     Inhibit,
-    MenuShellExt,
-    OrientableExt,
-    WidgetExt,
+    prelude::GtkMenuItemExt,
+    prelude::MenuShellExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::{Relm, Widget, connect};

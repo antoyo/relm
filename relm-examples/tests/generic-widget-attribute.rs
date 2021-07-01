@@ -22,11 +22,11 @@
 use std::fmt::Display;
 
 use gtk::{
-    ButtonExt,
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
+    prelude::ButtonExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::{Horizontal, Vertical};
 use relm::Widget;
@@ -137,7 +137,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{Button, Label, LabelExt};
+    use gtk::{Button, Label, prelude::LabelExt};
 
     use gtk_test::{assert_text, find_child_by_name};
     use relm_test::click;

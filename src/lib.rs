@@ -116,7 +116,7 @@ pub use glib::{
     Value,
 };
 #[doc(hidden)]
-pub use glib::translate::{FromGlibPtrNone, ToGlib, ToGlibPtr};
+pub use glib::translate::{FromGlibPtrNone, IntoGlib, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
 use glib::Continue;
@@ -273,6 +273,8 @@ pub fn init_test<WIDGET>(model_param: WIDGET::ModelParam) ->
           WIDGET::Msg: DisplayVariant + 'static,
 {
     gtk::init()?;
+    let main_context = glib::MainContext::default();
+    let _context = main_context.acquire()?;
     let component = create_widget_test::<WIDGET>(model_param);
     Ok(component)
 }
@@ -339,6 +341,8 @@ pub fn init<WIDGET>(model_param: WIDGET::ModelParam) -> Result<Component<WIDGET>
 pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), glib::BoolError>
     where WIDGET: Widget + 'static,
 {
+    let main_context = glib::MainContext::default();
+    let _context = main_context.acquire()?;
     gtk::init()?;
     let _component = init::<WIDGET>(model_param)?;
     gtk::main();
@@ -348,7 +352,7 @@ pub fn run<WIDGET>(model_param: WIDGET::ModelParam) -> Result<(), glib::BoolErro
 /// Emit the `msg` every `duration` ms.
 pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MSG>, duration: u32, constructor: F) {
     let stream = stream.clone();
-    glib::timeout_add_local(duration, move || {
+    glib::timeout_add_local(std::time::Duration::from_millis(duration as u64), move || {
         let msg = constructor();
         stream.emit(msg);
         Continue(true)
@@ -358,7 +362,7 @@ pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MS
 /// After `duration` ms, emit `msg`.
 pub fn timeout<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MSG>, duration: u32, constructor: F) {
     let stream = stream.clone();
-    glib::timeout_add_local(duration, move || {
+    glib::timeout_add_local(std::time::Duration::from_millis(duration as u64), move || {
         let msg = constructor();
         stream.emit(msg);
         Continue(false)

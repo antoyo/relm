@@ -25,7 +25,7 @@ use std::rc::Rc;
 use gdk::EventKey;
 use gtk::{
     Inhibit,
-    WidgetExt,
+    prelude::WidgetExt,
 };
 use relm::Widget;
 use relm_derive::{Msg, widget};
@@ -48,12 +48,12 @@ impl Widget for Win {
         let letter = self.model.letter.clone();
         self.widgets.drawing_area.connect_draw(move |_, context| {
             context.set_source_rgb(0.2, 0.4, 0.0);
-            context.paint();
+            context.paint().unwrap();
 
             context.set_font_size(60.0);
             context.set_source_rgb(0.0, 0.0, 0.0);
             context.move_to(100.0, 100.0);
-            context.show_text(&letter.get().to_string());
+            context.show_text(&letter.get().to_string()).unwrap();
             Inhibit(false)
         });
     }
@@ -67,7 +67,7 @@ impl Widget for Win {
     fn update(&mut self, event: Msg) {
         match event {
             KeyPress(event) => {
-                if let Some(letter) = event.get_keyval().to_unicode() {
+                if let Some(letter) = event.keyval().to_unicode() {
                     self.model.letter.set(letter);
                     self.widgets.drawing_area.queue_draw();
                 }

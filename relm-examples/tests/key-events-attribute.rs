@@ -24,7 +24,7 @@ use std::rc::Rc;
 
 use gtk::{
     Inhibit,
-    WidgetExt,
+    prelude::WidgetExt,
 };
 use relm::{Relm, Widget};
 use relm_derive::{Msg, widget};
@@ -93,7 +93,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::EntryExt;
+    use gtk::prelude::EntryExt;
 
     use gtk_test::assert_text;
     use relm_test::enter_keys;

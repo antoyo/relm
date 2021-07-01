@@ -20,13 +20,13 @@
  */
 
 use gtk::{
-    ButtonExt,
     EditableSignals,
-    EntryExt,
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
+    prelude::ButtonExt,
+    prelude::EntryExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::{Relm, StreamHandle, Widget};
@@ -68,7 +68,7 @@ impl Widget for Text {
         gtk::Box {
             orientation: Vertical,
             gtk::Entry {
-                changed(entry) => Change(entry.get_text()),
+                changed(entry) => Change(entry.text()),
                 widget_name: "entry",
             },
             gtk::Label {
@@ -199,7 +199,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{Button, Entry, Label, LabelExt};
+    use gtk::{Button, Entry, Label, prelude::LabelExt};
 
     use gtk_test::{assert_text, find_child_by_name};
     use relm_test::{click, enter_keys};

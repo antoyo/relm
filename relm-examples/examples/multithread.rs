@@ -24,9 +24,9 @@ use std::time::Duration;
 
 use gtk::{
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::{Channel, Relm, Widget};

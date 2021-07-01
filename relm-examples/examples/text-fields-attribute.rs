@@ -21,11 +21,11 @@
 
 use gtk::{
     EditableSignals,
-    EntryExt,
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
+    prelude::EntryExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::Widget;
@@ -68,7 +68,7 @@ impl Widget for Win {
                 #[name="entry"]
                 gtk::Entry {
                     changed(entry) => {
-                        let text = entry.get_text().to_string();
+                        let text = entry.text().to_string();
                         let len = text.len();
                         Change(text, len)
                     },
@@ -91,7 +91,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use gdk::keys::constants as key;
-    use gtk::LabelExt;
+    use gtk::prelude::LabelExt;
 
     use gtk_test::assert_text;
     use relm_test::{enter_key, enter_keys};

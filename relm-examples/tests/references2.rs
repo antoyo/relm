@@ -21,7 +21,7 @@
 
 use std::cell::Cell;
 
-use gtk::{BoxExt, ButtonExt, ContainerExt, WidgetExt};
+use gtk::{prelude::BoxExt, prelude::ButtonExt, prelude::ContainerExt, prelude::WidgetExt};
 use relm::{ContainerWidget, Widget, connect};
 use relm_derive::Msg;
 

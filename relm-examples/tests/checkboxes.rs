@@ -20,13 +20,13 @@
  */
 
 use gtk::{
-    ButtonExt,
-    ContainerExt,
     Inhibit,
-    ToggleButtonExt,
-    WidgetExt,
     Window,
     WindowType,
+    prelude::ButtonExt,
+    prelude::ContainerExt,
+    prelude::ToggleButtonExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::{
@@ -152,7 +152,7 @@ impl Update for Win {
         match event {
             Quit => gtk::main_quit(),
             MinusToggle => {
-                if self.widgets.minus_button.get_active() {
+                if self.widgets.minus_button.is_active() {
                     self.components.plus_button.emit(Uncheck);
                 }
                 else {
@@ -160,7 +160,7 @@ impl Update for Win {
                 }
             },
             PlusToggle => {
-                if self.widgets.plus_button.get_active() {
+                if self.widgets.plus_button.is_active() {
                     self.components.minus_button.emit(Uncheck);
                 }
                 else {
@@ -225,7 +225,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::ToggleButtonExt;
+    use gtk::prelude::ToggleButtonExt;
 
     use relm_test::click;
 
@@ -237,23 +237,23 @@ mod tests {
         let plus_button = &widgets.plus_button;
         let minus_button = &widgets.minus_button;
 
-        assert!(!plus_button.get_active());
-        assert!(!minus_button.get_active());
+        assert!(!plus_button.is_active());
+        assert!(!minus_button.is_active());
 
         click(plus_button);
-        assert!(plus_button.get_active());
-        assert!(!minus_button.get_active());
+        assert!(plus_button.is_active());
+        assert!(!minus_button.is_active());
 
         click(plus_button);
-        assert!(!plus_button.get_active());
-        assert!(minus_button.get_active());
+        assert!(!plus_button.is_active());
+        assert!(minus_button.is_active());
 
         click(minus_button);
-        assert!(plus_button.get_active());
-        assert!(!minus_button.get_active());
+        assert!(plus_button.is_active());
+        assert!(!minus_button.is_active());
 
         click(minus_button);
-        assert!(!plus_button.get_active());
-        assert!(minus_button.get_active());
+        assert!(!plus_button.is_active());
+        assert!(minus_button.is_active());
     }
 }
