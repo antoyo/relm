@@ -1,0 +1,5 @@
+error: unexpected item
+ --> $DIR/unexpected-item.rs:5:5
+  |
+5 |     const OOPS: i32 = 1;
+  |     ^^^^^

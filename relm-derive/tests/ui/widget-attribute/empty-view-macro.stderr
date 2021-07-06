@@ -1,5 +1,5 @@
 error: unexpected end of input, expected one of: string literal, identifier, `#`
-  --> $DIR/empty_view_macro.rs:12:11
+  --> $DIR/empty-view-macro.rs:12:11
    |
 12 |     view! {}
    |           ^^
