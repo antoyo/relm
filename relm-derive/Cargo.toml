@@ -6,7 +6,7 @@ documentation = "https://docs.rs/relm-derive/"
 license = "MIT"
 name = "relm-derive"
 repository = "https://github.com/antoyo/relm"
-version = "0.21.0"
+version = "0.22.0"
 edition = "2018"
 
 [lib]
@@ -20,3 +20,8 @@ quote = "1.0"
 [dependencies.syn]
 features = ["extra-traits", "fold", "full", "visit"]
 version = "^1.0"
+
+[dev-dependencies]
+gtk = "^0.14.0"
+relm = { path = ".." }
+trybuild = "1.0.42"

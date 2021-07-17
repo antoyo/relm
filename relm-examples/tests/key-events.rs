@@ -23,12 +23,12 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use gtk::{
-    ContainerExt,
     Entry,
     Inhibit,
-    WidgetExt,
     Window,
     WindowType,
+    prelude::ContainerExt,
+    prelude::WidgetExt,
 };
 use relm_derive::Msg;
 use relm::{connect, Relm, Update, Widget, WidgetTest};
@@ -139,7 +139,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::EntryExt;
+    use gtk::prelude::EntryExt;
 
     use gtk_test::assert_text;
     use relm_test::enter_keys;

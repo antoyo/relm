@@ -20,11 +20,11 @@
  */
 
 use gtk::{
-    ButtonExt,
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
+    prelude::ButtonExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::Widget;
@@ -116,7 +116,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::LabelExt;
+    use gtk::prelude::LabelExt;
 
     use gtk_test::assert_text;
     use relm_test::click;

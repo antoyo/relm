@@ -22,8 +22,8 @@
 use chrono::{DateTime, Local};
 use gtk::{
     Inhibit,
-    LabelExt,
-    WidgetExt,
+    prelude::LabelExt,
+    prelude::WidgetExt,
 };
 use relm::{Relm, Widget, interval};
 use relm_derive::{Msg, widget};
@@ -77,7 +77,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use chrono::{Local, NaiveTime};
-    use gtk::LabelExt;
+    use gtk::prelude::LabelExt;
 
     use gtk_test::wait;
 
@@ -97,12 +97,12 @@ mod tests {
         }
 
         let time = Local::now();
-        assert!(time_close(label.get_text(), time.format("%H:%M:%S").to_string()));
+        assert!(time_close(label.text(), time.format("%H:%M:%S").to_string()));
 
         wait(2000);
 
         let time2 = Local::now();
         assert_ne!(time, time2);
-        assert!(time_close(label.get_text(), time2.format("%H:%M:%S").to_string()));
+        assert!(time_close(label.text(), time2.format("%H:%M:%S").to_string()));
     }
 }

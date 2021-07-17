@@ -20,11 +20,11 @@
  */
 
 use gtk::{
-    ButtonExt,
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
+    prelude::ButtonExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::Widget;
@@ -96,7 +96,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::ButtonExt;
+    use gtk::prelude::ButtonExt;
     use gtk_test::assert_label;
 
     use crate::Win;
@@ -106,6 +106,6 @@ mod tests {
         let (_component, _, widgets) = relm::init_test::<Win>(()).expect("init_test failed");
         let button = &widgets.button;
         assert_label!(button, "_inc");
-        assert!(button.get_use_underline());
+        assert!(button.uses_underline());
     }
 }

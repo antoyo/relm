@@ -20,13 +20,13 @@
  */
 
 use gtk::{
-    ContainerExt,
     EventBox,
     Inhibit,
     Label,
     Window,
     WindowType,
-    WidgetExt,
+    prelude::ContainerExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::{
@@ -254,7 +254,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{Button, Label, WidgetExt};
+    use gtk::{Button, Label, prelude::WidgetExt};
 
     use gtk_test::find_child_by_name;
 
@@ -268,10 +268,10 @@ mod tests {
         let label: Label = find_child_by_name(vbox, "label").expect("label");
         let button: Button = find_child_by_name(vbox, "button").expect("button");
         let dec_button: Button = find_child_by_name(vbox, "dec_button").expect("dec button");
-        let inc_allocation = inc_button.get_allocation();
-        let label_allocation = label.get_allocation();
-        let button_allocation = button.get_allocation();
-        let dec_button_allocation = dec_button.get_allocation();
+        let inc_allocation = inc_button.allocation();
+        let label_allocation = label.allocation();
+        let button_allocation = button.allocation();
+        let dec_button_allocation = dec_button.allocation();
 
         assert!(inc_allocation.y < label_allocation.y);
         assert!(label_allocation.y < button_allocation.y);

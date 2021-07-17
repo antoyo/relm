@@ -21,11 +21,11 @@
 
 use gtk::{
     EditableSignals,
-    EntryExt,
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    WidgetExt,
+    prelude::EntryExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::Widget;
@@ -66,7 +66,7 @@ impl Widget for Win {
                 orientation: Vertical,
                 #[name = "entry"]
                 gtk::Entry {
-                    changed(entry) => Change(entry.get_text()),
+                    changed(entry) => Change(entry.text()),
                     placeholder_text: Some("Text to reverse"),
                 },
                 #[name = "entry2"]
@@ -84,7 +84,7 @@ impl Widget for Win {
 #[cfg(test)]
 mod tests {
     use gdk::keys::constants as key;
-    use gtk::{EntryExt, LabelExt};
+    use gtk::prelude::{EntryExt, LabelExt};
 
     use gtk_test::assert_text;
     use relm_test::{

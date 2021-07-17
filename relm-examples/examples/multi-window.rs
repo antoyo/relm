@@ -21,7 +21,7 @@
 
 use gtk::{
     Inhibit,
-    WidgetExt,
+    prelude::WidgetExt,
 };
 use relm::{Component, Widget, init};
 use relm_derive::{Msg, widget};

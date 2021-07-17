@@ -19,19 +19,19 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use glib::{ToValue, Type};
+use glib::{ToValue, types::Type};
 use gtk::{
-    CellLayoutExt,
     CellRendererText,
     Inhibit,
     ListStore,
-    GtkListStoreExt,
     TreeSelection,
-    TreeSelectionExt,
     TreeViewColumn,
-    TreeViewExt,
-    WidgetExt,
+    prelude::CellLayoutExt,
+    prelude::GtkListStoreExt,
     prelude::GtkListStoreExtManual,
+    prelude::TreeSelectionExt,
+    prelude::TreeViewExt,
+    prelude::WidgetExt,
 };
 use relm::Widget;
 use relm_derive::{Msg, widget};
@@ -41,7 +41,7 @@ use self::Msg::*;
 #[widget]
 impl Widget for TreeView {
     fn init_view(&mut self) {
-        let columns = vec![Type::String];
+        let columns = vec![Type::STRING];
         let model = ListStore::new(&columns);
         let row = model.append();
         model.set_value(&row, 0, &"String".to_value());
@@ -84,7 +84,7 @@ pub enum Msg {
 #[widget]
 impl Widget for Win {
     fn init_view(&mut self) {
-        let columns = vec![Type::String];
+        let columns = vec![Type::STRING];
         let model = ListStore::new(&columns);
         let row = model.append();
         model.set_value(&row, 0, &"String".to_value());
@@ -136,7 +136,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{TreeSelectionExt, TreeModelExt, TreeViewExt};
+    use gtk::prelude::{TreeSelectionExt, TreeModelExt, TreeViewExt};
 
     use relm_test::{
         relm_observer_new,
@@ -154,9 +154,9 @@ mod tests {
 
         let selection_observer = relm_observer_new!(component, SelectionChanged(_));
 
-        let selection = tree_view.get_selection();
-        let model = tree_view.get_model().expect("model");
-        let iter = model.get_iter_first().expect("first row");
+        let selection = tree_view.selection();
+        let model = tree_view.model().expect("model");
+        let iter = model.iter_first().expect("first row");
         selection.select_iter(&iter);
 
         relm_observer_wait!(let SelectionChanged(_selection) = selection_observer);

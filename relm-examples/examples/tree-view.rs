@@ -25,18 +25,18 @@ use std::path::{MAIN_SEPARATOR, PathBuf};
 
 use glib::StaticType;
 use gtk::{
-    CellLayoutExt,
-    ContainerExt,
-    GtkWindowExt,
     Inhibit,
-    TreeModelExt,
-    TreeSelectionExt,
     TreeView,
-    TreeViewExt,
-    WidgetExt,
     Window,
     WindowType,
+    prelude::CellLayoutExt,
+    prelude::ContainerExt,
     prelude::GtkListStoreExtManual,
+    prelude::GtkWindowExt,
+    prelude::TreeModelExt,
+    prelude::TreeSelectionExt,
+    prelude::TreeViewExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm_derive::Msg;
@@ -77,21 +77,19 @@ impl Update for Win {
     fn update(&mut self, event: Msg) {
         match event {
             Msg::ItemSelect => {
-                let selection = self.tree_view.get_selection();
-                if let Some((list_model, iter)) = selection.get_selected() {
+                let selection = self.tree_view.selection();
+                if let Some((list_model, iter)) = selection.selected() {
                     let is_dir: bool = list_model
-                        .get_value(&iter, IS_DIR_COL)
+                        .value(&iter, IS_DIR_COL)
                         .get::<bool>()
                         .ok()
-                        .and_then(|value| value)
                         .expect("get_value.get<bool> failed");
 
                     if is_dir {
                         let dir_name = list_model
-                            .get_value(&iter, VALUE_COL)
+                            .value(&iter, VALUE_COL)
                             .get::<String>()
                             .ok()
-                            .and_then(|value| value)
                             .expect("get_value.get<String> failed");
 
                         println!("{:?} selected", dir_name);
@@ -167,9 +165,7 @@ fn create_and_fill_model(dir_str: &PathBuf) -> io::Result<gtk::ListStore> {
     let model = gtk::ListStore::new(&[String::static_type(), bool::static_type()]);
 
     // Add the parent directory
-    model.insert_with_values(None,
-                            &[VALUE_COL as u32, IS_DIR_COL as u32],
-                            &[&"..", &true]);
+    model.insert_with_values(None, &[(VALUE_COL as u32, &".."), (IS_DIR_COL as u32, &true)]);
 
     let entry_iter = fs::read_dir(dir_str)?.filter_map(|x| x.ok());
     for entry in entry_iter {
@@ -182,8 +178,7 @@ fn create_and_fill_model(dir_str: &PathBuf) -> io::Result<gtk::ListStore> {
                     (file_name, false)
                 };
                 model.insert_with_values(None,
-                                        &[VALUE_COL as u32, IS_DIR_COL as u32],
-                                        &[&final_name, &is_dir]);
+                                        &[(VALUE_COL as u32, &final_name), (IS_DIR_COL as u32, &is_dir)]);
             }
         }
     }

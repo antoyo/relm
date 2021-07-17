@@ -21,11 +21,11 @@
 
 use gtk::{
     Inhibit,
-    WidgetExt,
+    prelude::WidgetExt,
 };
 use relm_derive::{Msg, widget};
 use relm::Widget;
-use webkit2gtk::WebViewExt;
+use webkit2gtk::traits::WebViewExt;
 
 use self::Msg::*;
 

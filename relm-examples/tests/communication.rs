@@ -21,17 +21,17 @@
 
 use gtk::{
     Button,
-    ButtonExt,
-    ContainerExt,
     EditableSignals,
     Entry,
-    EntryExt,
     Inhibit,
     Label,
-    LabelExt,
-    WidgetExt,
     Window,
     WindowType,
+    prelude::ButtonExt,
+    prelude::ContainerExt,
+    prelude::EntryExt,
+    prelude::LabelExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::{Horizontal, Vertical};
 use relm_derive::Msg;
@@ -104,7 +104,7 @@ impl Widget for Text {
         vbox.add(&label);
 
         let input2 = input.clone();
-        connect!(relm, input, connect_changed(_), Change(input2.get_text()));
+        connect!(relm, input, connect_changed(_), Change(input2.text()));
 
         Text {
             label: label,
@@ -316,7 +316,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::{Button, Entry, Label, LabelExt};
+    use gtk::{Button, Entry, Label, prelude::LabelExt};
 
     use gtk_test::{assert_text, find_child_by_name};
     use relm_test::{click, enter_keys};

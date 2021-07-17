@@ -24,26 +24,26 @@ use std::usize;
 use std::mem;
 use std::str::FromStr;
 
-use gdk::RGBA;
-use gdk_pixbuf::{PixbufLoader, PixbufLoaderExt};
+use gdk_pixbuf::{PixbufLoader, prelude::PixbufLoaderExt};
 use gio::{
     IOStream,
-    IOStreamExt,
     SocketClient,
-    SocketClientExt,
     SocketConnection,
+    prelude::IOStreamExt,
+    prelude::SocketClientExt,
     prelude::{InputStreamExtManual, OutputStreamExtManual},
 };
 use glib::Cast;
 use glib::source::PRIORITY_DEFAULT;
 use gtk::{
-    ButtonExt,
-    ImageExt,
     Inhibit,
-    LabelExt,
-    OrientableExt,
-    StateFlags,
-    WidgetExt,
+    prelude::ButtonExt,
+    prelude::CssProviderExt,
+    prelude::ImageExt,
+    prelude::LabelExt,
+    prelude::OrientableExt,
+    prelude::StyleContextExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::{
@@ -64,7 +64,6 @@ use uhttp_uri::HttpUri;
 use self::Msg::*;
 use self::HttpMsg::*;
 
-const RED: &RGBA = &RGBA { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 };
 const READ_SIZE: usize = 1024;
 
 pub struct Model {
@@ -106,7 +105,7 @@ impl Widget for Win {
                 self.model.button_enabled = true;
                 self.widgets.button.grab_focus();
                 self.model.loader.close().ok();
-                self.widgets.image.set_from_pixbuf(self.model.loader.get_pixbuf().as_ref());
+                self.widgets.image.set_from_pixbuf(self.model.loader.pixbuf().as_ref());
                 self.model.loader = PixbufLoader::new();
                 self.model.request = None;
             },
@@ -125,7 +124,11 @@ impl Widget for Win {
             HttpError(error) => {
                 self.model.button_enabled = true;
                 self.model.text = format!("HTTP error: {}", error);
-                self.widgets.label.override_color(StateFlags::NORMAL, Some(RED));
+
+                let css = gtk::CssProvider::new();
+                css.load_from_data(b"* {color: red}").expect("invalid CSS");
+                let style = self.widgets.label.style_context();
+                style.add_provider(&css, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
             },
             ImageChunk(chunk) => {
                 if let Err(error) = self.model.loader.write(&chunk) {
@@ -253,7 +256,7 @@ impl Update for Http {
         match message {
             Connection(connection) => {
                 let stream: IOStream = connection.upcast();
-                let writer = stream.get_output_stream().expect("output");
+                let writer = stream.output_stream();
                 self.model.stream = Some(stream);
                 if let Ok(uri) = HttpUri::new(&self.model.url) {
                     let path = uri.resource.path;
@@ -272,7 +275,7 @@ impl Update for Http {
                 }
                 else {
                     if let Some(ref stream) = self.model.stream {
-                        let reader = stream.get_input_stream().expect("input");
+                        let reader = stream.input_stream();
                         connect_async!(reader, read_async(vec![0; READ_SIZE], PRIORITY_DEFAULT), self.model.relm, Read);
                     }
                 }
@@ -322,7 +325,7 @@ impl Update for Http {
             ReadDone(_) => (),
             Wrote => {
                 if let Some(ref stream) = self.model.stream {
-                    let reader = stream.get_input_stream().expect("input");
+                    let reader = stream.input_stream();
                     connect_async!(reader, read_async(vec![0; READ_SIZE], PRIORITY_DEFAULT), self.model.relm, Read);
                 }
             },

@@ -23,12 +23,12 @@ use gtk::{
     prelude::BuilderExtManual,
     Builder,
     Button,
-    ButtonExt,
     Inhibit,
     Label,
-    LabelExt,
-    WidgetExt,
     Window,
+    prelude::ButtonExt,
+    prelude::LabelExt,
+    prelude::WidgetExt,
 };
 use relm_derive::Msg;
 use relm::{connect, Relm, Update, Widget, WidgetTest};
@@ -103,12 +103,12 @@ impl Widget for Win {
         let glade_src = include_str!("window.glade");
         let builder = Builder::from_string(glade_src);
 
-        let window: Window = builder.get_object("window").unwrap();
+        let window: Window = builder.object("window").unwrap();
         window.show_all();
 
-        let plus_button: Button = builder.get_object("inc_button").unwrap();
-        let minus_button: Button = builder.get_object("dec_button").unwrap();
-        let counter_label: Label = builder.get_object("label").unwrap();
+        let plus_button: Button = builder.object("inc_button").unwrap();
+        let minus_button: Button = builder.object("dec_button").unwrap();
+        let counter_label: Label = builder.object("label").unwrap();
 
         connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
         connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
@@ -145,7 +145,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use gtk::LabelExt;
+    use gtk::prelude::LabelExt;
 
     use gtk_test::assert_text;
     use relm_test::click;

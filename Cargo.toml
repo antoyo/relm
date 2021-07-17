@@ -8,18 +8,18 @@ license = "MIT"
 name = "relm"
 readme = "README.adoc"
 repository = "https://github.com/antoyo/relm"
-version = "0.21.0"
+version = "0.22.0"
 edition = "2018"
 
 [dependencies]
-cairo-rs = "^0.9.0"
+cairo-rs = "^0.14.0"
 fragile = "1.0"
-glib = "^0.10.0"
-glib-sys = "^0.10.0"
-gobject-sys = "^0.10.0"
-gtk = "^0.9.0"
+glib = "^0.14.0"
+glib-sys = "^0.14.0"
+gobject-sys = "^0.14.0"
+gtk = "^0.14.0"
 libc = "^0.2.54"
 log = "^0.4.6"
 
 [features]
-hidpi = ["cairo-rs/v1_14"]
+hidpi = []

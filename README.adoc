@@ -25,9 +25,9 @@ First, add this to your `Cargo.toml`:
 
 [source,toml]
 ----
-gtk = "^0.9.0"
-relm = "^0.21.0"
-relm-derive = "^0.21.0"
+gtk = "^0.14.0"
+relm = "^0.22.0"
+relm-derive = "^0.22.0"
 ----
 
 Next, add this to your crate:
@@ -295,5 +295,6 @@ image:https://c5.patreon.com/external/logo/become_a_patron_button.png[link="http
  * https://github.com/emmanueltouzery/projectpad2[Projectpad]
  * https://github.com/crrodger/timezoners[TimezoneRS]
  * https://github.com/Schmiddiii/Tubefeeder[Tubefeeder]
+ * https://github.com/emmanueltouzery/hotwire[Hotwire]
 
 If you want to add your project to this list, please https://github.com/antoyo/relm/pulls[create a pull request].

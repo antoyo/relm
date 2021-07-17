@@ -24,14 +24,14 @@
 use chrono::Local;
 use gtk::{
     Button,
-    ButtonExt,
-    ContainerExt,
     Inhibit,
     Label,
-    LabelExt,
-    WidgetExt,
     Window,
     WindowType,
+    prelude::ButtonExt,
+    prelude::ContainerExt,
+    prelude::LabelExt,
+    prelude::WidgetExt,
 };
 use gtk::Orientation::Vertical;
 use relm::EventStream;
