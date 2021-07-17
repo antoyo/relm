@@ -34,12 +34,7 @@ impl PersonList {
 
     /// Remove given person.
     pub fn remove(&mut self, person: Person) {
-        self.persons = self
-            .persons
-            .clone()
-            .into_iter()
-            .filter(|p| p != &person)
-            .collect();
+        self.persons.retain(|p| p != &person);
     }
 
     /// Filter out the persons in the list by the given filter.

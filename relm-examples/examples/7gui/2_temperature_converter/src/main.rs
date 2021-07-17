@@ -1,5 +1,5 @@
 use gtk::{EditableSignals, EntryExt, Inhibit, LabelExt, WidgetExt};
-use relm::Widget;
+use relm::{Widget, Relm};
 use relm_derive::{widget, Msg};
 
 /// The messages sent to the `Win` widget.
@@ -16,8 +16,9 @@ pub enum Msg {
 
 /// The model the `Win` widget uses.
 /// This is current temperature in celsius.
-/// When uninitialized the temperature will be `None`.
+/// When uninitialized the temperature will be empty..
 pub struct Model {
+    relm: Relm<Win>,
     temp_celsius: String,
     temp_fahrenheit: String,
 }
@@ -27,8 +28,9 @@ pub struct Model {
 impl Widget for Win {
     /// Get the default model for the widget.
     /// The temperature will not be set.
-    fn model() -> Model {
+    fn model(relm: &Relm<Self>, _: ()) -> Model {
         Model {
+            relm: relm.clone(),
             temp_celsius: "".to_string(),
             temp_fahrenheit: "".to_string(),
         }
@@ -39,32 +41,24 @@ impl Widget for Win {
         match event {
             // The celsius input was changed.
             Msg::ChangedCelsius(celsius) => {
-                // Only update the celsius widget if this widget does not have focus.
-                // This will prevent overwriting the value while the user still manipulates the text.
-                if !self.widgets.entry_celsius.has_focus() {
-                    self.model.temp_celsius = celsius.clone();
-                }
-
-                if !self.widgets.entry_fahrenheit.has_focus() {
-                    if let Ok(temp) = celsius.parse::<i64>() {
-                        let fahrenheit = (temp as f64) * 9.0 / 5.0 + 32.0;
-                        self.model.temp_fahrenheit = format!("{:?}", fahrenheit as i64);
-                    }
+                // Lock the stream so that changing a input box will not fire another message
+                // creating a feedback loop.
+                let _lock = self.model.relm.stream().lock();
+                self.model.temp_celsius = celsius.clone();
+                if let Ok(temp) = celsius.parse::<i64>() {
+                    let fahrenheit = (temp as f64) * 9.0 / 5.0 + 32.0;
+                    self.model.temp_fahrenheit = format!("{:?}", fahrenheit as i64);
                 }
             }
             // The celsius input was changed.
             Msg::ChangedFahrenheit(fahrenheit) => {
-                // Only update the fahrenheit widget if this widget does not have focus.
-                // This will prevent overwriting the value while the user still manipulates the text.
-                if !self.widgets.entry_fahrenheit.has_focus() {
-                    self.model.temp_fahrenheit = fahrenheit.clone();
-                }
-
-                if !self.widgets.entry_celsius.has_focus() {
-                    if let Ok(temp) = fahrenheit.parse::<i64>() {
-                        let celsius = ((temp as f64) - 32.0) * 5.0 / 9.0;
-                        self.model.temp_celsius = format!("{:?}", celsius as i64);
-                    }
+                // Lock the stream so that changing a input box will not fire another message
+                // creating a feedback loop.
+                let _lock = self.model.relm.stream().lock();
+                self.model.temp_fahrenheit = fahrenheit.clone();
+                if let Ok(temp) = fahrenheit.parse::<i64>() {
+                    let celsius = ((temp as f64) - 32.0) * 5.0 / 9.0;
+                    self.model.temp_celsius = format!("{:?}", celsius as i64);
                 }
             }
             // Quit the application

@@ -144,9 +144,13 @@ impl Widget for Win {
                     &message,
                 );
 
-                dialog.run();
-                // Close the dialog after it was run.
-                dialog.emit_close();
+                // Show the dialog
+                dialog.show();
+
+                // Close the dialog after `Ok` has been pressed.
+                dialog.connect_response(|dialog, _reponse| {
+                    dialog.emit_close()
+                });
             }
             // Quit the application
             Msg::Quit => gtk::main_quit(),
@@ -268,7 +272,9 @@ impl Win {
                         .unwrap()
                         .format(DATE_FORMAT)
                         .to_string()
-                )            }            FlightType::Return => {
+                )
+            }
+            FlightType::Return => {
                 message = format!(
                     "You have booked a flight on {} with return date {}.",
                     self.model
@@ -281,7 +287,9 @@ impl Win {
                         .unwrap()
                         .format(DATE_FORMAT)
                         .to_string()
-                )            }        }
+                )
+            }
+        }
 
         message
     }
