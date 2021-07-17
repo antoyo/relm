@@ -1,6 +1,7 @@
 use crate::gui::circle_drawing::CircleDrawingMsg;
 
-use gtk::{Adjustment, Inhibit, RangeExt, WidgetExt};
+use gtk::prelude::*;
+use gtk::Adjustment;
 use relm::{Relm, StreamHandle, Widget};
 use relm_derive::{widget, Msg};
 
@@ -45,7 +46,7 @@ impl Widget for WindowResize {
             gtk::Scale {
                 adjustment: &Adjustment::new(self.model.default as f64, 10.0, 500.0, 1.0, 10.0, 0.0),
                 value_changed(scale) => {
-                    let value = scale.get_value();
+                    let value = scale.value();
                     WindowResizeMsg::ValueChanged(value)
                 }
             },

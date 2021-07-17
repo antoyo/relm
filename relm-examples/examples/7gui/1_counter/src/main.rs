@@ -1,4 +1,4 @@
-use gtk::{ButtonExt, Inhibit, LabelExt, WidgetExt};
+use gtk::prelude::*;
 use relm::Widget;
 use relm_derive::{widget, Msg};
 

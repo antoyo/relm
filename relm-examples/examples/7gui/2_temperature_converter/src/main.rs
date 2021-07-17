@@ -1,5 +1,5 @@
-use gtk::{EditableSignals, EntryExt, Inhibit, LabelExt, WidgetExt};
-use relm::{Widget, Relm};
+use gtk::prelude::*;
+use relm::{Relm, Widget};
 use relm_derive::{widget, Msg};
 
 /// The messages sent to the `Win` widget.
@@ -76,13 +76,13 @@ impl Widget for Win {
                     // This will be called when the entry changes.
                     changed(entry) => {
                         // Get the text from the entry
-                        let text = entry.get_text().to_string();
+                        let text = entry.text().to_string();
                         Msg::ChangedCelsius(text)
                     },
                     // This will be called when the entry looses focus.
                     focus_out_event(entry, _) => ({
                         // Get the text from the entry
-                        let text = entry.get_text().to_string();
+                        let text = entry.text().to_string();
                         Msg::ChangedCelsius(text)
 
                     }, Inhibit(false)),
@@ -98,13 +98,13 @@ impl Widget for Win {
                     // This will be called when the entry changes.
                     changed(entry) => {
                         // Get the text from the entry
-                        let text = entry.get_text().to_string();
+                        let text = entry.text().to_string();
                         Msg::ChangedFahrenheit(text)
                     },
                     // This will be called when the entry looses focus.
                     focus_out_event(entry, _) => ({
                         // Get the text from the entry
-                        let text = entry.get_text().to_string();
+                        let text = entry.text().to_string();
                         Msg::ChangedFahrenheit(text)
 
                     }, Inhibit(false)),

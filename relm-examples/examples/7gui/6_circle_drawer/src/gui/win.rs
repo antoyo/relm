@@ -1,7 +1,8 @@
 use crate::gui::circle_drawing::{CircleDrawing, CircleDrawingMsg};
 use crate::model::{CircleGroup, History};
 
-use gtk::{ButtonExt, Inhibit, OrientableExt, Orientation, WidgetExt};
+use gtk::prelude::*;
+use gtk::Orientation;
 use relm::{Relm, Widget};
 use relm_derive::{widget, Msg};
 

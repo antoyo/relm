@@ -47,7 +47,7 @@ impl Widget for PopupMenu {
             PopupMenuMsg::Finish => {
                 self.widgets.popover.popdown();
                 self.model.msg_stream.emit(CellMsg::FormulaChanged(
-                    self.widgets.formula_entry.get_text().to_string(),
+                    self.widgets.formula_entry.text().to_string(),
                 ));
             }
         }

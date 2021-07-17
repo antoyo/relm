@@ -1,21 +1,19 @@
 use std::convert::TryFrom;
 
 use chrono::NaiveDate;
-use gdk::RGBA;
-use gtk::{
-    ButtonExt, ButtonsType, ComboBoxExt, ComboBoxTextExt, DialogExt, DialogFlags, EditableSignals,
-    EntryExt, Inhibit, MessageDialog, MessageType, OrientableExt, StateFlags, WidgetExt,
-};
+use gtk::prelude::*;
+use gtk::{ButtonsType, DialogFlags, MessageDialog, MessageType};
 use relm::Widget;
 use relm_derive::{widget, Msg};
 
-/// The color to show if a date is invalid.
-const INVALID_BACKGROUND: RGBA = RGBA {
-    red: 1.0,
-    green: 0.0,
-    blue: 0.0,
-    alpha: 1.0,
-};
+// The color to show if a date is invalid.
+// TODO: uncomment when alternative to override_background_color is found
+// const INVALID_BACKGROUND: RGBA = RGBA {
+//     red: 1.0,
+//     green: 0.0,
+//     blue: 0.0,
+//     alpha: 1.0,
+// };
 
 /// The date format used in the application.
 const DATE_FORMAT: &str = "%d.%m.%Y";
@@ -108,30 +106,32 @@ impl Widget for Win {
                 self.model.starting_date = date;
                 self.set_valid();
 
-                if date.is_none() {
-                    self.widgets
-                        .entry_starting_date
-                        .override_background_color(StateFlags::NORMAL, Some(&INVALID_BACKGROUND));
-                } else {
-                    self.widgets
-                        .entry_starting_date
-                        .override_background_color(StateFlags::NORMAL, None);
-                }
+                // TODO: Find alternative to override_background_color
+                // if date.is_none() {
+                //     self.widgets
+                //         .entry_starting_date;
+                //         .override_background_color(StateFlags::NORMAL, Some(&INVALID_BACKGROUND));
+                // } else {
+                //     self.widgets
+                //         .entry_starting_date
+                //         .override_background_color(StateFlags::NORMAL, None);
+                // }
             }
             // Change the ending date.
             Msg::ChangedEndDate(date) => {
                 self.model.ending_date = date;
                 self.set_valid();
 
-                if date.is_none() {
-                    self.widgets
-                        .entry_ending_date
-                        .override_background_color(StateFlags::NORMAL, Some(&INVALID_BACKGROUND));
-                } else {
-                    self.widgets
-                        .entry_ending_date
-                        .override_background_color(StateFlags::NORMAL, None);
-                }
+                // TODO: Find alternative to override_background_color
+                // if date.is_none() {
+                //     self.widgets
+                //         .entry_ending_date
+                //         .override_background_color(StateFlags::NORMAL, Some(&INVALID_BACKGROUND));
+                // } else {
+                //     self.widgets
+                //         .entry_ending_date
+                //         .override_background_color(StateFlags::NORMAL, None);
+                // }
             }
             // Book the flight.
             Msg::Book => {
@@ -148,9 +148,7 @@ impl Widget for Win {
                 dialog.show();
 
                 // Close the dialog after `Ok` has been pressed.
-                dialog.connect_response(|dialog, _reponse| {
-                    dialog.emit_close()
-                });
+                dialog.connect_response(|dialog, _reponse| dialog.emit_close());
             }
             // Quit the application
             Msg::Quit => gtk::main_quit(),
@@ -198,7 +196,7 @@ impl Widget for Win {
                 #[name="combo_box_flight_type"]
                 gtk::ComboBoxText {
                     changed(combo_box) => {
-                        let selected = combo_box.get_active_text();
+                        let selected = combo_box.active_text();
                         Msg::ChangedFlightType(FlightType::try_from(selected.unwrap().as_str().to_string()).unwrap())
                     }
                 },
@@ -207,7 +205,7 @@ impl Widget for Win {
                 #[name="entry_starting_date"]
                 gtk::Entry {
                     changed(entry) => {
-                        let text = entry.get_text();
+                        let text = entry.text();
 
                         Msg::ChangedStartDate(str_to_date(&text))
                     },
@@ -219,7 +217,7 @@ impl Widget for Win {
                 #[name="entry_ending_date"]
                 gtk::Entry {
                     changed(entry) => {
-                        let text = entry.get_text();
+                        let text = entry.text();
 
                         Msg::ChangedEndDate(str_to_date(&text))
                     },

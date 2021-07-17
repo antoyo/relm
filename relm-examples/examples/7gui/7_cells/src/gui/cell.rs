@@ -63,8 +63,8 @@ impl Widget for Cell {
         match event {
             CellMsg::Clicked(event_button) => {
                 // Check that the right mouse button was clicked and the popup menu is not visible.
-                if event_button.get_button() == 3 && self.model.popup_menu.is_none() {
-                    let (pos_x, pos_y) = event_button.get_position();
+                if event_button.button() == 3 && self.model.popup_menu.is_none() {
+                    let (pos_x, pos_y) = event_button.position();
 
                     // Create the popup and show it at the clicked position.
                     self.model.popup_menu = Some(relm::create_component::<PopupMenu>((
@@ -112,8 +112,8 @@ impl Widget for Cell {
                 gtk::Label {
                     label: &self.model.value_text,
                     // The minimal size
-                    property_height_request: 25,
-                    property_width_request: 150,
+                    height_request: 25,
+                    width_request: 150,
                 }
             }
         }

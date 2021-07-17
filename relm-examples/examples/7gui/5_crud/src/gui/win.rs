@@ -1,9 +1,8 @@
 use crate::gui::person_list_box::{PersonListBox, PersonListBoxMsg};
 use crate::model::Person;
 
-use gtk::{
-    BoxExt, ButtonExt, EditableSignals, EntryExt, Inhibit, OrientableExt, Orientation, WidgetExt,
-};
+use gtk::prelude::*;
+use gtk::Orientation;
 use relm::{Relm, StreamHandle, Widget};
 use relm_derive::{widget, Msg};
 
@@ -73,7 +72,7 @@ impl Widget for Win {
                 self.model.selected_person = person_opt;
             }
             WinMsg::FilterChanged => {
-                let filter = self.widgets.entry_filter.get_text();
+                let filter = self.widgets.entry_filter.text();
                 self.components
                     .person_list_box
                     .emit(PersonListBoxMsg::Filter(filter.to_string()));
@@ -141,8 +140,8 @@ impl Widget for Win {
 impl Win {
     /// Get the person from the entries `entry_name` and `entry_surname`.
     fn get_person(&self) -> Person {
-        let name = self.widgets.entry_name.get_text();
-        let surname = self.widgets.entry_surname.get_text();
+        let name = self.widgets.entry_name.text();
+        let surname = self.widgets.entry_surname.text();
 
         Person::new(&name, &surname)
     }

@@ -1,7 +1,8 @@
 use crate::gui::win::WinMsg;
 use crate::model::{Person, PersonList};
 
-use gtk::{ContainerExt, ListBoxExt, Label, WidgetExt};
+use gtk::prelude::*;
+use gtk::Label;
 use relm::{Relm, StreamHandle, Widget};
 use relm_derive::{widget, Msg};
 
@@ -72,10 +73,10 @@ impl Widget for PersonListBox {
         #[name="list_box"]
         gtk::ListBox {
             selected_rows_changed(listbox) => {
-                let selected = listbox.get_selected_row();
+                let selected = listbox.selected_row();
                 if let Some(row) = selected {
                     let index = listbox
-                        .get_children()
+                        .children()
                         .iter()
                         .position(|r| r == &row)
                         .unwrap();
@@ -99,9 +100,11 @@ impl PersonListBox {
         // Add all persons in the filter.
         for person in self.model.filtered_persons.get_all() {
             // let _ = list_box.add_widget::<PersonRow>(person.clone());
-            let label = Label::new(
-                Some(&format!("{}, {}", person.get_name(), person.get_surname()))
-            );
+            let label = Label::new(Some(&format!(
+                "{}, {}",
+                person.get_name(),
+                person.get_surname()
+            )));
             label.show();
             list_box.add(&label);
         }

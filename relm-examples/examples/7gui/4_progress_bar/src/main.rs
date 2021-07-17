@@ -1,5 +1,5 @@
-use gtk::{
-    Adjustment, ButtonExt, Inhibit, LabelExt, OrientableExt, ProgressBarExt, RangeExt, WidgetExt,};
+use gtk::prelude::*;
+use gtk::Adjustment;
 use relm::{Relm, StreamHandle, Widget};
 use relm_derive::{widget, Msg};
 
@@ -169,7 +169,7 @@ impl Widget for Win {
                 gtk::Scale {
                     adjustment: &Adjustment::new(10.0, 0.0, 100.0, 1.0, 10.0, 0.0),
                     value_changed(scale) => {
-                        let value = scale.get_value();
+                        let value = scale.value();
                         Msg::SetMax(value)
                     }
                 },

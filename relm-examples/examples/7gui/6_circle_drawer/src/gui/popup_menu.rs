@@ -1,6 +1,7 @@
 use crate::gui::circle_drawing::CircleDrawingMsg;
 
-use gtk::{ButtonExt, DrawingArea, PopoverExt, Rectangle};
+use gtk::prelude::*;
+use gtk::{DrawingArea, Rectangle};
 use relm::{Relm, StreamHandle, Widget};
 use relm_derive::{widget, Msg};
 

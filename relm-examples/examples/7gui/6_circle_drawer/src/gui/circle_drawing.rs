@@ -4,9 +4,8 @@ use crate::gui::window_resize::{WindowResize, WindowResizeMsg};
 use crate::model::{Circle, CircleGroup};
 
 use gdk::{EventButton, EventMotion};
-use gtk::{
-    prelude::WidgetExtManual, ContainerExt, DrawingArea, EventBox, GtkWindowExt, Inhibit, WidgetExt,
-};
+use gtk::prelude::*;
+use gtk::{DrawingArea, EventBox};
 use relm::{connect, init, Component, DrawHandler, Relm, StreamHandle, Update, Widget};
 use relm_derive::Msg;
 
@@ -106,8 +105,8 @@ impl Update for CircleDrawing {
                 self.drawing_area.queue_draw();
             }
             CircleDrawingMsg::Clicked(button_event) => {
-                let (pos_x, pos_y) = button_event.get_position();
-                let button = button_event.get_button();
+                let (pos_x, pos_y) = button_event.position();
+                let button = button_event.button();
 
                 if button == MOUSE_LEFT_CLICK {
                     // Add a new circle on left click.
@@ -130,7 +129,7 @@ impl Update for CircleDrawing {
             CircleDrawingMsg::MouseMove(motion_event) => {
                 // Only update the hovered circle if no circle was selected by right-clicking.
                 if !self.model.is_circle_selected {
-                    let (pos_x, pos_y) = motion_event.get_position();
+                    let (pos_x, pos_y) = motion_event.position();
                     self.model.circles.select_at(pos_x as u64, pos_y as u64);
                     self.drawing_area.queue_draw();
                 }
@@ -148,7 +147,7 @@ impl Update for CircleDrawing {
                 }
             }
             CircleDrawingMsg::UpdateDrawBuffer => {
-                let context = self.model.draw_handler.get_context();
+                let context = self.model.draw_handler.get_context().unwrap();
                 let drawing_area = &self.drawing_area;
                 let circles = &self.model.circles;
 
@@ -156,12 +155,12 @@ impl Update for CircleDrawing {
                 context.rectangle(
                     0.0,
                     0.0,
-                    drawing_area.get_allocated_width() as f64,
-                    drawing_area.get_allocated_height() as f64,
+                    drawing_area.allocated_width() as f64,
+                    drawing_area.allocated_height() as f64,
                 );
 
                 context.set_source_rgb(1.0, 1.0, 1.0);
-                context.fill();
+                let _ = context.fill();
 
                 // Drawing the circles.
                 for circle in circles.get_all() {
@@ -177,11 +176,11 @@ impl Update for CircleDrawing {
                     // Draw fill if selected.
                     if circle.is_selected() {
                         context.set_source_rgb(0.5, 0.5, 0.5);
-                        context.fill_preserve();
+                        let _ = context.fill_preserve();
                     }
 
                     context.set_source_rgb(0.0, 0.0, 0.0);
-                    context.stroke();
+                    let _ = context.stroke();
                 }
             }
         }
