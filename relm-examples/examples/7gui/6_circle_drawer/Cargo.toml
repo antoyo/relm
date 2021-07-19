@@ -1,0 +1,21 @@
+[package]
+name = "circle_drawer"
+version = "0.1.0"
+authors = ["Julian Schmidhuber <schmidhuberj2@protonmail.com>"]
+edition = "2018"
+
+[dependencies]
+glib = "^0.14.0"
+gtk = {version = "^0.14.0", features = ["v3_22"]}
+gdk = "^0.14.0"
+cairo-rs = "^0.14.0"
+
+[dependencies.gio]
+features = ["v2_50"]
+version = "^0.14.0"
+
+[dependencies.relm]
+path = "../../../.."
+
+[dependencies.relm-derive]
+path = "../../../../relm-derive"
