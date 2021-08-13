@@ -10,7 +10,7 @@
         <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="GtkButton" id="inc_button">
+          <object class="GtkButton" id="plus_button">
             <property name="label" translatable="yes">+</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>
@@ -23,7 +23,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="label">
+          <object class="GtkLabel" id="counter_label">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
             <property name="label" translatable="yes">0</property>
@@ -35,7 +35,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="dec_button">
+          <object class="GtkButton" id="minus_button">
             <property name="label" translatable="yes">-</property>
             <property name="visible">True</property>
             <property name="can-focus">True</property>

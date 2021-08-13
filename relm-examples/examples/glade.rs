@@ -106,9 +106,9 @@ impl Widget for Win {
         let window: Window = builder.object("window").unwrap();
         window.show_all();
 
-        let plus_button: Button = builder.object("inc_button").unwrap();
-        let minus_button: Button = builder.object("dec_button").unwrap();
-        let counter_label: Label = builder.object("label").unwrap();
+        let plus_button: Button = builder.object("plus_button").unwrap();
+        let minus_button: Button = builder.object("minus_button").unwrap();
+        let counter_label: Label = builder.object("counter_label").unwrap();
 
         connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
         connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
