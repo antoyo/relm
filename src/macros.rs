@@ -32,7 +32,7 @@
 ///
 /// 3. Send `$msg` when the GTK+ `$event` is emitted on `$widget`.
 ///
-/// 4. Send `$msg` to `$widget` when the `$message` is received on `$stream`.
+/// 4. Send `$msg` to `$dst_component` when the `$message` is received on `$src_component`.
 #[macro_export]
 macro_rules! connect {
     // Connect to a GTK+ widget event, sending a message to another widget.
