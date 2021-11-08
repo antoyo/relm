@@ -64,7 +64,7 @@ impl Widget for Win {
     }
 
     // Specify a view written in another file.
-    view!("tests/buttons.relm");
+    view!("relm-examples/tests/buttons.relm");
 }
 
 fn main() {
