@@ -189,31 +189,31 @@ mod tests {
         let button_pm_allocation = button_plus_minus.allocation();
         let button0_allocation = button0.allocation();
         let button_dot_allocation = button_dot.allocation();
-        assert!(button7_allocation.x < button8_allocation.x);
-        assert_eq!(button7_allocation.x, button4_allocation.x);
-        assert!(button7_allocation.y < button4_allocation.y);
-        assert!(button8_allocation.x < button9_allocation.x);
-        assert_eq!(button8_allocation.x, button5_allocation.x);
-        assert!(button8_allocation.y < button5_allocation.y);
-        assert_eq!(button9_allocation.x, button6_allocation.x);
-        assert!(button9_allocation.y < button6_allocation.y);
+        assert!(button7_allocation.x() < button8_allocation.x());
+        assert_eq!(button7_allocation.x(), button4_allocation.x());
+        assert!(button7_allocation.y() < button4_allocation.y());
+        assert!(button8_allocation.x() < button9_allocation.x());
+        assert_eq!(button8_allocation.x(), button5_allocation.x());
+        assert!(button8_allocation.y() < button5_allocation.y());
+        assert_eq!(button9_allocation.x(), button6_allocation.x());
+        assert!(button9_allocation.y() < button6_allocation.y());
 
-        assert!(button4_allocation.x < button5_allocation.x);
-        assert_eq!(button4_allocation.x, button1_allocation.x);
-        assert!(button4_allocation.y < button1_allocation.y);
-        assert!(button5_allocation.x < button6_allocation.x);
-        assert_eq!(button5_allocation.x, button2_allocation.x);
-        assert!(button5_allocation.y < button2_allocation.y);
-        assert_eq!(button6_allocation.x, button3_allocation.x);
-        assert!(button6_allocation.y < button3_allocation.y);
+        assert!(button4_allocation.x() < button5_allocation.x());
+        assert_eq!(button4_allocation.x(), button1_allocation.x());
+        assert!(button4_allocation.y() < button1_allocation.y());
+        assert!(button5_allocation.x() < button6_allocation.x());
+        assert_eq!(button5_allocation.x(), button2_allocation.x());
+        assert!(button5_allocation.y() < button2_allocation.y());
+        assert_eq!(button6_allocation.x(), button3_allocation.x());
+        assert!(button6_allocation.y() < button3_allocation.y());
 
-        assert!(button1_allocation.x < button2_allocation.x);
-        assert_eq!(button1_allocation.x, button_pm_allocation.x);
-        assert!(button1_allocation.y < button_pm_allocation.y);
-        assert!(button2_allocation.x < button3_allocation.x);
-        assert_eq!(button2_allocation.x, button0_allocation.x);
-        assert!(button2_allocation.y < button0_allocation.y);
-        assert_eq!(button3_allocation.x, button_dot_allocation.x);
-        assert!(button3_allocation.y < button_dot_allocation.y);
+        assert!(button1_allocation.x() < button2_allocation.x());
+        assert_eq!(button1_allocation.x(), button_pm_allocation.x());
+        assert!(button1_allocation.y() < button_pm_allocation.y());
+        assert!(button2_allocation.x() < button3_allocation.x());
+        assert_eq!(button2_allocation.x(), button0_allocation.x());
+        assert!(button2_allocation.y() < button0_allocation.y());
+        assert_eq!(button3_allocation.x(), button_dot_allocation.x());
+        assert!(button3_allocation.y() < button_dot_allocation.y());
     }
 }

@@ -59,12 +59,12 @@ impl Circle {
         Circle {
             x: gen.gen_range(20.0, 500.0),
             y: gen.gen_range(20.0, 500.0),
-            color: RGBA {
-                red: gen.gen_range(0.0, 1.0),
-                green: gen.gen_range(0.0, 1.0),
-                blue: gen.gen_range(0.0, 1.0),
-                alpha: 1.0,
-            },
+            color: RGBA::new(
+                gen.gen_range(0.0, 1.0),
+                gen.gen_range(0.0, 1.0),
+                gen.gen_range(0.0, 1.0),
+                1.0,
+            ),
             vx: gen.gen_range(1.0, 5.0),
             vy: gen.gen_range(1.0, 5.0),
         }
@@ -112,16 +112,16 @@ impl Widget for Win {
             Move => {
                 let allocation = self.widgets.drawing_area.allocation();
                 for circle in &mut self.model.circles {
-                    if (circle.x + circle.vx + SIZE / 2.0 < allocation.width as f64) &&
-                        (circle.x + circle.vx - SIZE / 2.0 > 0.0)
+                    if (circle.x + circle.vx + SIZE / 2.0 < allocation.width() as f64)
+                        && (circle.x + circle.vx - SIZE / 2.0 > 0.0)
                     {
                         circle.x += circle.vx;
                     }
                     else {
                         circle.vx *= -1.0;
                     }
-                    if (circle.y + circle.vy + SIZE / 2.0 < allocation.height as f64) &&
-                        (circle.y + circle.vy - SIZE / 2.0 > 0.0)
+                    if (circle.y + circle.vy + SIZE / 2.0 < allocation.height() as f64)
+                        && (circle.y + circle.vy - SIZE / 2.0 > 0.0)
                     {
                         circle.y += circle.vy;
                     }
@@ -137,7 +137,11 @@ impl Widget for Win {
                 context.set_source_rgb(1.0, 1.0, 1.0);
                 context.paint().unwrap();
                 for circle in &self.model.circles {
-                    context.set_source_rgb(circle.color.red, circle.color.green, circle.color.blue);
+                    context.set_source_rgb(
+                        circle.color.red(),
+                        circle.color.green(),
+                        circle.color.blue(),
+                    );
                     context.arc(circle.x, circle.y, SIZE, 0.0, 2.0 * PI);
                     context.fill().unwrap();
                 }

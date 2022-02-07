@@ -68,12 +68,12 @@ impl Widget for RelmWidget {
         let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
         root.add(&vbox);
 
-        let add_button = gtk::ButtonBuilder::new().label("Add").build();
+        let add_button = gtk::builders::ButtonBuilder::new().label("Add").build();
         add_button.set_widget_name("add_button");
         connect!(relm, add_button, connect_clicked(_), Msg::Add);
         vbox.pack_start(&add_button, false, false, 0);
 
-        let remove_button = gtk::ButtonBuilder::new().label("Remove").build();
+        let remove_button = gtk::builders::ButtonBuilder::new().label("Remove").build();
         remove_button.set_widget_name("remove_button");
         connect!(relm, remove_button, connect_clicked(_), Msg::Remove);
         vbox.pack_start(&remove_button, false, false, 0);
@@ -140,7 +140,7 @@ impl relm::Widget for LabelWidget {
     }
 
     fn view(_relm: &relm::Relm<Self>, _model: Self::Model) -> Self {
-        let root = gtk::LabelBuilder::new().label("hello").build();
+        let root = gtk::builders::LabelBuilder::new().label("hello").build();
         LabelWidget {
             root,
             item: Item {},

@@ -101,8 +101,8 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
             } else {
                 1
             };
-            let width = allocation.width * scale;
-            let height = allocation.height * scale;
+            let width = allocation.width() * scale;
+            let height = allocation.height() * scale;
             if (width, height) != (self.edit_surface.width(), self.edit_surface.height()) {
                 // TODO: also copy the old small surface to the new bigger one?
                 match ImageSurface::create(Format::ARgb32, width, height) {
