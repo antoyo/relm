@@ -273,8 +273,8 @@ mod tests {
         let button_allocation = button.allocation();
         let dec_button_allocation = dec_button.allocation();
 
-        assert!(inc_allocation.y < label_allocation.y);
-        assert!(label_allocation.y < button_allocation.y);
-        assert!(button_allocation.y < dec_button_allocation.y);
+        assert!(inc_allocation.y() < label_allocation.y());
+        assert!(label_allocation.y() < button_allocation.y());
+        assert!(button_allocation.y() < dec_button_allocation.y());
     }
 }

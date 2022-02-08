@@ -5,8 +5,8 @@ authors = ["Antoni Boucher <bouanto@zoho.com>"]
 edition = "2018"
 
 [dependencies]
-gtk = "^0.14.0"
-gtk-test = "^0.7"
+gtk = "^0.15.0"
+gtk-test = "^0.15.0"
 
 [dependencies.relm]
 path = "../../.."

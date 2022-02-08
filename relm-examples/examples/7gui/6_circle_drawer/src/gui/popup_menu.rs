@@ -35,12 +35,12 @@ impl Widget for PopupMenu {
         match event {
             // Open the popup menu at the given position in the drawing area.
             PopupMenuMsg::ShowAt(pos_x, pos_y) => {
-                self.widgets.popover.set_pointing_to(&Rectangle {
-                    x: pos_x as i32,
-                    y: pos_y as i32,
-                    width: 1,
-                    height: 1,
-                });
+                self.widgets.popover.set_pointing_to(&Rectangle::new(
+                    pos_x as i32,
+                    pos_y as i32,
+                    1,
+                    1,
+                ));
                 self.widgets.popover.popup();
             }
             // The resize button was clicked.

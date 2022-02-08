@@ -12,10 +12,10 @@ edition = "2018"
 
 [dependencies]
 enigo = "^0.0.14"
-gdk = "^0.14.0"
-glib = "^0.14.0"
-gtk = "^0.14.0"
-gtk-test = "^0.7"
+gdk = "^0.15.0"
+glib = "^0.15.0"
+gtk = "^0.15.0"
+gtk-test = "^0.15.0"
 
 [dependencies.relm]
 path = ".."

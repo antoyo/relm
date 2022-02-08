@@ -69,6 +69,7 @@ impl<MSG> StreamHandle<MSG> {
     }
 
     /// Same as clone(). Useful for the macro relm_observer_new.
+    #[must_use]
     pub fn stream(&self) -> Self {
         self.clone()
     }
@@ -263,7 +264,7 @@ pub struct EventStream<MSG> {
 impl<MSG> Drop for EventStream<MSG> {
     fn drop(&mut self) {
         // Ignore error since we're in a destructor.
-        let _ = Source::remove(self.source_id.take().expect("source id"));
+        let _ = self.source_id.take().expect("source id").remove();
         self.close();
     }
 }

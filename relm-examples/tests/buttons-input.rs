@@ -162,19 +162,25 @@ mod tests {
         let cleared_observer = relm_observer_new!(component, DataCleared);
 
         assert_text!(label, "");
-        enter_keys(&window.focus().expect("focused widget"), "left");
+        enter_keys(&window.focused_widget().expect("focused widget"), "left");
         enter_key(window, key::Tab);
         assert!(right_entry.has_focus());
 
-        enter_keys(&window.focus().expect("focused widget"), "right");
+        enter_keys(&window.focused_widget().expect("focused widget"), "right");
         enter_key(window, key::Tab);
         assert!(concat_button.has_focus());
-        enter_key(&window.focus().expect("focused widget"), key::space);
+        enter_key(
+            &window.focused_widget().expect("focused widget"),
+            key::space,
+        );
         assert_text!(label, "leftright");
 
         enter_key(window, key::Tab);
         assert!(cancel_button.has_focus());
-        enter_key(&window.focus().expect("focused widget"), key::space);
+        enter_key(
+            &window.focused_widget().expect("focused widget"),
+            key::space,
+        );
         assert_text!(label, "");
         assert_text!(left_entry, "");
         assert_text!(right_entry, "");

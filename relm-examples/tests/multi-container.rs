@@ -358,10 +358,10 @@ mod tests {
         let right_allocation = right_button.allocation();
         let center_allocation = center_button.allocation();
 
-        assert!(button1_allocation.y < label_allocation.y);
-        assert!(label_allocation.y < button2_allocation.y);
-        assert!(button1_allocation.x < center_allocation.x);
-        assert!(center_allocation.x < right_allocation.x);
-        assert!(center_allocation.y == right_allocation.y);
+        assert!(button1_allocation.y() < label_allocation.y());
+        assert!(label_allocation.y() < button2_allocation.y());
+        assert!(button1_allocation.x() < center_allocation.x());
+        assert!(center_allocation.x() < right_allocation.x());
+        assert!(center_allocation.y() == right_allocation.y());
     }
 }

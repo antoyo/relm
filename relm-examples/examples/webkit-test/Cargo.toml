@@ -5,8 +5,8 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-gtk = "^0.14"
-webkit2gtk = "^0.14"
+gtk = "^0.15"
+webkit2gtk = "^0.17"
 
 [dependencies.relm]
 default-features = false

@@ -148,7 +148,7 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: 
                 })
             };
         let allocation = widget.allocation();
-        mouse_move(widget, allocation.width / 2, allocation.height / 2);
+        mouse_move(widget, allocation.width() / 2, allocation.height() / 2);
         let mut enigo = Enigo::new();
         enigo.mouse_click(MouseButton::Left);
         observer.wait();
@@ -160,7 +160,7 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: 
 pub fn mouse_move_to<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: &W) {
     wait_for_draw(widget, || {
         let allocation = widget.allocation();
-        mouse_move(widget, allocation.width / 2, allocation.height / 2);
+        mouse_move(widget, allocation.width() / 2, allocation.height() / 2);
 
         wait_for_relm_events();
     });
@@ -172,7 +172,7 @@ pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W
             Inhibit(false)
         });
         let allocation = widget.allocation();
-        mouse_move(widget, allocation.width / 2, allocation.height / 2);
+        mouse_move(widget, allocation.width() / 2, allocation.height() / 2);
         let mut enigo = Enigo::new();
         enigo.mouse_click(MouseButton::Left);
         observer.wait();
