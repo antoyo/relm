@@ -69,6 +69,7 @@ impl<MSG> StreamHandle<MSG> {
     }
 
     /// Same as clone(). Useful for the macro relm_observer_new.
+    #[must_use]
     pub fn stream(&self) -> Self {
         self.clone()
     }
