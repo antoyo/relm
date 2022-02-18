@@ -21,7 +21,6 @@
 
 use gtk::{
     prelude::BuilderExtManual,
-    Builder,
     Button,
     Inhibit,
     Label,
@@ -32,6 +31,7 @@ use gtk::{
 };
 use relm_derive::Msg;
 use relm::{connect, Relm, Update, Widget, WidgetTest};
+use gladis::Gladis;
 
 struct Model {
     counter: i32,
@@ -45,7 +45,7 @@ enum Msg {
 }
 
 // Create the structure that holds the widgets used in the view.
-#[derive(Clone)]
+#[derive(Clone, Gladis)]
 struct Widgets {
     counter_label: Label,
     minus_button: Button,
@@ -101,27 +101,17 @@ impl Widget for Win {
 
     fn view(relm: &Relm<Self>, model: Self::Model) -> Self {
         let glade_src = include_str!("window.glade");
-        let builder = Builder::from_string(glade_src);
+        let widgets = Widgets::from_string(glade_src).expect("Ui loading failed");
 
-        let window: Window = builder.object("window").unwrap();
-        window.show_all();
+        widgets.window.show_all();
 
-        let plus_button: Button = builder.object("plus_button").unwrap();
-        let minus_button: Button = builder.object("minus_button").unwrap();
-        let counter_label: Label = builder.object("counter_label").unwrap();
-
-        connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
-        connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
+        connect!(relm, widgets.plus_button, connect_clicked(_), Msg::Increment);
+        connect!(relm, widgets.minus_button, connect_clicked(_), Msg::Decrement);
+        connect!(relm, widgets.window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
 
         Win {
             model,
-            widgets: Widgets {
-                counter_label,
-                minus_button,
-                plus_button,
-                window: window,
-            },
+            widgets,
         }
     }
 }
