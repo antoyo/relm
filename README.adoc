@@ -297,5 +297,6 @@ image:https://c5.patreon.com/external/logo/become_a_patron_button.png[link="http
  * https://github.com/Schmiddiii/Tubefeeder[Tubefeeder]
  * https://github.com/emmanueltouzery/hotwire[Hotwire]
  * https://mzte.de/git/LordMZTE/gue[gue]
+ * https://github.com/mycitadel/mycitadel-desktop[MyCitadel Wallet]
 
 If you want to add your project to this list, please https://github.com/antoyo/relm/pulls[create a pull request].
