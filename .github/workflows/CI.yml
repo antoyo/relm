@@ -73,8 +73,8 @@ jobs:
       - name: "relm: build async example"
         run: cargo build --manifest-path relm-examples/examples/async/Cargo.toml
 
-      - name: "relm: build webkit-test example"
-        run: cargo build --manifest-path relm-examples/examples/webkit-test/Cargo.toml
+      # - name: "relm: build webkit-test example"
+      #   run: cargo build --manifest-path relm-examples/examples/webkit-test/Cargo.toml
 
       - name: "relm: clean tests"
         run: cargo clean --manifest-path relm-examples/Cargo.toml
@@ -85,8 +85,8 @@ jobs:
       - name: "relm: clean async example"
         run: cargo clean --manifest-path relm-examples/examples/async/Cargo.toml
 
-      - name: "relm: clean webkit-test example"
-        run: cargo clean --manifest-path relm-examples/examples/webkit-test/Cargo.toml
+      # - name: "relm: clean webkit-test example"
+      #   run: cargo clean --manifest-path relm-examples/examples/webkit-test/Cargo.toml
 
       - name: "relm: build 7gui counter example"
         run: cargo build --manifest-path relm-examples/examples/7gui/1_counter/Cargo.toml
