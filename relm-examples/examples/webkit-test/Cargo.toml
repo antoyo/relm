@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-gtk = "^0.15"
+gtk = "^0.16"
 webkit2gtk = "^0.17"
 
 [dependencies.relm]

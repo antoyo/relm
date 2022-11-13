@@ -5,12 +5,12 @@ authors = ["Julian Schmidhuber <schmidhuberj2@protonmail.com>"]
 edition = "2018"
 
 [dependencies]
-glib = "^0.15.0"
-gtk = "^0.15.0"
+glib = "^0.16.0"
+gtk = "^0.16.0"
 
 [dependencies.gio]
-features = ["v2_50"]
-version = "^0.15.0"
+features = ["v2_58"]
+version = "^0.16.0"
 [dependencies.relm]
 path = "../../../.."
 

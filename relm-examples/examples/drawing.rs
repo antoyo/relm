@@ -57,16 +57,16 @@ impl Circle {
     fn generate() -> Self {
         let mut gen = rand::thread_rng();
         Circle {
-            x: gen.gen_range(20.0, 500.0),
-            y: gen.gen_range(20.0, 500.0),
+            x: gen.gen_range(20.0..500.0),
+            y: gen.gen_range(20.0..500.0),
             color: RGBA::new(
-                gen.gen_range(0.0, 1.0),
-                gen.gen_range(0.0, 1.0),
-                gen.gen_range(0.0, 1.0),
+                gen.gen_range(0.0..1.0),
+                gen.gen_range(0.0..1.0),
+                gen.gen_range(0.0..1.0),
                 1.0,
             ),
-            vx: gen.gen_range(1.0, 5.0),
-            vy: gen.gen_range(1.0, 5.0),
+            vx: gen.gen_range(1.0..5.0),
+            vy: gen.gen_range(1.0..5.0),
         }
     }
 }

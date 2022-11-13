@@ -12,12 +12,12 @@ version = "0.23.0"
 edition = "2018"
 
 [dependencies]
-cairo-rs = "^0.15.0"
+cairo-rs = "0.16.1"
 fragile = "1.0"
-glib = "^0.15.0"
-glib-sys = "^0.15.0"
-gobject-sys = "^0.15.0"
-gtk = "^0.15.0"
+glib = "0.16.2"
+glib-sys = "0.16.0"
+gobject-sys = "0.16.0"
+gtk = "0.16.1"
 libc = "^0.2.54"
 log = "^0.4.6"
 

@@ -216,6 +216,7 @@ struct _EventStream<MSG> {
     // We use an Rc here to be able to clone the function to call it so that we don't borrow the
     // stream while calling the function. Otherwise, calling an observer could trigger a
     // borrow_mut() which would result in a panic.
+    #[allow(clippy::type_complexity)]
     observers: Vec<Rc<dyn Fn(&MSG)>>,
 }
 
@@ -264,7 +265,7 @@ pub struct EventStream<MSG> {
 impl<MSG> Drop for EventStream<MSG> {
     fn drop(&mut self) {
         // Ignore error since we're in a destructor.
-        let _ = self.source_id.take().expect("source id").remove();
+        self.source_id.take().expect("source id").remove();
         self.close();
     }
 }
