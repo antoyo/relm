@@ -26,10 +26,10 @@ jobs:
       - run: apt-get update -y
       - run: apt-get install -y libgtk-3-dev libglib2.0-dev libgraphene-1.0-dev git xvfb curl libcairo-gobject2 libcairo2-dev libxdo-dev libwebkit2gtk-4.0-dev openbox
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
-          override: true
+          components: clippy
       - name: "clippy"
         run: cargo clippy -- --deny warnings
 
