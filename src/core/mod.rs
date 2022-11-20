@@ -264,7 +264,6 @@ pub struct EventStream<MSG> {
 
 impl<MSG> Drop for EventStream<MSG> {
     fn drop(&mut self) {
-        // Ignore error since we're in a destructor.
         self.source_id.take().expect("source id").remove();
         self.close();
     }
