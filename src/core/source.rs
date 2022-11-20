@@ -58,7 +58,11 @@ pub fn new_source<T: SourceFuncs>(data: T) -> Source {
 }
 
 pub fn source_get<T: SourceFuncs>(source: &Source) -> &T {
-    unsafe { &( *(source.to_glib_none().0 as *const SourceData<T>) ).data }
+    unsafe {
+        &(*(<Source as ToGlibPtr<'_, *mut GSource>>::to_glib_none(source).0
+            as *const SourceData<T>))
+            .data
+    }
 }
 
 unsafe extern "C" fn check<T: SourceFuncs>(source: *mut GSource) -> c_int {
@@ -90,10 +94,5 @@ extern "C" fn prepare<T: SourceFuncs>(source: *mut GSource, timeout: *mut c_int)
 }
 
 fn bool_to_int(boolean: bool) -> c_int {
-    if boolean {
-        1
-    }
-    else {
-        0
-    }
+    boolean.into()
 }

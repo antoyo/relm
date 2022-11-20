@@ -5,14 +5,14 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-gdk = "^0.15.0"
-gdk-pixbuf = "^0.15.0"
-gio = "^0.15.0"
-glib = "^0.15.0"
-glib-sys = "^0.15.0"
-gtk = "^0.15.0"
-json = "^0.11.5"
-simplelog = "^0.5.3"
+gdk = "^0.16.0"
+gdk-pixbuf = "^0.16.0"
+gio = "^0.16.0"
+glib = "^0.16.0"
+glib-sys = "^0.16.0"
+gtk = "^0.16.0"
+json = "0.12.4"
+simplelog = "0.12.0"
 uhttp_uri = "^0.5.1"
 
 [dependencies.relm]

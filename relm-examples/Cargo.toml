@@ -9,17 +9,14 @@ edition = "2018"
 
 [dev-dependencies]
 chrono = "0.4"
-gdk = "^0.15.0"
-glib = "^0.15.0"
-gtk = "^0.15.0"
-gtk-test = "^0.15.0"
-rand = "^0.6.1"
-
-# glade_gladis example
-gladis = "^2.0.0"
+gdk = "^0.16.0"
+glib = "^0.16.0"
+gtk = "^0.16.0"
+gtk-test = "^0.16.0"
+rand = "0.8.5"
 
 [dev-dependencies.gio]
-version = "^0.15.0"
+version = "^0.16.0"
 
 [dev-dependencies.relm]
 path = ".."

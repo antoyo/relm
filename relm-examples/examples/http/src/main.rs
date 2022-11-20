@@ -57,7 +57,7 @@ use relm::{
     execute,
 };
 use relm_derive::{Msg, widget};
-use simplelog::{Config, TermLogger};
+use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use simplelog::LevelFilter::Warn;
 use uhttp_uri::HttpUri;
 
@@ -377,6 +377,12 @@ fn join_chunks(buffer: Vec<u8>) -> Vec<u8> {
 }
 
 fn main() {
-    TermLogger::init(Warn, Config::default()).expect("TermLogger::init failed");
+     TermLogger::init(
+        Warn,
+        Config::default(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    )
+    .expect("TermLogger::init failed");
     Win::run(()).expect("Win::run failed");
 }
