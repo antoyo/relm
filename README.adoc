@@ -26,8 +26,8 @@ First, add this to your `Cargo.toml`:
 [source,toml]
 ----
 gtk = "^0.16.0"
-relm = "^0.23.0"
-relm-derive = "^0.23.0"
+relm = "^0.24.0"
+relm-derive = "^0.24.0"
 ----
 
 Next, add this to your crate:

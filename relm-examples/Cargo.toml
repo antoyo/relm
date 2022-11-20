@@ -4,7 +4,7 @@ categories = ["asynchronous", "gui"]
 description = "Examples for relm"
 license = "MIT"
 name = "relm-examples"
-version = "0.23.0"
+version = "0.24.0"
 edition = "2018"
 
 [dev-dependencies]
@@ -20,12 +20,12 @@ version = "^0.16.0"
 
 [dev-dependencies.relm]
 path = ".."
-version = "^0.23.0"
+version = "^0.24.0"
 
 [dev-dependencies.relm-derive]
 path = "../relm-derive"
-version = "^0.23.0"
+version = "^0.24.0"
 
 [dev-dependencies.relm-test]
 path = "../relm-test"
-version = "^0.23.0"
+version = "^0.24.0"

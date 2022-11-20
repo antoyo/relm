@@ -6,7 +6,7 @@ documentation = "https://docs.rs/relm-derive/"
 license = "MIT"
 name = "relm-derive"
 repository = "https://github.com/antoyo/relm"
-version = "0.23.0"
+version = "0.24.0"
 edition = "2018"
 
 [lib]
