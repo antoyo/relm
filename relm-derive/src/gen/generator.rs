@@ -519,67 +519,30 @@ impl<'a> Generator<'a> {
 fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream {
     let struct_name = &widget.typ;
 
-    let properties_count = gtk_widget.construct_properties.len() as u32;
-    let mut values = vec![];
     let mut parameters = vec![];
     for (key, value) in gtk_widget.construct_properties.iter() {
+        let key = key.to_string().replace("_", "-");
         let mut remover = Transformer::new(MODEL_IDENT);
         let value = remover.fold_expr(value.clone());
-        let key = key.to_string();
-        values.push(quote_spanned! { struct_name.span() =>
-            ::relm::ToValue::to_value(&#value)
-        });
-        let index = parameters.len();
         parameters.push(quote_spanned! { struct_name.span() =>
-            ::relm::GParameter {
-                name: ::relm::ToGlibPtr::to_glib_full(#key),
-                value: ::std::ptr::read(::relm::ToGlibPtr::to_glib_none(&values[#index]).0),
-            }
+            (#key, &#value as &dyn ::gtk::glib::value::ToValue)
         });
     }
-    // TODO: use this new code when g_object_new_with_properties() is released.
-    /*let mut names = vec![];
-    let mut values = vec![];
-    for (key, value) in gtk_widget.construct_properties.iter() {
-        let key = key.to_string();
-        names.push(quote! {
-            #key
-        });
-        values.push(quote! {
-            &#value
-        });
-    }*/
 
     if widget.init_parameters.is_empty() {
-        quote_spanned! { struct_name.span() =>
-            unsafe {
-                if !gtk::is_initialized_main_thread() {
-                    if gtk::is_initialized() {
-                        panic!("GTK may only be used from the main thread.");
-                    }
-                    else {
-                        panic!("GTK has not been initialized. Call `gtk::init` first.");
-                    }
+        quote_spanned!(struct_name.span() => {
+            if !gtk::is_initialized_main_thread() {
+                if gtk::is_initialized() {
+                    panic!("GTK may only be used from the main thread.");
                 }
-                use relm::StaticType;
-                use relm::{Cast, FromGlibPtrNone};
-                let values: &[::relm::Value] = &[#(#values),*];
-                let mut parameters = [#(#parameters),*];
-                // TODO: use the safe Object::new().
-                // TODO: switch to builders.
-                ::gtk::Widget::from_glib_none(::relm::g_object_newv(
-                    ::relm::IntoGlib::into_glib(#struct_name::static_type()),
-                    #properties_count, parameters.as_mut_ptr()) as *mut _)
-                    .downcast().unwrap()
-                // TODO: use this new code when g_object_new_with_properties() is released.
-                /*let names: &[&str] = &[#(#names),*];
-                let values: &[&::gtk::ToValue] = &[#(#values),*];
-                ::gtk::Widget::from_glib_none(::relm::g_object_new_with_properties(#struct_name::static_type().to_glib(),
-                    #properties_count, ::relm::ToGlibPtr::to_glib_full(&names),
-                    ::relm::ToGlibPtr::to_glib_full(&values) as *mut _) as *mut _)
-                .downcast_unchecked()*/
+                else {
+                    panic!("GTK has not been initialized. Call `gtk::init` first.");
+                }
             }
-        }
+            let parameters = [#(#parameters),*];
+            // TODO: switch to builders.
+            ::gtk::glib::object::Object::new::<#struct_name>(&parameters)
+        })
     }
     else {
         let params = gen_model_param(&widget.init_parameters, WithoutParens);
