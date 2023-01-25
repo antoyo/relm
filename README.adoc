@@ -286,7 +286,6 @@ image:https://c5.patreon.com/external/logo/become_a_patron_button.png[link="http
 
  * https://github.com/sanpii/yellow-pitaya[Yellow Pitaya]
  * https://github.com/juchiast/gameoflife[Game of Life]
- * https://github.com/sebasmagri/rusty-sounds[Rusty Sounds]
  * https://github.com/etrombly/country_parser[Country Parser]
  * https://github.com/niklasf/rust-chessground[Chessground]
  * https://github.com/sanpii/effitask[Effitask]
