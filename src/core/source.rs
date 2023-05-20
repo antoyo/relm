@@ -36,6 +36,7 @@ pub trait SourceFuncs {
     fn prepare(&self) -> (bool, Option<u32>);
 }
 
+#[repr(C)]
 struct SourceData<T> {
     _source: GSource,
     funcs: Box<GSourceFuncs>,
