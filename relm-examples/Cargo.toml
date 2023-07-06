@@ -30,6 +30,6 @@ version = "^0.24.0"
 path = "../relm-test"
 version = "^0.24.0"
 
-[dependencies.adw]
+[dev-dependencies.adw]
 package = "libadwaita"
 version = "0.4.3"
