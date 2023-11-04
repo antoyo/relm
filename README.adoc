@@ -293,7 +293,7 @@ image:https://c5.patreon.com/external/logo/become_a_patron_button.png[link="http
  * https://github.com/emmanueltouzery/cigale[Cigale]: Tool to prepare the timesheet of the tasks you did at work
  * https://github.com/emmanueltouzery/projectpad2[Projectpad]: Manage secret credentials and server information as a software developer or sysadmin.
  * https://github.com/crrodger/timezoners[TimezoneRS]: A GUI application to visually see the time in different time zones
- * https://github.com/Schmiddiii/Tubefeeder[Tubefeeder]/https://gitlab.com/schmiddi-on-mobile/pipeline[Pipeline]: Watch YouTube, LBRY, and PeerTube videos in one place.
+ * https://github.com/Schmiddiii/Tubefeeder[Tubefeeder] / https://gitlab.com/schmiddi-on-mobile/pipeline[Pipeline]: Watch YouTube, LBRY, and PeerTube videos in one place.
  * https://github.com/emmanueltouzery/hotwire[Hotwire]: Study network traffic of a few popular protocols in a simple way
  * https://mzte.de/git/LordMZTE/gue[gue]: GUI for controlling phillips hue lights
  * https://github.com/mycitadel/mycitadel-desktop[MyCitadel Wallet]: MyCitadel Cryptocurrency Wallet app
