@@ -21,5 +21,24 @@ gtk = "0.16.1"
 libc = "^0.2.54"
 log = "^0.4.6"
 
+[dev-dependencies]
+relm-derive = { path = "relm-derive" }
+
 [features]
 hidpi = []
+
+[workspace]
+members = [
+  ".",
+  "relm-derive",
+  "relm-examples",
+  "relm-examples/examples/7gui/*",
+  "relm-test",
+
+  # The following must be listed manually instead of "relm-examples/examples/*"
+  # because of rust-lang/cargo#6745.
+  "relm-examples/examples/async",
+  "relm-examples/examples/buttons-attribute",
+  "relm-examples/examples/http",
+  "relm-examples/examples/webkit-test",
+]
