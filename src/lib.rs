@@ -30,7 +30,6 @@
 //!
 //! ```toml
 //! [dependencies]
-//! gtk = "^0.6.0"
 //! relm = "^0.16.0"
 //! relm-derive = "^0.16.0"
 //! ```
@@ -121,6 +120,7 @@ pub use glib::translate::{FromGlibPtrNone, IntoGlib, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
 use glib::Continue;
+pub use gtk;
 
 pub use crate::core::{Channel, EventStream, Sender, StreamHandle};
 pub use crate::state::{
