@@ -1,0 +1,5 @@
+error: expected `impl`
+ --> $DIR/widget-on-struct.rs:4:1
+  |
+4 | struct Bar;
+  | ^^^^^^

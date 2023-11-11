@@ -37,10 +37,12 @@ use std::collections::{HashMap, HashSet};
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{
+    Error,
     Generics,
     Ident,
     ImplItem,
     ImplItemMethod,
+    ImplItemType,
     ItemImpl,
     Macro,
     Path,
@@ -53,9 +55,9 @@ use syn::{
 };
 use syn::FnArg::{self, Typed};
 use syn::fold::Fold;
-use syn::ImplItem::{Const, Method, Verbatim};
+use syn::ImplItem::Method;
 use syn::Item::{self, Impl};
-use syn::parse::Result;
+use syn::parse::{Parse, ParseStream, Result};
 use syn::spanned::Spanned;
 use syn::Type;
 use syn::visit::Visit;
@@ -93,6 +95,102 @@ pub struct Driver {
     widget_msg_type: Option<Type>,
     widget_parent_id: Option<String>,
     widgets: HashMap<Ident, TokenStream>, // Map widget ident to widget type.
+}
+
+pub struct WidgetDefinition {
+    impl_item: ItemImpl,
+    methods: WidgetMethods,
+    types: WidgetTypes,
+    view: WidgetList,
+}
+
+pub struct WidgetMethods {
+    model: ImplItemMethod,
+    update: ImplItemMethod,
+    parent_id: Option<ImplItemMethod>,
+    root: Option<ImplItemMethod>,
+    subscriptions: Option<ImplItemMethod>,
+    init_view: Option<ImplItemMethod>,
+    on_add: Option<ImplItemMethod>,
+    other: Vec<ImplItemMethod>,
+}
+
+pub struct WidgetTypes {
+    root: Option<ImplItemType>,
+    model: Option<ImplItemType>,
+    model_param: Option<ImplItemType>,
+    msg: Option<ImplItemType>,
+}
+
+impl Parse for WidgetDefinition {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut ast: ItemImpl = input.parse()?;
+
+        let mut model_method = None;
+        let mut update_method = None;
+        let mut parent_id_method = None;
+        let mut root_method = None;
+        let mut subscriptions_method = None;
+        let mut init_view_method = None;
+        let mut on_add_method = None;
+        let mut other_methods = vec![];
+
+        let mut root_type = None;
+        let mut model_type = None;
+        let mut model_param_type = None;
+        let mut msg_type = None;
+
+        let mut widget_list = None;
+
+        for item in ast.items.drain(..) {
+            match item {
+                Method(meth) => {
+                    match &*meth.sig.ident.to_string() {
+                        "model" => model_method = Some(meth),
+                        "root" => root_method = Some(meth),
+                        "update" => update_method = Some(meth),
+                        "parent_id" => parent_id_method = Some(meth),
+                        "subscriptions" => subscriptions_method = Some(meth),
+                        "init_view" => init_view_method = Some(meth),
+                        "on_add" => on_add_method = Some(meth),
+                        _ => other_methods.push(meth),
+                    }
+                },
+                ImplItem::Macro(mac) => widget_list = Some(mac.mac.parse_body()?),
+                ImplItem::Type(ty) => {
+                    match &*ty.ident.to_string() {
+                        "Root" => root_type = Some(ty),
+                        "Model" => model_type = Some(ty),
+                        "ModelParam" => model_param_type = Some(ty),
+                        "Msg" => msg_type = Some(ty),
+                        _ => return Err(Error::new(ty.span(), "unexpected type")),
+                    }
+                }
+                item => return Err(Error::new(item.span(), "unexpected item")),
+            }
+        }
+
+        Ok(WidgetDefinition {
+            impl_item: ast,
+            methods: WidgetMethods {
+                model: model_method.ok_or_else(|| input.error("model method not found"))?,
+                update: update_method.ok_or_else(|| input.error("update method not found"))?,
+                parent_id: parent_id_method,
+                root: root_method,
+                subscriptions: subscriptions_method,
+                init_view: init_view_method,
+                on_add: on_add_method,
+                other: other_methods,
+            },
+            types: WidgetTypes {
+                root: root_type,
+                model: model_type,
+                model_param: model_param_type,
+                msg: msg_type,
+            },
+            view: widget_list.ok_or_else(|| input.error("view macro not found"))?,
+        })
+    }
 }
 
 struct View {
@@ -257,89 +355,74 @@ impl Driver {
         }
     }
 
-    fn gen_widget(&mut self, input: TokenStream) -> TokenStream {
-        let mut ast: Item = parse(input.into()).expect("parse_item() in gen_widget()");
-        if let Impl(ItemImpl { attrs, defaultness, unsafety, impl_token, generics, trait_, self_ty, items, brace_token }
-                    ) = ast
-        {
-            self.generic_types = Some(generics.clone());
-            let name = get_name(&self_ty);
-            let mut new_items = vec![];
-            let mut update_items = vec![];
-            for item in items {
-                let mut i = item.clone();
-                match item {
-                    Const(..) => panic!("Unexpected const item"),
-                    ImplItem::Macro(mac) => self.view_macro = Some(mac.mac),
-                    Method(ImplItemMethod { sig, .. }) => {
-                        match sig.ident.to_string().as_ref() {
-                            "parent_id" => self.data_method = Some(i),
-                            "root" => self.root_method = Some(i),
-                            "model" => {
-                                self.widget_model_type = Some(get_return_type(sig));
-                                add_model_param(&mut i, &mut self.model_param_type);
-                                update_items.push(i);
-                            },
-                            "subscriptions" => update_items.push(i),
-                            "init_view" | "on_add" => new_items.push(i),
-                            "update" => {
-                                self.widget_msg_type = Some(get_second_param_type(&sig));
-                                self.update_method = Some(i)
-                            },
-                            _ => self.other_methods.push(i),
-                        }
-                    },
-                    ImplItem::Type(typ) => {
-                        match typ.ident.to_string().as_ref() {
-                            "Root" => self.root_type = Some(i),
-                            "Model" => self.model_type = Some(i),
-                            "ModelParam" => self.model_param_type = Some(i),
-                            "Msg" => self.msg_type = Some(i),
-                            _ => panic!("Unexpected type item {:?}", typ.ident),
-                        }
-                    },
-                    Verbatim(..) => panic!("Unexpected verbatim item"),
-                    _ => panic!("Unexpected item"),
-                }
-            }
-            let view =
-                match self.get_view(&name, &self_ty) {
-                    Ok(view) => view,
-                    Err(error) => return error.to_compile_error(),
-                };
-            if let Some(on_add) = gen_set_child_prop_calls(&view.widget) {
-                new_items.push(on_add);
-            }
-            self.msg_model_map = Some(view.msg_model_map);
-            self.properties_model_map = Some(view.properties_model_map);
-            new_items.push(view.item);
-            self.widgets.insert(self.root_widget.clone().expect("root widget"),
-            self.root_widget_type.clone().expect("root widget type"));
-            let widget_struct = self.create_struct(&self_ty, &view.relm_widgets, &view.relm_components, &view.streams_to_save, &generics);
-            new_items.push(self.get_root_type());
-            if let Some(data_method) = self.get_data_method() {
-                new_items.push(data_method);
-            }
-            new_items.push(self.get_root());
-            let other_methods = self.get_other_methods(&self_ty, &generics);
-            let update_impl = self.update_impl(&self_ty, &generics, update_items);
-            let widget_test_impl = self.widget_test_impl(&self_ty, &generics);
-            let item = Impl(ItemImpl { attrs, defaultness, unsafety, generics, impl_token, trait_, self_ty, brace_token,
-                items: new_items });
-            ast = item;
-            let container_impl = view.container_impl;
-            quote! {
-                #widget_struct
-                #ast
-                #container_impl
-                #update_impl
-                #widget_test_impl
+    fn gen_widget(&mut self, definition: WidgetDefinition) -> TokenStream {
+        let ItemImpl { generics, self_ty, .. } = &definition.impl_item;
 
-                #other_methods
-            }
+        self.generic_types = Some(generics.clone());
+
+        let mut update_items: Vec<ImplItem> = vec![];
+        let mut new_items: Vec<ImplItem> = vec![];
+
+        self.root_type = definition.types.root.map(ImplItem::Type);
+        self.model_type = definition.types.model.map(ImplItem::Type);
+        self.model_param_type = definition.types.model_param.map(ImplItem::Type);
+        self.msg_type = definition.types.msg.map(ImplItem::Type);
+
+        self.data_method = definition.methods.parent_id.map(ImplItem::Method);
+        self.root_method = definition.methods.root.map(ImplItem::Method);
+
+        self.widget_model_type = Some(get_return_type(definition.methods.model.sig.clone()));
+        let mut model_method_copy = definition.methods.model.clone();
+        add_model_param(&mut model_method_copy, &mut self.model_param_type);
+        update_items.push(ImplItem::Method(model_method_copy));
+
+        if let Some(subscriptions_method) = definition.methods.subscriptions {
+            update_items.push(ImplItem::Method(subscriptions_method));
         }
-        else {
-            panic!("Expected impl");
+
+        if let Some(init_view_method) = definition.methods.init_view {
+            new_items.push(ImplItem::Method(init_view_method))
+        }
+
+        if let Some(on_add_method) = definition.methods.on_add {
+            new_items.push(ImplItem::Method(on_add_method));
+        }
+
+        self.other_methods = definition.methods.other.into_iter().map(ImplItem::Method).collect();
+
+        self.widget_msg_type = Some(get_second_param_type(&definition.methods.update.sig));
+        self.update_method = Some(ImplItem::Method(definition.methods.update));
+
+        let name = get_name(&self_ty);
+        let view = self.get_view(definition.view, &name, self_ty);
+
+        if let Some(on_add) = gen_set_child_prop_calls(&view.widget) {
+            new_items.push(on_add);
+        }
+        self.msg_model_map = Some(view.msg_model_map);
+        self.properties_model_map = Some(view.properties_model_map);
+        new_items.push(view.item);
+        self.widgets.insert(self.root_widget.clone().expect("root widget"),
+        self.root_widget_type.clone().expect("root widget type"));
+        let widget_struct = self.create_struct(&self_ty, &view.relm_widgets, &view.relm_components, &view.streams_to_save, &generics);
+        new_items.push(self.get_root_type());
+        if let Some(data_method) = self.get_data_method() {
+            new_items.push(data_method);
+        }
+        new_items.push(self.get_root());
+        let other_methods = self.get_other_methods(&self_ty, &generics);
+        let update_impl = self.update_impl(&self_ty, &generics, update_items);
+        let widget_test_impl = self.widget_test_impl(&self_ty, &generics);
+        let item = Impl(ItemImpl { items: new_items, ..definition.impl_item });
+        let container_impl = view.container_impl;
+        quote! {
+            #widget_struct
+            #item
+            #container_impl
+            #update_impl
+            #widget_test_impl
+
+            #other_methods
         }
     }
 
@@ -428,13 +511,7 @@ impl Driver {
         func
     }
 
-    fn get_view(&mut self, name: &Ident, typ: &Type) -> Result<View> {
-        let WidgetList { mut widgets } = self
-            .view_macro
-            .take()
-            .expect("view_macro in impl_view()")
-            .parse_body()?;
-
+    fn get_view(&mut self, WidgetList { mut widgets }: WidgetList, name: &Ident, typ: &Type) -> View {
         self.widget_parent_id = widgets[0].parent_id.clone();
 
         let mut msg_model_map = HashMap::new();
@@ -456,7 +533,7 @@ impl Driver {
         };
         let item = block_to_impl_item(code);
         let widget = widgets.drain(..).next().expect("first widget");
-        Ok(View {
+        View {
             container_impl,
             item,
             msg_model_map,
@@ -465,7 +542,7 @@ impl Driver {
             relm_widgets,
             streams_to_save,
             widget,
-        })
+        }
     }
 
     fn update_impl(&mut self, typ: &Type, generics: &Generics, items: Vec<ImplItem>) -> TokenStream {
@@ -508,32 +585,31 @@ impl Driver {
     }
 }
 
-pub fn gen_widget(input: TokenStream) -> TokenStream {
+pub fn gen_widget(definition: WidgetDefinition) -> TokenStream {
     let mut driver = Driver::new();
-    driver.gen_widget(input)
+    driver.gen_widget(definition)
 }
 
-fn add_model_param(model_fn: &mut ImplItem, model_param_type: &mut Option<ImplItem>) {
+fn add_model_param(model_fn: &mut ImplItemMethod, model_param_type: &mut Option<ImplItem>) {
     let span = model_fn.span();
-    if let Method(ImplItemMethod { ref mut sig, .. }) = *model_fn {
-        let len = sig.inputs.len();
-        if len == 0 || len == 1 {
-            let type_tokens = quote_spanned! { span =>
-                &::relm::Relm<Self>
-            };
-            let ty: Type = parse(type_tokens.into()).expect("Relm type");
-            let input: FnArg = parse(quote! { _: #ty }.into()).expect("wild arg");
-            sig.inputs.insert(0, input);
-            if len == 0 {
-                let input: FnArg = parse(quote! { _: () }.into()).expect("wild arg");
-                sig.inputs.push(input);
-            }
+
+    let len = model_fn.sig.inputs.len();
+    if len == 0 || len == 1 {
+        let type_tokens = quote_spanned! { span =>
+            &::relm::Relm<Self>
+        };
+        let ty: Type = parse(type_tokens.into()).expect("Relm type");
+        let input: FnArg = parse(quote! { _: #ty }.into()).expect("wild arg");
+        model_fn.sig.inputs.insert(0, input);
+        if len == 0 {
+            let input: FnArg = parse(quote! { _: () }.into()).expect("wild arg");
+            model_fn.sig.inputs.push(input);
         }
-        if let Some(&Typed(PatType { ref ty, .. })) = sig.inputs.iter().nth(1) {
-            *model_param_type = Some(block_to_impl_item(quote! {
-                type ModelParam = #ty;
-            }));
-        }
+    }
+    if let Some(&Typed(PatType { ref ty, .. })) = model_fn.sig.inputs.iter().nth(1) {
+        *model_param_type = Some(block_to_impl_item(quote! {
+            type ModelParam = #ty;
+        }));
     }
 }
 

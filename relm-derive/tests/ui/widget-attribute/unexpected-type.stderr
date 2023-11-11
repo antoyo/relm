@@ -1,0 +1,5 @@
+error: unexpected type
+ --> $DIR/unexpected-type.rs:5:5
+  |
+5 |     type Unexpected = i32;
+  |     ^^^^
