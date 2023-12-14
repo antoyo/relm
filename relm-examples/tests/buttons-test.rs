@@ -21,7 +21,6 @@
 
 use gdk::EventType::DoubleButtonPress;
 use gtk::{
-    Inhibit,
     Menu,
     MenuItem,
     prelude::ButtonExt,
@@ -38,6 +37,7 @@ use relm_derive::{Msg, widget};
 
 use self::Msg::*;
 use self::LabelMsg::*;
+use glib::Propagation;
 
 pub struct LabelModel {
     text: String,
@@ -76,7 +76,7 @@ impl Widget for ClickableLabel {
                 else {
                     Click
                 }
-            }, Inhibit(false)),
+            }, Propagation::Proceed),
             #[name="label"]
             gtk::Label {
                 widget_name: "label",
@@ -202,7 +202,7 @@ impl Widget for Win {
                     Text: self.model.inc_text.clone(),
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }
@@ -220,12 +220,12 @@ mod tests {
 
     use gtk_test::{
         assert_text,
+        click,
+        double_click,
         wait,
     };
     use relm_test::{
         Observer,
-        click,
-        double_click,
         relm_observer_new,
         relm_observer_wait,
     };

@@ -21,7 +21,6 @@
 
 use chrono::Local;
 use gtk::{
-    Inhibit,
     Label,
     Window,
     WindowType,
@@ -33,6 +32,7 @@ use relm_derive::Msg;
 use relm::{connect,Relm, Update, Widget, WidgetTest, interval};
 
 use self::Msg::*;
+use glib::Propagation;
 
 #[derive(Msg)]
 enum Msg {
@@ -86,7 +86,7 @@ impl Widget for Win {
 
         window.show_all();
 
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Propagation::Proceed));
 
         let mut win = Win {
             label: label,

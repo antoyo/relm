@@ -51,7 +51,7 @@ impl Widget for RelmWidget {
     }
 
     fn view(_relm: &relm::Relm<Self>, _model: Self::Model) -> Self {
-        let root = gtk::builders::LabelBuilder::new().label("hello").build();
+        let root = gtk::Label::builder().label("hello").build();
         RelmWidget {
             root,
             item: Item {},

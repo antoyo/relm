@@ -12,14 +12,14 @@ version = "0.24.1"
 edition = "2018"
 
 [dependencies]
-cairo-rs = "0.16.1"
+cairo-rs = "0.18"
 fragile = "2.0"
-glib = "0.16.2"
-glib-sys = "0.16.0"
-gobject-sys = "0.16.0"
-gtk = "0.16.1"
-libc = "^0.2.54"
-log = "^0.4.6"
+glib = "0.18"
+glib-sys = "0.18"
+gobject-sys = "0.18"
+gtk = "0.18"
+libc = "0.2.54"
+log = "0.4.6"
 
 [features]
 hidpi = []

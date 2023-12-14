@@ -120,7 +120,6 @@ pub use glib::{
 pub use glib::translate::{FromGlibPtrNone, IntoGlib, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
-use glib::Continue;
 
 pub use crate::core::{Channel, EventStream, Sender, StreamHandle};
 pub use crate::state::{
@@ -138,6 +137,7 @@ pub use component::Component;
 pub use container::{Container, ContainerComponent, ContainerWidget};
 pub use drawing::DrawHandler;
 pub use widget::{Widget, WidgetTest};
+use glib::ControlFlow;
 
 /// Dummy macro to be used with `#[derive(Widget)]`.
 #[macro_export]
@@ -356,7 +356,7 @@ pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MS
     glib::timeout_add_local(std::time::Duration::from_millis(duration as u64), move || {
         let msg = constructor();
         stream.emit(msg);
-        Continue(true)
+        ControlFlow::Continue
     });
 }
 
@@ -366,6 +366,6 @@ pub fn timeout<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MSG
     glib::timeout_add_local(std::time::Duration::from_millis(duration as u64), move || {
         let msg = constructor();
         stream.emit(msg);
-        Continue(false)
+        ControlFlow::Continue
     });
 }

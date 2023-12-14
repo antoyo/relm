@@ -24,7 +24,6 @@
 use chrono::Local;
 use gtk::{
     Button,
-    Inhibit,
     Label,
     Window,
     WindowType,
@@ -37,6 +36,7 @@ use gtk::Orientation::Vertical;
 use relm::EventStream;
 
 use Msg::*;
+use glib::Propagation;
 
 
 // There will be several widgets involved in this example, but this struct
@@ -140,7 +140,7 @@ fn main() {
         let stream = main_stream.downgrade();
         window.connect_delete_event(move |_, _| {
             stream.emit(Quit);
-            Inhibit(false)
+            Propagation::Proceed
         });
     }
 

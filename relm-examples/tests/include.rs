@@ -19,14 +19,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+use glib::Propagation;
 use gtk::{
-    Inhibit,
     prelude::ButtonExt,
     prelude::LabelExt,
     prelude::OrientableExt,
     prelude::WidgetExt,
+    Orientation::Vertical
 };
-use gtk::Orientation::Vertical;
 use relm::Widget;
 use relm_derive::{Msg, widget};
 
@@ -75,8 +75,7 @@ fn main() {
 mod tests {
     use gtk::prelude::{ButtonExt, LabelExt};
 
-    use gtk_test::{assert_label, assert_text};
-    use relm_test::click;
+    use gtk_test::{assert_label, click, assert_text};
 
     use crate::Win;
 

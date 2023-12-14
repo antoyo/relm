@@ -21,7 +21,6 @@
 
 use chrono::{DateTime, Local};
 use gtk::{
-    Inhibit,
     prelude::LabelExt,
     prelude::WidgetExt,
 };
@@ -29,6 +28,7 @@ use relm::{Relm, Widget, interval};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 pub struct Model {
     time: DateTime<Local>,
@@ -65,7 +65,7 @@ impl Widget for Win {
             gtk::Label {
                 text: &self.model.time.format("%H:%M:%S").to_string(),
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

@@ -1,11 +1,11 @@
-use gtk::{Inhibit};
-use gtk::Orientation::{Vertical};
+use gtk::Orientation::Vertical;
 use gtk::prelude::*;
 use relm_derive::{Msg, widget};
 use relm::{Component, Widget, init};
 
 use self::HeaderMsg::*;
 use self::WinMsg::*;
+use glib::Propagation;
 
 #[derive(Msg)]
 pub enum HeaderMsg {
@@ -82,7 +82,7 @@ impl Widget for Win {
                 orientation: Vertical
             },
 
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

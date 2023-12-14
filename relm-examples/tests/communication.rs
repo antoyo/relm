@@ -23,7 +23,6 @@ use gtk::{
     Button,
     EditableSignals,
     Entry,
-    Inhibit,
     Label,
     Window,
     WindowType,
@@ -48,6 +47,7 @@ use relm::{
 use self::CounterMsg::*;
 use self::Msg::*;
 use self::TextMsg::*;
+use glib::Propagation;
 
 struct TextModel {
     content: String,
@@ -276,7 +276,7 @@ impl Widget for Win {
 
         window.show_all();
 
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Propagation::Proceed));
 
         Win {
             widgets: Widgets {
@@ -318,8 +318,7 @@ fn main() {
 mod tests {
     use gtk::{Button, Entry, Label, prelude::LabelExt};
 
-    use gtk_test::{assert_text, find_child_by_name};
-    use relm_test::{click, enter_keys};
+    use gtk_test::{assert_text, click, enter_keys, find_child_by_name};
 
     use crate::Win;
 

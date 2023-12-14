@@ -20,5 +20,5 @@ gtk::Window {
             label: "-",
         },
     },
-    delete_event(_, _) => (Quit, Inhibit(false)),
+    delete_event(_, _) => (Quit, Propagation::Proceed),
 }

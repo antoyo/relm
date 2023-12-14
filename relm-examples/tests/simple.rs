@@ -21,7 +21,8 @@
 
 #![deny(unused_doc_comments)]
 
-use gtk::{Inhibit, prelude::LabelExt, prelude::WidgetExt};
+use glib::Propagation;
+use gtk::{prelude::LabelExt, prelude::WidgetExt};
 use relm::Widget;
 use relm_derive::{Msg, widget};
 
@@ -81,7 +82,7 @@ impl Widget for Win {
         gtk::Window {
             #[name="label"]
             Label,
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

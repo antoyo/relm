@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     prelude::GtkMenuItemExt,
     prelude::MenuShellExt,
     prelude::OrientableExt,
@@ -31,6 +30,7 @@ use relm::{Relm, Widget, connect};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 pub struct Model {
     relm: Relm<Win>,
@@ -75,7 +75,7 @@ impl Widget for Win {
                 gtk::MenuBar {
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

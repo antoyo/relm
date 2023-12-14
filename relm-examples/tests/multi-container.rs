@@ -21,7 +21,6 @@
 
 use gtk::{
     Frame,
-    Inhibit,
     Label,
     Window,
     prelude::ContainerExt,
@@ -44,6 +43,7 @@ use relm::{
 use relm_derive::Msg;
 
 use self::Msg::*;
+use glib::Propagation;
 
 struct CenterButton {
     button: gtk::Button,
@@ -300,7 +300,7 @@ impl Widget for Win {
         let center_button = vbox.add_widget::<CenterButton>(());
         let button2 = gtk::Button::with_label("-");
         vbox.add(&button2);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Propagation::Proceed));
         window.show_all();
         Win {
             widgets: Widgets {

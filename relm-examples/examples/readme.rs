@@ -1,7 +1,8 @@
 use relm_derive::Msg;
 use relm::{connect, Relm, Update, Widget};
 use gtk::prelude::*;
-use gtk::{Window, Inhibit, WindowType};
+use gtk::{Window, WindowType};
+use glib::Propagation;
 
 #[derive(Msg)]
 enum Msg {
@@ -57,7 +58,7 @@ impl Widget for Win {
         let window = Window::new(WindowType::Toplevel);
 
         // Connect the signal `delete_event` to send the `Quit` message.
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Propagation::Proceed));
         // There is also a `connect!()` macro for GTK+ events that do not need a
         // value to be returned in the callback.
 

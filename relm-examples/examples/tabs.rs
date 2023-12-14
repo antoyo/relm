@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     prelude::ButtonExt,
     prelude::LabelExt,
     prelude::NotebookExt,
@@ -30,6 +29,7 @@ use relm_derive::{widget, Msg};
 use relm::Widget;
 
 use self::Msg::*;
+use glib::Propagation;
 
 #[derive(Msg)]
 pub enum Msg {
@@ -71,7 +71,7 @@ impl Widget for Win {
                     label: "Another Button",
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

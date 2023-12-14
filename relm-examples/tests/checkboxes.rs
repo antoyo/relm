@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     Window,
     WindowType,
     prelude::ButtonExt,
@@ -42,6 +41,7 @@ use relm_derive::Msg;
 
 use self::CheckMsg::*;
 use self::Msg::*;
+use glib::Propagation;
 
 struct CheckModel {
     check: bool,
@@ -190,7 +190,7 @@ impl Widget for Win {
 
         connect!(plus_button@Toggle, relm, PlusToggle);
         connect!(minus_button@Toggle, relm, MinusToggle);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Propagation::Proceed));
 
         Win {
             widgets: Widgets {
@@ -226,8 +226,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use gtk::prelude::ToggleButtonExt;
-
-    use relm_test::click;
+    use gtk_test::click;
 
     use crate::Win;
 

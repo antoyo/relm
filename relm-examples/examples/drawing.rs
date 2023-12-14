@@ -24,7 +24,6 @@ use std::f64::consts::PI;
 use gdk::{EventMask, RGBA};
 use gtk::{
     DrawingArea,
-    Inhibit,
     prelude::BoxExt,
     prelude::OrientableExt,
     prelude::WidgetExt,
@@ -42,6 +41,7 @@ use relm::{
 use relm_derive::widget;
 
 use self::Msg::*;
+use glib::Propagation;
 
 const SIZE: f64 = 15.0;
 
@@ -162,11 +162,11 @@ impl Widget for Win {
                     child: {
                         expand: true,
                     },
-                    draw(_, _) => (UpdateDrawBuffer, Inhibit(false)),
-                    motion_notify_event(_, event) => (MoveCursor(event.position()), Inhibit(false))
+                    draw(_, _) => (UpdateDrawBuffer, Propagation::Proceed),
+                    motion_notify_event(_, event) => (MoveCursor(event.position()), Propagation::Proceed)
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

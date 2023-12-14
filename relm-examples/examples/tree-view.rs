@@ -23,9 +23,8 @@ use std::fs;
 use std::io;
 use std::path::{MAIN_SEPARATOR, PathBuf};
 
-use glib::StaticType;
+use glib::{StaticType, Propagation};
 use gtk::{
-    Inhibit,
     TreeView,
     Window,
     WindowType,
@@ -150,7 +149,7 @@ impl Widget for Win {
         window.show_all();
 
         connect!(relm, tree_view, connect_cursor_changed(_), Msg::ItemSelect);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Propagation::Proceed));
 
         Win {
             tree_view,

@@ -19,10 +19,9 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use glib::{ToValue, types::Type};
+use glib::{ToValue, types::Type, Propagation};
 use gtk::{
     CellRendererText,
-    Inhibit,
     ListStore,
     TreeSelection,
     TreeViewColumn,
@@ -125,7 +124,7 @@ impl Widget for Win {
                     visible: self.model.visible,
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }
