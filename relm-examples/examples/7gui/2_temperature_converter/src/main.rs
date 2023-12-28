@@ -1,3 +1,4 @@
+use glib::Propagation;
 use gtk::prelude::*;
 use relm::{Relm, Widget};
 use relm_derive::{widget, Msg};
@@ -85,7 +86,7 @@ impl Widget for Win {
                         let text = entry.text().to_string();
                         Msg::ChangedCelsius(text)
 
-                    }, Inhibit(false)),
+                    }, Propagation::Proceed),
                     text: &self.model.temp_celsius,
                 },
                 // The label only showing text.
@@ -107,7 +108,7 @@ impl Widget for Win {
                         let text = entry.text().to_string();
                         Msg::ChangedFahrenheit(text)
 
-                    }, Inhibit(false)),
+                    }, Propagation::Proceed),
                     text: &self.model.temp_fahrenheit,
                 },
                 // The label showing the text.
@@ -115,7 +116,7 @@ impl Widget for Win {
                     label: "Fahrenheit"
                 },
             },
-            delete_event(_, _) => (Msg::Quit, Inhibit(false)),
+            delete_event(_, _) => (Msg::Quit, Propagation::Proceed),
         }
     }
 }

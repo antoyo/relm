@@ -1,5 +1,6 @@
 use crate::gui::circle_drawing::CircleDrawingMsg;
 
+use glib::Propagation;
 use gtk::prelude::*;
 use gtk::Adjustment;
 use relm::{Relm, StreamHandle, Widget};
@@ -50,7 +51,7 @@ impl Widget for WindowResize {
                     WindowResizeMsg::ValueChanged(value)
                 }
             },
-            delete_event(_, _) => (WindowResizeMsg::Quit, Inhibit(false)),
+            delete_event(_, _) => (WindowResizeMsg::Quit, Propagation::Proceed),
         }
     }
 }

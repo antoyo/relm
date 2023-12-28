@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 
 use chrono::NaiveDate;
+use glib::Propagation;
 use gtk::prelude::*;
 use gtk::{ButtonsType, DialogFlags, MessageDialog, MessageType};
 use relm::Widget;
@@ -234,7 +235,7 @@ impl Widget for Win {
                     clicked => Msg::Book,
                 }
             },
-            delete_event(_, _) => (Msg::Quit, Inhibit(false)),
+            delete_event(_, _) => (Msg::Quit, Propagation::Proceed),
         }
     }
 }

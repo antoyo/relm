@@ -1,3 +1,4 @@
+use glib::Propagation;
 use gtk::prelude::*;
 use gtk::Adjustment;
 use relm::{Relm, StreamHandle, Widget};
@@ -178,7 +179,7 @@ impl Widget for Win {
                     label: "Reset"
                 }
             },
-            delete_event(_, _) => (Msg::Quit, Inhibit(false)),
+            delete_event(_, _) => (Msg::Quit, Propagation::Proceed),
         }
     }
 }

@@ -4,6 +4,7 @@ use crate::gui::window_resize::{WindowResize, WindowResizeMsg};
 use crate::model::{Circle, CircleGroup};
 
 use gdk::{EventButton, EventMotion};
+use glib::Propagation;
 use gtk::prelude::*;
 use gtk::{DrawingArea, EventBox};
 use relm::{connect, init, Component, DrawHandler, Relm, StreamHandle, Update, Widget};
@@ -206,7 +207,7 @@ impl Widget for CircleDrawing {
             return (
                 // What to do when the signal occured.
                 Some(CircleDrawingMsg::UpdateDrawBuffer), // Sending a message.
-                Inhibit(false) // Do not inhibit, other widgets may also register that mouse press.
+                Propagation::Proceed // Do not inhibit, other widgets may also register that mouse press.
             )
         );
 
@@ -218,7 +219,7 @@ impl Widget for CircleDrawing {
             return (
                 // What to do when the signal occured.
                 Some(CircleDrawingMsg::Clicked(event.clone())), // Sending a message.
-                Inhibit(false) // Do not inhibit, other widgets may also register that mouse press.
+                Propagation::Proceed // Do not inhibit, other widgets may also register that mouse press.
             )
         );
 
@@ -233,7 +234,7 @@ impl Widget for CircleDrawing {
             connect_motion_notify_event(_, event),
             return (
                 Some(CircleDrawingMsg::MouseMove(event.clone())),
-                Inhibit(false)
+                Propagation::Proceed
             )
         );
 

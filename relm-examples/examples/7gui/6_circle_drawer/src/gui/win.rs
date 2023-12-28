@@ -1,6 +1,7 @@
 use crate::gui::circle_drawing::{CircleDrawing, CircleDrawingMsg};
 use crate::model::{CircleGroup, History};
 
+use glib::Propagation;
 use gtk::prelude::*;
 use gtk::Orientation;
 use relm::{Relm, Widget};
@@ -73,7 +74,7 @@ impl Widget for Win {
                     vexpand: true
                 }
             },
-            delete_event(_, _) => (WinMsg::Quit, Inhibit(false)),
+            delete_event(_, _) => (WinMsg::Quit, Propagation::Proceed),
         }
     }
 }

@@ -5,12 +5,12 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-glib = "0.16.0"
-gtk = "^0.16.0"
+glib = "0.18"
+gtk = "0.18"
 
 [dependencies.gio]
 features = ["v2_58"]
-version = "^0.16.0"
+version = "0.18"
 
 [dependencies.relm]
 path = "../../.."

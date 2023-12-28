@@ -1,7 +1,7 @@
 use crate::gui::spreadsheet::Spreadsheet;
 
+use glib::Propagation;
 use gtk::prelude::*;
-use gtk::Inhibit;
 use relm::Widget;
 use relm_derive::{widget, Msg};
 
@@ -24,7 +24,7 @@ impl Widget for Win {
     view! {
         gtk::Window {
             Spreadsheet {},
-            delete_event(_, _) => (WinMsg::Quit, Inhibit(false)),
+            delete_event(_, _) => (WinMsg::Quit, Propagation::Proceed),
         }
     }
 }
