@@ -10,14 +10,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:20.04
+      image: ubuntu:latest
     strategy:
       matrix:
         rust:
           - stable
           - beta
           - nightly
-          - "1.65.0"
+          - "1.70"
     env:
         DISPLAY: ":99.0"
         # Workaround to avoid getting stuck by apt about choosing a timezone.

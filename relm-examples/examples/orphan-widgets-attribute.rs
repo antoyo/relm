@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     prelude::BoxExt,
     prelude::ButtonExt,
     prelude::GestureDragExt,
@@ -33,6 +32,7 @@ use relm::Widget;
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 pub struct Model {
     counter: i32,
@@ -93,7 +93,7 @@ impl Widget for Win {
                     label: "Second",
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
 
         gtk::GestureDrag(&self.drawing_area) {

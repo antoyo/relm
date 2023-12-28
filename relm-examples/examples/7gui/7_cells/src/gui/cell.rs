@@ -3,6 +3,7 @@ use crate::gui::spreadsheet::SpreadsheetMsg;
 use crate::model::CellRef;
 
 use gdk::EventButton;
+use glib::Propagation;
 use gtk::prelude::*;
 use relm::{Component, Relm, StreamHandle, Widget};
 use relm_derive::{widget, Msg};
@@ -106,7 +107,7 @@ impl Widget for Cell {
         // The event box is used to recieve click events.
         #[name="event_box"]
         gtk::EventBox {
-            button_press_event(_, event) => (CellMsg::Clicked(event.clone()), Inhibit(false)),
+            button_press_event(_, event) => (CellMsg::Clicked(event.clone()), Propagation::Proceed),
             // The border around the label
             gtk::Frame {
                 gtk::Label {

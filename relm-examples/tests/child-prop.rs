@@ -22,10 +22,9 @@
 use glib::{
     Cast,
     IsA,
-    Object,
+    Object, Propagation,
 };
 use gtk::{
-    Inhibit,
     PackType,
     prelude::BoxExt,
     prelude::ContainerExt,
@@ -147,7 +146,7 @@ impl Widget for Win {
         let dec_button = gtk::Button::with_label("-");
         vbox.add(&dec_button);
         let relm_button = vbox.add_widget::<Button>(());
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Propagation::Proceed));
         window.show_all();
 
         Win {

@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     prelude::ButtonExt,
     prelude::LabelExt,
     prelude::OrientableExt,
@@ -31,6 +30,7 @@ use relm::Widget;
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 // Define the structure of the model.
 pub struct Model {
@@ -86,7 +86,7 @@ impl Widget for Win {
                     label: "-",
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }
@@ -99,8 +99,7 @@ fn main() {
 mod tests {
     use gtk::prelude::LabelExt;
 
-    use gtk_test::assert_text;
-    use relm_test::click;
+    use gtk_test::{assert_text, click};
 
     use crate::Win;
 

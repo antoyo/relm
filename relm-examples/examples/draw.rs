@@ -23,14 +23,12 @@ use std::cell::Cell;
 use std::rc::Rc;
 
 use gdk::EventKey;
-use gtk::{
-    Inhibit,
-    prelude::WidgetExt,
-};
+use gtk::prelude::WidgetExt;
 use relm::Widget;
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 pub struct Model {
     letter: Rc<Cell<char>>,
@@ -54,7 +52,7 @@ impl Widget for Win {
             context.set_source_rgb(0.0, 0.0, 0.0);
             context.move_to(100.0, 100.0);
             context.show_text(&letter.get().to_string()).unwrap();
-            Inhibit(false)
+            Propagation::Proceed
         });
     }
 
@@ -81,8 +79,8 @@ impl Widget for Win {
             #[name="drawing_area"]
             gtk::DrawingArea {
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
-            key_press_event(_, event) => (KeyPress(event.clone()), Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
+            key_press_event(_, event) => (KeyPress(event.clone()), Propagation::Proceed),
         }
     }
 }

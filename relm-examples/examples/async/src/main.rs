@@ -26,11 +26,10 @@ use gio::{
     prelude::CancellableExt,
     prelude::FileExt,
 };
-use glib::GString;
+use glib::{GString, Propagation};
 use gtk::{
     FileChooserAction,
     FileChooserDialog,
-    Inhibit,
     ResponseType,
     prelude::ButtonExt,
     prelude::DialogExt,
@@ -102,7 +101,7 @@ impl Widget for Win {
                     label: "Open application",
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

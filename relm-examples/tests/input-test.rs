@@ -21,7 +21,6 @@
 
 use gtk::{
     EditableSignals,
-    Inhibit,
     prelude::EntryExt,
     prelude::LabelExt,
     prelude::OrientableExt,
@@ -32,6 +31,7 @@ use relm::Widget;
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 pub struct Model {
     content: String,
@@ -76,7 +76,7 @@ impl Widget for Win {
                     text: &self.model.content,
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }
@@ -86,8 +86,8 @@ mod tests {
     use gdk::keys::constants as key;
     use gtk::prelude::{EntryExt, LabelExt};
 
-    use gtk_test::assert_text;
-    use relm_test::{
+    use gtk_test::{
+        assert_text,
         enter_key,
         enter_keys,
         key_press,

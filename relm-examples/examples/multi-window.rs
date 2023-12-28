@@ -19,14 +19,12 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use gtk::{
-    Inhibit,
-    prelude::WidgetExt,
-};
+use gtk::prelude::WidgetExt;
 use relm::{Component, Widget, init};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 #[widget]
 impl Widget for SecondaryWin {
@@ -38,7 +36,7 @@ impl Widget for SecondaryWin {
 
     view! {
         gtk::Window {
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }
@@ -68,7 +66,7 @@ impl Widget for Win {
 
     view! {
         gtk::Window {
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

@@ -22,14 +22,12 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use gtk::{
-    Inhibit,
-    prelude::WidgetExt,
-};
+use gtk::prelude::WidgetExt;
 use relm::{Relm, Widget};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 #[derive(Msg)]
 pub enum Msg {
@@ -76,15 +74,19 @@ impl Widget for Win {
                     key_press_event(_, key) with (press_count, relm) => (KeyPress, inhibit_press_event(&press_count, &relm)),
                 },
             },
-            key_press_event(_, key) => (Press, Inhibit(false)),
-            key_release_event(_, key) => (Release, Inhibit(false)),
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            key_press_event(_, key) => (Press, Propagation::Proceed),
+            key_release_event(_, key) => (Release, Propagation::Proceed),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }
 
-fn inhibit_press_event(press_count: &Rc<Cell<i32>>, _relm: &Relm<Win>) -> Inhibit {
-    Inhibit(press_count.get() > 3)
+fn inhibit_press_event(press_count: &Rc<Cell<i32>>, _relm: &Relm<Win>) -> Propagation {
+    if press_count.get() > 3 {
+        Propagation::Stop
+    } else {
+        Propagation::Proceed
+    }
 }
 
 fn main() {
@@ -95,8 +97,7 @@ fn main() {
 mod tests {
     use gtk::prelude::EntryExt;
 
-    use gtk_test::assert_text;
-    use relm_test::enter_keys;
+    use gtk_test::{assert_text, enter_keys};
 
     use crate::Win;
 

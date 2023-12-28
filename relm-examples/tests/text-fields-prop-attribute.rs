@@ -21,7 +21,6 @@
 
 use gtk::{
     EditableSignals,
-    Inhibit,
     prelude::ButtonExt,
     prelude::EntryExt,
     prelude::LabelExt,
@@ -34,6 +33,7 @@ use relm_derive::{Msg, widget};
 
 use Msg::*;
 use TextMsg::*;
+use glib::Propagation;
 
 pub struct TextModel {
     content: String,
@@ -116,7 +116,7 @@ impl Widget for Win {
                     SetText: self.model.text.clone(),
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }
@@ -129,8 +129,7 @@ fn main() {
 mod tests {
     use gtk::{Entry, prelude::EntryExt};
 
-    use gtk_test::{assert_text, find_child_by_name, wait};
-    use relm_test::click;
+    use gtk_test::{assert_text, click, find_child_by_name, wait};
 
     use crate::Win;
 

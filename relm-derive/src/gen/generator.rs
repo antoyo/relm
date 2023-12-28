@@ -519,17 +519,17 @@ impl<'a> Generator<'a> {
 fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream {
     let struct_name = &widget.typ;
 
-    let mut parameters = vec![];
-    for (key, value) in gtk_widget.construct_properties.iter() {
-        let key = key.to_string().replace("_", "-");
-        let mut remover = Transformer::new(MODEL_IDENT);
-        let value = remover.fold_expr(value.clone());
-        parameters.push(quote_spanned! { struct_name.span() =>
-            (#key, &#value as &dyn ::gtk::glib::value::ToValue)
-        });
-    }
-
     if widget.init_parameters.is_empty() {
+        let mut keys = Vec::new();
+        let mut values = Vec::new();
+        for (k, v) in &gtk_widget.construct_properties {
+            let k = k.to_string().replace("_", "-");
+            let mut remover = Transformer::new(MODEL_IDENT);
+            let v = remover.fold_expr(v.clone());
+            keys.push(k);
+            values.push(v);
+        }
+
         quote_spanned!(struct_name.span() => {
             if !gtk::is_initialized_main_thread() {
                 if gtk::is_initialized() {
@@ -539,9 +539,9 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream 
                     panic!("GTK has not been initialized. Call `gtk::init` first.");
                 }
             }
-            let parameters = [#(#parameters),*];
-            // TODO: switch to builders.
-            ::gtk::glib::object::Object::new::<#struct_name>(&parameters)
+            ::gtk::glib::object::Object::builder::<'_, #struct_name>()
+                #(.property(#keys, &#values))*
+                .build()
         })
     }
     else {

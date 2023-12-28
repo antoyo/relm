@@ -11,11 +11,10 @@ version = "0.24.0"
 edition = "2018"
 
 [dependencies]
-enigo = "^0.0.14"
-gdk = "0.16.0"
-glib = "0.16.2"
-gtk = "0.16.1"
-gtk-test = "0.16.0"
+gdk = "0.18"
+glib = "0.18"
+gtk = "0.18"
+gtk-test = "0.18"
 
 [dependencies.relm]
 path = ".."

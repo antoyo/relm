@@ -1,3 +1,4 @@
+use glib::Propagation;
 use gtk::prelude::*;
 use relm::Widget;
 use relm_derive::{widget, Msg};
@@ -53,7 +54,7 @@ impl Widget for Win {
                     clicked => Msg::Increment
                 }
             },
-            delete_event(_, _) => (Msg::Quit, Inhibit(false)),
+            delete_event(_, _) => (Msg::Quit, Propagation::Proceed),
         }
     }
 }

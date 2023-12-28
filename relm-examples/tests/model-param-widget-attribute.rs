@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     prelude::ButtonExt,
     prelude::LabelExt,
     prelude::OrientableExt,
@@ -31,6 +30,7 @@ use relm::Widget;
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 pub struct ButtonModel {
     text: String,
@@ -109,7 +109,7 @@ impl Widget for Win {
                 #[name="button"]
                 Button("Button text attribute".to_string()),
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     PackType,
     prelude::BoxExt,
     prelude::ButtonExt,
@@ -34,6 +33,7 @@ use relm::Widget;
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 pub struct Model {
     counter: i32,
@@ -88,7 +88,7 @@ impl Widget for Win {
                     label: "+",
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

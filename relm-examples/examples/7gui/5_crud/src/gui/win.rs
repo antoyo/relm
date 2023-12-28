@@ -1,6 +1,7 @@
 use crate::gui::person_list_box::{PersonListBox, PersonListBoxMsg};
 use crate::model::Person;
 
+use glib::Propagation;
 use gtk::prelude::*;
 use gtk::Orientation;
 use relm::{Relm, StreamHandle, Widget};
@@ -132,7 +133,7 @@ impl Widget for Win {
                     },
                 }
             },
-            delete_event(_, _) => (WinMsg::Quit, Inhibit(false)),
+            delete_event(_, _) => (WinMsg::Quit, Propagation::Proceed),
         }
     }
 }

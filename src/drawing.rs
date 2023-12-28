@@ -14,10 +14,8 @@ use cairo::{
     Format,
     ImageSurface,
 };
-use gtk::{
-    Inhibit,
-    prelude::WidgetExt,
-};
+use gtk::prelude::WidgetExt;
+use glib::Propagation;
 
 #[derive(Clone)]
 struct Surface {
@@ -139,7 +137,7 @@ impl<W: Clone + WidgetExt> DrawHandler<W> {
                 eprintln!("Cannot paint: {:?}", error);
             }
 
-            Inhibit(false)
+            Propagation::Proceed
         });
     }
 }
