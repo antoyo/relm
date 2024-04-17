@@ -9,7 +9,6 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use cairo::{
-    self,
     Context,
     Format,
     ImageSurface,
