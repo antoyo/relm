@@ -136,9 +136,9 @@ impl<T: Clone + IncDec + Display + 'static> Widget for Counter<T> {
         connect!(relm, minus_button, connect_clicked(_), Decrement);
 
         Counter {
-            counter_label: counter_label,
+            counter_label,
             model,
-            vbox: vbox,
+            vbox,
         }
     }
 }
@@ -170,8 +170,8 @@ impl Update for Win {
     type ModelParam = ();
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
-        ()
+    fn model(_: &Relm<Self>, _: ()) {
+        
     }
 
     fn update(&mut self, event: Msg) {
@@ -205,7 +205,7 @@ impl Widget for Win {
             widgets: Widgets {
                 counter1: counter1.widget().clone(),
                 counter2: counter2.widget().clone(),
-                window: window,
+                window,
             },
             _components: Components {
                 _counter1: counter1,

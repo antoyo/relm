@@ -40,7 +40,7 @@ pub struct ButtonModel {
 impl Widget for Button {
     fn model(text: String) -> ButtonModel {
         ButtonModel {
-            text: text,
+            text,
         }
     }
 
@@ -72,7 +72,7 @@ impl Widget for Win {
     // The initial model.
     fn model(counter: i32) -> Model {
         Model {
-            counter: counter,
+            counter,
         }
     }
 

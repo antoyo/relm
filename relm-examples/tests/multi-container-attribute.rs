@@ -35,7 +35,7 @@ use self::Msg::*;
 
 #[widget]
 impl Widget for MyFrame {
-    fn model() -> () {
+    fn model() {
     }
 
     fn update(&mut self, _msg: ()) {
@@ -50,7 +50,7 @@ impl Widget for MyFrame {
 
 #[widget]
 impl Widget for CenterButton {
-    fn model() -> () {
+    fn model() {
     }
 
     fn update(&mut self, _msg: ()) {
@@ -66,7 +66,7 @@ impl Widget for CenterButton {
 
 #[widget]
 impl Widget for Button {
-    fn model() -> () {
+    fn model() {
     }
 
     fn update(&mut self, _msg: ()) {
@@ -83,8 +83,8 @@ impl Widget for Button {
 
 #[widget]
 impl Widget for SplitBox {
-    fn model() -> () {
-        ()
+    fn model() {
+        
     }
 
     fn update(&mut self, _event: Msg) {

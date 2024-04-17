@@ -15,7 +15,7 @@ pub enum HeaderMsg {
 
 #[widget]
 impl Widget for Header {
-    fn model() -> () {
+    fn model() {
 
     }
 

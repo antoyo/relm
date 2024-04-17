@@ -107,9 +107,9 @@ impl Widget for Text {
         connect!(relm, input, connect_changed(_), Change(input2.text()));
 
         Text {
-            label: label,
+            label,
             model,
-            vbox: vbox,
+            vbox,
         }
     }
 }
@@ -183,9 +183,9 @@ impl Widget for Counter {
         connect!(relm, minus_button, connect_clicked(_), Decrement);
 
         Counter {
-            counter_label: counter_label,
+            counter_label,
             model,
-            vbox: vbox,
+            vbox,
         }
     }
 }

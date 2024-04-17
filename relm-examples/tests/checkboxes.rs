@@ -145,7 +145,7 @@ impl Update for Win {
     type ModelParam = ();
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) {
     }
 
     fn update(&mut self, event: Msg) {
@@ -196,7 +196,7 @@ impl Widget for Win {
             widgets: Widgets {
                 minus_button: minus_button.widget().clone(),
                 plus_button: plus_button.widget().clone(),
-                window: window,
+                window,
             },
             components: Components {
                 minus_button,

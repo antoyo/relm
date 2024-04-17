@@ -39,7 +39,7 @@ pub enum ButtonMsg {
 
 #[widget]
 impl Widget for GtkButton {
-    fn model() -> () {
+    fn model() {
     }
 
     fn update(&mut self, _msg: ButtonMsg) {
@@ -61,7 +61,7 @@ mod module {
 
     #[widget]
     impl Widget for Button {
-        fn model() -> () {
+        fn model() {
         }
 
         fn update(&mut self, _msg: ButtonMsg) {
@@ -75,8 +75,8 @@ mod module {
 
 #[widget]
 impl Widget for VBox {
-    fn model() -> () {
-        ()
+    fn model() {
+        
     }
 
     fn update(&mut self, _event: Msg) {

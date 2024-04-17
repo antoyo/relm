@@ -73,7 +73,7 @@ impl Widget for Win {
     // The initial model.
     fn model(counter: i32) -> Model {
         Model {
-            counter: counter,
+            counter,
             initial_text: "+",
         }
     }

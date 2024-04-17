@@ -219,8 +219,8 @@ impl Update for Win {
     type ModelParam = ();
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
-        ()
+    fn model(_: &Relm<Self>, _: ()) {
+        
     }
 
     fn update(&mut self, event: Msg) {

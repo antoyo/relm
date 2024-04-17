@@ -107,8 +107,8 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
-    fn model(_: ()) -> () {
-        ()
+    fn model(_: ()) {
+        
     }
 
     fn update(&mut self, event: Msg) {

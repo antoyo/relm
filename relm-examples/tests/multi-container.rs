@@ -54,7 +54,7 @@ impl Update for CenterButton {
     type ModelParam = ();
     type Msg = ();
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) {
     }
 
     fn update(&mut self, _msg: ()) {
@@ -75,7 +75,7 @@ impl Widget for CenterButton {
     fn view(_relm: &Relm<Self>, _model: ()) -> Self {
         let button = gtk::Button::with_label("-");
         CenterButton {
-            button: button,
+            button,
         }
     }
 }
@@ -89,7 +89,7 @@ impl Update for Button {
     type ModelParam = ();
     type Msg = ();
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) {
     }
 
     fn update(&mut self, _msg: ()) {
@@ -110,7 +110,7 @@ impl Widget for Button {
     fn view(_relm: &Relm<Self>, _model: ()) -> Self {
         let button = gtk::Button::with_label("+");
         Button {
-            button: button,
+            button,
         }
     }
 }
@@ -124,7 +124,7 @@ impl Update for MyFrame {
     type ModelParam = ();
     type Msg = ();
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) {
     }
 
     fn update(&mut self, _msg: ()) {
@@ -210,8 +210,8 @@ impl Update for SplitBox {
     type ModelParam = ();
     type Msg = ();
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
-        ()
+    fn model(_: &Relm<Self>, _: ()) {
+        
     }
 
     fn update(&mut self, _event: ()) {
@@ -272,7 +272,7 @@ impl Update for Win {
     type ModelParam = ();
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) {
     }
 
     fn update(&mut self, event: Msg) {

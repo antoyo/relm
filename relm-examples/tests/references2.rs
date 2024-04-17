@@ -26,7 +26,7 @@ use relm::{ContainerWidget, Widget, connect};
 use relm_derive::Msg;
 
 thread_local! {
-    static DROP_COUNT: Cell<i32> = Cell::new(0);
+    static DROP_COUNT: Cell<i32> = const { Cell::new(0) };
 }
 
 macro_rules! assert_drop_count {
@@ -93,7 +93,7 @@ impl relm::Update for RelmWidget {
     type Msg = Msg;
 
     fn model(_relm: &relm::Relm<Self>, _param: ()) -> Self::Model {
-        ()
+        
     }
 
     fn update(&mut self, e: Msg) {

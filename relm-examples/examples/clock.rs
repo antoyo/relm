@@ -51,8 +51,8 @@ impl Update for Win {
     type ModelParam = ();
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
-        ()
+    fn model(_: &Relm<Self>, _: ()) {
+        
     }
 
     fn subscriptions(&mut self, relm: &Relm<Self>) {
@@ -89,8 +89,8 @@ impl Widget for Win {
         connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
 
         let mut win = Win {
-            label: label,
-            window: window,
+            label,
+            window,
         };
 
         win.update(Tick);

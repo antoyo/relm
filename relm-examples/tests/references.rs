@@ -24,7 +24,7 @@ use std::cell::Cell;
 use relm::{Update, Widget};
 
 thread_local! {
-    static DROPPED: Cell<bool> = Cell::new(false);
+    static DROPPED: Cell<bool> = const { Cell::new(false) };
 }
 
 pub struct Item {
