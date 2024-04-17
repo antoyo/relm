@@ -17,7 +17,7 @@ jobs:
           - stable
           - beta
           - nightly
-          - "1.65.0"
+          - "1.70.0"
     env:
         DISPLAY: ":99.0"
         # Workaround to avoid getting stuck by apt about choosing a timezone.
