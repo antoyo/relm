@@ -9,8 +9,6 @@ name: CI
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:20.04
     strategy:
       matrix:
         rust:
@@ -20,12 +18,9 @@ jobs:
           - "1.70.0"
     env:
         DISPLAY: ":99.0"
-        # Workaround to avoid getting stuck by apt about choosing a timezone.
-        DEBIAN_FRONTEND: noninteractive
-        TZ: America/New_York
     steps:
-      - run: apt-get update -y
-      - run: apt-get install -y libgtk-3-dev libglib2.0-dev libgraphene-1.0-dev git xvfb curl libcairo-gobject2 libcairo2-dev libxdo-dev libwebkit2gtk-4.0-dev openbox
+      - run: sudo apt-get update -y
+      - run: sudo apt-get install -y libgtk-3-dev libglib2.0-dev libgraphene-1.0-dev git xvfb curl libcairo-gobject2 libcairo2-dev libxdo-dev libwebkit2gtk-4.0-dev openbox
       - uses: actions/checkout@v2
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -34,14 +29,8 @@ jobs:
       - name: "clippy"
         run: cargo clippy -- --deny warnings
 
-      # nightly
-      - name: "relm: build nightly"
-        run: cargo build
-        if: matrix.rust == 'nightly'
-      # not nightly
       - name: "relm: build"
         run: cargo build
-        if: matrix.rust != 'nightly'
 
       - name: "relm: tests"
         run: |
