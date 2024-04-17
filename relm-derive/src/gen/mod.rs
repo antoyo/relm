@@ -142,9 +142,9 @@ impl Driver {
     }
 
     fn collect_bindings(&mut self, widget: &Widget, msg_model_map: &mut MsgModelMap, properties_model_map: &mut PropertyModelMap) {
-        get_properties_model_map(&widget, properties_model_map);
-        get_msg_model_map(&widget, msg_model_map);
-        self.add_widgets(&widget, &properties_model_map);
+        get_properties_model_map(widget, properties_model_map);
+        get_msg_model_map(widget, msg_model_map);
+        self.add_widgets(widget, properties_model_map);
 
         for nested_view in widget.nested_views.values() {
             self.collect_bindings(nested_view, msg_model_map, properties_model_map);
@@ -182,9 +182,9 @@ impl Driver {
             .map(|(ident, tokens)| (ident.clone(), tokens));
         let (idents, types): (Vec<Ident>, Vec<_>) = widgets.unzip();
         let widget_model_type = self.widget_model_type.as_ref().expect("missing model method");
-        let components_name = Ident::new(&format!("__{}Components", get_name(&typ)), Span::call_site());
-        let widgets_name = Ident::new(&format!("__{}Widgets", get_name(&typ)), Span::call_site());
-        let streams_name = Ident::new(&format!("__{}Streams", get_name(&typ)), Span::call_site());
+        let components_name = Ident::new(&format!("__{}Components", get_name(typ)), Span::call_site());
+        let widgets_name = Ident::new(&format!("__{}Widgets", get_name(typ)), Span::call_site());
+        let streams_name = Ident::new(&format!("__{}Streams", get_name(typ)), Span::call_site());
         let components = {
             let components = relm_components.iter()
                 .map(|(ident, tokens)| (ident.clone(), tokens));
@@ -345,16 +345,11 @@ impl Driver {
 
     fn get_data_method(&mut self) -> Option<ImplItem> {
         self.data_method.take().or_else(|| {
-            if let Some(ref parent_id) = self.widget_parent_id {
-                Some(block_to_impl_item(quote! {
+            self.widget_parent_id.as_ref().map(|parent_id| block_to_impl_item(quote! {
                     fn parent_id() -> Option<&'static str> {
                         Some(#parent_id)
                     }
                 }))
-            }
-            else {
-                None
-            }
         })
     }
 
@@ -487,8 +482,8 @@ impl Driver {
     }
 
     fn widget_test_impl(&self, typ: &Type, generics: &Generics) -> TokenStream {
-        let streams_name = Ident::new(&format!("__{}Streams", get_name(&typ)), Span::call_site());
-        let name = Ident::new(&format!("__{}Widgets", get_name(&typ)), Span::call_site());
+        let streams_name = Ident::new(&format!("__{}Streams", get_name(typ)), Span::call_site());
+        let name = Ident::new(&format!("__{}Widgets", get_name(typ)), Span::call_site());
         let where_clause = gen_where_clause(generics);
         quote_spanned! { typ.span() =>
             #[cfg(test)]
@@ -569,10 +564,10 @@ fn get_msg_model_map(widget: &Widget, map: &mut MsgModelMap) {
         Relm(ref relm_widget) => {
             for (name, expr) in &relm_widget.messages {
                 let mut visitor = ModelVariableVisitor::new();
-                visitor.visit_expr(&expr);
+                visitor.visit_expr(expr);
                 let model_variables = visitor.idents;
                 for var in model_variables {
-                    let set = map.entry(var).or_insert_with(HashSet::new);
+                    let set = map.entry(var).or_default();
                     set.insert(Message {
                         expr: expr.clone(),
                         name: name.clone(),
@@ -597,10 +592,10 @@ fn get_properties_model_map(widget: &Widget, map: &mut PropertyModelMap) {
 fn get_map(widget: &Widget, map: &mut PropertyModelMap, is_relm: bool) {
     for (name, expr) in &widget.properties {
         let mut visitor = ModelVariableVisitor::new();
-        visitor.visit_expr(&expr);
+        visitor.visit_expr(expr);
         let model_variables = visitor.idents;
         for var in model_variables {
-            let set = map.entry(var).or_insert_with(HashSet::new);
+            let set = map.entry(var).or_default();
             set.insert(Property {
                 expr: expr.clone(),
                 is_relm_widget: is_relm,
@@ -635,7 +630,7 @@ fn get_second_param_type(sig: &Signature) -> Type {
 fn gen_set_child_prop_calls(widget: &Widget) -> Option<ImplItem> {
     let mut tokens = quote! {};
     let widget_name = &widget.name;
-    for (&(ref ident, ref key), value) in &widget.child_properties {
+    for ((ident, key), value) in &widget.child_properties {
         let property_func = Ident::new(&format!("set_{}_{}", ident, key), key.span());
         tokens = quote_spanned! { widget_name.span() =>
             #tokens
