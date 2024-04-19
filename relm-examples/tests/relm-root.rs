@@ -54,7 +54,7 @@ impl Update for Button {
     type ModelParam = ();
     type Msg = ();
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) {
     }
 
     fn update(&mut self, _msg: ()) {
@@ -72,7 +72,7 @@ impl Widget for Button {
         let button = gtk::Button::with_label("+");
         button.set_widget_name("button");
         Button {
-            button: button,
+            button,
         }
     }
 }
@@ -90,7 +90,7 @@ impl Container for VBox {
         &self.vbox
     }
 
-    fn other_containers(&self) -> () {
+    fn other_containers(&self) {
     }
 }
 
@@ -99,8 +99,8 @@ impl Update for VBox {
     type ModelParam = ();
     type Msg = ();
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
-        ()
+    fn model(_: &Relm<Self>, _: ()) {
+        
     }
 
     fn update(&mut self, _event: ()) {
@@ -120,8 +120,8 @@ impl Widget for VBox {
         event_box.add(&vbox);
 
         VBox {
-            event_box: event_box,
-            vbox: vbox,
+            event_box,
+            vbox,
         }
     }
 }
@@ -136,7 +136,7 @@ impl Update for MyVBox {
     type ModelParam = ();
     type Msg = ();
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) {
     }
 
     fn update(&mut self, _event: ()) {
@@ -168,7 +168,7 @@ impl Widget for MyVBox {
         vbox.add(&minus_button);
 
         MyVBox {
-            vbox: vbox,
+            vbox,
             _widget: widget,
         }
     }
@@ -199,7 +199,7 @@ impl Update for Win {
     type ModelParam = ();
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) {
     }
 
     fn update(&mut self, event: Msg) {

@@ -301,7 +301,7 @@ impl<'a> Generator<'a> {
         for (name, event) in &gtk_widget.events {
             self.collect_event(quote! { #widget_name }, name, event);
         }
-        for (&(ref child_name, ref name), event) in &widget.child_events {
+        for ((child_name, name), event) in &widget.child_events {
             let child_ident = Ident::new(&format!("{}", child_name), child_name.span());
             self.collect_event(quote! { #widget_name.#child_ident() }, name, event);
         }
@@ -341,9 +341,9 @@ impl<'a> Generator<'a> {
         for (name, event) in &relm_widget.gtk_events {
             self.collect_event(quote! { #widget_name.widget() }, name, event);
         }
-        for (&(ref child_name, ref name), event) in &widget.child_events {
+        for ((child_name, name), event) in &widget.child_events {
             let child_ident = Ident::new(&format!("{}", child_name), child_name.span());
-            self.collect_event(quote! { #widget_name.widget().#child_ident() }, &name, event);
+            self.collect_event(quote! { #widget_name.widget().#child_ident() }, name, event);
         }
     }
 
@@ -521,7 +521,7 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream 
 
     let mut parameters = vec![];
     for (key, value) in gtk_widget.construct_properties.iter() {
-        let key = key.to_string().replace("_", "-");
+        let key = key.to_string().replace('_', "-");
         let mut remover = Transformer::new(MODEL_IDENT);
         let value = remover.fold_expr(value.clone());
         parameters.push(quote_spanned! { struct_name.span() =>
@@ -631,7 +631,7 @@ fn gen_add_widget_method(container_names: &HashMap<Option<String>, (Ident, Path)
         let span = container_names.values().next().expect("at least one container name").0.span();
         let mut default_container = quote! {};
         let mut other_containers = quote! {};
-        for (parent_id, &(ref name, _)) in container_names {
+        for (parent_id, (name, _)) in container_names {
             if parent_id.is_none() {
                 default_container = quote_spanned! { span =>
                     ::gtk::prelude::ContainerExt::add(&container.container, widget.widget());
@@ -690,17 +690,17 @@ fn gen_container_impl(generator: &Generator, widget: &Widget, generic_types: &Ge
     }
     else {
         let mut container_type = None;
-        for (ident, &(_, ref typ)) in &generator.container_names {
+        for (ident, (_, typ)) in &generator.container_names {
             if ident.is_none() {
                 container_type = Some(typ);
             }
         }
         let typ = container_type.expect("container type");
-        let &(ref name, _) = generator.container_names.get(&None).expect("default container");
+        let (name, _) = generator.container_names.get(&None).expect("default container");
         let add_widget_method = gen_add_widget_method(&generator.container_names);
 
         let (widget_ident, widget_ident_span) = gen_widget_ident(widget);
-        let (containers, containers_type, other_containers_func) = gen_other_containers(&generator, &widget_ident,
+        let (containers, containers_type, other_containers_func) = gen_other_containers(generator, &widget_ident,
             widget_ident_span);
 
         quote_spanned! { widget.name.span() =>
@@ -730,7 +730,7 @@ fn gen_other_containers(generator: &Generator, widget_type: &TokenStream, widget
         let mut names = vec![];
         let mut types = vec![];
         let mut values = vec![];
-        for &(ref name, ref typ) in generator.container_names.values() {
+        for (name, typ) in generator.container_names.values() {
             names.push(name.clone());
             let original_type = typ.clone();
             let typ =
@@ -817,7 +817,7 @@ fn gen_set_child_prop_calls(widget: &Widget, parent: Option<&Ident>, parent_widg
     let widget_name = &widget.name;
     let mut child_properties = vec![];
     if let Some(parent) = parent {
-        for (&(ref ident, ref key), value) in &widget.child_properties {
+        for ((ident, key), value) in &widget.child_properties {
             let property_func = Ident::new(&format!("set_{}_{}", ident, key), key.span());
             let parent =
                 if parent_widget_type == IsGtk {

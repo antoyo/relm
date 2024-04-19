@@ -65,7 +65,7 @@ impl Widget for Win {
 
         Win {
             model,
-            window: window,
+            window,
         }
     }
 }

@@ -68,7 +68,7 @@ impl Update for Win {
 
     fn model(_: &Relm<Self>, counter: i32) -> Model {
         Model {
-            counter: counter,
+            counter,
         }
     }
 

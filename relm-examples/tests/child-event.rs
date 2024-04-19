@@ -57,7 +57,7 @@ impl Widget for TreeView {
         self.widgets.tree_view.set_model(Some(&model));
     }
 
-    fn model() -> () {
+    fn model() {
     }
 
     fn update(&mut self, _event: Msg) {

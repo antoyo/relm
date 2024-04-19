@@ -40,7 +40,7 @@ use syn::Member::Named;
 use super::parser::dummy_ident;
 
 thread_local! {
-    static COUNTER: AtomicUsize = AtomicUsize::new(0);
+    static COUNTER: AtomicUsize = const { AtomicUsize::new(0) };
 }
 
 pub struct Transformer {

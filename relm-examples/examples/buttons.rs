@@ -130,7 +130,7 @@ impl Widget for Win {
                 counter_label,
                 minus_button,
                 plus_button,
-                window: window,
+                window,
             },
         }
     }

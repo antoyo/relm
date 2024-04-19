@@ -59,7 +59,7 @@ impl Update for Button {
     type ModelParam = ();
     type Msg = ButtonMsg;
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) {
     }
 
     fn update(&mut self, _msg: ButtonMsg) {
@@ -89,7 +89,7 @@ impl Widget for Button {
         let button = gtk::Button::with_label("+");
 
         Button {
-            button: button,
+            button,
         }
     }
 }
@@ -121,7 +121,7 @@ impl Update for Win {
     type ModelParam = ();
     type Msg = Msg;
 
-    fn model(_: &Relm<Self>, _: ()) -> () {
+    fn model(_: &Relm<Self>, _: ()) {
     }
 
     fn update(&mut self, event: Msg) {
@@ -155,7 +155,7 @@ impl Widget for Win {
                 dec_button,
                 inc_button: relm_button.widget().clone(),
                 label,
-                window: window,
+                window,
             },
             _components: Components {
                 _inc_button: relm_button,

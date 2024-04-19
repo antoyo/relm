@@ -83,8 +83,8 @@ fn main() {
     // As mentioned above, this struct holds the labels that we're going
     // to be updating.
     let widgets = Widgets {
-        clock_label: clock_label,
-        counter_label: counter_label,
+        clock_label,
+        counter_label,
     };
 
     // Create a new window and add our layout container to it.

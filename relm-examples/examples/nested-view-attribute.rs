@@ -79,8 +79,8 @@ impl Widget for Counter {
 
 #[widget]
 impl Widget for HBox {
-    fn model() -> () {
-        ()
+    fn model() {
+        
     }
 
     fn update(&mut self, _event: ()) {

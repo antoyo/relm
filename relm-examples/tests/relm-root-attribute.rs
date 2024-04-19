@@ -34,7 +34,7 @@ use self::Msg::*;
 
 #[widget]
 impl Widget for Button {
-    fn model() -> () {
+    fn model() {
     }
 
     fn update(&mut self, _msg: ()) {
@@ -49,8 +49,8 @@ impl Widget for Button {
 
 #[widget]
 impl Widget for VBox {
-    fn model() -> () {
-        ()
+    fn model() {
+        
     }
 
     fn update(&mut self, _event: Msg) {
@@ -111,7 +111,7 @@ pub enum Msg {
 
 #[widget]
 impl Widget for Win {
-    fn model() -> () {
+    fn model() {
     }
 
     fn update(&mut self, event: Msg) {

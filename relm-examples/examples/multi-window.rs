@@ -30,7 +30,7 @@ use self::Msg::*;
 
 #[widget]
 impl Widget for SecondaryWin {
-    fn model() -> () {
+    fn model() {
     }
 
     fn update(&mut self, _msg: Msg) {

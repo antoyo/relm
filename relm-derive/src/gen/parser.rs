@@ -376,7 +376,7 @@ impl Parse for NameValue {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(NameValue {
             name: input.parse()?,
-            value: AttributeValue::parse(&input).ok(),
+            value: AttributeValue::parse(input).ok(),
         })
     }
 }
@@ -500,7 +500,7 @@ struct ChildWidgetParser {
  */
 impl ChildWidgetParser {
     fn parse(root: SaveWidget, input: ParseStream) -> Result<Self> {
-        let attributes = Attributes::parse(&input)?;
+        let attributes = Attributes::parse(input)?;
         let typ: WidgetPathParser = input.parse()?;
         let typ = typ.widget_path;
         let save = attributes.name_values.contains_key("name") || root == Save;
@@ -633,7 +633,7 @@ impl RelmWidgetParser {
                         Property(ident, value) => { let _ = properties.insert(ident, value.value); },
                         RelmMsg(ident, value) => { let _ = relm_widget.messages.insert(ident, value.value); },
                         RelmMsgEvent(ident, event) => {
-                            let events = relm_widget.events.entry(ident).or_insert_with(Vec::new);
+                            let events = relm_widget.events.entry(ident).or_default();
                             events.push(event);
                         },
                     }
@@ -1177,7 +1177,7 @@ pub fn respan_with(tokens: proc_macro::TokenStream, span: proc_macro::Span) -> p
             }
         }
     }
-    FromIterator::from_iter(result.into_iter())
+    FromIterator::from_iter(result)
 }
 
 pub fn dummy_ident(ident: &str) -> Ident {

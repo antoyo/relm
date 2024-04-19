@@ -40,7 +40,7 @@ pub enum ButtonMsg {
 
 #[widget]
 impl Widget for Button {
-    fn model() -> () {
+    fn model() {
     }
 
     fn update(&mut self, _msg: ButtonMsg) {
