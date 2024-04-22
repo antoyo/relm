@@ -40,7 +40,9 @@ jobs:
             openbox &
             cargo test --manifest-path relm-examples/Cargo.toml -- --nocapture
 
+      # Spans in Nightly may differ, so only run the derive tests on stable.
       - name: "relm-derive: tests"
+        if: matrix.rust == 'stable'
         run: |
             cargo test --manifest-path relm-derive/Cargo.toml -- --nocapture
 
