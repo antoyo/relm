@@ -23,7 +23,6 @@ use std::thread;
 use std::time::Duration;
 
 use gtk::{
-    Inhibit,
     prelude::LabelExt,
     prelude::OrientableExt,
     prelude::WidgetExt,
@@ -33,6 +32,7 @@ use relm::{Channel, Relm, Widget};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 pub struct Model {
     _channel: Channel<i32>,
@@ -82,7 +82,7 @@ impl Widget for Win {
                     text: &self.model.text,
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     PackType,
     prelude::BoxExt,
     prelude::ButtonExt,
@@ -33,6 +32,7 @@ use relm::Widget;
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 #[derive(Msg)]
 pub enum ButtonMsg {
@@ -105,7 +105,7 @@ impl Widget for Win {
                     clicked => Increment,
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

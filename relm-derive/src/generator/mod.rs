@@ -28,6 +28,7 @@
 pub(crate) mod parser;
 
 mod adder;
+#[allow(clippy::module_inception)]
 mod generator;
 mod transformer;
 mod walker;
@@ -441,7 +442,7 @@ impl Driver {
             self.collect_bindings(widget, &mut msg_model_map, &mut properties_model_map);
         }
 
-        let generator::Gen { view, relm_widgets, relm_components, streams_to_save, container_impl } = generator::gen(name, &widgets, self);
+        let generator::Gen { view, relm_widgets, relm_components, streams_to_save, container_impl } = generator::generate(name, &widgets, self);
         let model_ident = Ident::new(MODEL_IDENT, Span::call_site()); // TODO: maybe need to set Span here.
         let code = quote_spanned! { name.span() =>
             #[allow(unused_variables,clippy::all)] // Necessary to avoid warnings in case the parameters are unused.

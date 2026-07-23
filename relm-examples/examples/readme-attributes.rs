@@ -1,7 +1,7 @@
 use relm_derive::{Msg, widget};
 use relm::Widget;
 use gtk::prelude::*;
-use gtk::Inhibit;
+use glib::Propagation;
 use gtk::Orientation::Vertical;
 
 #[derive(Msg)]
@@ -58,7 +58,7 @@ impl Widget for Win {
             },
             // Use a tuple when you want to both send a message and return a value to
             // the GTK+ callback.
-            delete_event(_, _) => (Msg::Quit, Inhibit(false)),
+            delete_event(_, _) => (Msg::Quit, Propagation::Proceed),
         }
     }
 }

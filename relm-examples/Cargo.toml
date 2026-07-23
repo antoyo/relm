@@ -5,18 +5,18 @@ description = "Examples for relm"
 license = "MIT"
 name = "relm-examples"
 version = "0.24.0"
-edition = "2018"
+edition = "2024"
 
 [dev-dependencies]
 chrono = "0.4"
-gdk = "^0.16.0"
-glib = "^0.16.0"
-gtk = "^0.16.0"
-gtk-test = "^0.16.0"
+gdk = "^0.18.2"
+glib = "^0.18.5"
+gtk = "^0.18.2"
+gtk-test = "^0.18.0"
 rand = "0.8.5"
 
 [dev-dependencies.gio]
-version = "^0.16.0"
+version = "^0.18.4"
 
 [dev-dependencies.relm]
 path = ".."

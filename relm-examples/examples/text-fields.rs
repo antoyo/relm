@@ -22,7 +22,6 @@
 use gtk::{
     EditableSignals,
     Entry,
-    Inhibit,
     Label,
     Window,
     WindowType,
@@ -36,6 +35,7 @@ use relm_derive::Msg;
 use relm::{connect, Relm, Update, Widget, WidgetTest};
 
 use self::Msg::*;
+use glib::Propagation;
 
 struct Model {
     content: String,
@@ -107,7 +107,7 @@ impl Widget for Win {
         window.show_all();
 
         connect!(relm, input, connect_changed(_), Change);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Propagation::Proceed));
 
         Win {
             model,

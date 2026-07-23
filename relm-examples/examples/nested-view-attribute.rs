@@ -21,7 +21,6 @@
 
 use gtk::{
     prelude::*,
-    Inhibit,
 };
 use gtk::Orientation::{Horizontal, Vertical};
 use relm::Widget;
@@ -29,6 +28,7 @@ use relm_derive::{Msg, widget};
 
 use self::Msg::*;
 use self::CounterMsg::SetIncrement;
+use glib::Propagation;
 
 pub struct CounterModel {
     counter: i32,
@@ -192,7 +192,7 @@ impl Widget for Win {
                     },
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

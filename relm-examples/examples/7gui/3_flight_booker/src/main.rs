@@ -5,6 +5,7 @@ use gtk::prelude::*;
 use gtk::{ButtonsType, DialogFlags, MessageDialog, MessageType};
 use relm::Widget;
 use relm_derive::{widget, Msg};
+use glib::Propagation;
 
 // The color to show if a date is invalid.
 // TODO: uncomment when alternative to override_background_color is found
@@ -234,7 +235,7 @@ impl Widget for Win {
                     clicked => Msg::Book,
                 }
             },
-            delete_event(_, _) => (Msg::Quit, Inhibit(false)),
+            delete_event(_, _) => (Msg::Quit, Propagation::Proceed),
         }
     }
 }

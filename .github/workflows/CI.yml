@@ -16,13 +16,13 @@ jobs:
           - stable
           - beta
           - nightly
-          - "1.70.0"
+          - "1.88.0"
     env:
         DISPLAY: ":99.0"
     steps:
       - run: sudo apt-get update -y
-      - run: sudo apt-get install -y libgtk-3-dev libglib2.0-dev libgraphene-1.0-dev git xvfb curl libcairo-gobject2 libcairo2-dev libxdo-dev libwebkit2gtk-4.0-dev openbox
-      - uses: actions/checkout@v2
+      - run: sudo apt-get install -y libgtk-3-dev libglib2.0-dev libgraphene-1.0-dev git xvfb curl libcairo-gobject2 libcairo2-dev libxdo-dev libwebkit2gtk-4.1-dev at-spi2-core openbox
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
@@ -38,7 +38,7 @@ jobs:
             Xvfb :99 &
             sleep 3
             openbox &
-            cargo test --manifest-path relm-examples/Cargo.toml -- --nocapture
+            timeout 10m cargo test --manifest-path relm-examples/Cargo.toml -- --nocapture
 
       - name: "relm-derive: tests"
         run: |
@@ -49,14 +49,14 @@ jobs:
             Xvfb :99 &
             sleep 3
             openbox &
-            cargo test --manifest-path relm-examples/Cargo.toml --examples
+            timeout 10m cargo test --manifest-path relm-examples/Cargo.toml --examples
 
       - name: "relm: test buttons-attribute example"
         run: |
             Xvfb :99 &
             sleep 3
             openbox &
-            cargo test --manifest-path relm-examples/examples/buttons-attribute/Cargo.toml
+            timeout 10m cargo test --manifest-path relm-examples/examples/buttons-attribute/Cargo.toml
 
       - name: "relm: build http example"
         run: cargo build --manifest-path relm-examples/examples/http/Cargo.toml
@@ -64,8 +64,8 @@ jobs:
       - name: "relm: build async example"
         run: cargo build --manifest-path relm-examples/examples/async/Cargo.toml
 
-      # - name: "relm: build webkit-test example"
-      #   run: cargo build --manifest-path relm-examples/examples/webkit-test/Cargo.toml
+      - name: "relm: build webkit-test example"
+        run: cargo build --manifest-path relm-examples/examples/webkit-test/Cargo.toml
 
       - name: "relm: clean tests"
         run: cargo clean --manifest-path relm-examples/Cargo.toml
@@ -76,8 +76,8 @@ jobs:
       - name: "relm: clean async example"
         run: cargo clean --manifest-path relm-examples/examples/async/Cargo.toml
 
-      # - name: "relm: clean webkit-test example"
-      #   run: cargo clean --manifest-path relm-examples/examples/webkit-test/Cargo.toml
+      - name: "relm: clean webkit-test example"
+        run: cargo clean --manifest-path relm-examples/examples/webkit-test/Cargo.toml
 
       - name: "relm: build 7gui counter example"
         run: cargo build --manifest-path relm-examples/examples/7gui/1_counter/Cargo.toml

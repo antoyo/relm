@@ -46,18 +46,14 @@ impl ModelVariableVisitor {
 
 impl<'ast> Visit<'ast> for ModelVariableVisitor {
     fn visit_expr(&mut self, expr: &'ast Expr) {
-        if let Expr::Field(ExprField { base: ref obj, member: ref field, .. }) = *expr {
-            if let Expr::Field(ExprField { base: ref expr, member: ref model_ident, .. }) = **obj {
-                if let Expr::Path(ExprPath { ref path, .. }) = **expr {
-                    if let Named(ref model_ident) = *model_ident {
-                        if path.is_ident(&dummy_ident("self")) && model_ident == "model" {
-                            if let Named(ref field) = *field {
-                                self.idents.push(field.clone());
-                            }
-                        }
-                    }
-                }
-            }
+        if let Expr::Field(ExprField { base: ref obj, member: ref field, .. }) = *expr
+            && let Expr::Field(ExprField { base: ref expr, member: ref model_ident, .. }) = **obj
+                && let Expr::Path(ExprPath { ref path, .. }) = **expr
+                    && let Named(ref model_ident) = *model_ident
+                        && path.is_ident(&dummy_ident("self")) && model_ident == "model"
+                            && let Named(ref field) = *field
+        {
+            self.idents.push(field.clone());
         }
         visit_expr(self, expr);
     }

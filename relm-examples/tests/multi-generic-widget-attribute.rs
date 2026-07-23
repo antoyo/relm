@@ -22,7 +22,6 @@
 use std::fmt::Display;
 
 use gtk::{
-    Inhibit,
     prelude::ButtonExt,
     prelude::LabelExt,
     prelude::OrientableExt,
@@ -34,6 +33,7 @@ use relm_derive::{Msg, widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
+use glib::Propagation;
 
 pub trait IncDec {
     fn dec(&self) -> Self;
@@ -136,7 +136,7 @@ impl Widget for Win {
                 #[name="counter2"]
                 Counter<i32, i64>(3, 4),
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

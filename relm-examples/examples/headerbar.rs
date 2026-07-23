@@ -1,4 +1,4 @@
-use gtk::{Inhibit};
+use glib::Propagation;
 use gtk::Orientation::{Vertical};
 use gtk::prelude::*;
 use relm_derive::{Msg, widget};
@@ -82,7 +82,7 @@ impl Widget for Win {
                 orientation: Vertical
             },
 
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

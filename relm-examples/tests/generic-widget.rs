@@ -23,7 +23,6 @@ use std::fmt::Display;
 
 use gtk::{
     Button,
-    Inhibit,
     Label,
     Window,
     WindowType,
@@ -46,6 +45,7 @@ use relm_derive::Msg;
 
 use self::CounterMsg::*;
 use self::Msg::*;
+use glib::Propagation;
 
 trait IncDec {
     fn dec(&mut self);
@@ -199,7 +199,7 @@ impl Widget for Win {
 
         window.show_all();
 
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Propagation::Proceed));
 
         Win {
             widgets: Widgets {

@@ -25,7 +25,6 @@ use std::path::{MAIN_SEPARATOR, PathBuf};
 
 use glib::StaticType;
 use gtk::{
-    Inhibit,
     TreeView,
     Window,
     WindowType,
@@ -41,6 +40,7 @@ use gtk::{
 use gtk::Orientation::Vertical;
 use relm_derive::Msg;
 use relm::{connect, Relm, Update, Widget};
+use glib::Propagation;
 
 // These two constants stand for the columns of the listmodel and the listview
 const VALUE_COL: i32 = 0;
@@ -150,7 +150,7 @@ impl Widget for Win {
         window.show_all();
 
         connect!(relm, tree_view, connect_cursor_changed(_), Msg::ItemSelect);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Propagation::Proceed));
 
         Win {
             tree_view,

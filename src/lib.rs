@@ -38,7 +38,7 @@
 //! More info can be found in the [readme](https://github.com/antoyo/relm#relm).
 
 #![allow(unknown_lints)]
-#![allow(clippy::new_without_default, clippy::uninlined_format_args)]
+#![allow(clippy::new_without_default, clippy::uninlined_format_args, clippy::doc_lazy_continuation)]
 
 #![warn(
     missing_docs,
@@ -108,19 +108,16 @@ mod widget;
 pub use fragile::Fragile;
 
 #[doc(hidden)]
-pub use glib::{
-    Cast,
-    IsA,
-    Object,
-    StaticType,
-    ToValue,
-    Value,
-};
+pub use glib::Object;
+#[doc(hidden)]
+pub use glib::Value;
+#[doc(hidden)]
+pub use glib::prelude::{Cast, IsA, StaticType, ToValue};
 #[doc(hidden)]
 pub use glib::translate::{FromGlibPtrNone, IntoGlib, ToGlibPtr};
 #[doc(hidden)]
 pub use gobject_sys::{GParameter, g_object_newv};
-use glib::Continue;
+use glib::ControlFlow;
 
 pub use crate::core::{Channel, EventStream, Sender, StreamHandle};
 pub use crate::state::{
@@ -239,7 +236,12 @@ type InitTestComponents<WIDGET> = (Component<WIDGET>, <WIDGET as WidgetTest>::St
 /// # }
 /// #
 /// # impl WidgetTest for Win {
+/// #     type Streams = ();
 /// #     type Widgets = Win;
+/// #
+/// #     fn get_streams(&self) -> Self::Streams {
+/// #         ()
+/// #     }
 /// #
 /// #     fn get_widgets(&self) -> Self::Widgets {
 /// #         self.clone()
@@ -356,7 +358,7 @@ pub fn interval<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MS
     glib::timeout_add_local(std::time::Duration::from_millis(duration as u64), move || {
         let msg = constructor();
         stream.emit(msg);
-        Continue(true)
+        ControlFlow::Continue
     });
 }
 
@@ -366,6 +368,6 @@ pub fn timeout<F: Fn() -> MSG + 'static, MSG: 'static>(stream: &StreamHandle<MSG
     glib::timeout_add_local(std::time::Duration::from_millis(duration as u64), move || {
         let msg = constructor();
         stream.emit(msg);
-        Continue(false)
+        ControlFlow::Break
     });
 }

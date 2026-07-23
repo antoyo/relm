@@ -30,7 +30,6 @@ use glib::GString;
 use gtk::{
     FileChooserAction,
     FileChooserDialog,
-    Inhibit,
     ResponseType,
     prelude::ButtonExt,
     prelude::DialogExt,
@@ -43,6 +42,7 @@ use gtk::{
 use gtk::Orientation::Vertical;
 use relm::{connect_async_full, connect_async_func_full, Relm, Widget};
 use relm_derive::{Msg, widget};
+use glib::Propagation;
 
 use self::Msg::*;
 
@@ -102,7 +102,7 @@ impl Widget for Win {
                     label: "Open application",
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

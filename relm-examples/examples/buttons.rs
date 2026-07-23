@@ -21,7 +21,6 @@
 
 use gtk::{
     Button,
-    Inhibit,
     Label,
     Window,
     WindowType,
@@ -33,6 +32,7 @@ use gtk::{
 use gtk::Orientation::Vertical;
 use relm_derive::Msg;
 use relm::{connect, Relm, Update, Widget, WidgetTest};
+use glib::Propagation;
 
 struct Model {
     counter: i32,
@@ -122,7 +122,7 @@ impl Widget for Win {
         // Send the message Increment when the button is clicked.
         connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
         connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Propagation::Proceed));
 
         Win {
             model,

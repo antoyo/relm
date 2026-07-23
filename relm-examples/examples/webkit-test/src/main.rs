@@ -19,13 +19,10 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use gtk::{
-    Inhibit,
-    prelude::WidgetExt,
-};
+use gtk::prelude::WidgetExt;
 use relm_derive::{Msg, widget};
 use relm::Widget;
-use webkit2gtk::traits::WebViewExt;
+use webkit2gtk::WebViewExt;
 
 use self::Msg::*;
 
@@ -61,7 +58,7 @@ impl Widget for Win {
             #[name="webview"]
             webkit2gtk::WebView {
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, glib::Propagation::Proceed),
         }
     }
 }

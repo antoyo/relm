@@ -2,11 +2,12 @@
 name = "buttons-attribute"
 version = "0.1.0"
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
-edition = "2018"
+edition = "2024"
 
 [dependencies]
-gtk = "^0.16.0"
-gtk-test = "^0.16.0"
+glib = "^0.18.5"
+gtk = "^0.18.2"
+gtk-test = "^0.18.0"
 
 [dependencies.relm]
 path = "../../.."

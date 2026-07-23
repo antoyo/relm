@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use std::mem;
+use std::mem::{self, size_of};
 use std::os::raw::c_int;
 use std::ptr;
 
@@ -51,7 +51,7 @@ pub fn new_source<T: SourceFuncs>(data: T) -> Source {
         funcs.dispatch = Some(dispatch::<T>);
         funcs.finalize = Some(finalize::<T>);
         let mut funcs = Box::new(funcs);
-        let source = g_source_new(&mut *funcs, mem::size_of::<SourceData<T>>() as u32);
+        let source = g_source_new(&mut *funcs, size_of::<SourceData<T>>() as u32);
         ptr::write(&mut (*(source as *mut SourceData<T>)).data, data);
         ptr::write(&mut (*(source as *mut SourceData<T>)).funcs, funcs);
         from_glib_full(source)
@@ -67,22 +67,25 @@ pub fn source_get<T: SourceFuncs>(source: &Source) -> &T {
 }
 
 unsafe extern "C" fn check<T: SourceFuncs>(source: *mut GSource) -> c_int {
+    // SAFETY: The caller guarantees that `source` is a valid pointer to a SourceData<T>.
     let object = source as *mut SourceData<T>;
-    bool_to_int((*object).data.check())
+    bool_to_int(unsafe { (*object).data.check() })
 }
 
 unsafe extern "C" fn dispatch<T: SourceFuncs>(source: *mut GSource, _callback: GSourceFunc, _user_data: *mut libc::c_void)
     -> c_int
 {
+    // SAFETY: The caller guarantees that `source` is a valid pointer to a SourceData<T>.
     let object = source as *mut SourceData<T>;
-    bool_to_int((*object).data.dispatch())
+    bool_to_int(unsafe { (*object).data.dispatch() })
 }
 
 unsafe extern "C" fn finalize<T: SourceFuncs>(source: *mut GSource) {
     // TODO: needs a bomb to abort on panic
+    // SAFETY: The caller guarantees that `source` is a valid pointer to a SourceData<T>.
     let source = source as *mut SourceData<T>;
-    ptr::read(&(*source).funcs);
-    ptr::read(&(*source).data);
+    unsafe { ptr::read(&(*source).funcs) };
+    unsafe { ptr::read(&(*source).data) };
 }
 
 extern "C" fn prepare<T: SourceFuncs>(source: *mut GSource, timeout: *mut c_int) -> c_int {

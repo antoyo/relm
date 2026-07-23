@@ -24,7 +24,6 @@
 use chrono::Local;
 use gtk::{
     Button,
-    Inhibit,
     Label,
     Window,
     WindowType,
@@ -35,6 +34,7 @@ use gtk::{
 };
 use gtk::Orientation::Vertical;
 use relm::EventStream;
+use glib::Propagation;
 
 use Msg::*;
 
@@ -140,7 +140,7 @@ fn main() {
         let stream = main_stream.downgrade();
         window.connect_delete_event(move |_, _| {
             stream.emit(Quit);
-            Inhibit(false)
+            Propagation::Proceed
         });
     }
 

@@ -25,7 +25,6 @@ use glib::{
     Object,
 };
 use gtk::{
-    Inhibit,
     PackType,
     prelude::BoxExt,
     prelude::ContainerExt,
@@ -45,6 +44,7 @@ use relm::{
 use relm_derive::Msg;
 
 use self::Msg::*;
+use glib::Propagation;
 
 #[derive(Msg)]
 pub enum ButtonMsg {
@@ -147,7 +147,7 @@ impl Widget for Win {
         let dec_button = gtk::Button::with_label("-");
         vbox.add(&dec_button);
         let relm_button = vbox.add_widget::<Button>(());
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Propagation::Proceed));
         window.show_all();
 
         Win {

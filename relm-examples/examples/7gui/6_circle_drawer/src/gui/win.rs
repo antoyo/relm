@@ -3,6 +3,7 @@ use crate::model::{CircleGroup, History};
 
 use gtk::prelude::*;
 use gtk::Orientation;
+use glib::Propagation;
 use relm::{Relm, Widget};
 use relm_derive::{widget, Msg};
 
@@ -73,7 +74,7 @@ impl Widget for Win {
                     vexpand: true
                 }
             },
-            delete_event(_, _) => (WinMsg::Quit, Inhibit(false)),
+            delete_event(_, _) => (WinMsg::Quit, Propagation::Proceed),
         }
     }
 }

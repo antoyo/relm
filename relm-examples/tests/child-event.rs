@@ -22,7 +22,6 @@
 use glib::{ToValue, types::Type};
 use gtk::{
     CellRendererText,
-    Inhibit,
     ListStore,
     TreeSelection,
     TreeViewColumn,
@@ -37,6 +36,7 @@ use relm::Widget;
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 #[widget]
 impl Widget for TreeView {
@@ -125,7 +125,7 @@ impl Widget for Win {
                     visible: self.model.visible,
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

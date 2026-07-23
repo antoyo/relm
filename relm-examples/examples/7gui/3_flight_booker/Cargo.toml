@@ -2,17 +2,17 @@
 name = "flight_booker"
 version = "0.1.0"
 authors = ["Julian Schmidhuber <schmidhuberj2@protonmail.com>"]
-edition = "2018"
+edition = "2024"
 
 [dependencies]
-glib = "0.16.0"
-gtk = "^0.16.0"
+glib = "0.18.5"
+gtk = "^0.18.2"
 chrono = "0.4.19"
-gdk = "^0.16.0"
+gdk = "^0.18.2"
 
 [dependencies.gio]
 features = ["v2_58"]
-version = "^0.16.0"
+version = "^0.18.4"
 [dependencies.relm]
 path = "../../../.."
 

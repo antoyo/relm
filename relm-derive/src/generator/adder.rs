@@ -161,12 +161,10 @@ fn create_stmts_for_props(ident: &Ident, property_map: &PropertyModelMap) -> Vec
 }
 
 fn is_model_path(expr: &Expr) -> bool {
-    if let Field(ExprField { ref base, ref member, .. }) = *expr {
-        if let Expr::Path(ExprPath { path: Path { ref segments, .. }, ..}) = **base {
-            if let Named(member_name) = member {
+    if let Field(ExprField { ref base, ref member, .. }) = *expr
+        && let Expr::Path(ExprPath { path: Path { ref segments, .. }, ..}) = **base
+            && let Named(member_name) = member {
                 return segments.len() == 1 && segments[0].ident == "self" && member_name == "model";
             }
-        }
-    }
     false
 }

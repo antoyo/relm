@@ -22,7 +22,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use gtk::{
-    Inhibit,
     prelude::ButtonExt,
     prelude::LabelExt,
     prelude::OrientableExt,
@@ -34,6 +33,7 @@ use relm_derive::{Msg, widget};
 
 use self::CounterMsg::*;
 use self::Msg::*;
+use glib::Propagation;
 
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -143,7 +143,7 @@ impl Widget for Win {
                     clicked => Remove,
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

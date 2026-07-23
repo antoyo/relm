@@ -8,14 +8,14 @@ license = "MIT"
 name = "relm-test"
 repository = "https://github.com/antoyo/relm"
 version = "0.24.0"
-edition = "2018"
+edition = "2024"
 
 [dependencies]
 enigo = "^0.0.14"
-gdk = "0.16.0"
-glib = "0.16.2"
-gtk = "0.16.1"
-gtk-test = "0.16.0"
+gdk = "0.18.2"
+glib = "0.18.5"
+gtk = "0.18.2"
+gtk-test = "0.18.0"
 
 [dependencies.relm]
 path = ".."

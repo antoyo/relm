@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     prelude::ButtonExt,
     prelude::LabelExt,
     prelude::OrientableExt,

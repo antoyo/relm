@@ -2,11 +2,12 @@
 authors = ["Antoni Boucher <bouanto@zoho.com>"]
 name = "webkit-test"
 version = "0.1.0"
-edition = "2018"
+edition = "2024"
 
 [dependencies]
-gtk = "^0.16"
-webkit2gtk = "^0.17"
+glib = "^0.18"
+gtk = "^0.18"
+webkit2gtk = "^2.0"
 
 [dependencies.relm]
 default-features = false

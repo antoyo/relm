@@ -21,7 +21,6 @@
 
 use gtk::{
     EventBox,
-    Inhibit,
     Label,
     Window,
     prelude::ContainerExt,
@@ -43,6 +42,7 @@ use relm::{
 use relm_derive::Msg;
 
 use self::Msg::*;
+use glib::Propagation;
 
 struct Button {
     button: gtk::Button,
@@ -178,7 +178,7 @@ impl Widget for Win {
         let button = vbox.add_widget::<Button>(());
         let dec_button = gtk::Button::with_label("-");
         vbox.add(&dec_button);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Propagation::Proceed));
         window.show_all();
         Win {
             _components: Components {

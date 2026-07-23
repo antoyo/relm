@@ -7,7 +7,7 @@ license = "MIT"
 name = "relm-derive"
 repository = "https://github.com/antoyo/relm"
 version = "0.24.0"
-edition = "2018"
+edition = "2024"
 
 [lib]
 proc-macro = true
@@ -22,6 +22,6 @@ features = ["extra-traits", "fold", "full", "visit"]
 version = "^1.0"
 
 [dev-dependencies]
-gtk = "0.16.1"
+gtk = "0.18.2"
 relm = { path = ".." }
 trybuild = "1.0.42"

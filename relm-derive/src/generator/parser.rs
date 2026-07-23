@@ -93,7 +93,7 @@ pub enum EventValueReturn {
 pub enum EventValue {
     CurrentWidget(EventValueReturn),
     ForeignWidget(Ident, EventValueReturn),
-    NoEventValue,
+    NoValue,
 }
 
 #[derive(Debug)]
@@ -110,7 +110,7 @@ impl Event {
             params: vec![],
             shared_values: vec![],
             use_self: false,
-            value: NoEventValue,
+            value: NoValue,
         }
     }
 }
@@ -153,7 +153,7 @@ impl Widget {
             properties,
             save: false,
             typ,
-            widget: Gtk(widget),
+            widget: Gtk(Box::new(widget)),
             style_classes: vec![],
         }
     }
@@ -189,7 +189,7 @@ impl Widget {
 
 #[derive(Debug)]
 pub enum EitherWidget {
-    Gtk(GtkWidget),
+    Gtk(Box<GtkWidget>),
     Relm(RelmWidget),
 }
 
@@ -768,11 +768,10 @@ impl ValueOrChildProperties {
             else {
                 let value = Value::parse(input)?;
                 let mut nested_view = None;
-                if let Expr::Macro(ExprMacro { mac: Macro { ref path, ref tokens, .. }, .. }) = value.value {
-                    if path.is_ident(&dummy_ident("view")) {
+                if let Expr::Macro(ExprMacro { mac: Macro { ref path, ref tokens, .. }, .. }) = value.value
+                    && path.is_ident(&dummy_ident("view")) {
                         nested_view = Some(tokens.clone());
                     }
-                }
                 if let Some(tokens) = nested_view {
                     let widget: Widget = parse2(tokens)?;
                     NestedView(ident.clone(), widget)
@@ -991,12 +990,11 @@ fn is_property_or_event(input: &ParseStream) -> bool {
     {
         let input = input.fork();
         let path = input.parse::<Path>();
-        if let Ok(path) = path {
-            if path.segments.len() > 1 {
+        if let Ok(path) = path
+            && path.segments.len() > 1 {
                 // Only a widget starts with a path that contains more than 1 segment.
                 return false;
             }
-        }
     }
     let _ident: Ident = input.parse().expect("should be an ident");
     if input.peek(token::Brace) {

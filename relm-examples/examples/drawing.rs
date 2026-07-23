@@ -24,7 +24,6 @@ use std::f64::consts::PI;
 use gdk::{EventMask, RGBA};
 use gtk::{
     DrawingArea,
-    Inhibit,
     prelude::BoxExt,
     prelude::OrientableExt,
     prelude::WidgetExt,
@@ -40,6 +39,7 @@ use relm::{
     interval,
 };
 use relm_derive::widget;
+use glib::Propagation;
 
 use self::Msg::*;
 
@@ -55,18 +55,18 @@ struct Circle {
 
 impl Circle {
     fn generate() -> Self {
-        let mut gen = rand::thread_rng();
+        let mut g = rand::thread_rng();
         Circle {
-            x: gen.gen_range(20.0..500.0),
-            y: gen.gen_range(20.0..500.0),
+            x: g.gen_range(20.0..500.0),
+            y: g.gen_range(20.0..500.0),
             color: RGBA::new(
-                gen.gen_range(0.0..1.0),
-                gen.gen_range(0.0..1.0),
-                gen.gen_range(0.0..1.0),
+                g.gen_range(0.0..1.0),
+                g.gen_range(0.0..1.0),
+                g.gen_range(0.0..1.0),
                 1.0,
             ),
-            vx: gen.gen_range(1.0..5.0),
-            vy: gen.gen_range(1.0..5.0),
+            vx: g.gen_range(1.0..5.0),
+            vy: g.gen_range(1.0..5.0),
         }
     }
 }
@@ -162,11 +162,11 @@ impl Widget for Win {
                     child: {
                         expand: true,
                     },
-                    draw(_, _) => (UpdateDrawBuffer, Inhibit(false)),
-                    motion_notify_event(_, event) => (MoveCursor(event.position()), Inhibit(false))
+                    draw(_, _) => (UpdateDrawBuffer, Propagation::Proceed),
+                    motion_notify_event(_, event) => (MoveCursor(event.position()), Propagation::Proceed)
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

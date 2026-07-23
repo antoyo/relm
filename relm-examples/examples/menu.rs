@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     prelude::GtkMenuItemExt,
     prelude::MenuShellExt,
     prelude::OrientableExt,
@@ -29,6 +28,7 @@ use gtk::{
 use gtk::Orientation::Vertical;
 use relm::{Relm, Widget, connect};
 use relm_derive::{Msg, widget};
+use glib::Propagation;
 
 use self::Msg::*;
 
@@ -75,7 +75,7 @@ impl Widget for Win {
                 gtk::MenuBar {
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

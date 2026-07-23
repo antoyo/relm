@@ -41,7 +41,7 @@ use super::parser::{
     RelmWidget,
     Widget,
 };
-use super::parser::EventValue::{CurrentWidget, ForeignWidget, NoEventValue};
+use super::parser::EventValue::{CurrentWidget, ForeignWidget, NoValue};
 use super::parser::EventValueReturn::{CallReturn, Return, WithoutReturn};
 use super::parser::EitherWidget::{Gtk, Relm};
 use super::transformer::Transformer;
@@ -70,7 +70,7 @@ pub struct Gen {
     pub container_impl: TokenStream,
 }
 
-pub fn gen(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> Gen {
+pub fn generate(name: &Ident, widgets: &[Widget], driver: &mut Driver) -> Gen {
     let mut generator = Generator::new(driver);
     let mut widget_tokens = quote! {};
     for (index, widget) in widgets.iter().enumerate() {
@@ -291,7 +291,7 @@ impl<'a> Generator<'a> {
                     #shared_values
                     relm::connect!(relm, #widget_name, #event_ident(#(#event_params),*), #metadata #func);
                 }},
-                NoEventValue => panic!("no event value"),
+                NoValue => panic!("no event value"),
             };
         self.events.push(connect);
     }
@@ -333,7 +333,7 @@ impl<'a> Generator<'a> {
                         }},
                         CurrentWidget(Return(_)) | CurrentWidget(CallReturn(_)) | ForeignWidget(_, Return(_)) |
                             ForeignWidget(_, CallReturn(_)) => unreachable!(),
-                        NoEventValue => panic!("no event value"),
+                        NoValue => panic!("no event value"),
                     };
                 self.events.push(connect);
             }
@@ -519,17 +519,17 @@ impl<'a> Generator<'a> {
 fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream {
     let struct_name = &widget.typ;
 
-    let mut parameters = vec![];
-    for (key, value) in gtk_widget.construct_properties.iter() {
-        let key = key.to_string().replace('_', "-");
-        let mut remover = Transformer::new(MODEL_IDENT);
-        let value = remover.fold_expr(value.clone());
-        parameters.push(quote_spanned! { struct_name.span() =>
-            (#key, &#value as &dyn ::gtk::glib::value::ToValue)
-        });
-    }
-
     if widget.init_parameters.is_empty() {
+        let mut properties = quote! {};
+        for (key, value) in gtk_widget.construct_properties.iter() {
+            let key = key.to_string().replace('_', "-");
+            let mut remover = Transformer::new(MODEL_IDENT);
+            let value = remover.fold_expr(value.clone());
+            properties = quote_spanned! { struct_name.span() =>
+                #properties
+                .property(#key, ::gtk::glib::value::ToValue::to_value(&#value))
+            };
+        }
         quote_spanned!(struct_name.span() => {
             if !gtk::is_initialized_main_thread() {
                 if gtk::is_initialized() {
@@ -539,9 +539,9 @@ fn gen_construct_widget(widget: &Widget, gtk_widget: &GtkWidget) -> TokenStream 
                     panic!("GTK has not been initialized. Call `gtk::init` first.");
                 }
             }
-            let parameters = [#(#parameters),*];
-            // TODO: switch to builders.
-            ::gtk::glib::object::Object::new::<#struct_name>(&parameters)
+            ::gtk::glib::object::Object::builder::<#struct_name>()
+                #properties
+                .build()
         })
     }
     else {

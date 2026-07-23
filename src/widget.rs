@@ -19,7 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use glib::{IsA, Object};
+use glib::Object;
+use glib::prelude::IsA;
 
 use super::{Relm, run};
 use crate::state::Update;

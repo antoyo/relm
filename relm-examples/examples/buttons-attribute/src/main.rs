@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     prelude::ButtonExt,
     prelude::LabelExt,
     prelude::OrientableExt,
@@ -31,6 +30,7 @@ use relm::{Relm, Widget, timeout};
 use relm_derive::{Msg, widget};
 
 use self::Msg::*;
+use glib::Propagation;
 
 // Define the structure of the model.
 pub struct Model {
@@ -90,7 +90,7 @@ impl Widget for Win {
                     visible: false,
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

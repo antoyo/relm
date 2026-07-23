@@ -23,7 +23,6 @@ use gtk::{
     Button,
     EditableSignals,
     Entry,
-    Inhibit,
     Label,
     Window,
     WindowType,
@@ -48,6 +47,7 @@ use relm_derive::Msg;
 use self::CounterMsg::*;
 use self::Msg::*;
 use self::TextMsg::*;
+use glib::Propagation;
 
 struct TextModel {
     content: String,
@@ -249,7 +249,7 @@ impl Widget for Win {
 
         window.show_all();
 
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Quit), Propagation::Proceed));
 
         Win {
             widgets: Widgets {

@@ -20,11 +20,11 @@
  */
 
 use gtk::{
-    Inhibit,
     prelude::WidgetExt,
 };
 use relm::{Component, Widget, init};
 use relm_derive::{Msg, widget};
+use glib::Propagation;
 
 use self::Msg::*;
 
@@ -38,7 +38,7 @@ impl Widget for SecondaryWin {
 
     view! {
         gtk::Window {
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }
@@ -68,7 +68,7 @@ impl Widget for Win {
 
     view! {
         gtk::Window {
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }

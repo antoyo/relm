@@ -62,30 +62,27 @@ use syn::spanned::Spanned;
 impl Fold for Transformer {
     fn fold_expr(&mut self, expr: Expr) -> Expr {
         match expr {
-            Expr::Field(ExprField { ref base, ref member, .. }) => {
-                if let Named(ref ident) = *member {
-                    let mut is_inside_self = false;
-                    if let Expr::Path(ExprPath { ref path, .. }) = **base {
-                        if path.is_ident(&dummy_ident("self")) {
-                            is_inside_self = true;
-                        }
+            Expr::Field(ExprField { ref base, member: Named(ref ident), .. }) => {
+                let mut is_inside_self = false;
+                if let Expr::Path(ExprPath { ref path, .. }) = **base
+                    && path.is_ident(&dummy_ident("self")) {
+                        is_inside_self = true;
                     }
 
-                    if is_inside_self {
-                        if ident == "model" {
-                            let model_ident = Ident::new(self.model_ident.as_str(), Span::call_site()); // TODO: check if the position is needed.
-                            let tokens = quote_spanned! { expr.span() => {
-                                let model = &#model_ident;
-                                model
-                            }};
-                            return parse(tokens.into()).expect("model path");
-                        }
-                        else {
-                            let tokens = quote_spanned! { expr.span() =>
-                                #ident
-                            };
-                            return parse(tokens.into()).expect("self field path");
-                        }
+                if is_inside_self {
+                    if ident == "model" {
+                        let model_ident = Ident::new(self.model_ident.as_str(), Span::call_site()); // TODO: check if the position is needed.
+                        let tokens = quote_spanned! { expr.span() => {
+                            let model = &#model_ident;
+                            model
+                        }};
+                        return parse(tokens.into()).expect("model path");
+                    }
+                    else {
+                        let tokens = quote_spanned! { expr.span() =>
+                            #ident
+                        };
+                        return parse(tokens.into()).expect("self field path");
                     }
                 }
             },
@@ -101,7 +98,7 @@ impl Fold for Transformer {
                     };
                     return parse(tokens.into()).expect("widget name replacement for nested view! macro");
                 }
-            },
+            }
             _ => (),
         }
         fold_expr(self, expr)

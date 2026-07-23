@@ -24,10 +24,11 @@
  */
 
 #![recursion_limit="256"]
+#![allow(clippy::collapsible_match)]
 
 extern crate proc_macro;
 
-mod gen;
+mod generator;
 
 use quote::{quote, quote_spanned};
 use proc_macro2::TokenStream;
@@ -42,13 +43,13 @@ use syn::{
 };
 use syn::spanned::Spanned;
 
-use gen::{gen_widget, gen_where_clause, parser::dummy_ident};
+use generator::{gen_widget, gen_where_clause, parser::dummy_ident};
 
 #[proc_macro_derive(Msg)]
 pub fn msg(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast: Item = parse(input).expect("msg > parse failed");
-    let gen = impl_msg(&ast, Ident::new("relm", ast.span()));
-    gen.into()
+    let r#gen = impl_msg(&ast, Ident::new("relm", ast.span()));
+    r#gen.into()
 }
 
 #[proc_macro_attribute]

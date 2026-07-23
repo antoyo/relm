@@ -19,7 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-use glib::{Cast, IsA, Object};
+use glib::Object;
+use glib::prelude::{Cast, IsA};
 use gtk::{prelude::ContainerExt, prelude::WidgetExt};
 
 use crate::state::EventStream;

@@ -9,17 +9,22 @@ name = "relm"
 readme = "README.adoc"
 repository = "https://github.com/antoyo/relm"
 version = "0.24.1"
-edition = "2018"
+edition = "2024"
 
 [dependencies]
-cairo-rs = "0.16.1"
+cairo-rs = "0.18.5"
 fragile = "2.0"
-glib = "0.16.2"
-glib-sys = "0.16.0"
-gobject-sys = "0.16.0"
-gtk = "0.16.1"
+gio = "0.18.4"
+glib = "0.18.5"
+glib-sys = "0.18.1"
+gobject-sys = "0.18.0"
+gtk = "0.18.2"
 libc = "^0.2.54"
 log = "^0.4.6"
+target-lexicon = "0.13.3"
+
+[dev-dependencies]
+relm-derive = { path = "./relm-derive" }
 
 [features]
 hidpi = []

@@ -23,7 +23,6 @@ use gtk::{
     prelude::BuilderExtManual,
     Builder,
     Button,
-    Inhibit,
     Label,
     Window,
     prelude::ButtonExt,
@@ -32,6 +31,7 @@ use gtk::{
 };
 use relm_derive::Msg;
 use relm::{connect, Relm, Update, Widget, WidgetTest};
+use glib::Propagation;
 
 struct Model {
     counter: i32,
@@ -112,7 +112,7 @@ impl Widget for Win {
 
         connect!(relm, plus_button, connect_clicked(_), Msg::Increment);
         connect!(relm, minus_button, connect_clicked(_), Msg::Decrement);
-        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Inhibit(false)));
+        connect!(relm, window, connect_delete_event(_, _), return (Some(Msg::Quit), Propagation::Proceed));
 
         Win {
             model,

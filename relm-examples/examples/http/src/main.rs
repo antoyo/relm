@@ -34,9 +34,8 @@ use gio::{
     prelude::{InputStreamExtManual, OutputStreamExtManual},
 };
 use glib::Cast;
-use glib::source::PRIORITY_DEFAULT;
+use glib::Priority;
 use gtk::{
-    Inhibit,
     prelude::ButtonExt,
     prelude::CssProviderExt,
     prelude::ImageExt,
@@ -57,6 +56,7 @@ use relm::{
     execute,
 };
 use relm_derive::{Msg, widget};
+use glib::Propagation;
 use simplelog::{ColorChoice, Config, TermLogger, TerminalMode};
 use simplelog::LevelFilter::Warn;
 use uhttp_uri::HttpUri;
@@ -174,7 +174,7 @@ impl Widget for Win {
                     clicked => FetchUrl,
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
     }
 }
@@ -262,7 +262,7 @@ impl Update for Http {
                     let path = uri.resource.path;
                     let query = uri.resource.query.unwrap_or_default();
                     let buffer = format!("GET {}?{} HTTP/1.1\r\nHost: {}\r\n\r\n", path, query, uri.authority);
-                    connect_async!(writer, write_async(buffer.into_bytes(), PRIORITY_DEFAULT), self.model.relm,
+                    connect_async!(writer, write_async(buffer.into_bytes(), Priority::DEFAULT), self.model.relm,
                         |_| Wrote);
                 }
             },
@@ -276,7 +276,7 @@ impl Update for Http {
                 else {
                     if let Some(ref stream) = self.model.stream {
                         let reader = stream.input_stream();
-                        connect_async!(reader, read_async(vec![0; READ_SIZE], PRIORITY_DEFAULT), self.model.relm, Read);
+                        connect_async!(reader, read_async(vec![0; READ_SIZE], Priority::DEFAULT), self.model.relm, Read);
                     }
                 }
                 buffer.truncate(size);
@@ -326,7 +326,7 @@ impl Update for Http {
             Wrote => {
                 if let Some(ref stream) = self.model.stream {
                     let reader = stream.input_stream();
-                    connect_async!(reader, read_async(vec![0; READ_SIZE], PRIORITY_DEFAULT), self.model.relm, Read);
+                    connect_async!(reader, read_async(vec![0; READ_SIZE], Priority::DEFAULT), self.model.relm, Read);
                 }
             },
         }

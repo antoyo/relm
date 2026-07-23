@@ -26,14 +26,15 @@ use enigo::{Enigo, KeyboardControllable, MouseButton, MouseControllable};
 use gdk::keys::Key;
 use gdk::keys::constants as key;
 use glib::{IsA, Object, object::Cast};
-use gtk::{prelude::*, Inhibit, ToolButton, Widget};
+use gtk::{prelude::*, ToolButton, Widget};
+use glib::Propagation;
 use gtk_test::{self, focus, mouse_move, run_loop, wait_for_draw};
 use relm::StreamHandle;
 
 // TODO: should remove the signal after wait()?
 // FIXME: remove when it's in gtk-test.
 macro_rules! gtk_observer_new {
-    ($widget:expr, $signal_name:ident, |$e1:pat $(,$e:pat)*|) => {{
+    ($widget:expr, $signal_name:ident, |$e1:pat_param $(,$e:pat_param)*|) => {{
         let observer = gtk_test::Observer::new();
         let res = (*observer.get_inner()).clone();
         $widget.$signal_name(move |$e1 $(,$e:expr)*| {
@@ -41,7 +42,7 @@ macro_rules! gtk_observer_new {
         });
         observer
     }};
-    ($widget:expr, $signal_name:ident, |$e1:pat $(,$e:pat)*| $block:block) => {{
+    ($widget:expr, $signal_name:ident, |$e1:pat_param $(,$e:pat_param)*| $block:block) => {{
         let observer = gtk_test::Observer::new();
         let res = (*observer.get_inner()).clone();
         $widget.$signal_name(move |$e1 $(,$e)*| {
@@ -94,7 +95,7 @@ macro_rules! relm_observer_new {
             else {
                 false
             }
-        );
+        )
     };
 }
 
@@ -144,7 +145,7 @@ pub fn click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(widget: 
             }
             else {
                 gtk_observer_new!(widget, connect_button_press_event, |_, _| {
-                    Inhibit(false)
+                    Propagation::Proceed
                 })
             };
         let allocation = widget.allocation();
@@ -169,7 +170,7 @@ pub fn mouse_move_to<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt + IsA<W>>(
 pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W) {
     wait_for_draw(widget, || {
         let observer = gtk_observer_new!(widget, connect_button_release_event, |_, _| {
-            Inhibit(false)
+            Propagation::Proceed
         });
         let allocation = widget.allocation();
         mouse_move(widget, allocation.width() / 2, allocation.height() / 2);
@@ -178,7 +179,7 @@ pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W
         observer.wait();
 
         let observer = gtk_observer_new!(widget, connect_button_release_event, |_, _| {
-            Inhibit(false)
+            Propagation::Proceed
         });
         enigo.mouse_click(MouseButton::Left);
         observer.wait();
@@ -191,7 +192,7 @@ pub fn double_click<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W
 pub fn key_press<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
     wait_for_draw(widget, || {
         let observer = gtk_observer_new!(widget, connect_key_press_event, |_, _| {
-            Inhibit(false)
+            Propagation::Proceed
         });
         focus(widget);
         let mut enigo = Enigo::new();
@@ -205,7 +206,7 @@ pub fn key_press<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, k
 pub fn key_release<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
     wait_for_draw(widget, || {
         let observer = gtk_observer_new!(widget, connect_key_release_event, |_, _| {
-            Inhibit(false)
+            Propagation::Proceed
         });
         focus(widget);
         let mut enigo = Enigo::new();
@@ -219,7 +220,7 @@ pub fn key_release<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W,
 pub fn enter_key<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, key: Key) {
     wait_for_draw(widget, || {
         let observer = gtk_observer_new!(widget, connect_key_release_event, |_, _| {
-            Inhibit(false)
+            Propagation::Proceed
         });
         focus(widget);
         let mut enigo = Enigo::new();
@@ -236,7 +237,7 @@ pub fn enter_keys<W: Clone + IsA<Object> + IsA<Widget> + WidgetExt>(widget: &W, 
         let mut enigo = Enigo::new();
         for char in text.chars() {
             let observer = gtk_observer_new!(widget, connect_key_release_event, |_, _| {
-                Inhibit(false)
+                Propagation::Proceed
             });
             enigo.key_sequence(&char.to_string());
             observer.wait();

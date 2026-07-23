@@ -20,7 +20,6 @@
  */
 
 use gtk::{
-    Inhibit,
     prelude::BoxExt,
     prelude::ButtonExt,
     prelude::GestureDragExt,
@@ -31,6 +30,7 @@ use gtk::{
 use gtk::Orientation::Vertical;
 use relm::Widget;
 use relm_derive::{Msg, widget};
+use glib::Propagation;
 
 use self::Msg::*;
 
@@ -93,7 +93,7 @@ impl Widget for Win {
                     label: "Second",
                 },
             },
-            delete_event(_, _) => (Quit, Inhibit(false)),
+            delete_event(_, _) => (Quit, Propagation::Proceed),
         }
 
         gtk::GestureDrag(&self.drawing_area) {
