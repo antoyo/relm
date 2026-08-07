@@ -302,6 +302,13 @@ impl<MSG> EventStream<MSG> {
 
     /// Close the event stream, i.e. stop processing messages.
     pub fn close(&self) {
+        let stream = self.get_stream();
+        while let Some(msg) = stream.borrow_mut().events.pop_front() {
+            let source_callback = self.get_callback();
+            if let Some(ref mut callback) = *source_callback.borrow_mut() {
+                callback(msg);
+            };
+        }
         self.source.destroy();
     }
 
