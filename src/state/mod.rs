@@ -154,7 +154,11 @@ fn update_component<COMPONENT>(component: &mut COMPONENT, event: COMPONENT::Msg)
         let debug = event.display_variant();
         let debug =
             if debug.len() > 100 {
-                format!("{}…", &debug[..100])
+                let mut end = 100;
+                while !debug.is_char_boundary(end) {
+                    end -= 1;
+                }
+                format!("{}…", &debug[..end])
             }
             else {
                 debug.to_string()
@@ -169,5 +173,55 @@ fn update_component<COMPONENT>(component: &mut COMPONENT, event: COMPONENT::Msg)
     }
     else {
         component.update(event)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{DisplayVariant, Relm, Update, update_component};
+
+    struct Message(&'static str);
+
+    impl DisplayVariant for Message {
+        fn display_variant(&self) -> &'static str {
+            self.0
+        }
+    }
+
+    struct TestComponent {
+        updated: bool,
+    }
+
+    impl Update for TestComponent {
+        type Model = ();
+        type ModelParam = ();
+        type Msg = Message;
+
+        fn model(_: &Relm<Self>, _: ()) {}
+
+        fn update(&mut self, _: Message) {
+            self.updated = true;
+        }
+    }
+
+    fn assert_update(name: String) {
+        let mut component = TestComponent { updated: false };
+        update_component(&mut component, Message(Box::leak(name.into_boxed_str())));
+        assert!(component.updated);
+    }
+
+    #[test]
+    fn update_with_long_ascii_name() {
+        assert_update("a".repeat(101));
+    }
+
+    #[test]
+    fn update_with_two_byte_character_at_log_boundary() {
+        assert_update(format!("{}é", "a".repeat(99)));
+    }
+
+    #[test]
+    fn update_with_three_byte_character_at_log_boundary() {
+        assert_update(format!("{}界", "a".repeat(98)));
     }
 }
